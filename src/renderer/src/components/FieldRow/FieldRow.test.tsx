@@ -50,24 +50,38 @@ describe('FieldGrid', () => {
 })
 
 describe('single-field rows (taxonomy 8)', () => {
-  it('never lets a lone field grow to fill its row', () => {
-    // The rule is "flush left at column width, never stretched". Growth would
-    // come from flex-grow on the row or the box, so assert neither is set.
+  /**
+   * The rule is "flush left at column width, never stretched". That is a
+   * pure CSS property, and jsdom does not apply imported stylesheets — an
+   * earlier version of this test asserted `flexGrow === '0'` and passed
+   * vacuously, since 0 is the CSS default with no stylesheet at all.
+   *
+   * What unit tests can honestly guarantee is that a lone field produces the
+   * same structure as a paired one, so it inherits the same fixed widths.
+   * The visual rule is covered by the SingleFieldNeverStretches story and by
+   * BU-35's screenshot diff.
+   */
+  it('gives a lone field the same structure as a paired one', () => {
     const { container } = render(
       <FieldGrid>
         <FieldRowGroup>
           <FieldRow label="Alone" value="x" />
         </FieldRowGroup>
+        <FieldRowGroup>
+          <FieldRow label="Paired" value="y" />
+          <FieldRow label="Partner" value="z" />
+        </FieldRowGroup>
       </FieldGrid>
     )
 
-    const row = container.querySelector('.field-row')
-    const box = container.querySelector('.field-row-box')
-    expect(row).not.toBeNull()
-    expect(box).not.toBeNull()
+    const groups = container.querySelectorAll('.field-row-group')
+    expect(groups).toHaveLength(2)
 
-    for (const element of [row!, box!]) {
-      expect(getComputedStyle(element).flexGrow).toBe('0')
+    // Same element shape in both, so both read the grid's fixed widths.
+    expect(groups[0]?.querySelectorAll('.field-row')).toHaveLength(1)
+    expect(groups[1]?.querySelectorAll('.field-row')).toHaveLength(2)
+    for (const box of container.querySelectorAll('.field-row-box')) {
+      expect(box.className).toBe('field-row-box')
     }
   })
 })

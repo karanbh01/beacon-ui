@@ -1,0 +1,54 @@
+.tab-bar {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-bottom: 1px solid var(--chrome-border);
+}
+
+.tab-bar-strip {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* The strip owns the bottom rule via .tab-bar, so tabs sit flush on it. */
+  margin-bottom: -1px;
+  scrollbar-width: thin;
+}
+
+/* 4px thumb at 45% muted (taxonomy 9). */
+.tab-bar-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tab-bar-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-bar-strip::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 45%, transparent);
+  border-radius: 2px;
+}
+
+.tab-bar-new {
+  flex: none;
+  width: 28px;
+  height: 34px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tab-bar-new:hover {
+  color: var(--text-primary);
+}
+
+.tab-bar-new:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -3px;
+}
