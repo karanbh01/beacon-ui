@@ -27,14 +27,19 @@ const REQUIRED: ColorToken[] = [
   'chrome-search-bg',
   'chrome-search-stroke',
   'series-2',
-  'series-3'
+  'series-3',
+  // Not in BU-4's list — found bound in the Figma atoms, so the list was short.
+  'chrome-icon'
 ]
+
+/** Figma exports translucent variables with an alpha pair, e.g. #fbf3e233. */
+const HEX = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i
 
 describe('token contract', () => {
   it('defines every required token in both modes', () => {
     for (const mode of MODES) {
       for (const token of REQUIRED) {
-        expect(COLORS[mode][token], `${mode}/${token}`).toMatch(/^#[0-9a-f]{6}$/i)
+        expect(COLORS[mode][token], `${mode}/${token}`).toMatch(HEX)
       }
     }
   })
@@ -49,6 +54,14 @@ describe('token contract', () => {
   it('gives light and dark genuinely different values for surface colours', () => {
     for (const token of ['canvas', 'surface', 'text-primary'] as const) {
       expect(COLORS.light[token]).not.toBe(COLORS.dark[token])
+    }
+  })
+
+  it('preserves alpha on the translucent tokens', () => {
+    // surface and chrome-search-bg are washes over canvas in Figma, not opaque
+    // fills. Dropping the alpha pair would flatten them into solid blocks.
+    for (const token of ['surface', 'chrome-search-bg'] as const) {
+      expect(COLORS.light[token], token).toHaveLength(9)
     }
   })
 })

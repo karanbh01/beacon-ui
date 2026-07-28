@@ -11,6 +11,7 @@ export type ColorToken =
   | 'text-secondary'
   | 'text-muted'
   | 'accent'
+  | 'chrome-icon'
   | 'success'
   | 'danger'
   | 'sidebar-active-bg'
@@ -27,38 +28,40 @@ export type ColorToken =
  */
 export const COLORS: Record<ThemeMode, Record<ColorToken, string>> = {
   light: {
-    'canvas': '#f7f8f9',
-    'surface': '#ffffff',
-    'border': '#d8dcdf',
-    'divider': '#e7eaec',
-    'text-primary': '#16181a',
-    'text-secondary': '#4d5359',
-    'text-muted': '#8b9198',
-    'accent': '#1f6feb',
-    'success': '#1a7f5a',
-    'danger': '#c0392b',
-    'sidebar-active-bg': '#e8f0fe',
-    'chrome-border': '#d8dcdf',
-    'chrome-search-bg': '#ffffff',
-    'chrome-search-stroke': '#cdd2d6',
+    'canvas': '#f5ede0',
+    'surface': '#fbf3e233',
+    'border': '#ddd2b8',
+    'divider': '#e8dfc9',
+    'text-primary': '#2a2419',
+    'text-secondary': '#6b6455',
+    'text-muted': '#8b8577',
+    'accent': '#4a88c7',
+    'chrome-icon': '#62513c',
+    'success': '#4c8a5e',
+    'danger': '#c05c4e',
+    'sidebar-active-bg': '#e5dcc6',
+    'chrome-border': '#ddd2b8',
+    'chrome-search-bg': '#b1997d33',
+    'chrome-search-stroke': '#b1997d',
     'series-2': '#8b5cd6',
     'series-3': '#a86a12'
   },
   dark: {
-    'canvas': '#101112',
-    'surface': '#17191b',
-    'border': '#2a2d30',
-    'divider': '#232629',
-    'text-primary': '#e6e7e8',
-    'text-secondary': '#a1a6ab',
-    'text-muted': '#6f757b',
-    'accent': '#4a9eff',
-    'success': '#4ec9a0',
-    'danger': '#e0645e',
-    'sidebar-active-bg': '#1d2733',
-    'chrome-border': '#2a2d30',
-    'chrome-search-bg': '#1a1d1f',
-    'chrome-search-stroke': '#2f3336',
+    'canvas': '#1a1712',
+    'surface': '#2a241933',
+    'border': '#3d362a',
+    'divider': '#332d23',
+    'text-primary': '#f0e9dc',
+    'text-secondary': '#a8a08f',
+    'text-muted': '#7d766a',
+    'accent': '#6ba6df',
+    'chrome-icon': '#b5a894',
+    'success': '#6fbf8a',
+    'danger': '#e08277',
+    'sidebar-active-bg': '#2f2a20',
+    'chrome-border': '#3d362a',
+    'chrome-search-bg': '#b1997d1f',
+    'chrome-search-stroke': '#6b5c47',
     'series-2': '#c98bdb',
     'series-3': '#e8a33d'
   }

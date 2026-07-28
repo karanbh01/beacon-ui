@@ -24,9 +24,14 @@ function toCamel(name) {
   return name.replace(/-([a-z0-9])/g, (_, char) => char.toUpperCase())
 }
 
+/**
+ * Figma exports translucent variables as 8-digit hex (e.g. surface is
+ * #fbf3e233 — a wash over canvas, not an opaque fill). Rejecting those would
+ * throw away the alpha and flatten washes into solid blocks.
+ */
 function assertValidHex(name, mode, value) {
-  if (!/^#[0-9a-f]{6}$/i.test(value)) {
-    throw new Error(`Token "${name}" mode "${mode}" is not a 6-digit hex colour: ${value}`)
+  if (!/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value)) {
+    throw new Error(`Token "${name}" mode "${mode}" is not a 6- or 8-digit hex colour: ${value}`)
   }
 }
 
@@ -104,6 +109,17 @@ export function cssVar(token: ColorToken): string {
 `
 }
 
+/** Tokens still carrying an invented value, as "name/mode" pairs. */
+function provisional({ modes, tokens }) {
+  const pending = []
+  for (const [name, token] of Object.entries(tokens)) {
+    for (const mode of modes) {
+      if (token.source?.[mode] === 'provisional') pending.push(`${name}/${mode}`)
+    }
+  }
+  return pending
+}
+
 const source = readSource()
 mkdirSync(OUT_DIR, { recursive: true })
 writeFileSync(join(OUT_DIR, 'tokens.css'), buildCss(source), 'utf-8')
@@ -111,3 +127,10 @@ writeFileSync(join(OUT_DIR, 'tokens.ts'), buildTs(source), 'utf-8')
 
 const count = Object.keys(source.tokens).length
 console.log(`tokens: wrote ${String(count)} tokens x ${String(source.modes.length)} modes`)
+
+// Loud rather than buried in JSON: these are placeholders, not the design.
+const pending = provisional(source)
+if (pending.length > 0) {
+  console.log(`tokens: ${String(pending.length)} value(s) still provisional:`)
+  for (const entry of pending) console.log(`  - ${entry}`)
+}

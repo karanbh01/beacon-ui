@@ -3,93 +3,119 @@
     "Source of truth for colour tokens. Everything under src/renderer/src/tokens",
     "is GENERATED from this file by scripts/build-tokens.mjs — edit here, not there.",
     "",
-    "PROVISIONAL VALUES. These have not yet been exported from Figma variables:",
-    "the file key in the BU-4 spec (0GMEqKcFlQRBUgSpTpjAYN) resolves to the",
-    "splash-screen file, which has one page and no variables. Swapping in the real",
-    "palette is an edit to this file plus `pnpm run tokens:build` — no component",
-    "changes. See issue #4."
+    "Each token carries `source` per mode:",
+    "  figma       — read from the Figma variable, verified.",
+    "  provisional — invented placeholder, NOT the real value. Replace.",
+    "",
+    "Light values were harvested from the atoms (Tab 118:6, Button 388:146,",
+    "Field 388:147, Stat 388:153, Ticker Field 388:11440, Pane Header 388:11538).",
+    "Those atoms only reference nine tokens; canvas, divider, success, danger,",
+    "sidebar-active-bg and chrome-border appear only in the full view mocks, and",
+    "no dark-mode frame has been located yet. See issue #4."
   ],
   "modes": ["light", "dark"],
   "tokens": {
     "canvas": {
       "description": "App background; also the zebra stripe inside surface cards.",
-      "light": "#f7f8f9",
-      "dark": "#101112"
+      "light": "#f5ede0",
+      "dark": "#1a1712",
+      "source": { "light": "provisional", "dark": "provisional" }
     },
     "surface": {
-      "description": "Card and pane fill.",
-      "light": "#ffffff",
-      "dark": "#17191b"
+      "description": "Card and pane fill. Translucent by design — a wash over canvas, not an opaque fill.",
+      "light": "#fbf3e233",
+      "dark": "#2a241933",
+      "source": { "light": "figma", "dark": "provisional" }
     },
     "border": {
       "description": "Card and control outlines.",
-      "light": "#d8dcdf",
-      "dark": "#2a2d30"
+      "light": "#ddd2b8",
+      "dark": "#3d362a",
+      "source": { "light": "figma", "dark": "provisional" }
     },
     "divider": {
       "description": "Hairline rules inside a surface; table thead underline, dot separators.",
-      "light": "#e7eaec",
-      "dark": "#232629"
+      "light": "#e8dfc9",
+      "dark": "#332d23",
+      "source": { "light": "provisional", "dark": "provisional" }
     },
     "text-primary": {
       "description": "Values, headings, active labels.",
-      "light": "#16181a",
-      "dark": "#e6e7e8"
+      "light": "#2a2419",
+      "dark": "#f0e9dc",
+      "source": { "light": "figma", "dark": "provisional" }
     },
     "text-secondary": {
       "description": "Read-only field values, benchmark chart lines.",
-      "light": "#4d5359",
-      "dark": "#a1a6ab"
+      "light": "#6b6455",
+      "dark": "#a8a08f",
+      "source": { "light": "figma", "dark": "provisional" }
     },
     "text-muted": {
       "description": "Field labels, table headers, axes, footnotes.",
-      "light": "#8b9198",
-      "dark": "#6f757b"
+      "light": "#8b8577",
+      "dark": "#7d766a",
+      "source": { "light": "figma", "dark": "provisional" }
     },
     "accent": {
       "description": "Primary chart series, affirmative button outlines, active states.",
-      "light": "#1f6feb",
-      "dark": "#4a9eff"
+      "light": "#4a88c7",
+      "dark": "#6ba6df",
+      "source": { "light": "figma", "dark": "provisional" }
+    },
+    "chrome-icon": {
+      "description": "Menu bar and sidebar glyph fill. NOT in the BU-4 token list — found in the Figma atoms, so the issue's list was incomplete.",
+      "light": "#62513c",
+      "dark": "#b5a894",
+      "source": { "light": "figma", "dark": "provisional" }
     },
     "success": {
       "description": "Positive signed numerics; right side of diverging bars.",
-      "light": "#1a7f5a",
-      "dark": "#4ec9a0"
+      "light": "#4c8a5e",
+      "dark": "#6fbf8a",
+      "source": { "light": "provisional", "dark": "provisional" }
     },
     "danger": {
       "description": "Negative signed numerics; left side of diverging bars.",
-      "light": "#c0392b",
-      "dark": "#e0645e"
+      "light": "#c05c4e",
+      "dark": "#e08277",
+      "source": { "light": "provisional", "dark": "provisional" }
     },
     "sidebar-active-bg": {
       "description": "Active sidebar page wash; also the full-row selection wash (taxonomy 5).",
-      "light": "#e8f0fe",
-      "dark": "#1d2733"
+      "light": "#e5dcc6",
+      "dark": "#2f2a20",
+      "source": { "light": "provisional", "dark": "provisional" }
     },
     "chrome-border": {
       "description": "Menu bar, sidebar and footer edges; chip strokes at 0.5px.",
-      "light": "#d8dcdf",
-      "dark": "#2a2d30"
+      "light": "#ddd2b8",
+      "dark": "#3d362a",
+      "source": { "light": "provisional", "dark": "provisional" }
     },
     "chrome-search-bg": {
-      "description": "Menu bar search field fill.",
-      "light": "#ffffff",
-      "dark": "#1a1d1f"
+      "description": "Menu bar search field fill. Translucent by design.",
+      "light": "#b1997d33",
+      "dark": "#b1997d1f",
+      "source": { "light": "figma", "dark": "provisional" }
     },
     "chrome-search-stroke": {
       "description": "Menu bar search field outline.",
-      "light": "#cdd2d6",
-      "dark": "#2f3336"
+      "light": "#b1997d",
+      "dark": "#6b5c47",
+      "source": { "light": "figma", "dark": "provisional" }
     },
     "series-2": {
-      "description": "NEW in BU-4. Second compare line. Previously borrowed success, which wrongly implied 'up'.",
+      "description": "NEW in BU-4. Second compare line. Previously borrowed success, which wrongly implied 'up'. Needs mirroring back into Figma.",
       "light": "#8b5cd6",
-      "dark": "#c98bdb"
+      "dark": "#c98bdb",
+      "source": { "light": "new", "dark": "new" }
     },
     "series-3": {
-      "description": "NEW in BU-4. Third compare line. Previously borrowed danger, which wrongly implied 'down'. Deliberately distinct from raw.heatmap-mid, which is a different amber — a compare line must not read as a heatmap cell.",
+      "description": "NEW in BU-4. Third compare line. Previously borrowed danger, which wrongly implied 'down'. Deliberately distinct from raw.heatmap-mid — a compare line must not read as a heatmap cell. Needs mirroring back into Figma.",
       "light": "#a86a12",
-      "dark": "#e8a33d"
+      "dark": "#e8a33d",
+      "source": { "light": "new", "dark": "new" }
     }
   },
   "raw": {
