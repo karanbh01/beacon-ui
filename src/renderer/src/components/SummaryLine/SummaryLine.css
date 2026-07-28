@@ -1,0 +1,46 @@
+/* Taxonomy 7, tier 2. */
+
+.summary-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+}
+
+.summary-pair {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.summary-label {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.summary-value {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.summary-value.tone-positive {
+  color: var(--success);
+}
+
+.summary-value.tone-negative {
+  color: var(--danger);
+}
+
+/*
+ * Separator takes divider, not text-muted — it is a rule between pairs, not
+ * a piece of text, and reading it as content would flatten the hierarchy.
+ */
+.summary-sep {
+  color: var(--divider);
+}
