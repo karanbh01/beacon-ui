@@ -1,0 +1,133 @@
+/* Taxonomy 9; measured against the Weights table 355:2331. */
+
+.tbl {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tbl-caption {
+  display: block;
+  padding: 10px 16px 0;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+}
+
+.tbl-head,
+.tbl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.tbl-head {
+  height: 28px;
+  border-bottom: 1px solid var(--divider);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: normal;
+  color: var(--text-muted);
+}
+
+.tbl-row {
+  height: 28px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-secondary);
+}
+
+/* Zebra is a canvas fill over the surface card, not a separate grey. */
+.tbl-zebra {
+  background: var(--canvas);
+}
+
+.tbl-cell {
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Numerics right-align so decimal points stack. */
+.tbl-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tbl-emphasis {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.tbl-clickable {
+  cursor: pointer;
+}
+
+/*
+ * Selection is a full-row wash — never a chip, never a border highlight
+ * (taxonomy 5). It sits after .tbl-zebra so it wins on alternating rows.
+ */
+.tbl-selected,
+.tbl-selected.tbl-zebra {
+  background: var(--sidebar-active-bg);
+}
+
+/* Totals are divided from the body above and carry Medium weight. */
+.tbl-total {
+  border-top: 1px solid var(--divider);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.tbl-body {
+  position: relative;
+  scrollbar-width: thin;
+}
+
+/* 4px thumb at 45% muted, only when clipped (taxonomy 9). */
+.tbl-body::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.tbl-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tbl-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 45%, transparent);
+  border-radius: 2px;
+}
+
+/* Weight bar: 8px tall in a 12px lane, accent, 1.5px radius. */
+.tbl-bar {
+  position: relative;
+  height: 12px;
+  overflow: hidden;
+}
+
+.tbl-bar-fill {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 1.5px;
+}
+
+/* Signed numerics in tables (taxonomy 9). */
+.num-pos {
+  color: var(--success);
+}
+
+.num-neg {
+  color: var(--danger);
+}
