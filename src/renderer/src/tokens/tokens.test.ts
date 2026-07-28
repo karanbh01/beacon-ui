@@ -28,8 +28,17 @@ const REQUIRED: ColorToken[] = [
   'chrome-search-stroke',
   'series-2',
   'series-3',
-  // Not in BU-4's list — found bound in the Figma atoms, so the list was short.
-  'chrome-icon'
+  // Bound in Figma but absent from BU-4's list, which named only 14 of 24.
+  'chrome-icon',
+  'chrome-text',
+  'info-text',
+  'info-bg',
+  'status-done-text',
+  'status-done-bg',
+  'status-running-text',
+  'status-running-bg',
+  'status-failed-text',
+  'status-failed-bg'
 ]
 
 /** Figma exports translucent variables with an alpha pair, e.g. #fbf3e233. */
