@@ -1,6 +1,8 @@
+@import './tokens/tokens.css';
+
 /*
- * Scaffold styling only. The token pipeline (BU-4) replaces these literals
- * with CSS custom properties driven by the Figma variable export.
+ * Scaffold shell styling. Real app chrome (menu bar, sidebar, footer) is
+ * BU-15. Every colour resolves through a token — no literals below this line.
  */
 
 * {
@@ -15,24 +17,26 @@ body {
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  background: #101112;
-  color: #e6e7e8;
+  background: var(--canvas);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
 }
 
 .scaffold {
+  padding: 20px 24px;
+}
+
+.scaffold-bar {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 100vh;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .mark {
-  font-size: 40px;
+  font-size: 20px;
   line-height: 1;
-  color: #4a9eff;
+  color: var(--accent);
 }
 
 h1 {
@@ -44,18 +48,37 @@ h1 {
 .sub {
   margin: 0;
   font-size: 11px;
-  color: #8b8f94;
+  color: var(--text-muted);
 }
 
-.bridge {
-  margin-top: 18px;
+.theme-toggle {
+  margin-left: auto;
+  padding: 4px 10px;
+  font: inherit;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #4ec9a0;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.bridge {
+  margin: 18px 0 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--success);
 }
 
 .bridge.pending {
-  color: #8b8f94;
+  color: var(--text-muted);
+}
+
+.bridge.failed {
+  color: var(--danger);
 }

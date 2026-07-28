@@ -1,0 +1,119 @@
+/*
+ * Every colour here is a var(--token). Nothing in this file changes when the
+ * theme changes — that is the point of BU-4.
+ */
+
+.demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.demo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 18px;
+}
+
+.demo-head {
+  margin: 0 0 14px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 14px;
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch-chip {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  flex: none;
+}
+
+.swatch-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.demo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.demo-table thead th {
+  padding: 0 8px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--divider);
+}
+
+.demo-table tbody td {
+  padding: 6px 8px;
+  color: var(--text-primary);
+}
+
+.demo-table tbody tr:nth-child(even) {
+  background: var(--canvas);
+}
+
+.demo-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-table .pos {
+  color: var(--success);
+}
+
+.demo-table .neg {
+  color: var(--danger);
+}
+
+.demo-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.btn {
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Affirmative buttons are accent outline, never filled (taxonomy 5). */
+.btn.accent {
+  color: var(--accent);
+  background: transparent;
+  border-color: var(--accent);
+}
+
+.demo-foot {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}

@@ -46,13 +46,17 @@ export default tseslint.config(
     }
   },
 
-  // Config files sit outside both tsconfig projects.
+  // Config files and build scripts sit outside both tsconfig projects, so the
+  // type-aware rules have no program to resolve them against.
   {
-    files: ['*.config.{js,mjs,ts}', 'eslint.config.mjs'],
+    files: ['*.config.{js,mjs,ts}', 'eslint.config.mjs', 'scripts/**/*.{js,mjs}'],
+    // Spread first: disableTypeChecked carries its own languageOptions and
+    // would otherwise clobber the globals below.
+    ...tseslint.configs.disableTypeChecked,
     languageOptions: {
-      parserOptions: { project: null }
-    },
-    ...tseslint.configs.disableTypeChecked
+      parserOptions: { project: null },
+      globals: { console: 'readonly', process: 'readonly' }
+    }
   },
 
   // Must stay last: turns off everything prettier owns.

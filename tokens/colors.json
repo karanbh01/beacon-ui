@@ -1,0 +1,106 @@
+{
+  "comment": [
+    "Source of truth for colour tokens. Everything under src/renderer/src/tokens",
+    "is GENERATED from this file by scripts/build-tokens.mjs — edit here, not there.",
+    "",
+    "PROVISIONAL VALUES. These have not yet been exported from Figma variables:",
+    "the file key in the BU-4 spec (0GMEqKcFlQRBUgSpTpjAYN) resolves to the",
+    "splash-screen file, which has one page and no variables. Swapping in the real",
+    "palette is an edit to this file plus `pnpm run tokens:build` — no component",
+    "changes. See issue #4."
+  ],
+  "modes": ["light", "dark"],
+  "tokens": {
+    "canvas": {
+      "description": "App background; also the zebra stripe inside surface cards.",
+      "light": "#f7f8f9",
+      "dark": "#101112"
+    },
+    "surface": {
+      "description": "Card and pane fill.",
+      "light": "#ffffff",
+      "dark": "#17191b"
+    },
+    "border": {
+      "description": "Card and control outlines.",
+      "light": "#d8dcdf",
+      "dark": "#2a2d30"
+    },
+    "divider": {
+      "description": "Hairline rules inside a surface; table thead underline, dot separators.",
+      "light": "#e7eaec",
+      "dark": "#232629"
+    },
+    "text-primary": {
+      "description": "Values, headings, active labels.",
+      "light": "#16181a",
+      "dark": "#e6e7e8"
+    },
+    "text-secondary": {
+      "description": "Read-only field values, benchmark chart lines.",
+      "light": "#4d5359",
+      "dark": "#a1a6ab"
+    },
+    "text-muted": {
+      "description": "Field labels, table headers, axes, footnotes.",
+      "light": "#8b9198",
+      "dark": "#6f757b"
+    },
+    "accent": {
+      "description": "Primary chart series, affirmative button outlines, active states.",
+      "light": "#1f6feb",
+      "dark": "#4a9eff"
+    },
+    "success": {
+      "description": "Positive signed numerics; right side of diverging bars.",
+      "light": "#1a7f5a",
+      "dark": "#4ec9a0"
+    },
+    "danger": {
+      "description": "Negative signed numerics; left side of diverging bars.",
+      "light": "#c0392b",
+      "dark": "#e0645e"
+    },
+    "sidebar-active-bg": {
+      "description": "Active sidebar page wash; also the full-row selection wash (taxonomy 5).",
+      "light": "#e8f0fe",
+      "dark": "#1d2733"
+    },
+    "chrome-border": {
+      "description": "Menu bar, sidebar and footer edges; chip strokes at 0.5px.",
+      "light": "#d8dcdf",
+      "dark": "#2a2d30"
+    },
+    "chrome-search-bg": {
+      "description": "Menu bar search field fill.",
+      "light": "#ffffff",
+      "dark": "#1a1d1f"
+    },
+    "chrome-search-stroke": {
+      "description": "Menu bar search field outline.",
+      "light": "#cdd2d6",
+      "dark": "#2f3336"
+    },
+    "series-2": {
+      "description": "NEW in BU-4. Second compare line. Previously borrowed success, which wrongly implied 'up'.",
+      "light": "#8b5cd6",
+      "dark": "#c98bdb"
+    },
+    "series-3": {
+      "description": "NEW in BU-4. Third compare line. Previously borrowed danger, which wrongly implied 'down'. Deliberately distinct from raw.heatmap-mid, which is a different amber — a compare line must not read as a heatmap cell.",
+      "light": "#a86a12",
+      "dark": "#e8a33d"
+    }
+  },
+  "raw": {
+    "comment": [
+      "Mode-independent by approval (taxonomy 9). The risk heatmap colormap is a",
+      "measurement scale, not themed chrome, so it must not flip between modes.",
+      "Emitted as TS constants only — deliberately not CSS variables, so they",
+      "cannot be picked up by ordinary themed components."
+    ],
+    "heatmap-low": "#4ca56b",
+    "heatmap-mid": "#d9b34c",
+    "heatmap-high": "#ca5851"
+  }
+}

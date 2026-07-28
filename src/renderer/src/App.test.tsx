@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { AppInfo } from '@shared/ipc'
 import { App } from './App'
@@ -39,5 +40,40 @@ describe('App', () => {
     render(<App />)
 
     expect(await screen.findByText(/bridge ok/)).toHaveTextContent('beacon 0.0.1')
+  })
+
+  it('degrades instead of unmounting when the bridge rejects', async () => {
+    // An uncaught throw in the effect tears down the whole tree and leaves a
+    // blank window. The demo must still be on screen.
+    stubBridge(() => Promise.reject(new Error('no handler registered')))
+
+    render(<App />)
+
+    expect(await screen.findByText('bridge: unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Tokens')).toBeInTheDocument()
+  })
+
+  it('degrades when the bridge is missing entirely', async () => {
+    vi.stubGlobal('beacon', undefined)
+
+    render(<App />)
+
+    expect(await screen.findByText('bridge: unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Tokens')).toBeInTheDocument()
+  })
+})
+
+describe('theme switching (BU-4 acceptance)', () => {
+  it('restyles by setting data-theme on the root, nothing else', async () => {
+    stubBridge(() => Promise.resolve(INFO))
+    render(<App />)
+
+    expect(document.documentElement.dataset.theme).toBe('dark')
+
+    await userEvent.click(screen.getByRole('button', { name: 'dark' }))
+    expect(document.documentElement.dataset.theme).toBe('light')
+
+    await userEvent.click(screen.getByRole('button', { name: 'light' }))
+    expect(document.documentElement.dataset.theme).toBe('dark')
   })
 })

@@ -29,6 +29,11 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # Generated token artefacts are committed so the app builds without a
+      # codegen step; this fails if they drift from tokens/colors.json.
+      - name: Token drift
+        run: pnpm run tokens:check
+
       - name: Format check
         run: pnpm run format:check
 
