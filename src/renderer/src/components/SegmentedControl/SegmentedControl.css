@@ -1,0 +1,35 @@
+/* Figma 266:2830. */
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.segment {
+  padding: 4px 9px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-secondary);
+  background: transparent;
+  /* No dividers between segments — the wash marks position on its own. */
+  border: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segment-active {
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--sidebar-active-bg);
+}
+
+.segment:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -2px;
+}

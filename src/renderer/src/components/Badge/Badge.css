@@ -1,0 +1,47 @@
+/* Figma 324:1573. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: normal;
+  color: var(--accent);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Figma set 68:351. Fully rounded, filled — a state, not a type. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 18px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 17.4px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.pill-done {
+  color: var(--status-done-text);
+  background: var(--status-done-bg);
+}
+
+.pill-running {
+  color: var(--status-running-text);
+  background: var(--status-running-bg);
+}
+
+.pill-failed {
+  color: var(--status-failed-text);
+  background: var(--status-failed-bg);
+}
+
+.pill-info {
+  color: var(--info-text);
+  background: var(--info-bg);
+}

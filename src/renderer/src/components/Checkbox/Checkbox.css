@@ -1,0 +1,62 @@
+/*
+ * Provisional — see the component doc comment. No Figma source yet.
+ */
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-input {
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  flex: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+/* Accent outline, not an accent fill — affirmative controls are outlined. */
+.checkbox-input:checked {
+  border-color: var(--accent);
+  background: var(--sidebar-active-bg);
+}
+
+.checkbox-input:checked::after {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 6px;
+  margin: 1px 0 0 4px;
+  border: solid var(--accent);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-input:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.checkbox-input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.checkbox-label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.checkbox-input:disabled + .checkbox-label {
+  color: var(--text-muted);
+  cursor: default;
+}

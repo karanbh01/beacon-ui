@@ -72,10 +72,10 @@ describe('theme switching', () => {
     stubBridge(() => Promise.resolve(INFO))
     render(<App />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'dark' }))
+    await userEvent.click(screen.getByRole('radio', { name: 'dark' }))
     expect(document.documentElement.dataset.theme).toBe('dark')
 
-    await userEvent.click(screen.getByRole('button', { name: 'light' }))
+    await userEvent.click(screen.getByRole('radio', { name: 'light' }))
     expect(document.documentElement.dataset.theme).toBe('light')
   })
 
@@ -84,12 +84,12 @@ describe('theme switching', () => {
     const first = render(<App />)
     await screen.findByText(/bridge ok/)
 
-    await userEvent.click(screen.getByRole('button', { name: 'dark' }))
+    await userEvent.click(screen.getByRole('radio', { name: 'dark' }))
     first.unmount()
 
     render(<App />)
     await screen.findByText(/bridge ok/)
 
-    expect(screen.getByRole('button', { name: 'dark' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('radio', { name: 'dark' })).toHaveAttribute('aria-checked', 'true')
   })
 })

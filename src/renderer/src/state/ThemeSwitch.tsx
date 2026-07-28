@@ -1,27 +1,28 @@
 import type { ReactElement } from 'react'
-import { THEME_PREFERENCES, type ThemeControl } from './theme'
+import { SegmentedControl } from '../components/SegmentedControl/SegmentedControl'
+import { THEME_PREFERENCES, type ThemeControl, type ThemePreference } from './theme'
 import './ThemeSwitch.css'
 
 /**
- * Segmented control over light / dark / system. The real one lives in the
- * menu bar (BU-15); this is its demo host.
+ * Theme picker. Uses the real SegmentedControl rather than a bespoke one —
+ * the original had dividers between segments, which the Figma range control
+ * (266:2830) does not.
+ *
+ * The final home for this is the menu bar (BU-15); this is its demo host.
  */
 export function ThemeSwitch({ preference, mode, setPreference }: ThemeControl): ReactElement {
+  const segments = THEME_PREFERENCES.map((option) => ({
+    value: option,
+    label: option === 'system' ? `system (${mode})` : option
+  }))
+
   return (
-    <div className="theme-switch" role="group" aria-label="Theme">
-      {THEME_PREFERENCES.map((option) => (
-        <button
-          key={option}
-          type="button"
-          className={option === preference ? 'seg active' : 'seg'}
-          aria-pressed={option === preference}
-          onClick={() => {
-            setPreference(option)
-          }}
-        >
-          {option === 'system' ? `system (${mode})` : option}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl<ThemePreference>
+      segments={segments}
+      value={preference}
+      onChange={setPreference}
+      label="Theme"
+      className="theme-switch"
+    />
   )
 }

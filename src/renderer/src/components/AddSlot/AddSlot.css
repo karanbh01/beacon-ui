@@ -1,0 +1,34 @@
+/* Figma 325:1611/1612. */
+
+.add-slot-row {
+  display: flex;
+  align-items: center;
+  padding-right: 16px;
+}
+
+.add-slot {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-muted);
+  background: transparent;
+  /* Dashed = empty slot. Solid would read as a filled control. */
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  white-space: pre;
+  cursor: pointer;
+}
+
+.add-slot:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.add-slot:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
