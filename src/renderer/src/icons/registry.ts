@@ -2,6 +2,7 @@
 
 import {
   ChevronIcon,
+  ChainIcon,
   GridIcon,
   LineChartIcon,
   CubeIcon,
@@ -15,6 +16,7 @@ import {
 /** Every icon, for gallery and story enumeration. */
 export const ICONS = {
   ChevronIcon,
+  ChainIcon,
   GridIcon,
   LineChartIcon,
   CubeIcon,

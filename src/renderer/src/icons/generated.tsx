@@ -28,6 +28,26 @@ export function ChevronIcon({ size = 16, ...props }: IconProps): ReactElement {
   )
 }
 
+/** Figma 388:11442. Box 9x9. */
+export function ChainIcon({ size = 16, ...props }: IconProps): ReactElement {
+  return (
+    <svg
+      viewBox="0 0 9 9"
+      height={size}
+      width={size}
+      fill="none"
+      focusable="false"
+      aria-hidden={props['aria-label'] === undefined ? true : undefined}
+      {...props}
+    >
+      <g transform="translate(0.207 0.927)"><g>
+<path d="M2.10011 2.88187L1.08187 3.90011C0.484371 4.49761 0.484371 5.46635 1.08187 6.06385C1.67938 6.66136 2.64812 6.66136 3.24562 6.06385L4.26385 5.04562C4.86136 4.44812 4.86136 3.47938 4.26385 2.88187C3.66635 2.28437 2.69761 2.28437 2.10011 2.88187Z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+<path d="M5.34011 1.08187L4.32187 2.10011C3.72437 2.69761 3.72437 3.66635 4.32187 4.26385C4.91938 4.86136 5.88812 4.86136 6.48562 4.26385L7.50385 3.24562C8.10136 2.64812 8.10136 1.67938 7.50385 1.08187C6.90635 0.484371 5.93761 0.484372 5.34011 1.08187Z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+</g></g>
+    </svg>
+  )
+}
+
 /** Figma 25:2. Box 31x31. */
 export function GridIcon({ size = 16, ...props }: IconProps): ReactElement {
   return (

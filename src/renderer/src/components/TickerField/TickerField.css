@@ -1,0 +1,48 @@
+/* Figma 388:11440. 32px tall, 12px horizontal padding, 5px radius. */
+
+.ticker-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 440px;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--chrome-search-bg);
+  border: 1px solid var(--chrome-search-stroke);
+  border-radius: 5px;
+}
+
+/* Accent, matching the exported glyph — a link is an active relationship. */
+.ticker-chain {
+  flex: none;
+  color: var(--accent);
+}
+
+.ticker-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: normal;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.ticker-hint {
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Focus lands on the box, not the bare input, so the whole control reads. */
+.ticker-field:focus-within {
+  border-color: var(--accent);
+}

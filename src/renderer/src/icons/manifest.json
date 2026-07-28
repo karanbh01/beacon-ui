@@ -26,6 +26,13 @@
       "parts": [{ "file": "chevron.svg", "x": 7.0056, "y": 9.5064 }]
     },
     {
+      "name": "Chain",
+      "figmaNode": "388:11442",
+      "comment": "The link-glyph inside Ticker Field. Means 'this value follows something else' (taxonomy 2) — pinned to a document, or linked to another tab's subject.",
+      "box": [9, 9],
+      "parts": [{ "file": "chain.svg", "x": 0.207, "y": 0.927 }]
+    },
+    {
       "name": "Grid",
       "figmaNode": "25:2",
       "box": [31, 31],
