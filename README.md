@@ -16,14 +16,21 @@ pnpm dev        # opens the app with hot reload in renderer and main
 
 ## Scripts
 
-| Script           | Does                                    |
-| ---------------- | --------------------------------------- |
-| `pnpm dev`       | Dev build + Electron, hot reload         |
-| `pnpm build`     | Production build into `out/`             |
-| `pnpm start`     | Preview the production build             |
-| `pnpm typecheck` | Typecheck the node and web projects      |
+| Script               | Does                                                 |
+| -------------------- | ---------------------------------------------------- |
+| `pnpm dev`           | Dev build + Electron, hot reload (renderer and main) |
+| `pnpm build`         | Production build into `out/`                         |
+| `pnpm start`         | Preview the production build                         |
+| `pnpm typecheck`     | Typecheck the node and web projects                  |
+| `pnpm lint`          | eslint, type-aware strict rules                      |
+| `pnpm format`        | prettier, write in place                             |
+| `pnpm test`          | vitest, single run                                   |
+| `pnpm test:watch`    | vitest, watch mode                                   |
+| `pnpm test:coverage` | vitest with v8 coverage                              |
+| `pnpm pack:dry`      | electron-builder unpacked, no publish                |
 
-Lint, format and test scripts arrive with CI in BU-2.
+CI runs format check, lint, typecheck and tests on every push to `main` and
+every PR; the packaging dry-run runs on `main` only.
 
 ## Layout
 

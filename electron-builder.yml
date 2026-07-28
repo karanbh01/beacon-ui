@@ -1,0 +1,17 @@
+# Minimal config so CI can run a packaging dry-run (BU-2). Real targets,
+# icons and the bundled python payload are BU-33.
+appId: com.beacon.ui
+productName: Beacon
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+mac:
+  target: dmg
+  category: public.app-category.finance
+win:
+  target: nsis
+linux:
+  target: AppImage

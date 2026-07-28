@@ -23,7 +23,8 @@ export interface AppInfo {
  */
 export interface IpcContract {
   'app:info': {
-    request: void
+    /** No payload. */
+    request: undefined
     response: AppInfo
   }
 }

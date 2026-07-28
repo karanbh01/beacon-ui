@@ -33,7 +33,7 @@ export function createMainWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
-  const devServerUrl = process.env['ELECTRON_RENDERER_URL']
+  const devServerUrl = process.env.ELECTRON_RENDERER_URL
   if (devServerUrl !== undefined && devServerUrl !== '') {
     void window.loadURL(devServerUrl)
   } else {

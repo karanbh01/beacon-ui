@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactElement } from 'react'
 import type { AppInfo } from '@shared/ipc'
 
 /**
@@ -6,7 +7,7 @@ import type { AppInfo } from '@shared/ipc'
  * the renderer mounts, the preload bridge is reachable, and hot reload works.
  * The real shell arrives in BU-15.
  */
-export function App(): JSX.Element {
+export function App(): ReactElement {
   const [info, setInfo] = useState<AppInfo | null>(null)
 
   useEffect(() => {
