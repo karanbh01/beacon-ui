@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { AppInfo } from '@shared/ipc'
-import type { ThemeMode } from './tokens/tokens'
 import { TokenDemo } from './tokens/TokenDemo'
+import { ThemeSwitch } from './state/ThemeSwitch'
+import { useTheme } from './state/theme'
 
-/**
- * Scaffold host for the BU-4 token demo. The toggle here does exactly one
- * thing — set `data-theme` on the root element — which is the whole
- * demonstration: no component takes a theme prop or re-reads a colour.
- *
- * Persisted light/dark/follow-OS switching is BU-5; the app shell is BU-15.
- */
 type BridgeState = { status: 'pending' } | { status: 'ok'; info: AppInfo } | { status: 'failed' }
 
+/**
+ * Scaffold host for the token demo and theme switch. Switching only ever sets
+ * `data-theme` on the root element — no component takes a theme prop or
+ * re-reads a colour, which is the point of BU-4.
+ *
+ * The app shell this eventually lives in is BU-15.
+ */
 export function App(): ReactElement {
   const [bridge, setBridge] = useState<BridgeState>({ status: 'pending' })
-  const [theme, setTheme] = useState<ThemeMode>('dark')
+  const theme = useTheme()
 
   useEffect(() => {
     // Never let a bridge failure escape this effect. An uncaught throw here
@@ -32,25 +33,13 @@ export function App(): ReactElement {
     void load()
   }, [])
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-  }, [theme])
-
   return (
     <main className="scaffold">
       <div className="scaffold-bar">
         <span className="mark">&beta;</span>
         <h1>beacon-ui</h1>
-        <p className="sub">Token demo &middot; BU-4</p>
-        <button
-          type="button"
-          className="theme-toggle"
-          onClick={() => {
-            setTheme(theme === 'dark' ? 'light' : 'dark')
-          }}
-        >
-          {theme}
-        </button>
+        <p className="sub">Token demo &middot; BU-4/BU-5</p>
+        <ThemeSwitch {...theme} />
       </div>
 
       <TokenDemo />

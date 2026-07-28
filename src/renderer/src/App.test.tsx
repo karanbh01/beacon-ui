@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppInfo } from '@shared/ipc'
 import { App } from './App'
 
@@ -63,17 +63,33 @@ describe('App', () => {
   })
 })
 
-describe('theme switching (BU-4 acceptance)', () => {
+describe('theme switching', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   it('restyles by setting data-theme on the root, nothing else', async () => {
     stubBridge(() => Promise.resolve(INFO))
     render(<App />)
 
-    expect(document.documentElement.dataset.theme).toBe('dark')
-
     await userEvent.click(screen.getByRole('button', { name: 'dark' }))
-    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(document.documentElement.dataset.theme).toBe('dark')
 
     await userEvent.click(screen.getByRole('button', { name: 'light' }))
-    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(document.documentElement.dataset.theme).toBe('light')
+  })
+
+  it('persists the choice across a remount', async () => {
+    stubBridge(() => Promise.resolve(INFO))
+    const first = render(<App />)
+    await screen.findByText(/bridge ok/)
+
+    await userEvent.click(screen.getByRole('button', { name: 'dark' }))
+    first.unmount()
+
+    render(<App />)
+    await screen.findByText(/bridge ok/)
+
+    expect(screen.getByRole('button', { name: 'dark' })).toHaveAttribute('aria-pressed', 'true')
   })
 })

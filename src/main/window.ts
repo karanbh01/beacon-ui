@@ -11,7 +11,11 @@ export function createMainWindow(): BrowserWindow {
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
     show: false,
-    backgroundColor: '#101112',
+    // The dark canvas token. Only visible if ready-to-show is slow, but a
+    // stale literal here would flash a colour that is no longer in the
+    // palette. Kept in sync with tokens/colors.json canvas/dark by hand —
+    // main cannot import the renderer's generated tokens.
+    backgroundColor: '#232323',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
