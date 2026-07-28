@@ -6,7 +6,16 @@ import prettier from 'eslint-config-prettier'
 
 export default tseslint.config(
   {
-    ignores: ['out/**', 'dist/**', 'release/**', 'node_modules/**', 'coverage/**']
+    // Flat config does not read .gitignore, so build output has to be listed
+    // here too or a local build makes `pnpm lint` fail on generated bundles.
+    ignores: [
+      'out/**',
+      'dist/**',
+      'release/**',
+      'node_modules/**',
+      'coverage/**',
+      'storybook-static/**'
+    ]
   },
   js.configs.recommended,
 
