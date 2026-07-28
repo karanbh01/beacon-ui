@@ -54,10 +54,18 @@ function toJsx(markup) {
 function partMarkup(part) {
   const raw = readFileSync(join(SVG_DIR, part.file), 'utf-8')
   const body = toJsx(recolour(innerMarkup(raw)))
-  if (part.x === undefined && part.y === undefined) return body
-  const x = part.x ?? 0
-  const y = part.y ?? 0
-  return `<g transform="translate(${String(x)} ${String(y)})">${body}</g>`
+
+  // Figma applies some transforms on the component wrapper rather than baking
+  // them into the exported vector, so the raw asset can be mirrored or
+  // rotated relative to what the design shows. `transform` restores those.
+  const transforms = []
+  if (part.x !== undefined || part.y !== undefined) {
+    transforms.push(`translate(${String(part.x ?? 0)} ${String(part.y ?? 0)})`)
+  }
+  if (part.transform !== undefined) transforms.push(part.transform)
+
+  if (transforms.length === 0) return body
+  return `<g transform="${transforms.join(' ')}">${body}</g>`
 }
 
 function buildComponent(icon) {

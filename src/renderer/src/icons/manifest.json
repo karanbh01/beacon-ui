@@ -74,7 +74,13 @@
       "name": "LogoBeta",
       "figmaNode": "113:5",
       "viewBox": "0 0 21.4515 33.8699",
-      "parts": [{ "file": "logo-beta.svg" }]
+      "parts": [
+        {
+          "file": "logo-beta.svg",
+          "comment": "Figma applies -rotate-180 -scale-x-100 on the wrapper, which composes to a vertical flip. The exported vector does NOT include it, so without this the beta renders upside down.",
+          "transform": "translate(0 33.8699) scale(1 -1)"
+        }
+      ]
     }
   ]
 }
