@@ -1,18 +1,16 @@
 import { join } from 'node:path'
 import { BrowserWindow, shell } from 'electron'
-
-/**
- * Default geometry. Persistence and min-size enforcement land in BU-3.
- */
-const DEFAULT_WIDTH = 1440
-const DEFAULT_HEIGHT = 1024
+import { DEFAULT_HEIGHT, DEFAULT_WIDTH, MIN_HEIGHT, MIN_WIDTH } from './windowGeometry'
+import { persistWindowState, restoredBounds, wasMaximized } from './windowState'
 
 export function createMainWindow(): BrowserWindow {
+  const saved = restoredBounds()
+
   const window = new BrowserWindow({
-    width: DEFAULT_WIDTH,
-    height: DEFAULT_HEIGHT,
+    ...(saved ?? { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT }),
+    minWidth: MIN_WIDTH,
+    minHeight: MIN_HEIGHT,
     show: false,
-    autoHideMenuBar: false,
     backgroundColor: '#101112',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -21,6 +19,11 @@ export function createMainWindow(): BrowserWindow {
       nodeIntegration: false
     }
   })
+
+  if (wasMaximized()) {
+    window.maximize()
+  }
+  persistWindowState(window)
 
   // Show only once the first paint is ready, so launch has no white flash.
   window.on('ready-to-show', () => {
