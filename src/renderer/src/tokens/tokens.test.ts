@@ -67,10 +67,12 @@ describe('token contract', () => {
   })
 
   it('preserves alpha on the translucent tokens', () => {
-    // surface and chrome-search-bg are washes over canvas in Figma, not opaque
-    // fills. Dropping the alpha pair would flatten them into solid blocks.
-    for (const token of ['surface', 'chrome-search-bg'] as const) {
-      expect(COLORS.light[token], token).toHaveLength(9)
+    // These are washes over canvas in Figma, not opaque fills. Dropping the
+    // alpha pair would flatten them into solid blocks.
+    for (const mode of MODES) {
+      for (const token of ['surface', 'chrome-search-bg', 'sidebar-active-bg'] as const) {
+        expect(COLORS[mode][token], `${mode}/${token}`).toHaveLength(9)
+      }
     }
   })
 })

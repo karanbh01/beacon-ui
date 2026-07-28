@@ -60,7 +60,7 @@ export const COLORS: Record<ThemeMode, Record<ColorToken, string>> = {
     'status-running-bg': '#f4e8c8',
     'status-failed-text': '#8f2f2a',
     'status-failed-bg': '#f3ddd8',
-    'sidebar-active-bg': '#f5e2c4',
+    'sidebar-active-bg': '#2a241933',
     'series-2': '#7d4fb8',
     'series-3': '#b5701a'
   },
@@ -88,7 +88,7 @@ export const COLORS: Record<ThemeMode, Record<ColorToken, string>> = {
     'status-running-bg': '#453c22',
     'status-failed-text': '#e09a92',
     'status-failed-bg': '#462b28',
-    'sidebar-active-bg': '#2e2c26',
+    'sidebar-active-bg': '#44444426',
     'series-2': '#b98fd9',
     'series-3': '#e8a33d'
   }

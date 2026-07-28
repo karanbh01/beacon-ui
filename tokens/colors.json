@@ -8,12 +8,15 @@
     "  provisional — invented placeholder, NOT the real value. Replace.",
     "  new         — added in BU-4, needs mirroring back into Figma.",
     "",
-    "Exported from Figma 0GMEqKcFlQRBUgSpTpjAYN, frames Home 2:3 (light) and",
-    "Home - Dark 4:8 (dark), which instantiate Menu Bar, Sidebar and Footer and",
-    "so bind nearly the whole palette.",
+    "Exported from Figma 0GMEqKcFlQRBUgSpTpjAYN, frames Data Explorer – Prices",
+    "234:4402 (light) and 234:4541 (dark), cross-checked against Home 2:3 / 4:8",
+    "and the Status Pill set 68:351. All 24 Figma tokens agree across those.",
     "",
     "BU-4's token list named 14. The real system has 24: it omitted chrome-text,",
-    "chrome-icon, info-*, and the four status-* pairs."
+    "chrome-icon, info-*, and the four status-* pairs.",
+    "",
+    "Four tokens are translucent (8-digit hex): surface, chrome-search-bg,",
+    "sidebar-active-bg and — in dark only — a different alpha on the last."
   ],
   "modes": ["light", "dark"],
   "tokens": {
@@ -156,10 +159,10 @@
       "source": { "light": "figma", "dark": "figma" }
     },
     "sidebar-active-bg": {
-      "description": "Active sidebar page wash; also the full-row selection wash (taxonomy 5). NOT FOUND as a Figma variable — the Home sidebar has no active item, and no other queried node binds it. Derived here to sit between canvas and border. Verify against a view with an active sidebar item or a selected row.",
-      "light": "#f5e2c4",
-      "dark": "#2e2c26",
-      "source": { "light": "provisional", "dark": "provisional" }
+      "description": "Active sidebar page wash; also the full-row selection wash (taxonomy 5). Translucent, and the two modes use different alpha: light darkens canvas at 20%, dark lightens it at 15%.",
+      "light": "#2a241933",
+      "dark": "#44444426",
+      "source": { "light": "figma", "dark": "figma" }
     },
     "series-2": {
       "description": "NEW in BU-4. Second compare line. Previously borrowed success, which wrongly implied 'up'. Purple: distinct from accent blue, success green and danger red.",
