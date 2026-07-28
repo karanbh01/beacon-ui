@@ -9,19 +9,18 @@ Supersedes v2. Figma: `beacon ui` → Components page (Tab set `118:6`, atoms + 
 
 ## 1. Tab archetypes
 
-| #   | Archetype         | Example               | Chip                 | Notes                                     |
-| --- | ----------------- | --------------------- | -------------------- | ----------------------------------------- |
-| 1   | Document (active) | `TECH10`              | none                 | Mutable working object; owns dirty state  |
-| 2   | Document (dirty)  | `FACTSHEET-A4 ●`      | none                 | Dot = unsaved changes                     |
-| 3   | Pinned view       | `Frontier [⛓ TECH10]` | chain chip           | Bound to a document; re-pin to change     |
-| 4   | Global tool       | `Data Coverage`       | none                 | Not about any subject; filter-header pane |
-| 5   | Query view        | `Prices [AAPL]`       | subject chip         | Subject mutable via pane query bar        |
-| 6   | Linked query view | `Drilldown [⛓ AAPL]`  | subject chip + chain | Subject follows another tab's subject     |
+| # | Archetype | Example | Chip | Notes |
+|---|-----------|---------|------|-------|
+| 1 | Document (active) | `TECH10` | none | Mutable working object; owns dirty state |
+| 2 | Document (dirty) | `FACTSHEET-A4 ●` | none | Dot = unsaved changes |
+| 3 | Pinned view | `Frontier [⛓ TECH10]` | chain chip | Bound to a document; re-pin to change |
+| 4 | Global tool | `Data Coverage` | none | Not about any subject; filter-header pane |
+| 5 | Query view | `Prices [AAPL]` | subject chip | Subject mutable via pane query bar |
+| 6 | Linked query view | `Drilldown [⛓ AAPL]` | subject chip + chain | Subject follows another tab's subject |
 
 Real usage across the app:
-
 - **Documents:** `TECH10` (index definition), `TECH10-OPT` (optimisation run), `FACTSHEET-A4` (template, dirty).
-- **Pinned views:** all Beacon View tabs, Frontier, Risk-model-adjacent views, all Derivatives, all Reports previews, `Exposures [⛓ TECH10-OPT]` (a view can pin to _any_ document, not just an index).
+- **Pinned views:** all Beacon View tabs, Frontier, Risk-model-adjacent views, all Derivatives, all Reports previews, `Exposures [⛓ TECH10-OPT]` (a view can pin to *any* document, not just an index).
 - **Query / linked query:** Data Explorer instrument views; `Charting [⛓ AAPL]`, `Drilldown [⛓ AAPL]`.
 - **Global tools:** Data Coverage, Watchlist, Universe Set, Constraint Set, Comparison, Risk Model.
 
@@ -42,23 +41,23 @@ Layers: label text is still named `Prices` (rename pending), subject `subject`, 
 
 Atoms on the Components page, all fully variable-bound:
 
-| Component    | ID              | Props                                                                                     |
-| ------------ | --------------- | ----------------------------------------------------------------------------------------- |
-| Button       | set `388:146`   | `Style=Default\|Accent`, `Chevron`, `Label`                                               |
-| Field        | `388:147`       | `Chevron`, `Label`, `Value` (label-above-box; see §8 for the pricer's label-left pattern) |
-| Stat         | `388:153`       | `Label`, `Value`                                                                          |
-| Ticker Field | `388:11440`     | `Linked`, `Subject`, `Hint`                                                               |
-| Pane Header  | set `388:11538` | `Kind=Query\|Document\|Fields`, `Action 1–4`, `Field 1–4`, `Meta`                         |
+| Component | ID | Props |
+|-----------|----|-------|
+| Button | set `388:146` | `Style=Default\|Accent`, `Chevron`, `Label` |
+| Field | `388:147` | `Chevron`, `Label`, `Value` (label-above-box; see §8 for the pricer's label-left pattern) |
+| Stat | `388:153` | `Label`, `Value` |
+| Ticker Field | `388:11440` | `Linked`, `Subject`, `Hint` |
+| Pane Header | set `388:11538` | `Kind=Query\|Document\|Fields`, `Action 1–4`, `Field 1–4`, `Meta` |
 
 - **Query kind covers linked headers too** — `Linked` is a property of the nested Ticker Field, not a header variant.
 - Controls cluster = four pre-provisioned Button slots (Figma instances can't gain children).
 - Demo strip `pane-header-demo` shows four real configs (Prices, Charting-linked, TECH10 document, Risk Model fields).
-- **Status:** components are the spec; the ~25 existing hand-built pane headers were deliberately _not_ retrofitted (mechanical, regression-prone). Retrofit or use as implementation reference — decide at build time.
+- **Status:** components are the spec; the ~25 existing hand-built pane headers were deliberately *not* retrofitted (mechanical, regression-prone). Retrofit or use as implementation reference — decide at build time.
 
 ## 5. Selection & state washes
 
 - **Selection = full-row `sidebar-active-bg` wash.** Never chip-level accent, never border highlight. Used for: selected methodology rule, selected template block, front futures contract, quoted-spread row, accruing TRS period, selected sensitivity tenor.
-- Inline editors (rule accordion, block editor) expand _under_ the selected row on `canvas` fill with the same left inset.
+- Inline editors (rule accordion, block editor) expand *under* the selected row on `canvas` fill with the same left inset.
 - **Affirmative buttons = accent outline** (transparent fill, accent stroke + text): Save, Apply, Run, Price, Re-run, Re-estimate, Revalue, Simulate roll, Export PDF. Neutral buttons: surface fill + border.
 
 ## 6. Strategy patterns
@@ -72,7 +71,7 @@ Atoms on the Components page, all fully variable-bound:
 
 Three tiers, chosen per view:
 
-1. **Stat strip** (10px Medium muted label / 16px Medium value, 40–48px gaps) — only where a headline number _is_ the view's point. Retained on exactly: Prices, Fundamentals, Data Coverage, Frontier, Factor Exposures, Index Overview, Backtest, Roll Analysis.
+1. **Stat strip** (10px Medium muted label / 16px Medium value, 40–48px gaps) — only where a headline number *is* the view's point. Retained on exactly: Prices, Fundamentals, Data Coverage, Frontier, Factor Exposures, Index Overview, Backtest, Roll Analysis.
 2. **Summary line** — one 11px line where the strip sat: `label (muted, Regular) value (primary, Medium)` pairs separated by `·` in `divider` colour. Used on: Corporate Actions, Watchlist, Constituent Preview, Optimisation Run, Risk Model, Weights, Drilldown.
 3. **Nothing** — when the table already carries every number (Attribution, both pricers). Duplicating in a smaller font is still duplication; orphan numbers get relocated into a card instead (e.g. TRS spread-cost & DV01 rows appended to the breakeven card).
 
@@ -81,7 +80,6 @@ Three tiers, chosen per view:
 Derivatives pricers are **calculators, not blotters**: no listed contracts, no booked trades ("theoretical, no listed contract" / "indicative, no trade booked" in the header meta; Reset inputs / Export / accent **Price** as controls).
 
 Form grammar:
-
 - Two-column input panel (660px) left, results cards right.
 - Field = 11px muted label in a **fixed left rail** (118px futures / 122px TRS) + **fixed-width** input box (175/170px), `hug` cells, 40px column gap.
 - Rows carry 1 or 2 fields. **Single fields sit flush left at column width — never stretched, never offset.** Rhythm is semantic: the section's anchor stands alone (Underlying, Return type); parallel params pair up; unpartnered settings stand alone (Currency, Borrow spread, Fixing lag, Rate floor, Execution fee…).

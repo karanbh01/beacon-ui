@@ -3,3 +3,10 @@ dist/
 release/
 coverage/
 pnpm-lock.yaml
+
+# Authored specs and planning docs. Prettier's markdown rules (table padding,
+# emphasis style, blank lines around lists) rewrite these into churn without
+# improving them, and would fail format:check whenever they are hand-edited.
+beacon_tab_taxonomy_v3.md
+planning/
+docs/adr/
