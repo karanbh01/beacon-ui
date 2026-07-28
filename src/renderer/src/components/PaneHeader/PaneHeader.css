@@ -1,0 +1,65 @@
+/* Figma set 388:11538. */
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
+.pane-header-left {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pane-header-left.align-center {
+  align-items: center;
+}
+
+/* Fields carry labels above their boxes; bottom-align so the boxes agree. */
+.pane-header-left.align-end {
+  align-items: flex-end;
+}
+
+.pane-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.pane-header-title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: normal;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.pane-header-meta {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * Dirty state is accent, not danger. Unsaved work is a state to notice, not
+ * an error — danger here would read as "something went wrong".
+ */
+.pane-header-status {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: normal;
+  color: var(--accent);
+  white-space: nowrap;
+}
