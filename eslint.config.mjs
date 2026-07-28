@@ -49,7 +49,12 @@ export default tseslint.config(
   // Config files and build scripts sit outside both tsconfig projects, so the
   // type-aware rules have no program to resolve them against.
   {
-    files: ['*.config.{js,mjs,ts}', 'eslint.config.mjs', 'scripts/**/*.{js,mjs}'],
+    files: [
+      '*.config.{js,mjs,ts}',
+      'eslint.config.mjs',
+      'scripts/**/*.{js,mjs}',
+      '.storybook/**/*.{ts,tsx}'
+    ],
     // Spread first: disableTypeChecked carries its own languageOptions and
     // would otherwise clobber the globals below.
     ...tseslint.configs.disableTypeChecked,

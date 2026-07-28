@@ -17,3 +17,6 @@ src/renderer/src/tokens/tokens.css
 beacon_tab_taxonomy_v3.md
 planning/
 docs/adr/
+src/renderer/src/icons/generated.tsx
+src/renderer/src/icons/svg/
+src/renderer/src/icons/registry.ts

@@ -1,0 +1,74 @@
+/*
+ * Type scale (BU-6). Values read from Figma rather than inferred:
+ * Stat 388:153 gives 10px Medium at 0.4px tracking and 16px Medium;
+ * Section Label 73:2 is Source Serif Pro SemiBold Italic, not Inter.
+ *
+ * Two families are in play. Inter carries the whole UI; Source Serif Pro
+ * appears only as the italic section label. Font FILES are not bundled yet —
+ * see issue #38. Until they are, these stacks fall back to system faces and
+ * metrics will be slightly off.
+ */
+
+:root {
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Source Serif Pro', 'Source Serif 4', Georgia, serif;
+}
+
+/* 16px Medium — stat values, page headings. */
+.type-16 {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: normal;
+}
+
+/* 13px Medium — control labels, tab labels. */
+.type-13 {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: normal;
+}
+
+/* 11px Regular — body copy, table cells, summary lines, footnotes. */
+.type-11 {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+}
+
+/* 10px Medium, 0.4px tracking — stat labels, table headers. */
+.type-10 {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  line-height: normal;
+}
+
+/*
+ * 9px Medium, 6% tracking — pricer section heads (taxonomy 8).
+ * 6% of 9px is 0.54px; expressed in em so it stays proportional.
+ */
+.type-9 {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: normal;
+}
+
+/* Source Serif Pro SemiBold Italic 16px / 17.4px — section labels. */
+.type-section-label {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 17.4px;
+}
+
+/* Numeric columns align on the decimal; tables depend on this. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

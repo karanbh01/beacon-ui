@@ -1,0 +1,80 @@
+{
+  "comment": [
+    "Icon manifest. SVGs in ./svg are the exact bytes exported from Figma —",
+    "never redrawn by hand. scripts/build-icons.mjs turns them into React",
+    "components in ./generated.tsx with every fill/stroke rewritten to",
+    "currentColor, so an icon inherits colour from its container.",
+    "",
+    "`viewBox` is the composed coordinate space. Single-part icons use the",
+    "exported SVG's own viewBox, which preserves the designed aspect ratio —",
+    "several of these are deliberately NOT square (chevron is 9.99x5.49, layers",
+    "is 22.65x26.18, logo-beta is 21.45x33.87). Do not normalise them.",
+    "",
+    "Figma wraps each icon in a padded outer box (31/32px) with the artwork",
+    "inset ~11.46%. That padding is dropped here: components render the leaf,",
+    "and layout owns the spacing.",
+    "",
+    "Offsets on multi-part icons are derived from the Figma insets, e.g. the",
+    "folder body sits at 14.58% left / 18.75% top of a 32px box, expanded by",
+    "the stroke bleed Figma reports as a negative inner inset."
+  ],
+  "icons": [
+    {
+      "name": "Chevron",
+      "figmaNode": "30:23",
+      "viewBox": "0 0 9.98772 5.49387",
+      "parts": [{ "file": "chevron.svg" }]
+    },
+    {
+      "name": "Grid",
+      "figmaNode": "25:2",
+      "viewBox": "0 0 25.8333 25.8333",
+      "parts": [{ "file": "grid.svg" }]
+    },
+    {
+      "name": "LineChart",
+      "figmaNode": "80:4",
+      "viewBox": "0 0 25.3829 25.3958",
+      "parts": [{ "file": "line-chart.svg" }]
+    },
+    {
+      "name": "Cube",
+      "figmaNode": "80:13",
+      "viewBox": "0 0 25.3959 25.3958",
+      "parts": [{ "file": "cube.svg" }]
+    },
+    {
+      "name": "Layers",
+      "figmaNode": "80:20",
+      "viewBox": "0 0 22.652 26.18",
+      "parts": [{ "file": "layers.svg" }]
+    },
+    {
+      "name": "Blockchain",
+      "figmaNode": "80:27",
+      "viewBox": "0 0 27.7082 27.7083",
+      "parts": [{ "file": "blockchain.svg" }]
+    },
+    {
+      "name": "FolderOpen",
+      "figmaNode": "28:34",
+      "viewBox": "0 0 32 32",
+      "parts": [
+        { "file": "folder-body.svg", "x": 3.9156, "y": 5.2495 },
+        { "file": "folder-flap.svg", "x": 4.512, "y": 11.9154 }
+      ]
+    },
+    {
+      "name": "OpenBook",
+      "figmaNode": "64:13",
+      "viewBox": "0 0 22.5004 22.5002",
+      "parts": [{ "file": "open-book.svg" }]
+    },
+    {
+      "name": "LogoBeta",
+      "figmaNode": "113:5",
+      "viewBox": "0 0 21.4515 33.8699",
+      "parts": [{ "file": "logo-beta.svg" }]
+    }
+  ]
+}

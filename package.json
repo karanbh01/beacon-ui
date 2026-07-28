@@ -12,8 +12,8 @@
   "scripts": {
     "dev": "electron-vite dev --watch",
     "build": "electron-vite build",
-    "predev": "node scripts/build-tokens.mjs",
-    "prebuild": "node scripts/build-tokens.mjs",
+    "predev": "node scripts/build-tokens.mjs && node scripts/build-icons.mjs",
+    "prebuild": "node scripts/build-tokens.mjs && node scripts/build-icons.mjs",
     "tokens:build": "node scripts/build-tokens.mjs",
     "tokens:check": "node scripts/build-tokens.mjs && git diff --exit-code -- src/renderer/src/tokens",
     "start": "electron-vite preview",
@@ -27,13 +27,21 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "pack:dry": "electron-builder --dir --publish never"
+    "pack:dry": "electron-builder --dir --publish never",
+    "icons:build": "node scripts/build-icons.mjs",
+    "icons:check": "node scripts/build-icons.mjs && git diff --exit-code -- src/renderer/src/icons/generated.tsx src/renderer/src/icons/registry.ts",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "build:storybook": "storybook build"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@storybook/addon-essentials": "^8",
+    "@storybook/addon-themes": "^8",
+    "@storybook/react": "^8",
+    "@storybook/react-vite": "^8",
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16",
     "@testing-library/user-event": "^14",
@@ -53,6 +61,7 @@
     "prettier": "^3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "storybook": "^8",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8",
     "vite": "^5.4.11",

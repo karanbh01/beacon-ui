@@ -1,0 +1,9 @@
+/* Storybook's canvas is not the app shell, so it needs the page basics. */
+body {
+  margin: 0;
+  padding: 20px 24px;
+  background: var(--canvas);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
