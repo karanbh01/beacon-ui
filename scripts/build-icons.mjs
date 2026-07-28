@@ -70,16 +70,21 @@ function partMarkup(part) {
 
 function buildComponent(icon) {
   const body = icon.parts.map(partMarkup).join('\n      ')
-  return `/** Figma ${icon.figmaNode}. */
+  const [boxW, boxH] = icon.box
+  const ratio = boxW / boxH
+  // Width follows the box's aspect so non-square icons are never squashed.
+  const width = ratio === 1 ? 'size' : `size * ${String(Number(ratio.toFixed(6)))}`
+
+  return `/** Figma ${icon.figmaNode}. Box ${String(boxW)}x${String(boxH)}. */
 export function ${icon.name}Icon({ size = 16, ...props }: IconProps): ReactElement {
   return (
     <svg
-      viewBox="${icon.viewBox}"
+      viewBox="0 0 ${String(boxW)} ${String(boxH)}"
       height={size}
-      width="auto"
+      width={${width}}
       fill="none"
       focusable="false"
-      aria-hidden={props['aria-label'] === undefined}
+      aria-hidden={props['aria-label'] === undefined ? true : undefined}
       {...props}
     >
       ${body}
@@ -96,9 +101,9 @@ import type { ReactElement, SVGProps } from 'react'
 
 export interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
   /**
-   * Rendered height in px; width follows from the icon's own aspect ratio.
-   * Several of these are deliberately not square, so height is the honest
-   * dimension to drive.
+   * Size of the icon's OUTER box in px — the same number the Figma design
+   * quotes. The artwork sits inside that box with its designed padding, so a
+   * 10px chevron shows a ~4.2px glyph, exactly as drawn.
    */
   size?: number
 }

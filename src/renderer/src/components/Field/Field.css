@@ -1,0 +1,59 @@
+/* Figma 388:147. Box is 28px tall, 5/10 padding, 4 radius, 160 default width. */
+
+.field {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/*
+ * 10px REGULAR, not Medium. Deliberately different from the Stat label
+ * (.type-10), which is Medium with 0.4px tracking. Same size, different role.
+ */
+.field-label {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.field-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.field-value {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.field-chevron {
+  flex: none;
+  color: var(--text-muted);
+}
+
+/* A real <input> handed in as children inherits the box, not its own chrome. */
+.field-box input {
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  outline: none;
+}

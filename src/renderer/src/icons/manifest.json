@@ -5,60 +5,60 @@
     "components in ./generated.tsx with every fill/stroke rewritten to",
     "currentColor, so an icon inherits colour from its container.",
     "",
-    "`viewBox` is the composed coordinate space. Single-part icons use the",
-    "exported SVG's own viewBox, which preserves the designed aspect ratio —",
-    "several of these are deliberately NOT square (chevron is 9.99x5.49, layers",
-    "is 22.65x26.18, logo-beta is 21.45x33.87). Do not normalise them.",
+    "`box` is the icon's OUTER frame in Figma, and `size` on the component",
+    "scales that frame. This matters: Figma sizes refer to the outer box, not",
+    "the artwork. The chevron's box is 24 and its glyph is only 9.99x5.49",
+    "inside it, so `chevron (10px)` in BU-6 means a 10px BOX holding a ~4.2px",
+    "glyph. Rendering the leaf at 10px makes it roughly four times too large.",
     "",
-    "Figma wraps each icon in a padded outer box (31/32px) with the artwork",
-    "inset ~11.46%. That padding is dropped here: components render the leaf,",
-    "and layout owns the spacing.",
+    "`x`/`y` place each part's leaf inside that box. They are derived from the",
+    "percentage insets Figma reports, including the negative inner inset it",
+    "uses for stroke bleed — not eyeballed.",
     "",
-    "Offsets on multi-part icons are derived from the Figma insets, e.g. the",
-    "folder body sits at 14.58% left / 18.75% top of a 32px box, expanded by",
-    "the stroke bleed Figma reports as a negative inner inset."
+    "Leaves keep their own proportions; several icons are deliberately not",
+    "square (logo-beta's box is 55x47). Do not normalise them."
   ],
   "icons": [
     {
       "name": "Chevron",
       "figmaNode": "30:23",
-      "viewBox": "0 0 9.98772 5.49387",
-      "parts": [{ "file": "chevron.svg" }]
+      "box": [24, 24],
+      "parts": [{ "file": "chevron.svg", "x": 7.0056, "y": 9.5064 }]
     },
     {
       "name": "Grid",
       "figmaNode": "25:2",
-      "viewBox": "0 0 25.8333 25.8333",
-      "parts": [{ "file": "grid.svg" }]
+      "box": [31, 31],
+      "parts": [{ "file": "grid.svg", "x": 2.5823, "y": 2.5823 }]
     },
     {
       "name": "LineChart",
       "figmaNode": "80:4",
-      "viewBox": "0 0 25.3829 25.3958",
-      "parts": [{ "file": "line-chart.svg" }]
+      "box": [31, 31],
+      "parts": [{ "file": "line-chart.svg", "x": 2.8151, "y": 2.8023 }]
     },
     {
       "name": "Cube",
       "figmaNode": "80:13",
-      "viewBox": "0 0 25.3959 25.3958",
-      "parts": [{ "file": "cube.svg" }]
+      "box": [31, 31],
+      "parts": [{ "file": "cube.svg", "x": 2.8023, "y": 2.8023 }]
     },
     {
       "name": "Layers",
       "figmaNode": "80:20",
-      "viewBox": "0 0 22.652 26.18",
-      "parts": [{ "file": "layers.svg" }]
+      "box": [32, 32],
+      "parts": [{ "file": "layers.svg", "x": 4.6208, "y": 2.9106 }]
     },
     {
       "name": "Blockchain",
       "figmaNode": "80:27",
-      "viewBox": "0 0 27.7082 27.7083",
-      "parts": [{ "file": "blockchain.svg" }]
+      "box": [34, 34],
+      "parts": [{ "file": "blockchain.svg", "x": 3.1469, "y": 3.1469 }]
     },
     {
       "name": "FolderOpen",
       "figmaNode": "28:34",
-      "viewBox": "0 0 32 32",
+      "box": [32, 32],
       "parts": [
         { "file": "folder-body.svg", "x": 3.9156, "y": 5.2495 },
         { "file": "folder-flap.svg", "x": 4.512, "y": 11.9154 }
@@ -67,17 +67,19 @@
     {
       "name": "OpenBook",
       "figmaNode": "64:13",
-      "viewBox": "0 0 22.5004 22.5002",
-      "parts": [{ "file": "open-book.svg" }]
+      "box": [27, 27],
+      "parts": [{ "file": "open-book.svg", "x": 2.2491, "y": 2.2491 }]
     },
     {
       "name": "LogoBeta",
       "figmaNode": "113:5",
-      "viewBox": "0 0 21.4515 33.8699",
+      "box": [55, 47],
       "parts": [
         {
           "file": "logo-beta.svg",
           "comment": "Figma applies -rotate-180 -scale-x-100 on the wrapper, which composes to a vertical flip. The exported vector does NOT include it, so without this the beta renders upside down.",
+          "x": 16.8593,
+          "y": 10.1527,
           "transform": "translate(0 33.8699) scale(1 -1)"
         }
       ]

@@ -1,0 +1,101 @@
+/*
+ * Pricer form grammar, taxonomy 8. The two fixed widths live on .field-grid
+ * so one form shares a single rail and every box edge lines up.
+ */
+
+.field-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-row-group {
+  display: flex;
+  column-gap: 40px;
+  align-items: center;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  /*
+   * No flex-grow anywhere in here. A row holding one field must leave it at
+   * column width, flush left — stretching it is the failure mode taxonomy 8
+   * calls out explicitly.
+   */
+  flex: none;
+}
+
+.field-row-label {
+  width: var(--rail-width);
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-muted);
+}
+
+.field-row-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: var(--box-width);
+  height: 28px;
+  flex: none;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.field-row-value {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Derived, non-editable: reads as output, not input. */
+.field-row-readonly .field-row-box {
+  background: var(--canvas);
+  border-color: var(--divider);
+}
+
+.field-row-readonly .field-row-value {
+  color: var(--text-secondary);
+}
+
+.field-row-chevron {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.field-row-box input {
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.field-section {
+  margin: 12px 0 2px;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: normal;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.field-section:first-child {
+  margin-top: 0;
+}

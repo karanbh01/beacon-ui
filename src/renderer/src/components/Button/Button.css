@@ -1,0 +1,48 @@
+/* Figma 388:146. Geometry read from the atom: 5/12 padding, 6 gap, 4 radius. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn-default {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/*
+ * Affirmative = accent outline, transparent fill (taxonomy 5). Note the
+ * weight shift to Medium; the accent variant is not just a recolour.
+ */
+.btn-accent {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* currentColor, so the glyph tracks the variant's text colour for free. */
+.btn-chevron {
+  flex: none;
+}
