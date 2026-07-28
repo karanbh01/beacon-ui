@@ -8,3 +8,7 @@ release/
 .env
 .env.local
 *.tsbuildinfo
+
+# Authored specs and planning docs live locally, not in the repo.
+planning/
+beacon_tab_taxonomy_v3.md

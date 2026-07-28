@@ -40,7 +40,6 @@ src/preload    typed IPC bridge                 (isolated)
 src/renderer   React app                        (Chromium)
 src/shared     IPC contract types               (both sides)
 docs/adr       architecture decision records
-planning       issue batches and specs
 ```
 
 Renderer path aliases: `@/components`, `@/views`, `@/api`, `@/state`,
@@ -49,9 +48,11 @@ Renderer path aliases: `@/components`, `@/views`, `@/api`, `@/state`,
 ## Design spec
 
 - Figma `beacon ui` — file key `0GMEqKcFlQRBUgSpTpjAYN`
-- `beacon_tab_taxonomy_v3.md` (repo root) — tab and view taxonomy
+- `beacon_tab_taxonomy_v3.md` — tab and view taxonomy, design-system source of
+  truth. Kept locally at the repo root and **gitignored** by choice; ask the
+  owner for a copy.
 
 ## Issues
 
-Work is tracked as `BU-n` issues against milestones M0–M5. The originating
-batch is in `planning/`.
+Work is tracked as `BU-n` issues against milestones M0–M5. Issue numbers match
+BU numbers (`BU-7` is issue #7).
