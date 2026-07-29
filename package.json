@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3",
-    "electron-updater": "^6.3.9"
+    "electron-updater": "^6.3.9",
+    "zustand": "^5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
