@@ -1,0 +1,131 @@
+/*
+ * RAW INK ZONE.
+ *
+ * Every colour below .paper is a literal on purpose (taxonomy 9). A report
+ * page is a print artefact shown on screen: it must render identically in
+ * light and dark, and identically to the PDF it becomes. Swapping any of
+ * these for var(--token) breaks that, and PaperPreview.test.tsx fails if you
+ * do.
+ *
+ * Values mirror tokens/colors.json -> raw.paper-*, which exports the same
+ * literals for chart code that paints onto a page.
+ *
+ * Only .paper-desk (the surface the sheet sits on) is themed.
+ */
+
+.paper-desk {
+  display: inline-block;
+  padding: 20px;
+  background: var(--canvas);
+}
+
+.paper {
+  position: relative;
+  background: #ffffff;
+  /* Shadow, not a border: the page floats on the desk. */
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 12%),
+    0 8px 24px rgb(0 0 0 / 14%);
+  overflow: hidden;
+}
+
+.paper-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 540px;
+  height: 764px;
+  padding: 34px 40px 28px;
+  box-sizing: border-box;
+  /* Authored at 540pt and scaled as a unit so proportions hold at any size. */
+  transform: scale(var(--paper-scale, 1));
+  transform-origin: top left;
+  font-family: var(--font-ui);
+  color: #1a1a1a;
+}
+
+.paper-header {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b6b6b;
+  border-bottom: 0.5px solid #d0d0d0;
+}
+
+.paper-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.paper-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 8px;
+  margin-top: 18px;
+  font-size: 8px;
+  color: #6b6b6b;
+  border-top: 0.5px solid #d0d0d0;
+}
+
+.paper-section {
+  margin-bottom: 20px;
+}
+
+.paper-section-title {
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  border-bottom: 0.5px solid #d0d0d0;
+}
+
+.paper-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 10px;
+}
+
+.paper-row-label {
+  color: #6b6b6b;
+}
+
+.paper-row-value {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: #1a1a1a;
+}
+
+.paper-title {
+  margin: 0 0 2px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.paper-subtitle {
+  margin: 0 0 20px;
+  font-size: 10px;
+  color: #6b6b6b;
+}
+
+.paper-note {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.5;
+  color: #6b6b6b;
+}
+
+.paper-chart {
+  height: 120px;
+  margin-bottom: 8px;
+  background: linear-gradient(to top, rgb(47 107 168 / 12%), transparent);
+  border-bottom: 1px solid #2f6ba8;
+}

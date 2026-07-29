@@ -179,13 +179,24 @@
   },
   "raw": {
     "comment": [
-      "Mode-independent by approval (taxonomy 9). The risk heatmap colormap is a",
-      "measurement scale, not themed chrome, so it must not flip between modes.",
-      "Emitted as TS constants only — deliberately not CSS variables, so they",
-      "cannot be picked up by ordinary themed components."
+      "Mode-independent by design (taxonomy 9). Emitted as TS constants only —",
+      "deliberately NOT CSS variables, so they cannot be picked up by ordinary",
+      "themed components.",
+      "",
+      "heatmap-*: the risk colormap is a measurement scale, not themed chrome,",
+      "so it must not flip between modes.",
+      "",
+      "paper-*: everything inside a report page is raw ink. A factsheet is a",
+      "print artefact that happens to be shown on screen — it must look the",
+      "same in both themes, and identical to the PDF it will become."
     ],
     "heatmap-low": "#4ca56b",
     "heatmap-mid": "#d9b34c",
-    "heatmap-high": "#ca5851"
+    "heatmap-high": "#ca5851",
+    "paper-page": "#ffffff",
+    "paper-ink": "#1a1a1a",
+    "paper-ink-muted": "#6b6b6b",
+    "paper-rule": "#d0d0d0",
+    "paper-accent": "#2f6ba8"
   }
 }

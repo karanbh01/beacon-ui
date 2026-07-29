@@ -101,7 +101,12 @@ export const COLORS: Record<ThemeMode, Record<ColorToken, string>> = {
 export const RAW = {
   heatmapLow: '#4ca56b',
   heatmapMid: '#d9b34c',
-  heatmapHigh: '#ca5851'
+  heatmapHigh: '#ca5851',
+  paperPage: '#ffffff',
+  paperInk: '#1a1a1a',
+  paperInkMuted: '#6b6b6b',
+  paperRule: '#d0d0d0',
+  paperAccent: '#2f6ba8'
 } as const
 
 /** CSS custom property reference for a token, e.g. `var(--accent)`. */
