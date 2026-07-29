@@ -72,6 +72,33 @@
       ]
     },
     {
+      "name": "DataSources",
+      "figmaNode": "80:314",
+      "comment": "Menu bar right cluster. Box is 22x23, not square.",
+      "box": [22, 23],
+      "parts": [{ "file": "icon-data-sources.svg", "x": 1, "y": 1 }]
+    },
+    {
+      "name": "AiAgents",
+      "figmaNode": "80:318",
+      "comment": "Menu bar right cluster. Opens the AI Assistant panel (BU-18).",
+      "box": [30, 30],
+      "parts": [{ "file": "icon-ai-agents.svg", "x": 3.552, "y": 3.552 }]
+    },
+    {
+      "name": "WindowFormat",
+      "figmaNode": "31:39",
+      "comment": "Menu bar right cluster. Layout / split-pane menu.",
+      "box": [22, 22],
+      "parts": [{ "file": "icon-window-format.svg", "x": 0, "y": 0 }]
+    },
+    {
+      "name": "Github",
+      "figmaNode": "93:2",
+      "box": [24, 24],
+      "parts": [{ "file": "icon-github.svg", "x": 1.7568, "y": 1.9944 }]
+    },
+    {
       "name": "OpenBook",
       "figmaNode": "64:13",
       "box": [27, 27],

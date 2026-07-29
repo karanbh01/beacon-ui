@@ -1,0 +1,48 @@
+/* Figma 80:340. */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 58px;
+  flex: none;
+  padding-top: 32px;
+  border-right: 0.5px solid var(--chrome-border);
+}
+
+.sidebar-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 27px;
+  overflow: hidden;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 48px;
+  flex: none;
+  padding: 0;
+  color: var(--chrome-icon);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  color: var(--text-primary);
+}
+
+/* Active page takes the selection wash, same as a selected table row. */
+.sidebar-active {
+  color: var(--accent);
+  background: var(--sidebar-active-bg);
+}
+
+.sidebar-item:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -2px;
+}

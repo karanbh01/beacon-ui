@@ -1,0 +1,35 @@
+/*
+ * Frame geometry from the Figma app frames: menu bar 62, sidebar 58,
+ * footer 32, on a 1440x1024 window.
+ */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--canvas);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.app-shell-middle {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.app-shell-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+  /* Pane padding is 20/24 in the frames; BU-17 owns the inner layout. */
+  padding: 20px 24px;
+}
+
+/* 380px rail; the pane narrows to 1002 on a 1440 window (BU-18). */
+.app-shell-assistant {
+  width: 380px;
+  flex: none;
+  border-left: 0.5px solid var(--chrome-border);
+  overflow: auto;
+}

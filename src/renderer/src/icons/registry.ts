@@ -9,6 +9,10 @@ import {
   LayersIcon,
   BlockchainIcon,
   FolderOpenIcon,
+  DataSourcesIcon,
+  AiAgentsIcon,
+  WindowFormatIcon,
+  GithubIcon,
   OpenBookIcon,
   LogoBetaIcon
 } from './generated'
@@ -23,6 +27,10 @@ export const ICONS = {
   LayersIcon,
   BlockchainIcon,
   FolderOpenIcon,
+  DataSourcesIcon,
+  AiAgentsIcon,
+  WindowFormatIcon,
+  GithubIcon,
   OpenBookIcon,
   LogoBetaIcon
 } as const
