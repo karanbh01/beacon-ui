@@ -110,8 +110,9 @@ describe('TabBar overflow (BU-11 decision: scroll)', () => {
   })
 
   it('scrolls the active tab into view when it changes', () => {
-    const scrollIntoView = vi.fn()
-    Element.prototype.scrollIntoView = scrollIntoView
+    // Spy on the setup-provided stub rather than replacing the prototype
+    // method, which would leak into every later test file.
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
 
     const { rerender } = render(
       <TabBar activeIndex={0}>
@@ -129,6 +130,7 @@ describe('TabBar overflow (BU-11 decision: scroll)', () => {
     )
 
     expect(scrollIntoView).toHaveBeenCalled()
+    scrollIntoView.mockRestore()
   })
 
   it('offers a new-tab control only when it can create one', () => {

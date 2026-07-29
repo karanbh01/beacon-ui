@@ -19,6 +19,7 @@
 }
 
 .sidebar-item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -40,6 +41,19 @@
 .sidebar-active {
   color: var(--accent);
   background: var(--sidebar-active-bg);
+}
+
+/*
+ * Plus a 3px accent bar on the leading edge. The wash alone is low contrast
+ * against canvas — the bar is what actually reads as "you are here" in the
+ * frames.
+ */
+.sidebar-active::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--accent);
 }
 
 .sidebar-item:focus-visible {
