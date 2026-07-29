@@ -1,0 +1,262 @@
+/* Transcript blocks, Figma 164:2. */
+
+.ai-user {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.ai-thinking {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.ai-thinking span {
+  font-size: 9px;
+  font-style: normal;
+}
+
+.ai-tool {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 3px;
+}
+
+.ai-tool-left,
+.ai-tool-right {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.ai-tool-left {
+  gap: 6px;
+}
+
+.ai-tool-right {
+  gap: 5px;
+  flex: none;
+}
+
+.ai-tool-icon {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.ai-tool-name {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ai-tool-args,
+.ai-tool-result {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.ai-tool-args {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-tool-result {
+  color: var(--text-secondary);
+}
+
+.ai-mark {
+  font-size: 10px;
+}
+
+.ai-mark-ok {
+  color: var(--success);
+}
+
+.ai-mark-running {
+  color: var(--status-running-text);
+}
+
+.ai-mark-failed {
+  color: var(--danger);
+}
+
+.ai-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.ai-assistant p {
+  margin: 0;
+}
+
+.ai-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.ai-action,
+.ai-open {
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ai-action:hover,
+.ai-open:hover {
+  text-decoration: underline;
+}
+
+/* Mini table: its own grammar, not the pane Table — no card, 9.5px head. */
+.ai-mini {
+  width: 100%;
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ai-mini-head,
+.ai-mini-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 5px 10px;
+  border-bottom: 0.5px solid var(--divider);
+}
+
+.ai-mini-head {
+  padding: 6px 10px;
+  font-size: 9.5px;
+  letter-spacing: 0.475px;
+  color: var(--text-muted);
+}
+
+.ai-mini-row {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ai-mini-row:last-child {
+  border-bottom: 0;
+}
+
+.ai-mini-cell {
+  flex: none;
+  font-family: var(--font-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-mini-lead {
+  color: var(--text-primary);
+}
+
+.ai-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ai-spawn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ai-diamond {
+  font-size: 9px;
+  color: var(--accent);
+}
+
+.ai-subagent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 10px;
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 3px;
+}
+
+.ai-subagent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-subagent-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.ai-subagent-status {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.ai-status-running {
+  color: var(--status-running-text);
+}
+
+.ai-status-done {
+  color: var(--success);
+}
+
+.ai-status-failed {
+  color: var(--danger);
+}
+
+.ai-subagent-task {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.ai-subagent-meta {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  color: var(--text-muted);
+}
+
+.ai-waiting {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+}

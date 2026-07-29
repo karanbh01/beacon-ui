@@ -93,6 +93,13 @@
       "parts": [{ "file": "icon-window-format.svg", "x": 0, "y": 0 }]
     },
     {
+      "name": "Attachment",
+      "figmaNode": "210:744",
+      "comment": "Assistant composer. Box 11, leaf inset 16.4% / 11.46%.",
+      "box": [11, 11],
+      "parts": [{ "file": "icon-attachment.svg", "x": 1.804, "y": 1.2606 }]
+    },
+    {
       "name": "Github",
       "figmaNode": "93:2",
       "box": [24, 24],

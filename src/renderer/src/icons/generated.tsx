@@ -243,6 +243,25 @@ export function WindowFormatIcon({ size = 16, ...props }: IconProps): ReactEleme
   )
 }
 
+/** Figma 210:744. Box 11x11. */
+export function AttachmentIcon({ size = 16, ...props }: IconProps): ReactElement {
+  return (
+    <svg
+      viewBox="0 0 11 11"
+      height={size}
+      width={size}
+      fill="none"
+      focusable="false"
+      aria-hidden={props['aria-label'] === undefined ? true : undefined}
+      {...props}
+    >
+      <g transform="translate(1.804 1.2606)"><g>
+<path d="M2.97603 6.25542L6.02396 3.2075C6.32188 2.90958 6.32188 2.42833 6.02396 2.13042C5.72604 1.8325 5.24479 1.8325 4.94688 2.13042L0.821875 6.25542C0.226042 6.85125 0.226042 7.81375 0.821875 8.40958C1.41771 9.00541 2.3802 9.00541 2.97603 8.40958L7.09187 4.29375C7.99021 3.39542 7.99021 1.9425 7.09187 1.04875C6.19354 0.150417 4.74063 0.150417 3.84688 1.04875L0.808126 4.0875" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeLinejoin="round" />
+</g></g>
+    </svg>
+  )
+}
+
 /** Figma 93:2. Box 24x24. */
 export function GithubIcon({ size = 16, ...props }: IconProps): ReactElement {
   return (

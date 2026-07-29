@@ -1,0 +1,184 @@
+/* Figma 164:2. */
+
+.assistant {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  /* The frame layers chrome-border at 25% over canvas. */
+  background: color-mix(in srgb, var(--chrome-border) 25%, var(--canvas));
+}
+
+/*
+ * Header background is accent with canvas-coloured text. Taxonomy §11 item 6
+ * notes the owner is experimenting with this manually — left as the frame
+ * has it, deliberately.
+ */
+.assistant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  flex: none;
+  padding: 0 14px;
+  background: var(--accent);
+  border-bottom: 0.5px solid var(--chrome-border);
+}
+
+.assistant-title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--canvas);
+}
+
+.assistant-close {
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--canvas);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.assistant-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 14px 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.assistant-conversation::-webkit-scrollbar {
+  width: 4px;
+}
+
+.assistant-conversation::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.assistant-conversation::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 35%, transparent);
+  border-radius: 2px;
+}
+
+.assistant-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: none;
+  padding: 10px 12px 12px;
+}
+
+.assistant-context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.assistant-chip {
+  padding: 3px 8px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-muted);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Dashed = empty slot, same grammar as AddSlot (taxonomy 9). */
+.assistant-add-context {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-muted);
+  background: none;
+  border: 0.5px dashed var(--chrome-border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.assistant-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 84px;
+  padding: 8px 10px;
+  background: var(--chrome-search-bg);
+  border: 1px solid var(--chrome-search-stroke);
+  border-radius: 5px;
+}
+
+.assistant-placeholder {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.assistant-box-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assistant-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.assistant-attach {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.assistant-meta-chip {
+  padding: 2px 7px;
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  line-height: 12px;
+  color: var(--text-muted);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.assistant-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 12px;
+  color: #ffffff;
+  background: var(--accent);
+  border: 0;
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+/* Static shell: nothing to send until there is a backend (BU-18 scope). */
+.assistant-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

@@ -12,6 +12,7 @@ import {
   DataSourcesIcon,
   AiAgentsIcon,
   WindowFormatIcon,
+  AttachmentIcon,
   GithubIcon,
   OpenBookIcon,
   LogoBetaIcon
@@ -30,6 +31,7 @@ export const ICONS = {
   DataSourcesIcon,
   AiAgentsIcon,
   WindowFormatIcon,
+  AttachmentIcon,
   GithubIcon,
   OpenBookIcon,
   LogoBetaIcon
