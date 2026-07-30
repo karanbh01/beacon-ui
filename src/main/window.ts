@@ -11,6 +11,12 @@ export function createMainWindow(): BrowserWindow {
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
     show: false,
+    // The renderer draws its own menu bar (BU-15), so Electron's native one
+    // would sit directly above it as a second row of File/Edit/View. Hidden
+    // rather than removed: Alt still reveals it, so the standard accelerators
+    // and the devtools shortcut survive. On macOS the app menu lives in the
+    // system bar and never duplicates, so this is a no-op there.
+    autoHideMenuBar: true,
     // The dark canvas token. Only visible if ready-to-show is slow, but a
     // stale literal here would flash a colour that is no longer in the
     // palette. Kept in sync with tokens/colors.json canvas/dark by hand —

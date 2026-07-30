@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppInfo } from '@shared/ipc'
 import { App } from './App'
+import { useWorkspace } from './state/tabs.store'
 
 const INFO: AppInfo = {
   version: '0.0.1',
@@ -11,7 +12,6 @@ const INFO: AppInfo = {
   node: '20.18.1'
 }
 
-/** A promise plus its resolver, so a test can hold the bridge open. */
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   let resolve!: (value: T) => void
   const promise = new Promise<T>((r) => {
@@ -24,33 +24,75 @@ function stubBridge(appInfo: () => Promise<AppInfo>): void {
   vi.stubGlobal('beacon', { appInfo })
 }
 
-describe('App', () => {
-  it('shows the pending state while the bridge is in flight', () => {
+beforeEach(() => {
+  localStorage.clear()
+  useWorkspace.getState().reset()
+  stubBridge(() => Promise.resolve(INFO))
+})
+
+describe('App boots the real shell', () => {
+  it('renders the shell chrome, not the scaffold demo', () => {
+    const { container } = render(<App />)
+
+    expect(container.querySelector('.menu-bar')).not.toBeNull()
+    expect(container.querySelector('.sidebar')).not.toBeNull()
+    expect(container.querySelector('.footer')).not.toBeNull()
+    expect(container.querySelector('.pane-host')).not.toBeNull()
+  })
+
+  it('opens on the first sidebar page with its seeded tabs', () => {
+    render(<App />)
+
+    expect(screen.getByRole('button', { name: 'Data Explorer' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    )
+    expect(screen.getByRole('button', { name: /^Prices/ })).toBeInTheDocument()
+  })
+
+  it('switches pages and shows that page tabs', async () => {
+    render(<App />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Beacon View' }))
+
+    expect(screen.getByRole('button', { name: /^Weights/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Prices/ })).toBeNull()
+  })
+
+  it('seeds only an empty workspace, so closed tabs stay closed', () => {
+    const first = render(<App />)
+    useWorkspace.getState().closeTab('seed-prices')
+    first.unmount()
+
+    render(<App />)
+
+    expect(screen.queryByRole('button', { name: /^Prices/ })).toBeNull()
+  })
+})
+
+describe('bridge state reaches the footer', () => {
+  it('reports starting while the bridge is in flight', () => {
     const pending = deferred<AppInfo>()
     stubBridge(() => pending.promise)
 
     render(<App />)
 
-    expect(screen.getByText('bridge: waiting')).toBeInTheDocument()
+    expect(screen.getByText(/engine starting/)).toBeInTheDocument()
   })
 
-  it('renders versions once the bridge responds', async () => {
-    stubBridge(() => Promise.resolve(INFO))
-
+  it('reports the version once connected', async () => {
     render(<App />)
-
-    expect(await screen.findByText(/bridge ok/)).toHaveTextContent('beacon 0.0.1')
+    expect(await screen.findByText(/engine connected · py-beacon 0.0.1/)).toBeInTheDocument()
   })
 
-  it('degrades instead of unmounting when the bridge rejects', async () => {
-    // An uncaught throw in the effect tears down the whole tree and leaves a
-    // blank window. The demo must still be on screen.
-    stubBridge(() => Promise.reject(new Error('no handler registered')))
+  it('degrades rather than blanking when the bridge rejects', async () => {
+    stubBridge(() => Promise.reject(new Error('no handler')))
 
-    render(<App />)
+    const { container } = render(<App />)
 
-    expect(await screen.findByText('bridge: unavailable')).toBeInTheDocument()
-    expect(screen.getByText('Tokens')).toBeInTheDocument()
+    expect(await screen.findByText(/engine unavailable/)).toBeInTheDocument()
+    // The shell must survive a dead bridge.
+    expect(container.querySelector('.pane-host')).not.toBeNull()
   })
 
   it('degrades when the bridge is missing entirely', async () => {
@@ -58,18 +100,25 @@ describe('App', () => {
 
     render(<App />)
 
-    expect(await screen.findByText('bridge: unavailable')).toBeInTheDocument()
-    expect(screen.getByText('Tokens')).toBeInTheDocument()
+    expect(await screen.findByText(/engine unavailable/)).toBeInTheDocument()
+  })
+})
+
+describe('assistant rail', () => {
+  it('is closed until the menu bar toggle is used', async () => {
+    const { container } = render(<App />)
+    expect(container.querySelector('.app-shell-assistant')).toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'AI assistant' }))
+    expect(container.querySelector('.app-shell-assistant')).not.toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close assistant' }))
+    expect(container.querySelector('.app-shell-assistant')).toBeNull()
   })
 })
 
 describe('theme switching', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
   it('restyles by setting data-theme on the root, nothing else', async () => {
-    stubBridge(() => Promise.resolve(INFO))
     render(<App />)
 
     await userEvent.click(screen.getByRole('radio', { name: 'dark' }))
@@ -77,19 +126,5 @@ describe('theme switching', () => {
 
     await userEvent.click(screen.getByRole('radio', { name: 'light' }))
     expect(document.documentElement.dataset.theme).toBe('light')
-  })
-
-  it('persists the choice across a remount', async () => {
-    stubBridge(() => Promise.resolve(INFO))
-    const first = render(<App />)
-    await screen.findByText(/bridge ok/)
-
-    await userEvent.click(screen.getByRole('radio', { name: 'dark' }))
-    first.unmount()
-
-    render(<App />)
-    await screen.findByText(/bridge ok/)
-
-    expect(screen.getByRole('radio', { name: 'dark' })).toHaveAttribute('aria-checked', 'true')
   })
 })

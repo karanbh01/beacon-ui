@@ -1,0 +1,16 @@
+.view-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.view-note {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.view-note code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-secondary);
+}
