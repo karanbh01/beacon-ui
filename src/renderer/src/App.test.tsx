@@ -118,14 +118,14 @@ describe('assistant rail', () => {
   })
 })
 
-describe('theme switching', () => {
-  it('restyles by setting data-theme on the root, nothing else', async () => {
+describe('theme', () => {
+  /**
+   * The picker is deliberately absent: it was never in the mockup, and it
+   * belongs in the footer once that frame exists (see the follow-up issue).
+   * The app still themes itself — it just follows the OS with no override.
+   */
+  it('renders no theme picker in the menu bar', () => {
     render(<App />)
-
-    await userEvent.click(screen.getByRole('radio', { name: 'dark' }))
-    expect(document.documentElement.dataset.theme).toBe('dark')
-
-    await userEvent.click(screen.getByRole('radio', { name: 'light' }))
-    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(screen.queryByRole('radiogroup', { name: 'Theme' })).toBeNull()
   })
 })

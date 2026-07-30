@@ -18,8 +18,7 @@
 
 .menu-bar button,
 .menu-bar input,
-.menu-bar .menu-bar-search,
-.menu-bar .theme-switch {
+.menu-bar .menu-bar-search {
   -webkit-app-region: no-drag;
 }
 

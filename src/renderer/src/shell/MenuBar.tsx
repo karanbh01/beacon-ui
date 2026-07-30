@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from 'react'
+import type { ReactElement } from 'react'
 import {
   AiAgentsIcon,
   ChevronIcon,
@@ -15,8 +15,6 @@ export interface MenuBarProps {
   onToggleAssistant?: () => void
   onOpenDataSources?: () => void
   onOpenLayout?: () => void
-  /** Extra controls, e.g. the theme switch while there is no Settings menu. */
-  extra?: ReactNode
   /** process.platform, so macOS can leave room for its traffic lights. */
   platform?: string
   className?: string
@@ -37,7 +35,6 @@ export function MenuBar({
   onToggleAssistant,
   onOpenDataSources,
   onOpenLayout,
-  extra,
   platform,
   className
 }: MenuBarProps): ReactElement {
@@ -95,8 +92,6 @@ export function MenuBar({
         <button type="button" className="menu-bar-icon" aria-label="Layout" onClick={onOpenLayout}>
           <WindowFormatIcon size={22} />
         </button>
-        {extra !== undefined && <span className="menu-bar-rule" />}
-        {extra}
         <span className="menu-bar-rule" />
         <WindowControls />
       </div>

@@ -6,7 +6,6 @@ import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
 import { PaneHost } from './shell/PaneHost'
 import { SIDEBAR_PAGES } from './shell/pages'
-import { ThemeSwitch } from './state/ThemeSwitch'
 import { useTheme } from './state/theme'
 import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
@@ -24,8 +23,13 @@ export function App(): ReactElement {
   const [bridge, setBridge] = useState<BridgeState>({ status: 'pending' })
   const [page, setPage] = useState(DEFAULT_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
-  const theme = useTheme()
   const openTab = useWorkspace((state) => state.openTab)
+
+  // No visible control yet — the theme picker belongs in the footer and the
+  // mockup for it does not exist. Called anyway so the app keeps following
+  // the OS live: initTheme() applies the stored preference at boot, and this
+  // subscribes to prefers-color-scheme changes while `system` is selected.
+  useTheme()
 
   useEffect(() => {
     // Never let a bridge failure escape this effect. An uncaught throw here
@@ -61,7 +65,6 @@ export function App(): ReactElement {
         onToggleAssistant: () => {
           setAssistantOpen((open) => !open)
         },
-        extra: <ThemeSwitch {...theme} />,
         ...(bridge.status === 'ok' ? { platform: bridge.info.platform } : {})
       }}
       footer={{
