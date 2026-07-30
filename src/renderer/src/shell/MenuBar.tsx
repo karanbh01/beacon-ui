@@ -7,6 +7,7 @@ import {
   WindowFormatIcon
 } from '../icons/generated'
 import { MENUS } from './pages'
+import { WindowControls } from './WindowControls'
 import './MenuBar.css'
 
 export interface MenuBarProps {
@@ -16,6 +17,8 @@ export interface MenuBarProps {
   onOpenLayout?: () => void
   /** Extra controls, e.g. the theme switch while there is no Settings menu. */
   extra?: ReactNode
+  /** process.platform, so macOS can leave room for its traffic lights. */
+  platform?: string
   className?: string
 }
 
@@ -25,9 +28,9 @@ export interface MenuBarProps {
  * HTML menus for now, per BU-15 — these are buttons that will grow real
  * dropdowns. Native application menus are a separate concern in src/main.
  *
- * Deliberately omits the window minimise/maximise/close controls the Figma
- * bar carries at its right edge. Those assume a frameless window; BU-3 chose
- * a standard frame, so the OS draws them. They arrive with #37.
+ * This bar IS the title bar (BU-37): the window is frameless, so the bar
+ * carries the drag region and, off macOS, the window controls. Every
+ * interactive child has to opt out of dragging or it stops being clickable.
  */
 export function MenuBar({
   onSearch,
@@ -35,10 +38,15 @@ export function MenuBar({
   onOpenDataSources,
   onOpenLayout,
   extra,
+  platform,
   className
 }: MenuBarProps): ReactElement {
+  const classes = ['menu-bar', platform === 'darwin' && 'menu-bar-mac', className]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <header className={['menu-bar', className].filter(Boolean).join(' ')}>
+    <header className={classes}>
       <div className="menu-bar-logo">
         <LogoBetaIcon size={47} aria-label="Beacon" />
       </div>
@@ -89,6 +97,8 @@ export function MenuBar({
         </button>
         {extra !== undefined && <span className="menu-bar-rule" />}
         {extra}
+        <span className="menu-bar-rule" />
+        <WindowControls />
       </div>
     </header>
   )

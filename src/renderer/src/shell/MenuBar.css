@@ -1,13 +1,26 @@
 /* Figma 81:2. */
 
+/*
+ * This bar is the title bar (BU-37). It carries the drag region, so every
+ * interactive descendant must opt back out with no-drag or it becomes
+ * unclickable — that is the classic frameless-window bug.
+ */
 .menu-bar {
   display: flex;
   align-items: center;
   gap: 12px;
   height: 62px;
   flex: none;
-  padding: 0 16px 0 5px;
+  padding: 0 8px 0 5px;
   border-bottom: 0.5px solid var(--chrome-border);
+  -webkit-app-region: drag;
+}
+
+.menu-bar button,
+.menu-bar input,
+.menu-bar .menu-bar-search,
+.menu-bar .theme-switch {
+  -webkit-app-region: no-drag;
 }
 
 .menu-bar-logo {
@@ -16,6 +29,11 @@
   flex: none;
   width: 84px;
   color: var(--text-primary);
+}
+
+/* macOS insets its traffic lights onto this bar; leave room for them. */
+.menu-bar-mac .menu-bar-logo {
+  margin-left: 76px;
 }
 
 .menu-bar-menus {

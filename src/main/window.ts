@@ -1,21 +1,35 @@
 import { join } from 'node:path'
 import { BrowserWindow, shell } from 'electron'
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, MIN_HEIGHT, MIN_WIDTH } from './windowGeometry'
+import { forwardMaximizeChanges } from './ipc'
 import { persistWindowState, restoredBounds, wasMaximized } from './windowState'
+
+const isMac = process.platform === 'darwin'
+
+/**
+ * Frameless chrome (BU-37). The menu bar is the title bar, so the OS must not
+ * draw one above it.
+ *
+ * macOS keeps its traffic lights via `hiddenInset` and insets them to sit on
+ * the 62px bar — hiding them there would break a system-level convention and
+ * leave no way to close the window. Windows and Linux go fully frameless and
+ * the renderer draws minimise / maximise / close itself.
+ */
+const frameOptions = isMac
+  ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: 23 } }
+  : { frame: false }
 
 export function createMainWindow(): BrowserWindow {
   const saved = restoredBounds()
 
   const window = new BrowserWindow({
     ...(saved ?? { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT }),
+    ...frameOptions,
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
     show: false,
-    // The renderer draws its own menu bar (BU-15), so Electron's native one
-    // would sit directly above it as a second row of File/Edit/View. Hidden
-    // rather than removed: Alt still reveals it, so the standard accelerators
-    // and the devtools shortcut survive. On macOS the app menu lives in the
-    // system bar and never duplicates, so this is a no-op there.
+    // The renderer draws its own menu bar (BU-15). Frameless already removes
+    // the native one on Windows/Linux; this also covers the Alt-reveal path.
     autoHideMenuBar: true,
     // The dark canvas token. Only visible if ready-to-show is slow, but a
     // stale literal here would flash a colour that is no longer in the
@@ -34,6 +48,7 @@ export function createMainWindow(): BrowserWindow {
     window.maximize()
   }
   persistWindowState(window)
+  forwardMaximizeChanges(window)
 
   // Show only once the first paint is ready, so launch has no white flash.
   window.on('ready-to-show', () => {

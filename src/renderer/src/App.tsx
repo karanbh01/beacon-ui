@@ -31,8 +31,13 @@ export function App(): ReactElement {
     // Never let a bridge failure escape this effect. An uncaught throw here
     // tears down the whole React tree and the user gets a blank window.
     const load = async (): Promise<void> => {
+      const api = window.beacon
+      if (api === undefined) {
+        setBridge({ status: 'failed' })
+        return
+      }
       try {
-        setBridge({ status: 'ok', info: await window.beacon.appInfo() })
+        setBridge({ status: 'ok', info: await api.appInfo() })
       } catch {
         setBridge({ status: 'failed' })
       }
@@ -56,7 +61,8 @@ export function App(): ReactElement {
         onToggleAssistant: () => {
           setAssistantOpen((open) => !open)
         },
-        extra: <ThemeSwitch {...theme} />
+        extra: <ThemeSwitch {...theme} />,
+        ...(bridge.status === 'ok' ? { platform: bridge.info.platform } : {})
       }}
       footer={{
         engine:

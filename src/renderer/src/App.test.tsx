@@ -9,7 +9,8 @@ const INFO: AppInfo = {
   version: '0.0.1',
   electron: '33.4.11',
   chrome: '130.0.0.0',
-  node: '20.18.1'
+  node: '20.18.1',
+  platform: 'win32'
 }
 
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
