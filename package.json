@@ -37,6 +37,7 @@
     "api:check": "openapi-typescript openapi.json -o src/shared/api.generated.ts && git diff --exit-code -- src/shared/api.generated.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5",
     "@tanstack/react-virtual": "^3",
     "electron-updater": "^6.3.9",
     "zustand": "^5"

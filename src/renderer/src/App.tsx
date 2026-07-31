@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { AppInfo } from '@shared/ipc'
+import { BeaconProvider } from './api/BeaconProvider'
+import { JobTray } from './api/JobTray'
+import { useDataAge } from './api/useHealth'
 import { AssistantPanel } from './assistant/AssistantPanel'
 import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
@@ -20,11 +23,26 @@ registerPlaceholderViews()
 
 const DEFAULT_PAGE = SIDEBAR_PAGES[0]?.id ?? 'data-explorer'
 
+/**
+ * Everything that needs the API client sits inside BeaconProvider, so the
+ * shell can render before — and without — an engine.
+ */
 export function App(): ReactElement {
+  const engine = useEngine()
+
+  return (
+    <BeaconProvider engine={engine}>
+      <AppBody />
+    </BeaconProvider>
+  )
+}
+
+function AppBody(): ReactElement {
   const [bridge, setBridge] = useState<BridgeState>({ status: 'pending' })
   const [page, setPage] = useState(DEFAULT_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const engine = useEngine()
+  const dataAge = useDataAge()
   const openTab = useWorkspace((state) => state.openTab)
 
   // No visible control yet — the theme picker belongs in the footer and the
@@ -78,6 +96,9 @@ export function App(): ReactElement {
           ...(engine.version === undefined ? {} : { version: engine.version }),
           ...(engine.detail === undefined ? {} : { detail: engine.detail })
         },
+        // Real freshness from /health's cache_age, refreshed when py-beacon
+        // publishes a data.freshness event rather than on a timer.
+        ...(dataAge === undefined ? {} : { dataUpdated: dataAge }),
         ...(appVersion === undefined ? {} : { version: appVersion })
       }}
       {...(assistantOpen
@@ -96,6 +117,7 @@ export function App(): ReactElement {
         : {})}
     >
       <PaneHost page={page} />
+      <JobTray />
     </AppShell>
   )
 }

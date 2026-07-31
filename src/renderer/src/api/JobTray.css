@@ -1,0 +1,83 @@
+.job-tray {
+  position: fixed;
+  right: 20px;
+  bottom: 48px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 300px;
+}
+
+.job-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  /* Sits above the pane, so it needs to read as lifted off it. */
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+
+.job-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.job-kind {
+  flex: 1 1 auto;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-dismiss {
+  flex: none;
+  padding: 0 2px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.job-dismiss:hover {
+  color: var(--text-primary);
+}
+
+.job-track {
+  height: 4px;
+  background: var(--canvas);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.job-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 200ms linear;
+}
+
+.job-fill-failed {
+  background: var(--danger);
+}
+
+.job-message {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
