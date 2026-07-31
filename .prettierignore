@@ -20,3 +20,5 @@ docs/adr/
 src/renderer/src/icons/generated.tsx
 src/renderer/src/icons/svg/
 src/renderer/src/icons/registry.ts
+src/shared/api.generated.ts
+openapi.json

@@ -14,7 +14,11 @@ export default tseslint.config(
       'release/**',
       'node_modules/**',
       'coverage/**',
-      'storybook-static/**'
+      'storybook-static/**',
+      // Generated from py-beacon's OpenAPI spec. Its style is openapi-
+      // typescript's business, not ours, and it is still typechecked — which
+      // is the part that actually makes the client safe.
+      'src/shared/api.generated.ts'
     ]
   },
   js.configs.recommended,

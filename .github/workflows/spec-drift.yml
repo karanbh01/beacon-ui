@@ -1,0 +1,44 @@
+name: Spec drift
+
+# Is our committed openapi.json still what py-beacon serves?
+#
+# Deliberately NOT on every PR. It pip-installs py-beacon and its server
+# extra — scipy and reportlab are heavy — which would add minutes to every
+# UI-only change and make a red py-beacon main block unrelated work here.
+# Nightly means drift surfaces within a day, which is soon enough given the
+# generated client is regenerated from the spec on every PR anyway.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  spec:
+    name: committed spec vs py-beacon main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # py-beacon is public, so this needs no token. It is not on PyPI and
+      # has no releases yet, so main is the only thing to track.
+      - name: Install py-beacon from main
+        run: pip install "py-beacon[server] @ git+https://github.com/karanbh01/py-beacon@main"
+
+      - name: Export the current spec
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/karanbh01/py-beacon/main/scripts/export_openapi.py -o export_openapi.py
+          python export_openapi.py fresh-openapi.json
+
+      - name: Compare
+        run: |
+          if diff -q openapi.json fresh-openapi.json > /dev/null; then
+            echo "Spec is current."
+          else
+            echo "::error::openapi.json is stale. Run 'pnpm run spec:refresh' against a py-beacon checkout and commit the result."
+            diff -u openapi.json fresh-openapi.json | head -80
+            exit 1
+          fi

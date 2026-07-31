@@ -37,6 +37,12 @@ jobs:
       - name: Icon drift
         run: pnpm run icons:check
 
+      # Generated TypeScript vs the committed spec. Cheap and always run —
+      # catches a hand-edited or un-regenerated client. Whether the spec
+      # itself is stale is a cross-repo question, handled by spec-drift.yml.
+      - name: API client drift
+        run: pnpm run api:check
+
       - name: Format check
         run: pnpm run format:check
 
