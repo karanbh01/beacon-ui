@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AppInfo } from '@shared/ipc'
+import type { AppInfo, EngineState } from '@shared/ipc'
 import { App } from './App'
 import { useWorkspace } from './state/tabs.store'
 
@@ -21,8 +21,19 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   return { promise, resolve }
 }
 
-function stubBridge(appInfo: () => Promise<AppInfo>): void {
-  vi.stubGlobal('beacon', { appInfo })
+/** Engine state the bridge reports; the footer renders this, not app info. */
+function stubBridge(
+  appInfo: () => Promise<AppInfo>,
+  engine: EngineState = { status: 'connected', version: '0.0.2' }
+): void {
+  vi.stubGlobal('beacon', {
+    appInfo,
+    engine: {
+      state: () => Promise.resolve(engine),
+      restart: () => Promise.resolve(),
+      onChange: () => () => undefined
+    }
+  })
 }
 
 beforeEach(() => {
@@ -71,37 +82,54 @@ describe('App boots the real shell', () => {
   })
 })
 
-describe('bridge state reaches the footer', () => {
-  it('reports starting while the bridge is in flight', () => {
+describe('engine state reaches the footer (BU-19)', () => {
+  it('reports the py-beacon version once connected', async () => {
+    render(<App />)
+    expect(await screen.findByText(/engine connected · py-beacon 0.0.2/)).toBeInTheDocument()
+  })
+
+  it('says reconnecting while degraded, not merely unavailable', async () => {
+    stubBridge(() => Promise.resolve(INFO), { status: 'degraded', detail: 'server exited (1)' })
+
+    render(<App />)
+
+    expect(await screen.findByText(/engine unavailable · reconnecting/)).toBeInTheDocument()
+  })
+
+  it('distinguishes stopped from degraded, so it cannot claim to be recovering forever', async () => {
+    stubBridge(() => Promise.resolve(INFO), { status: 'stopped', detail: 'gave up' })
+
+    render(<App />)
+
+    expect(await screen.findByText('engine stopped')).toBeInTheDocument()
+    expect(screen.queryByText(/reconnecting/)).toBeNull()
+  })
+
+  it('shows starting rather than optimistically claiming connected', () => {
     const pending = deferred<AppInfo>()
-    stubBridge(() => pending.promise)
+    stubBridge(() => pending.promise, { status: 'starting' })
 
     render(<App />)
 
     expect(screen.getByText(/engine starting/)).toBeInTheDocument()
   })
 
-  it('reports the version once connected', async () => {
-    render(<App />)
-    expect(await screen.findByText(/engine connected · py-beacon 0.0.1/)).toBeInTheDocument()
-  })
-
-  it('degrades rather than blanking when the bridge rejects', async () => {
-    stubBridge(() => Promise.reject(new Error('no handler')))
+  it('survives a missing bridge, and says the engine is stopped', async () => {
+    vi.stubGlobal('beacon', undefined)
 
     const { container } = render(<App />)
 
-    expect(await screen.findByText(/engine unavailable/)).toBeInTheDocument()
-    // The shell must survive a dead bridge.
+    expect(await screen.findByText('engine stopped')).toBeInTheDocument()
+    // The shell must still render without an engine.
     expect(container.querySelector('.pane-host')).not.toBeNull()
   })
 
-  it('degrades when the bridge is missing entirely', async () => {
-    vi.stubGlobal('beacon', undefined)
-
+  it('reports beacon-ui version separately from py-beacon version', async () => {
     render(<App />)
 
-    expect(await screen.findByText(/engine unavailable/)).toBeInTheDocument()
+    // App info gives 0.0.1 (the client); the engine reports 0.0.2 (the server).
+    expect(await screen.findByText(/py-beacon 0.0.2/)).toBeInTheDocument()
+    expect(screen.getByText(/version 0.0.1/)).toBeInTheDocument()
   })
 })
 

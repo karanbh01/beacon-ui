@@ -6,6 +6,7 @@ import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
 import { PaneHost } from './shell/PaneHost'
 import { SIDEBAR_PAGES } from './shell/pages'
+import { useEngine } from './state/engine'
 import { useTheme } from './state/theme'
 import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
@@ -23,6 +24,7 @@ export function App(): ReactElement {
   const [bridge, setBridge] = useState<BridgeState>({ status: 'pending' })
   const [page, setPage] = useState(DEFAULT_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
+  const engine = useEngine()
   const openTab = useWorkspace((state) => state.openTab)
 
   // No visible control yet — the theme picker belongs in the footer and the
@@ -56,7 +58,8 @@ export function App(): ReactElement {
     for (const tab of SEED_TABS) openTab(tab)
   }, [openTab])
 
-  const engineVersion = bridge.status === 'ok' ? bridge.info.version : undefined
+  // beacon-ui's own version, distinct from py-beacon's which the engine reports.
+  const appVersion = bridge.status === 'ok' ? bridge.info.version : undefined
 
   return (
     <AppShell
@@ -68,16 +71,14 @@ export function App(): ReactElement {
         ...(bridge.status === 'ok' ? { platform: bridge.info.platform } : {})
       }}
       footer={{
-        engine:
-          bridge.status === 'failed'
-            ? { state: 'degraded' }
-            : bridge.status === 'pending'
-              ? { state: 'starting' }
-              : {
-                  state: 'connected',
-                  ...(engineVersion === undefined ? {} : { version: engineVersion })
-                },
-        ...(engineVersion === undefined ? {} : { version: engineVersion })
+        // Truthful: this is the python supervisor's own state, pushed from
+        // main, not an inference from whether the IPC bridge answered.
+        engine: {
+          state: engine.status,
+          ...(engine.version === undefined ? {} : { version: engine.version }),
+          ...(engine.detail === undefined ? {} : { detail: engine.detail })
+        },
+        ...(appVersion === undefined ? {} : { version: appVersion })
       }}
       {...(assistantOpen
         ? {

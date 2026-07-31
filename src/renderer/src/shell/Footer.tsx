@@ -2,11 +2,11 @@ import type { ReactElement } from 'react'
 import { GithubIcon } from '../icons/generated'
 import './Footer.css'
 
-export type EngineState = 'connected' | 'degraded' | 'starting'
+export type EngineState = 'connected' | 'degraded' | 'starting' | 'stopped'
 
 export interface FooterProps {
-  /** Stubbed here; BU-19 wires it to the real python process. */
-  engine?: { state: EngineState; version?: string }
+  /** Live from the python supervisor (BU-19). */
+  engine?: { state: EngineState; version?: string; detail?: string }
   /** e.g. "2h ago". BU-21 supplies it from freshness events. */
   dataUpdated?: string
   version?: string
@@ -18,11 +18,18 @@ export interface FooterProps {
 const ENGINE_TONE: Record<EngineState, string> = {
   connected: 'dot-success',
   degraded: 'dot-danger',
+  stopped: 'dot-danger',
   starting: 'dot-accent'
 }
 
+/**
+ * `degraded` and `stopped` read differently on purpose: degraded means a
+ * restart is in flight, stopped means we gave up. Saying "reconnecting" when
+ * nothing is reconnecting is the failure mode BU-19 is meant to remove.
+ */
 function engineLabel(state: EngineState, version?: string): string {
-  if (state === 'degraded') return 'engine unavailable'
+  if (state === 'degraded') return 'engine unavailable · reconnecting'
+  if (state === 'stopped') return 'engine stopped'
   if (state === 'starting') return 'engine starting…'
   return version === undefined ? 'engine connected' : `engine connected · py-beacon ${version}`
 }
@@ -46,7 +53,7 @@ export function Footer({
 }: FooterProps): ReactElement {
   return (
     <footer className={['footer', className].filter(Boolean).join(' ')}>
-      <span className="footer-status">
+      <span className="footer-status" title={engine.detail}>
         <span className={`footer-dot ${ENGINE_TONE[engine.state]}`} aria-hidden="true" />
         {engineLabel(engine.state, engine.version)}
       </span>

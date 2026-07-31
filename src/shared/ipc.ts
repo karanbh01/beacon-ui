@@ -23,11 +23,51 @@ export interface AppInfo {
  * Add a channel by adding a key here; main must then register a matching
  * handler and preload must expose it, both of which are type-enforced.
  */
+/**
+ * Lifecycle of the python server (BU-19).
+ *
+ * `degraded` is deliberately distinct from `stopped`: degraded means we
+ * expect it back and a restart is in flight, stopped means we gave up. The
+ * footer says different things for each, and conflating them would let the
+ * app claim it is recovering forever.
+ */
+export type EngineStatus = 'starting' | 'connected' | 'degraded' | 'stopped'
+
+export interface EngineState {
+  status: EngineStatus
+  /** py-beacon's version, from /health. Absent until first connect. */
+  version?: string
+  /** e.g. http://127.0.0.1:57020 — absent until the port is announced. */
+  baseUrl?: string
+  /**
+   * Bearer token for the API and the `/ws?token=` socket.
+   *
+   * The renderer needs it to call anything. That is the design py-beacon
+   * assumes — the server binds loopback only and trusts the token alone —
+   * but it does mean the token lives in renderer memory, so it must never be
+   * logged or persisted.
+   */
+  token?: string
+  /** Human-readable reason when degraded or stopped. */
+  detail?: string
+  /** Consecutive failed starts; drives the restart backoff. */
+  restarts?: number
+}
+
 export interface IpcContract {
   'app:info': {
     /** No payload. */
     request: undefined
     response: AppInfo
+  }
+  'engine:state': {
+    request: undefined
+    response: EngineState
+  }
+  /** Force a restart, e.g. from a footer action. */
+  'engine:restart': {
+    request: undefined
+    response: undefined
   }
   'window:minimize': {
     request: undefined
@@ -60,9 +100,18 @@ export type IpcResponse<C extends IpcChannel> = IpcContract[C]['response']
  */
 export const MAXIMIZE_CHANGED = 'window:maximizeChanged'
 
+/** Pushed whenever the engine's status changes, so the footer stays truthful. */
+export const ENGINE_CHANGED = 'engine:changed'
+
 /** The surface preload publishes on `window.beacon`. */
 export interface BeaconBridge {
   appInfo: () => Promise<AppInfo>
+  engine: {
+    state: () => Promise<EngineState>
+    restart: () => Promise<void>
+    /** Returns an unsubscribe function. */
+    onChange: (listener: (state: EngineState) => void) => () => void
+  }
   window: {
     minimize: () => Promise<void>
     toggleMaximize: () => Promise<boolean>

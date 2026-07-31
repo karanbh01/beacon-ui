@@ -1,5 +1,13 @@
 import { app, BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
-import { MAXIMIZE_CHANGED, type AppInfo, type IpcChannel, type IpcResponse } from '@shared/ipc'
+import {
+  ENGINE_CHANGED,
+  MAXIMIZE_CHANGED,
+  type AppInfo,
+  type EngineState,
+  type IpcChannel,
+  type IpcResponse
+} from '@shared/ipc'
+import type { Engine } from './engine/engine'
 
 /**
  * Register a handler with the channel's contract type enforced. Adding a
@@ -18,7 +26,14 @@ function senderWindow(event: IpcMainInvokeEvent): BrowserWindow | null {
   return BrowserWindow.fromWebContents(event.sender)
 }
 
-export function registerIpcHandlers(): void {
+export function registerIpcHandlers(engine: Engine): void {
+  handle('engine:state', (): EngineState => engine.getState())
+
+  handle('engine:restart', () => {
+    engine.restart()
+    return undefined
+  })
+
   handle('app:info', (): AppInfo => {
     return {
       version: app.getVersion(),
@@ -60,6 +75,23 @@ export function registerIpcHandlers(): void {
  * region and Windows snap gestures both change the state without the
  * renderer knowing, and the maximise glyph would then be wrong.
  */
+/**
+ * Push engine state to a window as it changes.
+ *
+ * The footer must never look healthier than the engine is, and polling from
+ * the renderer would mean a window of time where it does.
+ */
+export function forwardEngineChanges(engine: Engine, window: BrowserWindow): void {
+  const send = (state: EngineState): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(ENGINE_CHANGED, state)
+  }
+  engine.on('change', send)
+  window.on('closed', () => {
+    engine.off('change', send)
+  })
+}
+
 export function forwardMaximizeChanges(window: BrowserWindow): void {
   const send = (): void => {
     if (window.isDestroyed()) return

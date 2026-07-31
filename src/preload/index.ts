@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { MAXIMIZE_CHANGED, type AppInfo, type BeaconBridge } from '@shared/ipc'
+import {
+  ENGINE_CHANGED,
+  MAXIMIZE_CHANGED,
+  type AppInfo,
+  type BeaconBridge,
+  type EngineState
+} from '@shared/ipc'
 
 /**
  * The only object the renderer can reach. Every member maps to a channel in
@@ -7,6 +13,19 @@ import { MAXIMIZE_CHANGED, type AppInfo, type BeaconBridge } from '@shared/ipc'
  */
 const bridge: BeaconBridge = {
   appInfo: () => ipcRenderer.invoke('app:info') as Promise<AppInfo>,
+  engine: {
+    state: () => ipcRenderer.invoke('engine:state') as Promise<EngineState>,
+    restart: () => ipcRenderer.invoke('engine:restart') as Promise<void>,
+    onChange: (listener) => {
+      const handler = (_event: unknown, state: EngineState): void => {
+        listener(state)
+      }
+      ipcRenderer.on(ENGINE_CHANGED, handler)
+      return () => {
+        ipcRenderer.removeListener(ENGINE_CHANGED, handler)
+      }
+    }
+  },
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize') as Promise<void>,
     toggleMaximize: () => ipcRenderer.invoke('window:toggleMaximize') as Promise<boolean>,
