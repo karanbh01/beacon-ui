@@ -90,13 +90,11 @@ into it during packaging is the whole of the work.
 - The packaged app reaches **`connected`** — the engine log shows it, and
   py-beacon accepted the renderer's WebSocket.
 
-**Not verified — and one thing is outright broken:**
+- **The packaged app renders and reaches the engine over HTTP.** Two bugs had
+  to be fixed first, both only reachable when packaged; see #47.
 
-- **The packaged window renders blank.** Main works, the engine connects and
-  the renderer's socket attaches, but nothing paints. `did-fail-load` never
-  fires and no renderer console error is emitted, so the document and its
-  bundle load successfully. Tracked as its own issue; BU-33 is not done until
-  it is fixed.
+**Not verified:**
+
 - The dmg has not been built at all: electron-builder cannot produce one from
   Windows. It needs a macOS runner (BU-34).
 - The acceptance criterion — *clean machine* installs and reaches engine

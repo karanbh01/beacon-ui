@@ -45,16 +45,35 @@ export function createMainWindow(): BrowserWindow {
     }
   })
 
-  if (wasMaximized()) {
-    window.maximize()
-  }
   persistWindowState(window)
   forwardMaximizeChanges(window)
 
-  // Show only once the first paint is ready, so launch has no white flash.
-  window.on('ready-to-show', () => {
+  /*
+   * Reveal the window, once.
+   *
+   * `ready-to-show` alone is a trap, and it cost a day of BU-33: it waits for
+   * the renderer's FIRST FRAME, and a window that has never been shown is
+   * `visibilityState: 'hidden'`, so its renderer may never paint one. The
+   * event then never fires, `show()` is never called, and the window sits
+   * there painting only its `backgroundColor` — laid out correctly, fully
+   * styled, and completely invisible.
+   *
+   * `maximize()` makes that worse rather than better: on Windows it puts the
+   * window on screen without marking the CONTENTS visible, so the failure
+   * looks like a rendering bug instead of a window that was never shown. It
+   * is therefore applied after the reveal, not before.
+   *
+   * `did-finish-load` is the belt to that braces — it fires on the document,
+   * not on a frame, so it cannot deadlock the same way.
+   */
+  const reveal = (): void => {
+    if (window.isDestroyed() || window.isVisible()) return
     window.show()
-  })
+    if (wasMaximized()) window.maximize()
+  }
+
+  window.once('ready-to-show', reveal)
+  window.webContents.once('did-finish-load', reveal)
 
   /*
    * A packaged renderer that fails to load is otherwise silent: the window
