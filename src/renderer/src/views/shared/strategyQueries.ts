@@ -1,0 +1,125 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { components } from '@shared/api.generated'
+import { keys } from '../../api/keys'
+import { useBeacon } from '../../api/queryClient'
+
+export type IndexDocument = components['schemas']['IndexDocument']
+export type ValidationReport = components['schemas']['ValidationReport']
+export type PreviewResponse = components['schemas']['PreviewResponse']
+
+/**
+ * Queries for the definitions the user authors.
+ *
+ * Kept apart from `queries.ts`, which serves market data: these are documents
+ * with a save lifecycle, not cached observations, and mixing the two would
+ * put a draft's preview behind the same invalidation a price sync triggers.
+ */
+
+export function useIndices() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.strategy.indices(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.indices.list(signal)
+    },
+    enabled: client !== null
+  })
+}
+
+export function useIndex(indexId: string) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.strategy.index(indexId),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.indices.get(indexId, signal)
+    },
+    enabled: client !== null && indexId !== ''
+  })
+}
+
+export function useUniverses() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.strategy.universes(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.universes.list(signal)
+    },
+    enabled: client !== null
+  })
+}
+
+export function useUniverseMembers(universeId: string) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.strategy.universeMembers(universeId),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.universes.members(universeId, signal)
+    },
+    enabled: client !== null && universeId !== ''
+  })
+}
+
+/**
+ * Validate the draft, not the saved document.
+ *
+ * A mutation rather than a query because the thing being validated is the
+ * editor's current state, which has no cache key — two drafts of the same
+ * index are different inputs with the same id.
+ */
+export function useValidateIndex() {
+  const client = useBeacon()
+
+  return useMutation({
+    mutationFn: (document: IndexDocument) => {
+      if (client === null) throw new Error('No engine')
+      return client.indices.validate(document)
+    }
+  })
+}
+
+/**
+ * Resolve the pipeline against real data.
+ *
+ * Only the SAVED document can be previewed: py-beacon takes an index id, not
+ * a body, so what comes back describes what is stored. The view says so
+ * rather than letting the counts look like they follow the draft.
+ */
+export function usePreviewIndex() {
+  const client = useBeacon()
+
+  return useMutation({
+    mutationFn: ({ indexId, asOf }: { indexId: string; asOf?: string }) => {
+      if (client === null) throw new Error('No engine')
+      return client.indices.preview(indexId, asOf === undefined ? {} : { as_of: asOf })
+    }
+  })
+}
+
+export function useSaveIndex() {
+  const client = useBeacon()
+  const queries = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ document, isNew }: { document: IndexDocument; isNew: boolean }) => {
+      if (client === null) throw new Error('No engine')
+      return isNew ? client.indices.create(document) : client.indices.save(document.id, document)
+    },
+    onSuccess: (result) => {
+      // Write the saved document into the cache rather than refetching it.
+      // The editor's dirty flag compares the draft against this entry, so a
+      // refetch round trip would leave the tab showing "unsaved changes" for
+      // as long as it took — after the save had already succeeded.
+      queries.setQueryData(keys.strategy.index(result.index.id), result.index)
+      // The list is a different question: a rename or a create changes it.
+      void queries.invalidateQueries({ queryKey: keys.strategy.indices() })
+    }
+  })
+}

@@ -78,6 +78,13 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     title: 'TECH10'
   },
   {
+    id: 'seed-universe',
+    page: 'strategy-builder',
+    viewKind: 'universe-set',
+    archetype: 'query',
+    title: 'Universe Set'
+  },
+  {
     id: 'seed-constraints',
     page: 'optimiser',
     viewKind: 'constraint-set',

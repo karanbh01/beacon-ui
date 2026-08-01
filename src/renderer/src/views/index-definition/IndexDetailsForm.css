@@ -1,0 +1,55 @@
+/* Figma 321:1552. Rows of label-above-box fields, 12px apart. */
+
+.index-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 9px Medium at 6% tracking, muted — the section-head grammar (taxonomy 8). */
+.index-section-label {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.index-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+/*
+ * A bare input inside Field's box: the box owns the chrome, so the input
+ * contributes only the text. Any border of its own would double the stroke.
+ */
+.index-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.index-input:focus {
+  outline: none;
+}
+
+.index-input:disabled {
+  color: var(--text-muted);
+}
+
+/* Select supplies its own box, so inside a Field it drops back to bare. */
+.index-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}

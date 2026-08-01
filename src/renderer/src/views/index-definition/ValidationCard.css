@@ -1,0 +1,33 @@
+/* Figma 322:1641. 440px card of KV rows, findings underneath. */
+
+.validation-card {
+  width: 440px;
+  max-width: 100%;
+}
+
+.validation-note {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+}
+
+.validation-findings {
+  margin: 12px 0 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* An error blocks saving; a warning does not. The colours say which. */
+.validation-errors {
+  color: var(--danger);
+}
+
+.validation-warnings {
+  color: var(--text-secondary);
+}
+
+.validation-findings code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-muted);
+}

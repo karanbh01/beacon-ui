@@ -26,6 +26,21 @@ export const keys = {
     watchlists: () => ['data', 'watchlists'] as const
   },
 
+  /**
+   * Definitions the user authors, as opposed to market data they consume.
+   *
+   * Separate from `data` because nothing a market sync does can change an
+   * index definition, and a freshness event must not drop a draft's preview
+   * for a reason the user did not cause.
+   */
+  strategy: {
+    all: () => ['strategy'] as const,
+    indices: () => ['strategy', 'indices'] as const,
+    index: (indexId: string) => ['strategy', 'index', indexId] as const,
+    universes: () => ['strategy', 'universes'] as const,
+    universeMembers: (universeId: string) => ['strategy', 'universe-members', universeId] as const
+  },
+
   beacon: {
     all: () => ['beacon'] as const,
     overview: (indexId: string, asof?: string) => ['beacon', 'overview', indexId, asof] as const,

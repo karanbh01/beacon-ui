@@ -168,6 +168,29 @@ export interface BeaconClient {
       body?: BodyOf<'post', '/data/coverage/{dataset}/sync'>
     ) => Promise<WriteResponse<'post', '/data/coverage/{dataset}/sync'>>
   }
+  indices: {
+    list: (signal?: AbortSignal) => Promise<ResponseOf<'/indices'>>
+    get: (id: string, signal?: AbortSignal) => Promise<ResponseOf<'/indices/{index_id}'>>
+    create: (document: BodyOf<'post', '/indices'>) => Promise<WriteResponse<'post', '/indices'>>
+    save: (
+      id: string,
+      document: BodyOf<'put', '/indices/{index_id}'>
+    ) => Promise<WriteResponse<'put', '/indices/{index_id}'>>
+    validate: (
+      document: BodyOf<'post', '/indices/validate'>
+    ) => Promise<WriteResponse<'post', '/indices/validate'>>
+    preview: (
+      id: string,
+      body?: BodyOf<'post', '/indices/{index_id}/preview'>
+    ) => Promise<WriteResponse<'post', '/indices/{index_id}/preview'>>
+  }
+  universes: {
+    list: (signal?: AbortSignal) => Promise<ResponseOf<'/universes'>>
+    members: (
+      id: string,
+      signal?: AbortSignal
+    ) => Promise<ResponseOf<'/universes/{universe_id}/members'>>
+  }
   health: () => Promise<ResponseOf<'/health'>>
 }
 
@@ -279,6 +302,31 @@ export function createClient(options: ClientOptions): BeaconClient {
         write('delete', '/data/watchlists/{watchlist_id}', { params: { watchlist_id: id } }),
       sync: (dataset, body) =>
         write('post', '/data/coverage/{dataset}/sync', { params: { dataset }, body: body ?? {} })
+    },
+    indices: {
+      list: (signal) => get('/indices', { ...(signal === undefined ? {} : { signal }) }),
+      get: (id, signal) =>
+        get('/indices/{index_id}', {
+          params: { index_id: id },
+          ...(signal === undefined ? {} : { signal })
+        }),
+      create: (document) => write('post', '/indices', { body: document }),
+      save: (id, document) =>
+        write('put', '/indices/{index_id}', { params: { index_id: id }, body: document }),
+      validate: (document) => write('post', '/indices/validate', { body: document }),
+      preview: (id, body) =>
+        write('post', '/indices/{index_id}/preview', {
+          params: { index_id: id },
+          body: body ?? {}
+        })
+    },
+    universes: {
+      list: (signal) => get('/universes', { ...(signal === undefined ? {} : { signal }) }),
+      members: (id, signal) =>
+        get('/universes/{universe_id}/members', {
+          params: { universe_id: id },
+          ...(signal === undefined ? {} : { signal })
+        })
     },
     health: () => get('/health')
   }

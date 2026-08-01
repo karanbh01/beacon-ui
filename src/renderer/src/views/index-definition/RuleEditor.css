@@ -1,0 +1,50 @@
+/* Figma 324:1614. Indented under the selected rule, on the canvas fill. */
+
+.rule-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 14px 56px;
+  background: var(--canvas);
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+}
+
+.rule-editor-fields {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.rule-editor-param {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.rule-editor-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.rule-editor-input:focus {
+  outline: none;
+}
+
+.rule-editor-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rule-editor-note {
+  margin: 0;
+  max-width: 620px;
+  color: var(--text-muted);
+}

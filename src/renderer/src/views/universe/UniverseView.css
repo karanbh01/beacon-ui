@@ -1,0 +1,14 @@
+/* Figma pane-content – universe-set, 335:1633. */
+
+.universe-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.universe-footnote {
+  margin: 0;
+  max-width: 780px;
+  color: var(--text-muted);
+}
