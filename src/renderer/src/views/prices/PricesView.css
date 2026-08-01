@@ -1,0 +1,30 @@
+/* Figma pane-content – prices, 266:2820. */
+
+.prices-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.prices-state {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+}
+
+.prices-state code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-secondary);
+}
+
+/* Footnote provenance line: 11px muted, counts and spans (taxonomy 9). */
+.prices-footnote {
+  margin: 0;
+  color: var(--text-muted);
+}

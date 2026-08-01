@@ -3,9 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <title>Beacon</title>
+    <!--
+      connect-src has to be stated explicitly. It falls back to default-src,
+      and 'self' alone blocked every call to the engine plus the /ws event
+      feed — the engine binds a fresh loopback port each launch, which is a
+      different origin from the renderer.
+
+      Scoped to loopback on purpose: py-beacon binds 127.0.0.1 only, so this
+      grants nothing beyond the machine. Everything else stays 'self'.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*"
     />
   </head>
   <body>

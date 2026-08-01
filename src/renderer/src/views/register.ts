@@ -1,5 +1,6 @@
 import { registerView } from '../shell/viewRegistry'
-import { GenericView, OverviewView, PricesView, WeightsView } from './PlaceholderViews'
+import { GenericView, OverviewView, WeightsView } from './PlaceholderViews'
+import { PricesView } from './prices/PricesView'
 
 /**
  * Registers stand-in views so the shell is navigable before real ones land.
@@ -10,6 +11,7 @@ import { GenericView, OverviewView, PricesView, WeightsView } from './Placeholde
 export function registerPlaceholderViews(): void {
   registerView('weights', WeightsView)
   registerView('overview', OverviewView)
+  // Live against py-beacon (BU-22); no longer a placeholder.
   registerView('prices', PricesView)
 
   for (const kind of [
