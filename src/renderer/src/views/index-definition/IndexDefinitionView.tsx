@@ -60,7 +60,11 @@ export function IndexDefinitionView({ tab }: ViewProps): ReactElement {
         kind="document"
         title={draft.id}
         meta={`${draft.name} · ${draft.currency} · base ${draft.base_date.slice(0, 10)}`}
-        {...(dirty ? { status: 'unsaved changes' } : {})}
+        {...(saved === undefined
+          ? { status: 'new · not saved yet' }
+          : dirty
+            ? { status: 'unsaved changes' }
+            : {})}
         controls={
           <>
             <Button

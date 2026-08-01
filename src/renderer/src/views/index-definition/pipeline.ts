@@ -234,3 +234,30 @@ export function errorsOf(findings: readonly Finding[]): Finding[] {
 export function warningsOf(findings: readonly Finding[]): Finding[] {
   return findings.filter((finding) => finding.severity !== 'error')
 }
+
+/**
+ * A new, empty index.
+ *
+ * Seeded when the engine has no document under this id, so a tab opened for
+ * a name that does not exist becomes the editor for creating it rather than
+ * a dead end. Every field is a value py-beacon will accept; the pipeline
+ * starts with no selection rules, which validate will report as a finding —
+ * that is the correct first thing to tell someone.
+ */
+export function blankIndex(id: string): IndexDocument {
+  return {
+    id,
+    name: id,
+    description: '',
+    currency: 'USD',
+    base_date: '2020-01-01',
+    base_value: 100,
+    rebalancing_frequency: 'QUARTERLY',
+    universe: { universe_id: null },
+    pipeline: {
+      selection: [],
+      weighting: { id: 'weighting', scheme: 'EqualWeighted', params: {} },
+      treatment: { corporate_actions: 'ADJUST_DIVISOR' }
+    }
+  }
+}

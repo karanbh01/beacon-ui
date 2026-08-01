@@ -85,6 +85,22 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     title: 'Universe Set'
   },
   {
+    id: 'seed-preview',
+    page: 'strategy-builder',
+    viewKind: 'constituent-preview',
+    archetype: 'query',
+    title: 'Constituent Preview',
+    subject: 'TECH10'
+  },
+  {
+    id: 'seed-backtest',
+    page: 'beacon-view',
+    viewKind: 'backtest',
+    archetype: 'pinned',
+    title: 'Backtest',
+    pinnedDoc: 'TECH10'
+  },
+  {
     id: 'seed-constraints',
     page: 'optimiser',
     viewKind: 'constraint-set',

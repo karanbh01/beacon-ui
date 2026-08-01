@@ -3,6 +3,7 @@ import {
   GROUPS,
   addRule,
   asPercent,
+  blankIndex,
   describeRule,
   describeWeighting,
   errorsOf,
@@ -210,5 +211,25 @@ describe('asPercent', () => {
 
   it('says nothing for an uncapped index', () => {
     expect(asPercent(null)).toBe('—')
+  })
+})
+
+describe('blankIndex', () => {
+  it('is a document py-beacon will accept, not a half-filled shell', () => {
+    const fresh = blankIndex('NEWIDX')
+
+    expect(fresh.id).toBe('NEWIDX')
+    expect(fresh.pipeline.weighting.scheme).toBe('EqualWeighted')
+    expect(fresh.pipeline.treatment?.corporate_actions).toBe('ADJUST_DIVISOR')
+  })
+
+  it('starts with no selection rules, which validate should complain about', () => {
+    // That complaint is the correct first thing to tell someone who has just
+    // opened an empty index.
+    expect(blankIndex('X').pipeline.selection).toEqual([])
+  })
+
+  it('is dirty from the start — nothing has been saved', () => {
+    expect(isDirty(blankIndex('X'), undefined)).toBe(true)
   })
 })

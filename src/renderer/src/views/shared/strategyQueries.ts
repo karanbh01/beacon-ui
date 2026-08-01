@@ -123,3 +123,85 @@ export function useSaveIndex() {
     }
   })
 }
+
+export type OverviewView = components['schemas']['OverviewView']
+export type CompareView = components['schemas']['CompareView']
+
+/**
+ * The completed backtest, read back from the index rather than from the job.
+ *
+ * `JobStatus.result` is typed `unknown` — py-beacon does not publish its
+ * shape — so the pane asks the endpoint that does: `/beacon/{id}/overview`
+ * returns the level series and the metrics with a schema behind them. The job
+ * is what tells us WHEN to ask.
+ */
+export function useIndexOverview(indexId: string, enabled: boolean) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.beacon.overview(indexId),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/beacon/{index_id}/overview', { params: { index_id: indexId }, signal })
+    },
+    enabled: client !== null && indexId !== '' && enabled
+  })
+}
+
+/** Two or more stored indices on one rebased scale. */
+export function useCompare(indexIds: readonly string[]) {
+  const client = useBeacon()
+  const ids = [...indexIds].filter((id) => id !== '')
+
+  return useQuery({
+    queryKey: ['beacon', 'compare', ids.join(',')],
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/beacon/compare', { query: { ids }, signal })
+    },
+    enabled: client !== null && ids.length >= 2
+  })
+}
+
+export interface BacktestOptions {
+  indexId: string
+  start?: string
+  end?: string
+  transactionCostBps: number
+  benchmarkIndexId?: string
+}
+
+/**
+ * Submit a backtest and stop.
+ *
+ * The endpoint answers 202 with a job; progress arrives on the event feed and
+ * BU-21's store renders it. Awaiting a result here would mean polling
+ * something the socket already pushes.
+ */
+export function useRunBacktest() {
+  const client = useBeacon()
+
+  return useMutation({
+    mutationFn: (options: BacktestOptions) => {
+      if (client === null) throw new Error('No engine')
+      return client.write('post', '/beacon/{index_id}/backtest', {
+        params: { index_id: options.indexId },
+        body: {
+          ...(options.start === undefined ? {} : { start: options.start }),
+          ...(options.end === undefined ? {} : { end: options.end }),
+          initial_capital: 1_000_000,
+          transaction_cost_bps: options.transactionCostBps,
+          ...(options.benchmarkIndexId === undefined
+            ? {}
+            : {
+                benchmark: {
+                  id: options.benchmarkIndexId,
+                  kind: 'index' as const,
+                  price_column: 'CLOSE'
+                }
+              })
+        }
+      })
+    }
+  })
+}

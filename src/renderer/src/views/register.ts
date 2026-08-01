@@ -1,7 +1,9 @@
 import { registerView } from '../shell/viewRegistry'
 import { GenericView, OverviewView, WeightsView } from './PlaceholderViews'
+import { BacktestView } from './backtest/BacktestView'
 import { ChartingView } from './charting/ChartingView'
 import { CorporateActionsView } from './corporate-actions/CorporateActionsView'
+import { ConstituentPreviewView } from './constituent-preview/ConstituentPreviewView'
 import { CoverageView } from './coverage/CoverageView'
 import { IndexDefinitionView } from './index-definition/IndexDefinitionView'
 import { PricesView } from './prices/PricesView'
@@ -28,14 +30,10 @@ export function registerPlaceholderViews(): void {
   registerView('charting', ChartingView)
   registerView('index-definition', IndexDefinitionView)
   registerView('universe-set', UniverseView)
+  registerView('constituent-preview', ConstituentPreviewView)
+  registerView('backtest', BacktestView)
 
-  for (const kind of [
-    'constituent-preview',
-    'constraint-set',
-    'frontier',
-    'futures-pricer',
-    'factsheet'
-  ]) {
+  for (const kind of ['constraint-set', 'frontier', 'futures-pricer', 'factsheet']) {
     registerView(kind, GenericView)
   }
 }

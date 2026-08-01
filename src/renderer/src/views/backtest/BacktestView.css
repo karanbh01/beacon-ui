@@ -1,0 +1,65 @@
+/* Figma pane-content – backtest, 354:11580. */
+
+.backtest-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.backtest-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+/* Chart left, annual returns right (Figma 354:11640). */
+.backtest-main-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.backtest-main-row .level-chart {
+  flex: 1;
+  min-width: 480px;
+}
+
+.backtest-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 480px;
+  color: var(--text-muted);
+}
+
+.backtest-progress p {
+  margin: 0;
+}
+
+/*
+ * Determinate only. py-beacon reports a real fraction, so an indeterminate
+ * shimmer would discard information the server went to the trouble of
+ * sending (the same rule the job tray follows).
+ */
+.backtest-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--divider);
+  overflow: hidden;
+}
+
+.backtest-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
+
+.backtest-footnote {
+  margin: 0;
+  max-width: 900px;
+  color: var(--text-muted);
+}

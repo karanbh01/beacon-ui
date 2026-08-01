@@ -1,0 +1,51 @@
+/* Figma pane-content – constituent-preview, 332:1627. */
+
+.constituent-preview-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.preview-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.preview-input:focus {
+  outline: none;
+}
+
+/* A name that survived: primary, so the included set reads as the answer. */
+.derivation-pass {
+  color: var(--success);
+}
+
+/* The rule that actually dropped it. */
+.derivation-cut {
+  color: var(--danger);
+}
+
+/*
+ * Already excluded upstream. Muted rather than blank: a blank cell reads as
+ * missing data, and this is a real state — the rule never saw this name.
+ */
+.derivation-gone {
+  color: var(--text-muted);
+}
+
+.derivation-capped {
+  color: var(--accent);
+}
+
+.preview-footnote {
+  margin: 0;
+  max-width: 900px;
+  color: var(--text-muted);
+}

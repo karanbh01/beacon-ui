@@ -1,0 +1,6 @@
+/* Figma 354:11673. 400px card beside the chart. */
+
+.annual-returns {
+  width: 400px;
+  max-width: 100%;
+}

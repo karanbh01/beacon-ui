@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ApiError } from '../../api/errors'
 import { useWorkspace } from '../../state/tabs.store'
 import { useIndex } from '../shared/strategyQueries'
-import { isDirty, type IndexDocument } from './pipeline'
+import { blankIndex, isDirty, type IndexDocument } from './pipeline'
 
 export interface IndexDraft {
   draft: IndexDocument | undefined
@@ -38,14 +39,23 @@ export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
   // it in a SavedIndex alongside their non-blocking findings.
   const saved = query.data
 
+  /**
+   * A 404 is not a failure here — it is a new index.
+   *
+   * A document tab opened for a name the engine does not hold becomes the
+   * editor for creating it, which is what "define → preview → backtest on a
+   * fresh index" needs. Every other error still surfaces.
+   */
+  const missing = query.error instanceof ApiError && query.error.isNotFound
+
   // Seed once per index. Re-seeding on every query result would discard the
   // user's edits the moment anything refetched.
   useEffect(() => {
-    if (saved === undefined) return
     if (seededFor.current === indexId) return
+    if (saved === undefined && !missing) return
     seededFor.current = indexId
-    setDraft(saved)
-  }, [saved, indexId])
+    setDraft(saved ?? blankIndex(indexId))
+  }, [saved, missing, indexId])
 
   const dirty = draft !== undefined && isDirty(draft, saved)
 
@@ -70,7 +80,7 @@ export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
     saved,
     dirty,
     loading: query.isPending && indexId !== '',
-    error: query.isError ? query.error : undefined,
+    error: query.isError && !missing ? query.error : undefined,
     edit,
     revert,
     commit
