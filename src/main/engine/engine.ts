@@ -46,6 +46,14 @@ export interface EngineOptions {
   /** Pin the interpreter. */
   pythonPath?: string | undefined
   appRoot?: string
+  /**
+   * `extraResources` directory, set only when the app is packaged.
+   *
+   * Its presence is what makes the bundled interpreter win (ADR-0003) — in
+   * development there is no payload, and the sibling py-beacon checkout is
+   * the interpreter that should be used.
+   */
+  resourcesPath?: string | undefined
   /** Injected in tests. */
   fetchImpl?: typeof fetch
 }
@@ -130,7 +138,10 @@ export class Engine extends EventEmitter {
   private spawnServer(): void {
     const python = locatePython({
       override: this.options.pythonPath,
-      ...(this.options.appRoot === undefined ? {} : { appRoot: this.options.appRoot })
+      ...(this.options.appRoot === undefined ? {} : { appRoot: this.options.appRoot }),
+      ...(this.options.resourcesPath === undefined
+        ? {}
+        : { resourcesPath: this.options.resourcesPath })
     })
 
     this.setState({ status: 'starting', detail: undefined, restarts: this.attempt })

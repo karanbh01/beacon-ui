@@ -34,7 +34,10 @@
     "build:storybook": "storybook build",
     "spec:refresh": "node scripts/refresh-spec.mjs && pnpm run api:build",
     "api:build": "openapi-typescript openapi.json -o src/shared/api.generated.ts",
-    "api:check": "openapi-typescript openapi.json -o src/shared/api.generated.ts && git diff --exit-code -- src/shared/api.generated.ts"
+    "api:check": "openapi-typescript openapi.json -o src/shared/api.generated.ts && git diff --exit-code -- src/shared/api.generated.ts",
+    "python:fetch": "node scripts/fetch-python.mjs",
+    "prepack:dry": "node scripts/fetch-python.mjs",
+    "icon:build": "electron scripts/build-app-icon.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5",

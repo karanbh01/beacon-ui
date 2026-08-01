@@ -1,7 +1,15 @@
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { describeExit } from './engine'
 import { MAX_RESTARTS, restartDelay, shouldGiveUp } from './backoff'
-import { PORT_PREFIX, SERVER_MODULE, locatePython, parsePort, pythonCandidates } from './python'
+import {
+  PORT_PREFIX,
+  SERVER_MODULE,
+  bundledPython,
+  locatePython,
+  parsePort,
+  pythonCandidates
+} from './python'
 
 describe('parsePort', () => {
   it('reads the announced port', () => {
@@ -129,5 +137,40 @@ describe('restart backoff', () => {
   it('eventually gives up, so a broken install does not respawn forever', () => {
     expect(shouldGiveUp(0)).toBe(false)
     expect(shouldGiveUp(MAX_RESTARTS)).toBe(true)
+  })
+})
+
+describe('the bundled interpreter (BU-33)', () => {
+  const RESOURCES = '/Applications/Beacon.app/Contents/Resources'
+
+  it('wins when the app is packaged', () => {
+    // A shipped app must not depend on what happens to be on the user's
+    // PATH, nor on a py-beacon checkout that will not exist there.
+    const candidates = pythonCandidates({ appRoot: '/app', resourcesPath: RESOURCES })
+    expect(candidates[0]).toBe(bundledPython(RESOURCES))
+  })
+
+  it('is absent in development, where the sibling checkout is correct', () => {
+    // That checkout is the py-beacon being worked on; preferring a bundle
+    // would test yesterday's build against today's UI.
+    const candidates = pythonCandidates({ appRoot: '/work/beacon_ui' })
+    expect(candidates.some((path) => path.includes('Resources'))).toBe(false)
+    expect(candidates[0]).toContain('py-beacon')
+  })
+
+  it('still loses to BEACON_PYTHON — pinning an interpreter means it', () => {
+    const candidates = pythonCandidates({
+      override: '/opt/py/bin/python',
+      resourcesPath: RESOURCES
+    })
+    expect(candidates).toEqual(['/opt/py/bin/python'])
+  })
+
+  it('points at an interpreter inside the payload', () => {
+    // Normalised through join, because separators differ by platform and the
+    // fixture is written with forward slashes.
+    const path = bundledPython(RESOURCES)
+    expect(path.startsWith(join(RESOURCES))).toBe(true)
+    expect(path).toMatch(/python(\.exe|3)$/)
   })
 })

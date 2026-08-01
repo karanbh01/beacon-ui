@@ -1,4 +1,5 @@
 import { join } from 'node:path'
+import { APP_ORIGIN } from './appProtocol'
 import { BrowserWindow, shell } from 'electron'
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, MIN_HEIGHT, MIN_WIDTH } from './windowGeometry'
 import { forwardMaximizeChanges } from './ipc'
@@ -55,6 +56,23 @@ export function createMainWindow(): BrowserWindow {
     window.show()
   })
 
+  /*
+   * A packaged renderer that fails to load is otherwise silent: the window
+   * opens, paints its background colour and stays blank, with the error only
+   * visible in a devtools console nobody can open. Both of these go to
+   * stderr, where the same terminal that launched the app can see them.
+   */
+  window.webContents.on('did-fail-load', (_event, code, description, url) => {
+    process.stderr.write(`[renderer] failed to load ${url}: ${description} (${String(code)})
+`)
+  })
+
+  window.webContents.on('console-message', (_event, level, message, line, source) => {
+    if (level < 2) return
+    process.stderr.write(`[renderer] ${source}:${String(line)} ${message}
+`)
+  })
+
   // External links leave the app rather than navigating the shell away.
   window.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
@@ -65,7 +83,10 @@ export function createMainWindow(): BrowserWindow {
   if (devServerUrl !== undefined && devServerUrl !== '') {
     void window.loadURL(devServerUrl)
   } else {
-    void window.loadFile(join(__dirname, '../renderer/index.html'))
+    // Not loadFile: a file:// document has an opaque origin, and the module
+    // bundle is fetched with CORS, so it would never execute. See
+    // appProtocol.ts.
+    void window.loadURL(`${APP_ORIGIN}/index.html`)
   }
 
   return window

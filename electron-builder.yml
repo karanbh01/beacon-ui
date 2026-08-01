@@ -1,17 +1,55 @@
-# Minimal config so CI can run a packaging dry-run (BU-2). Real targets,
-# icons and the bundled python payload are BU-33.
+# Packaging (BU-33). The python payload is fetched by `prepack`, never
+# committed — see scripts/fetch-python.mjs and ADR-0003.
 appId: com.beacon.ui
 productName: Beacon
+copyright: © 2026 Karan Bhanot
+
 directories:
   output: release
   buildResources: build
+
 files:
   - out/**
   - package.json
+
+# The bundled interpreter and py-beacon, unpacked beside the app rather than
+# inside the asar: python cannot import from an archive.
+extraResources:
+  - from: resources/python
+    to: python
+    filter:
+      - '**/*'
+      # Test suites and bytecode caches are most of the payload's file count
+      # and none of its value.
+      - '!**/__pycache__/**'
+      - '!**/*.pyc'
+      - '!**/tests/**'
+      - '!**/test/**'
+
 mac:
-  target: dmg
   category: public.app-category.finance
+  # electron-builder derives .icns from the 1024px png (scripts/build-app-icon.mjs).
+  icon: build/icon.png
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  # Hardened runtime is required for notarisation, and the bundled python
+  # binaries need the same treatment — BU-34.
+  hardenedRuntime: true
+  gatekeeperAssess: false
+
 win:
-  target: nsis
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+
 linux:
   target: AppImage
+  category: Office

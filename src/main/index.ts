@@ -1,5 +1,7 @@
+import { join } from 'node:path'
 import { app, BrowserWindow } from 'electron'
 import type { EngineState } from '@shared/ipc'
+import { registerAppScheme, serveRenderer } from './appProtocol'
 import { Engine } from './engine/engine'
 import { forwardEngineChanges, registerIpcHandlers } from './ipc'
 import { createMainWindow } from './window'
@@ -9,12 +11,20 @@ if (process.platform === 'win32') {
   app.setAppUserModelId('com.beacon.ui')
 }
 
+// Must run before the app is ready: privileged schemes cannot be registered
+// afterwards.
+registerAppScheme()
+
 const engine = new Engine({
   // Set BEACON_SERVER_URL to attach to a server you are running yourself,
   // rather than having this process spawn and own one.
   serverUrl: process.env.BEACON_SERVER_URL,
   pythonPath: process.env.BEACON_PYTHON,
-  appRoot: app.getAppPath()
+  appRoot: app.getAppPath(),
+  // Only when packaged: a dev run must keep using the sibling checkout, and
+  // `process.resourcesPath` in dev points at Electron's own resources, which
+  // hold no python payload.
+  ...(app.isPackaged ? { resourcesPath: process.resourcesPath } : {})
 })
 
 engine.on('log', (line: string) => {
@@ -32,6 +42,12 @@ engine.on('change', (state: EngineState) => {
 })
 
 void app.whenReady().then(() => {
+  // Only needed when there is no dev server; in dev the renderer is served
+  // over http by vite and already has a real origin.
+  if (process.env.ELECTRON_RENDERER_URL === undefined) {
+    serveRenderer(join(__dirname, '..', 'renderer'))
+  }
+
   registerIpcHandlers(engine)
   engine.start()
 

@@ -73,7 +73,8 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       parserOptions: { project: null },
-      globals: { console: 'readonly', process: 'readonly' }
+      // `fetch` is global from Node 18; the packaging script downloads with it.
+      globals: { console: 'readonly', process: 'readonly', fetch: 'readonly' }
     }
   },
 

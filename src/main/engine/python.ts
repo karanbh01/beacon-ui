@@ -37,24 +37,42 @@ export interface LocateOptions {
   /** Where to look for a sibling py-beacon checkout. */
   appRoot?: string
   exists?: (path: string) => boolean
+  /**
+   * The `extraResources` directory of a packaged app, if there is one.
+   *
+   * Only set when packaged: in development the sibling checkout is the
+   * correct interpreter, because it is the py-beacon being worked on.
+   */
+  resourcesPath?: string | undefined
+}
+
+/** The bundled interpreter inside a packaged app's resources (ADR-0003). */
+export function bundledPython(resourcesPath: string): string {
+  return WINDOWS
+    ? join(resourcesPath, 'python', 'python', 'python.exe')
+    : join(resourcesPath, 'python', 'python', 'bin', 'python3')
 }
 
 /**
  * Candidate interpreters, most specific first.
  *
- * A bundled runtime lands in BU-33 and will take priority ahead of the
- * sibling checkout; until then development relies on py-beacon's own venv,
- * which is where the `beacon` package and its server extra actually live.
- * Falling straight through to `python` on PATH would find an interpreter
- * without fastapi and fail confusingly at import time.
+ * The bundled runtime wins when the app is packaged (ADR-0003): a shipped app
+ * must not depend on what happens to be on the user's PATH. In development
+ * there is no payload and the sibling checkout is correct, because it is the
+ * py-beacon being worked on. Falling straight through to `python` on PATH
+ * would find an interpreter without fastapi and fail confusingly at import.
+ *
+ * BEACON_PYTHON still beats everything, including the bundle — a developer
+ * pinning an interpreter means it.
  */
 export function pythonCandidates(options: LocateOptions = {}): string[] {
-  const { override, appRoot = process.cwd() } = options
+  const { override, appRoot = process.cwd(), resourcesPath } = options
   if (override !== undefined && override !== '') return [override]
 
   const siblings = [resolve(appRoot, '..', 'py-beacon'), resolve(appRoot, '..', 'py_beacon')]
 
   return [
+    ...(resourcesPath === undefined || resourcesPath === '' ? [] : [bundledPython(resourcesPath)]),
     ...siblings.map(venvPython),
     venvPython(appRoot),
     WINDOWS ? 'python.exe' : 'python3',
