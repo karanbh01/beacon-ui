@@ -8,7 +8,7 @@ import {
   type UTCTimestamp
 } from 'lightweight-charts'
 import type { ThemeMode } from '../tokens/tokens'
-import { chartOptions, histogramOptions, lineOptions, seriesColor } from './theme'
+import { chartOptions, histogramOptions, lineOptions, seriesColor, withAlpha } from './theme'
 import { toHistogramData, toLineData, type Point } from './transform'
 import './LevelChart.css'
 
@@ -139,7 +139,9 @@ function addSubPanel(chart: IChartApi, panel: SubPanel, mode: ThemeMode) {
     {
       lineColor: seriesColor(mode, 0),
       topColor: 'transparent',
-      bottomColor: seriesColor(mode, 0),
+      // Tinted, not solid: the subpanel is context for the line above it, and
+      // a full-strength fill competes with the series it is describing.
+      bottomColor: withAlpha(seriesColor(mode, 0), 0.35),
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: true,

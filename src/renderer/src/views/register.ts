@@ -1,5 +1,6 @@
 import { registerView } from '../shell/viewRegistry'
 import { GenericView, OverviewView, WeightsView } from './PlaceholderViews'
+import { ChartingView } from './charting/ChartingView'
 import { CorporateActionsView } from './corporate-actions/CorporateActionsView'
 import { CoverageView } from './coverage/CoverageView'
 import { PricesView } from './prices/PricesView'
@@ -22,9 +23,9 @@ export function registerPlaceholderViews(): void {
   registerView('corporate-actions', CorporateActionsView)
   registerView('watchlist', WatchlistView)
   registerView('data-coverage', CoverageView)
+  registerView('charting', ChartingView)
 
   for (const kind of [
-    'charting',
     'index-definition',
     'universe',
     'constraint-set',

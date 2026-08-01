@@ -1,0 +1,14 @@
+/* Figma pane-content – charting, 283:3035. */
+
+.charting-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.charting-footnote {
+  margin: 0;
+  color: var(--text-muted);
+}

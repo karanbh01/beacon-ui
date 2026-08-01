@@ -346,7 +346,7 @@ describe('WatchlistView', () => {
     })
 
     await userEvent.click(await screen.findByRole('button', { name: /Add symbol/ }))
-    await userEvent.type(screen.getByLabelText('Add symbol'), 'nvda{Enter}')
+    await userEvent.type(screen.getByLabelText('Add symbol…'), 'nvda{Enter}')
 
     expect(saved).toEqual([
       { id: 'core-tech', body: { name: 'Core Tech', identifiers: ['AAPL', 'MSFT', 'NVDA'] } }
@@ -359,5 +359,6 @@ describe('WatchlistView', () => {
     })
 
     expect(await screen.findByText(/no watchlists/)).toBeInTheDocument()
+    expect(screen.getByText('No watchlists')).toBeInTheDocument()
   })
 })

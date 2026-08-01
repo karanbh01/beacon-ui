@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { TableFrame } from '../api/frame'
 import { COLORS } from '../tokens/tokens'
-import { chartOptions, histogramOptions, lineOptions, seriesColor, seriesColors } from './theme'
+import {
+  chartOptions,
+  histogramOptions,
+  lineOptions,
+  seriesColor,
+  seriesColors,
+  withAlpha
+} from './theme'
 import {
   drawdown,
   maxDrawdown,
@@ -142,5 +149,15 @@ describe('chart theme', () => {
 
   it('keeps a subpanel quiet — no axis label competing with the main pane', () => {
     expect(histogramOptions('light').lastValueVisible).toBe(false)
+  })
+})
+
+describe('withAlpha', () => {
+  it('returns rgba, which is the form the chart parser is certain to accept', () => {
+    expect(withAlpha('#4a88c7', 0.35)).toBe('rgba(74, 136, 199, 0.35)')
+  })
+
+  it('leaves a value it cannot parse alone rather than emitting rgba(NaN…)', () => {
+    expect(withAlpha('red', 0.5)).toBe('red')
   })
 })

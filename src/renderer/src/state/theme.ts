@@ -99,3 +99,36 @@ export function useTheme(): ThemeControl {
 
   return { preference, mode, setPreference }
 }
+
+/** The mode currently on the root element. */
+export function currentMode(): ThemeMode {
+  return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
+}
+
+/**
+ * Track the mode that is actually applied, live.
+ *
+ * Reads the root attribute rather than the preference, and watches it, so a
+ * canvas that cannot use CSS custom properties still repaints on a theme
+ * change no matter what caused it — an explicit choice, the OS flipping, or
+ * `initTheme` at boot. `useTheme` would give each caller its own copy of the
+ * preference state, and two copies eventually disagree.
+ */
+export function useThemeMode(): ThemeMode {
+  const [mode, setMode] = useState<ThemeMode>(currentMode)
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setMode(currentMode())
+    })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    })
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  return mode
+}

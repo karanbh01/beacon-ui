@@ -1,0 +1,44 @@
+/* Figma 283:10930. One row: range, interval, compare chips, add slot. */
+
+.chart-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Figma 289:2840. Chrome-stroked pill, dot + ticker + dismiss. */
+.compare-chip {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--chrome-border);
+  border-radius: 3px;
+  color: var(--text-secondary);
+}
+
+.compare-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.compare-remove {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.compare-remove:hover {
+  color: var(--text-primary);
+}
+
+.compare-remove:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}

@@ -35,6 +35,20 @@ export function seriesColor(mode: ThemeMode, index: number): string {
 }
 
 /**
+ * A token colour at partial opacity, as `rgba()`.
+ *
+ * Area fills need it and the tokens are opaque 6-digit hex. Returned as
+ * rgba rather than 8-digit hex because lightweight-charts' own parser is the
+ * consumer, and rgba is the form it is certain to accept.
+ */
+export function withAlpha(hex: string, alpha: number): string {
+  const value = hex.replace('#', '')
+  if (value.length < 6) return hex
+  const [r, g, b] = [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16))
+  return `rgba(${String(r)}, ${String(g)}, ${String(b)}, ${String(alpha)})`
+}
+
+/**
  * Shared conventions, read off Figma 289:2846:
  *
  * - price scale on the LEFT, not the right
@@ -56,7 +70,14 @@ export function chartOptions(mode: ThemeMode): DeepPartial<ChartOptions> {
       textColor: token['text-muted'],
       fontFamily: FONT_UI,
       fontSize: 11,
-      attributionLogo: false
+      attributionLogo: false,
+      // The default separator is a hard slate line that reads as a border
+      // from another app; the panes are one chart, so it takes `divider`.
+      panes: {
+        separatorColor: token.divider,
+        separatorHoverColor: token['sidebar-active-bg'],
+        enableResize: true
+      }
     },
     grid: {
       horzLines: { color: token.divider, style: LineStyle.Solid },

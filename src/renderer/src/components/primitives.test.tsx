@@ -185,6 +185,20 @@ describe('Select', () => {
     expect(container.querySelector('.select-label')?.textContent).toBe('gone')
   })
 
+  it('says why there is nothing to choose instead of collapsing to an empty box', () => {
+    const { container } = render(
+      <Select
+        options={[]}
+        value=""
+        onChange={() => undefined}
+        label="Watchlist"
+        placeholder="No watchlists"
+        disabled
+      />
+    )
+    expect(container.querySelector('.select-label')?.textContent).toBe('No watchlists')
+  })
+
   it('reports the chosen value', async () => {
     const onChange = vi.fn()
     render(<Select options={OPTIONS} value="core-tech" onChange={onChange} label="Watchlist" />)

@@ -16,7 +16,13 @@
   top: 8px;
   left: 52px;
   right: 12px;
-  z-index: 1;
+  /*
+   * Above the chart's own canvases, which are absolute at z-index 1 and 2.
+   * Anything lower is painted over — a legend at z-index 1 disappears
+   * entirely, which is not obvious from the DOM since the element is there
+   * and visible.
+   */
+  z-index: 3;
   display: flex;
   gap: 20px;
   align-items: baseline;
@@ -47,7 +53,13 @@
   position: absolute;
   left: 16px;
   bottom: 34%;
-  z-index: 1;
+  /*
+   * Above the chart's own canvases, which are absolute at z-index 1 and 2.
+   * Anything lower is painted over — a legend at z-index 1 disappears
+   * entirely, which is not obvious from the DOM since the element is there
+   * and visible.
+   */
+  z-index: 3;
   pointer-events: none;
   letter-spacing: 0.06em;
   text-transform: uppercase;

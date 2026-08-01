@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactElement } from 'react'
+import { AddValue } from '../../components/AddValue/AddValue'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
@@ -12,7 +13,6 @@ import { useSaveWatchlist, useWatchlists } from '../shared/queries'
 import { Sparkline } from './Sparkline'
 import { useWatchRows } from './useWatchRows'
 import { compactCap, summariseRows, type WatchRow } from './watchlist'
-import { AddSymbol } from './AddSymbol'
 import './WatchlistView.css'
 
 function toneOf(value: number | undefined): 'positive' | 'negative' | 'default' {
@@ -98,9 +98,14 @@ export function WatchlistView({ tab }: ViewProps): ReactElement {
           value={current?.id ?? ''}
           onChange={setSelectedId}
           label="Watchlist"
+          placeholder="No watchlists"
           disabled={watchlists.length === 0}
         />
-        <AddSymbol onAdd={addSymbol} disabled={current === undefined || save.isPending} />
+        <AddValue
+          label="Add symbol…"
+          onAdd={addSymbol}
+          disabled={current === undefined || save.isPending}
+        />
       </PaneHeader>
 
       {lists.isPending && <ViewLoading what="watchlists" />}
@@ -108,8 +113,8 @@ export function WatchlistView({ tab }: ViewProps): ReactElement {
 
       {lists.isSuccess && current === undefined && (
         <ViewEmpty>
-          This engine has no watchlists. py-beacon stores them in{' '}
-          <code>~/.py-beacon/watchlists.json</code>.
+          This engine has no watchlists — py-beacon stores them in{' '}
+          <code>~/.py-beacon/watchlists.json</code>
         </ViewEmpty>
       )}
 

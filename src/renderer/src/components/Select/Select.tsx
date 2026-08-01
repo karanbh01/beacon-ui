@@ -13,6 +13,12 @@ export interface SelectProps {
   onChange: (value: string) => void
   /** Required: the control shows only its current value, never a label. */
   label: string
+  /**
+   * Shown when no option matches the value — which is what an empty option
+   * list looks like. Without it the control collapses to an empty box, and an
+   * empty box says nothing about why there is nothing to choose.
+   */
+  placeholder?: string
   disabled?: boolean
   className?: string
 }
@@ -35,6 +41,7 @@ export function Select({
   value,
   onChange,
   label,
+  placeholder,
   disabled = false,
   className
 }: SelectProps): ReactElement {
@@ -43,7 +50,7 @@ export function Select({
       className={['select', disabled && 'select-disabled', className].filter(Boolean).join(' ')}
     >
       <span className="select-label" aria-hidden="true">
-        {options.find((option) => option.value === value)?.label ?? value}
+        {options.find((option) => option.value === value)?.label ?? placeholder ?? value}
       </span>
       <ChevronIcon size={10} className="select-chevron" />
       <select
