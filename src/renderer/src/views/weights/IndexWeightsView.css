@@ -1,0 +1,34 @@
+/* Figma pane-content – weights, 355:2292. */
+
+.index-weights-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.weights-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.weights-input:focus {
+  outline: none;
+}
+
+/* A name sitting at the cap is a constraint binding, not a data point. */
+.weights-capped {
+  color: var(--accent);
+}
+
+.weights-footnote {
+  margin: 0;
+  max-width: 900px;
+  color: var(--text-muted);
+}

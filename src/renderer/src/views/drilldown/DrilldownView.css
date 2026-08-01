@@ -1,0 +1,37 @@
+/* Figma pane-content – asset-drilldown, 357:2319. */
+
+.drilldown-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.drilldown-main-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.drilldown-main-row .level-chart {
+  flex: 1;
+  min-width: 460px;
+}
+
+.drilldown-history {
+  width: 300px;
+  max-width: 100%;
+}
+
+.drilldown-empty {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--text-muted);
+}
+
+.drilldown-footnote {
+  margin: 0;
+  color: var(--text-muted);
+}

@@ -66,7 +66,9 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     id: 'seed-weights',
     page: 'beacon-view',
     viewKind: 'weights',
-    archetype: 'pinned',
+    // `query`, not `pinned`: the pin names the index, but the SUBJECT is the
+    // constituent the user selects, which is what Drilldown links to.
+    archetype: 'query',
     title: 'Weights',
     pinnedDoc: 'TECH10'
   },
@@ -91,6 +93,31 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     archetype: 'query',
     title: 'Constituent Preview',
     subject: 'TECH10'
+  },
+  {
+    id: 'seed-attribution',
+    page: 'beacon-view',
+    viewKind: 'attribution',
+    archetype: 'pinned',
+    title: 'Attribution',
+    pinnedDoc: 'TECH10'
+  },
+  {
+    id: 'seed-drilldown',
+    page: 'beacon-view',
+    viewKind: 'asset-drilldown',
+    archetype: 'linked',
+    title: 'Drilldown',
+    linkSourceId: 'seed-weights',
+    pinnedDoc: 'TECH10'
+  },
+  {
+    id: 'seed-comparison',
+    page: 'beacon-view',
+    viewKind: 'comparison',
+    archetype: 'pinned',
+    title: 'Comparison',
+    pinnedDoc: 'TECH10'
   },
   {
     id: 'seed-backtest',

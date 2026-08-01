@@ -1,0 +1,48 @@
+/* Figma pane-content – attribution, 356:2298. */
+
+.attribution-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.attribution-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.attribution-input:focus {
+  outline: none;
+}
+
+/*
+ * A refusal, not a warning: the danger stroke says the pane is withholding
+ * something rather than qualifying it.
+ */
+.attribution-refusal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 720px;
+  padding: 16px 20px;
+  background: var(--status-failed-bg);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  color: var(--status-failed-text);
+}
+
+.attribution-refusal p {
+  margin: 0;
+}
+
+.attribution-footnote {
+  margin: 0;
+  color: var(--text-muted);
+}

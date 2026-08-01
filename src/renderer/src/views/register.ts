@@ -1,10 +1,15 @@
 import { registerView } from '../shell/viewRegistry'
-import { GenericView, OverviewView, WeightsView } from './PlaceholderViews'
+import { GenericView } from './PlaceholderViews'
+import { AttributionView } from './attribution/AttributionView'
 import { BacktestView } from './backtest/BacktestView'
 import { ChartingView } from './charting/ChartingView'
 import { CorporateActionsView } from './corporate-actions/CorporateActionsView'
 import { ConstituentPreviewView } from './constituent-preview/ConstituentPreviewView'
+import { ComparisonView } from './comparison/ComparisonView'
 import { CoverageView } from './coverage/CoverageView'
+import { DrilldownView } from './drilldown/DrilldownView'
+import { IndexOverviewView } from './index-overview/IndexOverviewView'
+import { IndexWeightsView } from './weights/IndexWeightsView'
 import { IndexDefinitionView } from './index-definition/IndexDefinitionView'
 import { PricesView } from './prices/PricesView'
 import { ReferenceView } from './reference/ReferenceView'
@@ -18,9 +23,6 @@ import { WatchlistView } from './watchlist/WatchlistView'
  * re-registering the same viewKind.
  */
 export function registerPlaceholderViews(): void {
-  registerView('weights', WeightsView)
-  registerView('overview', OverviewView)
-
   // Live against py-beacon; no longer placeholders.
   registerView('prices', PricesView)
   registerView('reference-data', ReferenceView)
@@ -32,6 +34,11 @@ export function registerPlaceholderViews(): void {
   registerView('universe-set', UniverseView)
   registerView('constituent-preview', ConstituentPreviewView)
   registerView('backtest', BacktestView)
+  registerView('overview', IndexOverviewView)
+  registerView('weights', IndexWeightsView)
+  registerView('attribution', AttributionView)
+  registerView('asset-drilldown', DrilldownView)
+  registerView('comparison', ComparisonView)
 
   for (const kind of ['constraint-set', 'frontier', 'futures-pricer', 'factsheet']) {
     registerView(kind, GenericView)

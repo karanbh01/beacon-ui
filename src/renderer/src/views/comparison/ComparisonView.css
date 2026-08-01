@@ -1,0 +1,58 @@
+/* Figma pane-content – comparison, 359:2311. */
+
+.comparison-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.comparison-chips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Figma 359:2313. Same pill as a compare chip in Charting. */
+.comparison-chip {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--chrome-border);
+  border-radius: 3px;
+  color: var(--text-secondary);
+}
+
+.comparison-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.comparison-remove {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.comparison-remove:hover {
+  color: var(--text-primary);
+}
+
+.comparison-remove:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.comparison-footnote {
+  margin: 0;
+  max-width: 900px;
+  color: var(--text-muted);
+}

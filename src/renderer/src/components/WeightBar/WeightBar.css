@@ -1,0 +1,29 @@
+/* Figma 355:2292. A hairline track inside a 28px table row. */
+
+.weight-bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--divider);
+  overflow: hidden;
+}
+
+.weight-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.weight-bar-default {
+  color: var(--text-muted);
+}
+
+.weight-bar-accent {
+  color: var(--accent);
+}
+
+.weight-bar-negative {
+  color: var(--danger);
+}
