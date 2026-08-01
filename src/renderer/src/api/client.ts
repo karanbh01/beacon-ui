@@ -184,6 +184,22 @@ export interface BeaconClient {
       body?: BodyOf<'post', '/indices/{index_id}/preview'>
     ) => Promise<WriteResponse<'post', '/indices/{index_id}/preview'>>
   }
+  reports: {
+    templates: (signal?: AbortSignal) => Promise<ResponseOf<'/reports/templates'>>
+    template: (
+      id: string,
+      signal?: AbortSignal
+    ) => Promise<ResponseOf<'/reports/templates/{template_id}'>>
+    saveTemplate: (
+      id: string,
+      document: BodyOf<'put', '/reports/templates/{template_id}'>
+    ) => Promise<WriteResponse<'put', '/reports/templates/{template_id}'>>
+    render: (
+      body: BodyOf<'post', '/reports/render'>
+    ) => Promise<WriteResponse<'post', '/reports/render'>>
+    /** The finished PDF, as bytes. Not JSON, so it bypasses `get`. */
+    download: (renderId: string, signal?: AbortSignal) => Promise<Uint8Array>
+  }
   universes: {
     list: (signal?: AbortSignal) => Promise<ResponseOf<'/universes'>>
     members: (
@@ -272,6 +288,28 @@ export function createClient(options: ClientOptions): BeaconClient {
     return (await response.json()) as WriteResponse<M, P>
   }
 
+  /**
+   * Fetch a binary body.
+   *
+   * `get` parses JSON, and a PDF is not JSON. Kept as its own function rather
+   * than a flag on `get` so no caller can accidentally ask for bytes and hand
+   * them to something expecting a typed object.
+   */
+  async function downloadBytes(path: string, signal?: AbortSignal): Promise<Uint8Array> {
+    let response: Response
+    try {
+      response = await fetchImpl(`${base}${path}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        ...(signal === undefined ? {} : { signal })
+      })
+    } catch (cause) {
+      throw new NetworkError('Could not reach the Beacon engine.', { cause })
+    }
+
+    if (!response.ok) throw await toApiError(response)
+    return new Uint8Array(await response.arrayBuffer())
+  }
+
   return {
     get,
     write,
@@ -319,6 +357,22 @@ export function createClient(options: ClientOptions): BeaconClient {
           params: { index_id: id },
           body: body ?? {}
         })
+    },
+    reports: {
+      templates: (signal) =>
+        get('/reports/templates', { ...(signal === undefined ? {} : { signal }) }),
+      template: (id, signal) =>
+        get('/reports/templates/{template_id}', {
+          params: { template_id: id },
+          ...(signal === undefined ? {} : { signal })
+        }),
+      saveTemplate: (id, document) =>
+        write('put', '/reports/templates/{template_id}', {
+          params: { template_id: id },
+          body: document
+        }),
+      render: (body) => write('post', '/reports/render', { body }),
+      download: (renderId, signal) => downloadBytes(`/reports/renders/${renderId}`, signal)
     },
     universes: {
       list: (signal) => get('/universes', { ...(signal === undefined ? {} : { signal }) }),

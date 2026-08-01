@@ -10,7 +10,7 @@ import { SEED_TABS } from '../views/seed'
  * receive. The seed itself only ever runs on an empty workspace, so without
  * this a user who launched the app once would never see a view added later.
  */
-export const WORKSPACE_VERSION = 7
+export const WORKSPACE_VERSION = 8
 
 /**
  * Append seed tabs the workspace has never had.

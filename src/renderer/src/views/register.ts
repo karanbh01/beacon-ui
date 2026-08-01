@@ -10,6 +10,7 @@ import { ConstraintSetView } from './constraint-set/ConstraintSetView'
 import { CoverageView } from './coverage/CoverageView'
 import { DrilldownView } from './drilldown/DrilldownView'
 import { ExposuresPaneView } from './exposures/ExposuresPaneView'
+import { FactsheetView } from './factsheet/FactsheetView'
 import { FrontierPaneView } from './frontier/FrontierPaneView'
 import { FuturesPricerView } from './futures/FuturesPricerView'
 import { IndexOverviewView } from './index-overview/IndexOverviewView'
@@ -17,6 +18,7 @@ import { IndexWeightsView } from './weights/IndexWeightsView'
 import { OptimisationRunView } from './optimisation-run/OptimisationRunView'
 import { RiskModelPaneView } from './risk-model/RiskModelPaneView'
 import { TermStructureView } from './term-structure/TermStructureView'
+import { TemplateEditorView } from './template-editor/TemplateEditorView'
 import { TrsPricerView } from './trs/TrsPricerView'
 import { IndexDefinitionView } from './index-definition/IndexDefinitionView'
 import { PricesView } from './prices/PricesView'
@@ -63,8 +65,10 @@ export function registerPlaceholderViews(): void {
   registerView('futures-pricer', FuturesPricerView)
   registerView('trs-pricer', TrsPricerView)
   registerView('term-structure', TermStructureView)
+  registerView('factsheet', FactsheetView)
+  registerView('template-editor', TemplateEditorView)
 
-  for (const kind of ['factsheet', 'template-editor']) {
+  for (const kind of ['performance-report', 'attribution-report']) {
     registerPending(kind)
   }
 }

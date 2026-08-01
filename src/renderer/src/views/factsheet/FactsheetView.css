@@ -1,0 +1,64 @@
+/* Figma pane-content – factsheet, 377:1240. */
+
+.factsheet-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.factsheet-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.factsheet-main-row {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.factsheet-sections {
+  width: 300px;
+  max-width: 100%;
+}
+
+.factsheet-message,
+.factsheet-note {
+  margin: 0;
+  max-width: 720px;
+  color: var(--text-secondary);
+}
+
+.factsheet-footnote {
+  margin: 0;
+  max-width: 820px;
+  color: var(--text-muted);
+}
+
+/*
+ * Inside PaperPreview everything is raw ink — see PaperPreview.css. These
+ * rules deliberately use literal colours for the same reason: a factsheet is
+ * a print artefact, and it must look the same in both themes.
+ */
+.sheet-section {
+  margin-bottom: 14px;
+}
+
+.sheet-heading {
+  margin: 0 0 4px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b6b6b;
+}
+
+.sheet-body {
+  margin: 0;
+  font-size: 9px;
+  color: #1a1a1a;
+}

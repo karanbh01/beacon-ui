@@ -86,6 +86,25 @@ export interface IpcContract {
     request: undefined
     response: boolean
   }
+  /**
+   * Write a rendered report to a temporary file and hand it to the OS.
+   *
+   * The bytes cross the bridge rather than a URL because the download is
+   * authenticated: `shell.openExternal` on py-beacon's own URL would open a
+   * browser with no bearer token and get a 401. The renderer fetches it —
+   * it already holds the token — and main only writes and opens.
+   */
+  'report:open': {
+    request: { filename: string; bytes: Uint8Array }
+    response: OpenedReport
+  }
+}
+
+export interface OpenedReport {
+  /** Where it was written, so the pane can say so. */
+  path: string
+  /** Empty when the OS opened it; the reason when it refused. */
+  error: string
 }
 
 export type IpcChannel = keyof IpcContract
@@ -119,5 +138,9 @@ export interface BeaconBridge {
     isMaximized: () => Promise<boolean>
     /** Returns an unsubscribe function. */
     onMaximizeChange: (listener: (maximized: boolean) => void) => () => void
+  }
+  reports: {
+    /** Writes the bytes to a temp file and asks the OS to open it. */
+    open: (filename: string, bytes: Uint8Array) => Promise<OpenedReport>
   }
 }

@@ -1,11 +1,15 @@
-import { app, BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron'
 import {
   ENGINE_CHANGED,
   MAXIMIZE_CHANGED,
   type AppInfo,
   type EngineState,
   type IpcChannel,
-  type IpcResponse
+  type IpcRequest,
+  type IpcResponse,
+  type OpenedReport
 } from '@shared/ipc'
 import type { Engine } from './engine/engine'
 
@@ -16,9 +20,25 @@ import type { Engine } from './engine/engine'
  */
 function handle<C extends IpcChannel>(
   channel: C,
-  handler: (event: IpcMainInvokeEvent) => IpcResponse<C> | Promise<IpcResponse<C>>
+  handler: (
+    event: IpcMainInvokeEvent,
+    request: IpcRequest<C>
+  ) => IpcResponse<C> | Promise<IpcResponse<C>>
 ): void {
-  ipcMain.handle(channel, (event) => handler(event))
+  ipcMain.handle(channel, (event, request: IpcRequest<C>) => handler(event, request))
+}
+
+/**
+ * A filename safe to join onto a directory.
+ *
+ * The renderer supplies it, and the renderer is treated as hostile
+ * (ADR-0001): `../../.bashrc` must not become a path outside the temp
+ * directory. Everything but a conservative set is replaced rather than
+ * stripped, so two different names cannot collapse into one.
+ */
+export function safeFilename(name: string, fallback = 'report.pdf'): string {
+  const cleaned = name.replace(/[^A-Za-z0-9._-]/g, '_').replace(/^\.+/, '')
+  return cleaned === '' ? fallback : cleaned.slice(0, 120)
 }
 
 /** The window that sent the request, rather than a captured reference. */
@@ -66,6 +86,18 @@ export function registerIpcHandlers(engine: Engine): void {
   })
 
   handle('window:isMaximized', (event) => senderWindow(event)?.isMaximized() ?? false)
+
+  handle('report:open', async (_event, request): Promise<OpenedReport> => {
+    const path = join(app.getPath('temp'), safeFilename(request.filename))
+    try {
+      await writeFile(path, request.bytes)
+    } catch (cause) {
+      return { path, error: cause instanceof Error ? cause.message : 'Could not write the file.' }
+    }
+    // openPath returns '' on success and the reason otherwise — it does not
+    // throw, so a machine with no PDF viewer reports rather than crashes.
+    return { path, error: await shell.openPath(path) }
+  })
 }
 
 /**

@@ -189,7 +189,15 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     id: 'seed-factsheet',
     page: 'reports',
     viewKind: 'factsheet',
-    archetype: 'document',
-    title: 'FACTSHEET-A4'
+    archetype: 'pinned',
+    title: 'Factsheet',
+    pinnedDoc: 'TECH10'
+  },
+  {
+    id: 'seed-template-editor',
+    page: 'reports',
+    viewKind: 'template-editor',
+    archetype: 'query',
+    title: 'Template Editor'
   }
 ]

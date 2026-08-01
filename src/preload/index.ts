@@ -4,7 +4,8 @@ import {
   MAXIMIZE_CHANGED,
   type AppInfo,
   type BeaconBridge,
-  type EngineState
+  type EngineState,
+  type OpenedReport
 } from '@shared/ipc'
 
 /**
@@ -42,6 +43,10 @@ const bridge: BeaconBridge = {
         ipcRenderer.removeListener(MAXIMIZE_CHANGED, handler)
       }
     }
+  },
+  reports: {
+    open: (filename, bytes) =>
+      ipcRenderer.invoke('report:open', { filename, bytes }) as Promise<OpenedReport>
   }
 }
 
