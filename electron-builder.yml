@@ -8,6 +8,17 @@ directories:
   output: release
   buildResources: build
 
+# Auto-update feed (BU-34, ADR-0004). Its presence is also what makes
+# electron-builder emit `latest*.yml` and bake `app-update.yml` into the app —
+# without it electron-updater has nothing to read, packaged or not.
+publish:
+  provider: github
+  owner: karanbh01
+  repo: beacon-ui
+  # A release is reviewed before anyone can download it. Publishing straight
+  # to `release` would ship whatever the tag happened to contain.
+  releaseType: draft
+
 files:
   - out/**
   - package.json
@@ -26,12 +37,21 @@ extraResources:
       - '!**/tests/**'
       - '!**/test/**'
 
+# One arch per run, always. `extraResources` ships whatever
+# scripts/fetch-python.mjs last unpacked, and that payload is arch-specific —
+# building both arches from one checkout would put an arm64 interpreter inside
+# the x64 app. The release workflow passes --arm64 or --x64 explicitly and
+# fetches a matching python first.
 mac:
   category: public.app-category.finance
   # electron-builder derives .icns from the 1024px png (scripts/build-app-icon.mjs).
   icon: build/icon.png
   target:
     - target: dmg
+      arch: [arm64, x64]
+    # Not redundant: Squirrel.Mac updates from the zip, never from the dmg.
+    # Without this, macOS installs fine and then can never update itself.
+    - target: zip
       arch: [arm64, x64]
   # Hardened runtime is required for notarisation, and the bundled python
   # binaries need the same treatment — BU-34.

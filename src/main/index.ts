@@ -1,10 +1,12 @@
 import { join } from 'node:path'
 import { app, BrowserWindow } from 'electron'
-import type { EngineState } from '@shared/ipc'
+import { autoUpdater } from 'electron-updater'
+import type { EngineState, UpdateState } from '@shared/ipc'
 import { registerAppScheme, serveRenderer } from './appProtocol'
 import { installEngineCors } from './engineCors'
 import { Engine } from './engine/engine'
-import { forwardEngineChanges, registerIpcHandlers } from './ipc'
+import { forwardEngineChanges, forwardUpdateChanges, registerIpcHandlers } from './ipc'
+import { Updater } from './updater'
 import { createMainWindow } from './window'
 
 // Windows: gives notifications and the taskbar a stable identity.
@@ -26,6 +28,24 @@ const engine = new Engine({
   // `process.resourcesPath` in dev points at Electron's own resources, which
   // hold no python payload.
   ...(app.isPackaged ? { resourcesPath: process.resourcesPath } : {})
+})
+
+/**
+ * No feed unless packaged: electron-updater reads `app-update.yml` out of the
+ * app's resources, which only electron-builder puts there. A dev run would
+ * throw on the first check rather than report anything useful, so it gets an
+ * inert updater instead — every action a no-op, status permanently idle.
+ */
+const updater = new Updater(app.isPackaged ? autoUpdater : undefined)
+
+updater.on('log', (line: string) => {
+  process.stderr.write(`[update] ${line}\n`)
+})
+
+updater.on('change', (state: UpdateState) => {
+  const percent = state.percent === undefined ? '' : ` ${String(state.percent)}%`
+  const version = state.version === undefined ? '' : ` ${state.version}`
+  process.stderr.write(`[update] ${state.status}${version}${percent}\n`)
 })
 
 engine.on('log', (line: string) => {
@@ -52,16 +72,20 @@ void app.whenReady().then(() => {
     installEngineCors()
   }
 
-  registerIpcHandlers(engine)
+  registerIpcHandlers(engine, updater)
   engine.start()
+  updater.start()
 
   const window = createMainWindow()
   forwardEngineChanges(engine, window)
+  forwardUpdateChanges(updater, window)
 
   app.on('activate', () => {
     // macOS: re-open a window when the dock icon is clicked and none are open.
     if (BrowserWindow.getAllWindows().length === 0) {
-      forwardEngineChanges(engine, createMainWindow())
+      const reopened = createMainWindow()
+      forwardEngineChanges(engine, reopened)
+      forwardUpdateChanges(updater, reopened)
     }
   })
 })
@@ -76,6 +100,7 @@ app.on('window-all-closed', () => {
 // leaves an orphaned python holding its port.
 app.on('before-quit', () => {
   engine.stop()
+  updater.stop()
 })
 
 process.on('exit', () => {

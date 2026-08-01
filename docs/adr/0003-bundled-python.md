@@ -54,7 +54,9 @@ into it during packaging is the whole of the work.
 
 - **The installer is large.** Measured, not estimated: the unpacked payload is
   **448 MB** and the whole unpacked app **590 MB**, dominated by numpy, scipy
-  and pandas. That is far more than the 60–90 MB first guessed. Accepted for
+  and pandas. That is far more than the 60–90 MB first guessed. The NSIS
+  installer compresses to **159 MB**, which is what a user actually
+  downloads — and, per ADR-0004, downloads again on every update. Accepted for
   now — it is the price of the acceptance criterion — but it is large enough
   that trimming (excluding test suites, `pip` itself, and unused scipy
   submodules) is worth a follow-up.

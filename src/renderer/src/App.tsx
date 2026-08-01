@@ -11,6 +11,7 @@ import { PaneHost } from './shell/PaneHost'
 import { SIDEBAR_PAGES } from './shell/pages'
 import { useEngine } from './state/engine'
 import { useTheme } from './state/theme'
+import { runUpdateAction, useUpdate } from './state/update'
 import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
 import { SEED_TABS } from './views/seed'
@@ -42,6 +43,7 @@ function AppBody(): ReactElement {
   const [page, setPage] = useState(DEFAULT_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const engine = useEngine()
+  const update = useUpdate()
   const dataAge = useDataAge()
   const openTab = useWorkspace((state) => state.openTab)
 
@@ -99,7 +101,11 @@ function AppBody(): ReactElement {
         // Real freshness from /health's cache_age, refreshed when py-beacon
         // publishes a data.freshness event rather than on a timer.
         ...(dataAge === undefined ? {} : { dataUpdated: dataAge }),
-        ...(appVersion === undefined ? {} : { version: appVersion })
+        ...(appVersion === undefined ? {} : { version: appVersion }),
+        // electron-updater, live from main. Nothing downloads unasked, so
+        // this is also the control surface — see ADR-0004.
+        update,
+        onUpdateAction: runUpdateAction
       }}
       {...(assistantOpen
         ? {

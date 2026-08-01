@@ -1,5 +1,8 @@
 import type { ReactElement } from 'react'
+import type { UpdateState } from '@shared/ipc'
+import type { UpdateAction } from '../state/update'
 import { GithubIcon } from '../icons/generated'
+import { updateNotice, type UpdateNotice } from './updateNotice'
 import './Footer.css'
 
 export type EngineState = 'connected' | 'degraded' | 'starting' | 'stopped'
@@ -10,7 +13,13 @@ export interface FooterProps {
   /** e.g. "2h ago". BU-21 supplies it from freshness events. */
   dataUpdated?: string
   version?: string
-  updateAvailable?: boolean
+  /** Live from electron-updater via main (BU-34). */
+  update?: UpdateState
+  /**
+   * One callback rather than three: the footer decides what its own label
+   * means, and the app only has to route it.
+   */
+  onUpdateAction?: (action: UpdateAction) => void
   onOpenRepo?: () => void
   className?: string
 }
@@ -34,23 +43,57 @@ function engineLabel(state: EngineState, version?: string): string {
   return version === undefined ? 'engine connected' : `engine connected · py-beacon ${version}`
 }
 
+/** Text when there is nothing to click, a button when there is. */
+function UpdateSlot({
+  notice,
+  onAction
+}: {
+  notice: UpdateNotice
+  onAction?: (action: UpdateAction) => void
+}): ReactElement {
+  const className = notice.tone === 'muted' ? 'footer-update footer-update-muted' : 'footer-update'
+
+  if (notice.action === undefined) {
+    return (
+      <span className={className} title={notice.title}>
+        {notice.label}
+      </span>
+    )
+  }
+
+  const action = notice.action
+  return (
+    <button
+      type="button"
+      className={className}
+      title={notice.title}
+      onClick={() => onAction?.(action)}
+    >
+      {notice.label}
+    </button>
+  )
+}
+
 /**
  * Figma 93:3. 32px tall, 0.5px top rule. Status text is 11px and the version
  * cluster is ITALIC, which is unusual enough to be worth stating: it is the
  * only italic in the app chrome.
  *
- * Every slot is stubbed. BU-19 owns the engine state truthfully — the point
- * of the degraded tone existing now is that the footer must be able to say
- * "unavailable" the moment there is a real process to lose.
+ * The version is a button because clicking it checks for updates — the only
+ * user-initiated route there is, and the one that makes a failed check worth
+ * reporting at all (a timed check that fails stays quiet; see updateNotice).
  */
 export function Footer({
   engine = { state: 'connected' },
   dataUpdated,
   version,
-  updateAvailable = false,
+  update,
+  onUpdateAction,
   onOpenRepo,
   className
 }: FooterProps): ReactElement {
+  const notice = updateNotice(update)
+
   return (
     <footer className={['footer', className].filter(Boolean).join(' ')}>
       <span className="footer-status" title={engine.detail}>
@@ -66,8 +109,23 @@ export function Footer({
       )}
 
       <span className="footer-right">
-        {version !== undefined && <span className="footer-version">version {version} ·</span>}
-        {updateAvailable && <span className="footer-update">update available</span>}
+        {version !== undefined && (
+          <button
+            type="button"
+            className="footer-version"
+            title="Check for updates"
+            onClick={() => onUpdateAction?.('check')}
+          >
+            version {version}
+            {notice !== undefined && ' ·'}
+          </button>
+        )}
+        {notice !== undefined && (
+          <UpdateSlot
+            notice={notice}
+            {...(onUpdateAction === undefined ? {} : { onAction: onUpdateAction })}
+          />
+        )}
         <button type="button" className="footer-icon" aria-label="Repository" onClick={onOpenRepo}>
           <GithubIcon size={24} />
         </button>

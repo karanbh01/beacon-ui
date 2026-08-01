@@ -38,7 +38,7 @@ export const Shell: Story = {
             engine: { state: 'connected', version: '0.0.2' },
             dataUpdated: '2h ago',
             version: '0.0.1',
-            updateAvailable: true
+            update: { status: 'available', version: '0.1.0' }
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

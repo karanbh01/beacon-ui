@@ -1,0 +1,96 @@
+name: Release
+
+# Tag a version, get a draft release with an installer per platform (BU-34).
+# The release is a draft: electron-builder uploads the artefacts and the
+# update metadata, and nothing reaches a user until it is published by hand.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      py_beacon_ref:
+        description: 'py-beacon ref to bundle'
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.os }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      # One platform failing should not deny the evidence from the others.
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            arch: x64
+            target: --win --x64
+          # macos-14 is arm64 and macos-13 is x64. Matching the runner to the
+          # arch keeps `pip install` native: cross-installing a payload for
+          # the other architecture would need Rosetta and silently produce
+          # wheels for the wrong machine.
+          - os: macos-14
+            arch: arm64
+            target: --mac --arm64
+          - os: macos-13
+            arch: x64
+            target: --mac --x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` here on purpose — the action reads `packageManager` from
+      # package.json, and specifying both is a hard error.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # electron-builder takes the version from package.json and ignores the
+      # tag entirely, so a mismatch would publish v0.2.0 containing 0.1.0.
+      - name: Tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $tag does not match package.json $pkg" >&2
+            exit 1
+          fi
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # ~450 MB of interpreter and wheels (ADR-0003). The key covers the
+      # script because the pinned release and the py-beacon source both live
+      # in it — changing either has to invalidate this.
+      - name: Cache python payload
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/python-standalone
+          key: python-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('scripts/fetch-python.mjs') }}
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Bundled python
+        # Pinning py-beacon is what makes a release reproducible; `main` is a
+        # moving target and only the default because most runs are dry ones.
+        env:
+          PY_BEACON_REF: ${{ inputs.py_beacon_ref || 'main' }}
+        run: node scripts/fetch-python.mjs --arch ${{ matrix.arch }}
+
+      - name: Package and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Nothing is signed yet (#49). Without this, electron-builder hunts
+          # for a keychain identity on macOS and fails the build rather than
+          # producing an unsigned app.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: pnpm exec electron-builder ${{ matrix.target }} --publish always

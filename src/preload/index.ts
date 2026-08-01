@@ -2,10 +2,12 @@ import { contextBridge, ipcRenderer } from 'electron'
 import {
   ENGINE_CHANGED,
   MAXIMIZE_CHANGED,
+  UPDATE_CHANGED,
   type AppInfo,
   type BeaconBridge,
   type EngineState,
-  type OpenedReport
+  type OpenedReport,
+  type UpdateState
 } from '@shared/ipc'
 
 /**
@@ -24,6 +26,21 @@ const bridge: BeaconBridge = {
       ipcRenderer.on(ENGINE_CHANGED, handler)
       return () => {
         ipcRenderer.removeListener(ENGINE_CHANGED, handler)
+      }
+    }
+  },
+  update: {
+    state: () => ipcRenderer.invoke('update:state') as Promise<UpdateState>,
+    check: () => ipcRenderer.invoke('update:check') as Promise<void>,
+    download: () => ipcRenderer.invoke('update:download') as Promise<void>,
+    install: () => ipcRenderer.invoke('update:install') as Promise<void>,
+    onChange: (listener) => {
+      const handler = (_event: unknown, state: UpdateState): void => {
+        listener(state)
+      }
+      ipcRenderer.on(UPDATE_CHANGED, handler)
+      return () => {
+        ipcRenderer.removeListener(UPDATE_CHANGED, handler)
       }
     }
   },

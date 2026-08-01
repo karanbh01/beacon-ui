@@ -114,8 +114,63 @@ describe('Footer', () => {
     const { rerender } = render(<Footer version="0.0.1" />)
     expect(screen.queryByText('update available')).toBeNull()
 
-    rerender(<Footer version="0.0.1" updateAvailable />)
+    rerender(<Footer version="0.0.1" update={{ status: 'available', version: '0.1.0' }} />)
     expect(screen.getByText('update available')).toBeInTheDocument()
+  })
+
+  it('says nothing when the app is up to date', () => {
+    // `idle` covers both "up to date" and "not checked yet", and neither is
+    // worth a line in a status bar.
+    render(<Footer version="0.0.1" update={{ status: 'idle' }} />)
+
+    expect(screen.queryByText(/update/)).toBeNull()
+    expect(screen.getByRole('button', { name: /version 0.0.1/ })).toBeInTheDocument()
+  })
+
+  it('offers the download, then the restart, and asks before either', async () => {
+    const onUpdateAction = vi.fn()
+    const user = userEvent.setup()
+
+    const { rerender } = render(
+      <Footer update={{ status: 'available', version: '0.1.0' }} onUpdateAction={onUpdateAction} />
+    )
+    await user.click(screen.getByRole('button', { name: 'update available' }))
+    expect(onUpdateAction).toHaveBeenLastCalledWith('download')
+
+    rerender(
+      <Footer update={{ status: 'downloading', percent: 62 }} onUpdateAction={onUpdateAction} />
+    )
+    // Progress reports, it does not invite a second click.
+    expect(screen.getByText('downloading · 62%').tagName).toBe('SPAN')
+
+    rerender(
+      <Footer update={{ status: 'ready', version: '0.1.0' }} onUpdateAction={onUpdateAction} />
+    )
+    await user.click(screen.getByRole('button', { name: 'restart to update' }))
+    expect(onUpdateAction).toHaveBeenLastCalledWith('install')
+  })
+
+  it('reports a failed check without pretending it is actionable', () => {
+    const { rerender } = render(<Footer update={{ status: 'checking' }} />)
+    expect(screen.getByText('checking for updates…')).toBeInTheDocument()
+
+    rerender(<Footer update={{ status: 'error', detail: '404 latest.yml not found' }} />)
+    const failed = screen.getByText('update check failed')
+
+    expect(failed.tagName).toBe('SPAN')
+    expect(failed).toHaveClass('footer-update-muted')
+    // The reason is in the tooltip, not in the 32px-tall status bar.
+    expect(failed).toHaveAttribute('title', '404 latest.yml not found')
+  })
+
+  it('checks for updates when the version is clicked', async () => {
+    const onUpdateAction = vi.fn()
+    const user = userEvent.setup()
+    render(<Footer version="0.0.1" onUpdateAction={onUpdateAction} />)
+
+    await user.click(screen.getByRole('button', { name: /version 0.0.1/ }))
+
+    expect(onUpdateAction).toHaveBeenCalledWith('check')
   })
 })
 

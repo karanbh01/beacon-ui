@@ -4,14 +4,17 @@ import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'ele
 import {
   ENGINE_CHANGED,
   MAXIMIZE_CHANGED,
+  UPDATE_CHANGED,
   type AppInfo,
   type EngineState,
   type IpcChannel,
   type IpcRequest,
   type IpcResponse,
-  type OpenedReport
+  type OpenedReport,
+  type UpdateState
 } from '@shared/ipc'
 import type { Engine } from './engine/engine'
+import type { Updater } from './updater'
 
 /**
  * Register a handler with the channel's contract type enforced. Adding a
@@ -46,11 +49,31 @@ function senderWindow(event: IpcMainInvokeEvent): BrowserWindow | null {
   return BrowserWindow.fromWebContents(event.sender)
 }
 
-export function registerIpcHandlers(engine: Engine): void {
+export function registerIpcHandlers(engine: Engine, updater: Updater): void {
   handle('engine:state', (): EngineState => engine.getState())
 
   handle('engine:restart', () => {
     engine.restart()
+    return undefined
+  })
+
+  handle('update:state', (): UpdateState => updater.getState())
+
+  // All three are fire-and-forget: the answer arrives as a pushed state
+  // change, not as this call's return value, because the same transitions
+  // also happen on the timer with nobody waiting on a promise.
+  handle('update:check', () => {
+    updater.check('user')
+    return undefined
+  })
+
+  handle('update:download', () => {
+    updater.download()
+    return undefined
+  })
+
+  handle('update:install', () => {
+    updater.install()
     return undefined
   })
 
@@ -121,6 +144,18 @@ export function forwardEngineChanges(engine: Engine, window: BrowserWindow): voi
   engine.on('change', send)
   window.on('closed', () => {
     engine.off('change', send)
+  })
+}
+
+/** Same contract as the engine's: the renderer is told, never left to poll. */
+export function forwardUpdateChanges(updater: Updater, window: BrowserWindow): void {
+  const send = (state: UpdateState): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(UPDATE_CHANGED, state)
+  }
+  updater.on('change', send)
+  window.on('closed', () => {
+    updater.off('change', send)
   })
 }
 

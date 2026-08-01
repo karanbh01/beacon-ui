@@ -54,6 +54,29 @@ export interface EngineState {
   restarts?: number
 }
 
+/**
+ * Lifecycle of an update check (BU-34).
+ *
+ * `idle` is both "never checked" and "up to date": neither is worth saying in
+ * a footer. Nothing downloads without being asked, so `available` and
+ * `downloading` are distinct states rather than one — see ADR-0004.
+ */
+export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error'
+
+export interface UpdateState {
+  status: UpdateStatus
+  /** The version on offer, once one is known. */
+  version?: string
+  /** 0–100 while downloading. */
+  percent?: number
+  /**
+   * Why it failed. Only ever set for a check the user asked for: a background
+   * check that fails is usually just "offline", and nagging about it forever
+   * is noise the user cannot act on.
+   */
+  detail?: string
+}
+
 export interface IpcContract {
   'app:info': {
     /** No payload. */
@@ -66,6 +89,24 @@ export interface IpcContract {
   }
   /** Force a restart, e.g. from a footer action. */
   'engine:restart': {
+    request: undefined
+    response: undefined
+  }
+  'update:state': {
+    request: undefined
+    response: UpdateState
+  }
+  /** Check now, on the user's initiative rather than the timer's. */
+  'update:check': {
+    request: undefined
+    response: undefined
+  }
+  'update:download': {
+    request: undefined
+    response: undefined
+  }
+  /** Quits and installs. Ignored unless a download has finished. */
+  'update:install': {
     request: undefined
     response: undefined
   }
@@ -122,6 +163,9 @@ export const MAXIMIZE_CHANGED = 'window:maximizeChanged'
 /** Pushed whenever the engine's status changes, so the footer stays truthful. */
 export const ENGINE_CHANGED = 'engine:changed'
 
+/** Pushed on every update transition, including each download progress tick. */
+export const UPDATE_CHANGED = 'update:changed'
+
 /** The surface preload publishes on `window.beacon`. */
 export interface BeaconBridge {
   appInfo: () => Promise<AppInfo>
@@ -130,6 +174,14 @@ export interface BeaconBridge {
     restart: () => Promise<void>
     /** Returns an unsubscribe function. */
     onChange: (listener: (state: EngineState) => void) => () => void
+  }
+  update: {
+    state: () => Promise<UpdateState>
+    check: () => Promise<void>
+    download: () => Promise<void>
+    install: () => Promise<void>
+    /** Returns an unsubscribe function. */
+    onChange: (listener: (state: UpdateState) => void) => () => void
   }
   window: {
     minimize: () => Promise<void>
