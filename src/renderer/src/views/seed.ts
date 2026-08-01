@@ -167,8 +167,22 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     id: 'seed-futures',
     page: 'derivatives',
     viewKind: 'futures-pricer',
+    archetype: 'global',
+    title: 'Futures'
+  },
+  {
+    id: 'seed-trs',
+    page: 'derivatives',
+    viewKind: 'trs-pricer',
+    archetype: 'global',
+    title: 'TRS'
+  },
+  {
+    id: 'seed-term-structure',
+    page: 'derivatives',
+    viewKind: 'term-structure',
     archetype: 'pinned',
-    title: 'Futures',
+    title: 'Term Structure',
     pinnedDoc: 'TECH10'
   },
   {

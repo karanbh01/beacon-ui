@@ -1,4 +1,4 @@
-import { registerView } from '../shell/viewRegistry'
+import { getView, registerView } from '../shell/viewRegistry'
 import { GenericView } from './PlaceholderViews'
 import { AttributionView } from './attribution/AttributionView'
 import { BacktestView } from './backtest/BacktestView'
@@ -11,10 +11,13 @@ import { CoverageView } from './coverage/CoverageView'
 import { DrilldownView } from './drilldown/DrilldownView'
 import { ExposuresPaneView } from './exposures/ExposuresPaneView'
 import { FrontierPaneView } from './frontier/FrontierPaneView'
+import { FuturesPricerView } from './futures/FuturesPricerView'
 import { IndexOverviewView } from './index-overview/IndexOverviewView'
 import { IndexWeightsView } from './weights/IndexWeightsView'
 import { OptimisationRunView } from './optimisation-run/OptimisationRunView'
 import { RiskModelPaneView } from './risk-model/RiskModelPaneView'
+import { TermStructureView } from './term-structure/TermStructureView'
+import { TrsPricerView } from './trs/TrsPricerView'
 import { IndexDefinitionView } from './index-definition/IndexDefinitionView'
 import { PricesView } from './prices/PricesView'
 import { ReferenceView } from './reference/ReferenceView'
@@ -22,11 +25,19 @@ import { UniverseView } from './universe/UniverseView'
 import { WatchlistView } from './watchlist/WatchlistView'
 
 /**
- * Registers stand-in views so the shell is navigable before real ones land.
+ * Every viewKind the app can render.
  *
- * Called once at startup. A real view replaces its placeholder by
- * re-registering the same viewKind.
+ * Kinds still ahead of us fall through to `GenericView`, and that list is
+ * applied with `registerPending` — which REFUSES to overwrite a live view.
+ * A stale name left in it once silently replaced three finished panes with
+ * "not built yet", and nothing failed: the app compiled, the tests passed,
+ * and only a screenshot showed it.
  */
+function registerPending(kind: string): void {
+  if (getView(kind) !== undefined) return
+  registerView(kind, GenericView)
+}
+
 export function registerPlaceholderViews(): void {
   // Live against py-beacon; no longer placeholders.
   registerView('prices', PricesView)
@@ -49,8 +60,11 @@ export function registerPlaceholderViews(): void {
   registerView('frontier', FrontierPaneView)
   registerView('factor-exposures', ExposuresPaneView)
   registerView('risk-model', RiskModelPaneView)
+  registerView('futures-pricer', FuturesPricerView)
+  registerView('trs-pricer', TrsPricerView)
+  registerView('term-structure', TermStructureView)
 
-  for (const kind of ['constraint-set', 'frontier', 'futures-pricer', 'factsheet']) {
-    registerView(kind, GenericView)
+  for (const kind of ['factsheet', 'template-editor']) {
+    registerPending(kind)
   }
 }

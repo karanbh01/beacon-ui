@@ -1,0 +1,35 @@
+/* Figma pane-content – term structure / roll. */
+
+.term-structure-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.curve-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.curve-input:focus {
+  outline: none;
+}
+
+.curve-chart {
+  display: block;
+  max-width: 100%;
+  font-family: var(--font-ui);
+}
+
+.curve-footnote {
+  margin: 0;
+  max-width: 820px;
+  color: var(--text-muted);
+}
