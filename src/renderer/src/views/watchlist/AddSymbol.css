@@ -1,0 +1,35 @@
+/* Figma 302:3269. Same box as AddSlot — dashed chrome, 11px muted. */
+
+.add-symbol,
+.add-symbol-input {
+  padding: 5px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.add-symbol {
+  cursor: pointer;
+}
+
+.add-symbol:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.add-symbol-input {
+  width: 109px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+.add-symbol:focus-visible,
+.add-symbol-input:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}

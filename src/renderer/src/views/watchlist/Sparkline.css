@@ -1,0 +1,22 @@
+.spark {
+  display: block;
+  overflow: visible;
+}
+
+.spark-default {
+  color: var(--text-muted);
+}
+
+.spark-positive {
+  color: var(--success);
+}
+
+.spark-negative {
+  color: var(--danger);
+}
+
+.spark-empty {
+  display: block;
+  width: 90px;
+  height: 18px;
+}

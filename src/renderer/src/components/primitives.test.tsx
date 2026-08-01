@@ -7,6 +7,7 @@ import { Card } from './Card/Card'
 import { Checkbox } from './Checkbox/Checkbox'
 import { KV, KVList } from './KV/KV'
 import { SegmentedControl } from './SegmentedControl/SegmentedControl'
+import { Select } from './Select/Select'
 
 describe('Card', () => {
   it('omits the header entirely when there is nothing to put in it', () => {
@@ -160,5 +161,53 @@ describe('KV', () => {
       </KVList>
     )
     expect(container.querySelectorAll('.kv-list .kv')).toHaveLength(2)
+  })
+})
+
+describe('Select', () => {
+  const OPTIONS = [
+    { value: 'core-tech', label: 'Core Tech' },
+    { value: 'watch', label: 'Watch' }
+  ]
+
+  it('shows the current option label, not the raw value', () => {
+    const { container } = render(
+      <Select options={OPTIONS} value="core-tech" onChange={() => undefined} label="Watchlist" />
+    )
+    expect(container.querySelector('.select-label')?.textContent).toBe('Core Tech')
+  })
+
+  it('falls back to the value when nothing matches it', () => {
+    // A watchlist deleted on the engine must not blank the control.
+    const { container } = render(
+      <Select options={OPTIONS} value="gone" onChange={() => undefined} label="Watchlist" />
+    )
+    expect(container.querySelector('.select-label')?.textContent).toBe('gone')
+  })
+
+  it('reports the chosen value', async () => {
+    const onChange = vi.fn()
+    render(<Select options={OPTIONS} value="core-tech" onChange={onChange} label="Watchlist" />)
+
+    await userEvent.selectOptions(screen.getByLabelText('Watchlist'), 'watch')
+    expect(onChange).toHaveBeenCalledWith('watch')
+  })
+
+  it('is a real select, so it carries the label for assistive tech', () => {
+    render(<Select options={OPTIONS} value="watch" onChange={() => undefined} label="Watchlist" />)
+    expect(screen.getByRole('combobox', { name: 'Watchlist' })).toBeInTheDocument()
+  })
+
+  it('cannot be changed when disabled', () => {
+    render(
+      <Select
+        options={OPTIONS}
+        value="watch"
+        onChange={() => undefined}
+        label="Watchlist"
+        disabled
+      />
+    )
+    expect(screen.getByLabelText('Watchlist')).toBeDisabled()
   })
 })

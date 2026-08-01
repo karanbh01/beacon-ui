@@ -1,0 +1,53 @@
+/*
+ * Figma 302:3069. Same box as Button — 5/12 padding, 6 gap, 4 radius — since
+ * the two sit side by side in every controls row and any difference reads as
+ * a mistake.
+ */
+
+.select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.select-chevron {
+  flex: none;
+}
+
+/*
+ * The native element covers the box and is invisible, so clicking anywhere
+ * opens the platform list while the text and chevron above stay themed.
+ */
+.select-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.select-disabled {
+  opacity: 0.45;
+}
+
+.select-disabled .select-native {
+  cursor: default;
+}
+
+.select:focus-within {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}

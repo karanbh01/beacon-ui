@@ -1,8 +1,10 @@
 import { registerView } from '../shell/viewRegistry'
 import { GenericView, OverviewView, WeightsView } from './PlaceholderViews'
 import { CorporateActionsView } from './corporate-actions/CorporateActionsView'
+import { CoverageView } from './coverage/CoverageView'
 import { PricesView } from './prices/PricesView'
 import { ReferenceView } from './reference/ReferenceView'
+import { WatchlistView } from './watchlist/WatchlistView'
 
 /**
  * Registers stand-in views so the shell is navigable before real ones land.
@@ -18,6 +20,8 @@ export function registerPlaceholderViews(): void {
   registerView('prices', PricesView)
   registerView('reference-data', ReferenceView)
   registerView('corporate-actions', CorporateActionsView)
+  registerView('watchlist', WatchlistView)
+  registerView('data-coverage', CoverageView)
 
   for (const kind of [
     'charting',

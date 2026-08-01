@@ -6,6 +6,7 @@ import {
   emptyWorkspace,
   findTab,
   linkTab,
+  openOrRetarget,
   openTab,
   pinTab,
   reopenTab,
@@ -321,5 +322,59 @@ describe('immutability', () => {
     setDirty(before, 'prices', true)
 
     expect(JSON.stringify(before)).toBe(snapshot)
+  })
+})
+
+describe('openOrRetarget (cross-view jump)', () => {
+  const JUMP = {
+    page: 'data-explorer',
+    viewKind: 'prices',
+    title: 'Prices',
+    subject: 'MSFT'
+  }
+
+  it('retargets the query tab already open instead of opening a second one', () => {
+    const state = openOrRetarget(workspace(PRICES), JUMP)
+
+    expect(tabsForPage(state, 'data-explorer')).toHaveLength(1)
+    expect(findTab(state, 'prices')?.subject).toBe('MSFT')
+  })
+
+  it('brings the retargeted tab to the front', () => {
+    const state = openOrRetarget(workspace(DOC, PRICES), JUMP)
+    expect(activeTab(state, 'data-explorer')?.id).toBe('prices')
+  })
+
+  it('drags linked tabs along, which is the point of a link', () => {
+    const state = openOrRetarget(workspace(PRICES, CHARTING), JUMP)
+    const charting = findTab(state, 'charting')
+
+    expect(charting).toBeDefined()
+    expect(resolveSubject(state, charting!)).toBe('MSFT')
+  })
+
+  it('opens a tab when the page has none of that view', () => {
+    const state = openOrRetarget(emptyWorkspace(), JUMP)
+
+    expect(tabsForPage(state, 'data-explorer')).toHaveLength(1)
+    expect(activeTab(state, 'data-explorer')?.subject).toBe('MSFT')
+  })
+
+  it('does not hijack a pinned or linked tab of the same kind', () => {
+    // Neither can take a subject — pinned has no query bar and linked would
+    // sever — so a jump must open its own tab rather than break theirs.
+    const pinned = workspace({ ...PRICES, id: 'pinned', archetype: 'pinned', pinnedDoc: 'TECH10' })
+    const state = openOrRetarget(pinned, JUMP)
+
+    expect(tabsForPage(state, 'data-explorer')).toHaveLength(2)
+    expect(findTab(state, 'pinned')?.pinnedDoc).toBe('TECH10')
+  })
+
+  it('finds the tab on the requested page only', () => {
+    const elsewhere = workspace({ ...PRICES, id: 'other', page: 'beacon-view' })
+    const state = openOrRetarget(elsewhere, JUMP)
+
+    expect(findTab(state, 'other')?.subject).toBe('AAPL')
+    expect(tabsForPage(state, 'data-explorer')).toHaveLength(1)
   })
 })

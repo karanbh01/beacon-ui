@@ -1,0 +1,18 @@
+/* Figma pane-content – watchlist, 302:3264. */
+
+.watchlist-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.watchlist-footnote {
+  margin: 0;
+  max-width: 720px;
+  color: var(--text-muted);
+}
+
+.watchlist-footnote code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

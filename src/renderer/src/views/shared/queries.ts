@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
 
@@ -59,5 +59,81 @@ export function useCorporateActions(identifier: string, options: CorporateAction
       return client.data.corporateActions(identifier, query, signal)
     },
     enabled: client !== null && identifier !== ''
+  })
+}
+
+export function useCoverage() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.data.coverage(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.coverage(signal)
+    },
+    enabled: client !== null
+  })
+}
+
+export function useWatchlists() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.data.watchlists(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.watchlists(signal)
+    },
+    enabled: client !== null
+  })
+}
+
+/**
+ * Start a sync and stop.
+ *
+ * The endpoint answers 202 with a job, so there is nothing to await: progress
+ * arrives on the event feed and BU-21's job store renders it. Invalidating
+ * coverage here would only refetch the numbers the sync has not changed yet —
+ * the freshness event that follows the job is what makes them refresh, and it
+ * already does that for every view at once.
+ */
+export function useSyncDataset() {
+  const client = useBeacon()
+
+  return useMutation({
+    mutationFn: (dataset: string) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.sync(dataset)
+    }
+  })
+}
+
+/**
+ * Create, rename or re-order a watchlist.
+ *
+ * Watchlists are the one thing in Data Explorer the user owns, so the list
+ * is refetched on success rather than optimistically patched: a PUT that the
+ * engine rejected must not leave a symbol on screen that is not stored.
+ */
+export function useSaveWatchlist() {
+  const client = useBeacon()
+  const queries = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      name,
+      identifiers
+    }: {
+      id: string
+      name: string
+      identifiers: string[]
+    }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.putWatchlist(id, { name, identifiers })
+    },
+    onSuccess: () => {
+      void queries.invalidateQueries({ queryKey: keys.data.watchlists() })
+    }
   })
 }

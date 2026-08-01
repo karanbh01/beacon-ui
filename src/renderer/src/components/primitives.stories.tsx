@@ -6,6 +6,7 @@ import { Card } from './Card/Card'
 import { Checkbox } from './Checkbox/Checkbox'
 import { KV, KVList } from './KV/KV'
 import { SegmentedControl } from './SegmentedControl/SegmentedControl'
+import { Select } from './Select/Select'
 import { Table } from './Table/Table'
 import { WEIGHTS_COLUMNS } from './Table/weightsColumns'
 import { CONSTITUENTS, TECH10 } from '../mocks/tech10'
@@ -41,6 +42,33 @@ export const Ranges: Story = {
   render: function RangeDemo() {
     const [range, setRange] = useState<string>('1Y')
     return <SegmentedControl segments={RANGES} value={range} onChange={setRange} label="Range" />
+  }
+}
+
+export const Selects: Story = {
+  render: function SelectDemo() {
+    const [list, setList] = useState('core-tech')
+    return (
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <Select
+          options={[
+            { value: 'core-tech', label: 'Core Tech' },
+            { value: 'dividends', label: 'Dividend Payers' },
+            { value: 'watch', label: 'Watch' }
+          ]}
+          value={list}
+          onChange={setList}
+          label="Watchlist"
+        />
+        <Select
+          options={[{ value: '', label: 'All datasets' }]}
+          value=""
+          onChange={() => undefined}
+          label="Dataset"
+          disabled
+        />
+      </div>
+    )
   }
 }
 

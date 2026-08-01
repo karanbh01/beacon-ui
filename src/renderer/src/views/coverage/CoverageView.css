@@ -1,0 +1,14 @@
+/* Figma pane-content – data-coverage, 302:3066. */
+
+.coverage-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.coverage-footnote {
+  margin: 0;
+  max-width: 720px;
+  color: var(--text-muted);
+}

@@ -17,6 +17,38 @@ type PathParamsOf<P extends GetPath> =
 type ResponseOf<P extends GetPath> =
   GetOp<P> extends { responses: { 200: { content: { 'application/json': infer R } } } } ? R : never
 
+/** Paths supporting a write verb, narrowed the same way GET is. */
+type WritePath<M extends 'post' | 'put' | 'delete'> = {
+  [P in keyof paths]: paths[P] extends Record<M, unknown> ? P : never
+}[keyof paths]
+
+type WriteOp<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
+  paths[P] extends Record<M, infer O> ? O : never
+
+type WritePathParams<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
+  WriteOp<M, P> extends { parameters: { path: infer T } } ? T : never
+
+type BodyOf<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
+  WriteOp<M, P> extends { requestBody?: { content: { 'application/json': infer B } } } ? B : never
+
+/**
+ * A write's success body, whichever 2xx it returns.
+ *
+ * py-beacon answers 200 for an upsert, 202 for a job it accepted and 204 for
+ * a delete. Naming only 200 here would have typed `sync` as `never` and made
+ * the job id unreachable. A 204 resolves to `undefined`, which is what the
+ * caller actually receives — `void` would let a caller pass the result on as
+ * if it carried something.
+ */
+type WriteResponse<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
+  WriteOp<M, P> extends { responses: infer R }
+    ? R extends { 200: { content: { 'application/json': infer B } } }
+      ? B
+      : R extends { 202: { content: { 'application/json': infer B } } }
+        ? B
+        : undefined
+    : undefined
+
 export interface ClientOptions {
   baseUrl: string
   token: string
@@ -98,6 +130,16 @@ export interface BeaconClient {
       signal?: AbortSignal
     }
   ) => Promise<ResponseOf<P>>
+  /** Typed write against any path in the spec. */
+  write: <M extends 'post' | 'put' | 'delete', P extends WritePath<M>>(
+    method: M,
+    path: P,
+    options?: {
+      params?: WritePathParams<M, P>
+      body?: BodyOf<M, P>
+      signal?: AbortSignal
+    }
+  ) => Promise<WriteResponse<M, P>>
   data: {
     prices: (
       identifier: string,
@@ -114,6 +156,17 @@ export interface BeaconClient {
       signal?: AbortSignal
     ) => Promise<ResponseOf<'/data/corporate-actions/{identifier}'>>
     coverage: (signal?: AbortSignal) => Promise<ResponseOf<'/data/coverage'>>
+    watchlists: (signal?: AbortSignal) => Promise<ResponseOf<'/data/watchlists'>>
+    putWatchlist: (
+      id: string,
+      body: BodyOf<'put', '/data/watchlists/{watchlist_id}'>
+    ) => Promise<WriteResponse<'put', '/data/watchlists/{watchlist_id}'>>
+    deleteWatchlist: (id: string) => Promise<void>
+    /** Accepted, not done: returns the job to follow on the event feed. */
+    sync: (
+      dataset: string,
+      body?: BodyOf<'post', '/data/coverage/{dataset}/sync'>
+    ) => Promise<WriteResponse<'post', '/data/coverage/{dataset}/sync'>>
   }
   health: () => Promise<ResponseOf<'/health'>>
 }
@@ -160,8 +213,45 @@ export function createClient(options: ClientOptions): BeaconClient {
     return (await response.json()) as ResponseOf<P>
   }
 
+  async function write<M extends 'post' | 'put' | 'delete', P extends WritePath<M>>(
+    method: M,
+    path: P,
+    request: {
+      params?: WritePathParams<M, P>
+      body?: BodyOf<M, P>
+      signal?: AbortSignal
+    } = {}
+  ): Promise<WriteResponse<M, P>> {
+    const url = `${base}${expand(path, request.params as Record<string, unknown> | undefined)}`
+
+    let response: Response
+    try {
+      response = await fetchImpl(url, {
+        method: method.toUpperCase(),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          ...(request.body === undefined ? {} : { 'Content-Type': 'application/json' })
+        },
+        ...(request.body === undefined ? {} : { body: JSON.stringify(request.body) }),
+        ...(request.signal === undefined ? {} : { signal: request.signal })
+      })
+    } catch (cause) {
+      throw new NetworkError('Could not reach the Beacon engine.', { cause })
+    }
+
+    if (!response.ok) throw await toApiError(response)
+
+    // 204 has no body, and calling .json() on it throws a parse error that
+    // says nothing about the delete having actually succeeded.
+    if (response.status === 204) return undefined as WriteResponse<M, P>
+
+    return (await response.json()) as WriteResponse<M, P>
+  }
+
   return {
     get,
+    write,
     data: {
       prices: (identifier, query, signal) =>
         get('/data/prices/{identifier}', {
@@ -180,7 +270,15 @@ export function createClient(options: ClientOptions): BeaconClient {
           ...(query === undefined ? {} : { query }),
           ...(signal === undefined ? {} : { signal })
         }),
-      coverage: (signal) => get('/data/coverage', { ...(signal === undefined ? {} : { signal }) })
+      coverage: (signal) => get('/data/coverage', { ...(signal === undefined ? {} : { signal }) }),
+      watchlists: (signal) =>
+        get('/data/watchlists', { ...(signal === undefined ? {} : { signal }) }),
+      putWatchlist: (id, body) =>
+        write('put', '/data/watchlists/{watchlist_id}', { params: { watchlist_id: id }, body }),
+      deleteWatchlist: (id) =>
+        write('delete', '/data/watchlists/{watchlist_id}', { params: { watchlist_id: id } }),
+      sync: (dataset, body) =>
+        write('post', '/data/coverage/{dataset}/sync', { params: { dataset }, body: body ?? {} })
     },
     health: () => get('/health')
   }

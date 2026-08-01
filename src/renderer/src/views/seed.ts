@@ -41,6 +41,20 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     subject: 'AAPL'
   },
   {
+    id: 'seed-watchlist',
+    page: 'data-explorer',
+    viewKind: 'watchlist',
+    archetype: 'global',
+    title: 'Watchlist'
+  },
+  {
+    id: 'seed-coverage',
+    page: 'data-explorer',
+    viewKind: 'data-coverage',
+    archetype: 'global',
+    title: 'Data Coverage'
+  },
+  {
     id: 'seed-overview',
     page: 'beacon-view',
     viewKind: 'overview',

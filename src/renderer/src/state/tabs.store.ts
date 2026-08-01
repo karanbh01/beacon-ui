@@ -10,7 +10,7 @@ import { SEED_TABS } from '../views/seed'
  * receive. The seed itself only ever runs on an empty workspace, so without
  * this a user who launched the app once would never see a view added later.
  */
-export const WORKSPACE_VERSION = 1
+export const WORKSPACE_VERSION = 2
 
 /**
  * Append seed tabs the workspace has never had.
@@ -36,6 +36,12 @@ export interface WorkspaceStore extends WorkspaceState {
   linkTab: (id: string, sourceId: string) => void
   pinTab: (id: string, doc: string) => void
   setDirty: (id: string, dirty: boolean) => void
+  openOrRetarget: (request: {
+    page: string
+    viewKind: string
+    title: string
+    subject: string
+  }) => void
   reset: () => void
 }
 
@@ -76,6 +82,9 @@ export const useWorkspace = create<WorkspaceStore>()(
       },
       setDirty: (id, dirty) => {
         set((state) => logic.setDirty(state, id, dirty))
+      },
+      openOrRetarget: (request) => {
+        set((state) => logic.openOrRetarget(state, request))
       },
       reset: () => {
         set(logic.emptyWorkspace())

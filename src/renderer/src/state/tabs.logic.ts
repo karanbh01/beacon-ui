@@ -194,3 +194,37 @@ export function setDirty(state: WorkspaceState, id: string, dirty: boolean): Wor
   if (findTab(state, id)?.archetype !== 'document') return state
   return replaceTab(state, id, (current) => ({ ...current, dirty }))
 }
+
+/**
+ * Point an existing view at a subject, or open one if there is none.
+ *
+ * What a cross-view jump needs — clicking a watchlist row to see its prices.
+ * Retargeting the tab that is already open beats opening a second one: the
+ * pane the user has arranged stays where it is, and anything linked to it
+ * follows along, which is the whole point of a link.
+ *
+ * Only `query` tabs are retargeted. A pinned tab has no subject to change and
+ * a linked one would sever, so both get a new tab instead of being hijacked.
+ */
+export function openOrRetarget(
+  state: WorkspaceState,
+  request: { page: string; viewKind: string; title: string; subject: string }
+): WorkspaceState {
+  const existing = state.tabs.find(
+    (tab) =>
+      tab.page === request.page && tab.viewKind === request.viewKind && tab.archetype === 'query'
+  )
+
+  if (existing !== undefined) {
+    return selectTab(setSubject(state, existing.id, request.subject), existing.id)
+  }
+
+  return openTab(state, {
+    id: `${request.viewKind}-${request.subject}`,
+    page: request.page,
+    viewKind: request.viewKind,
+    archetype: 'query',
+    title: request.title,
+    subject: request.subject
+  })
+}
