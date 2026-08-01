@@ -1,0 +1,13 @@
+/* Figma pane-content – corporate actions, 234:4958. */
+
+.corporate-actions-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.corporate-actions-footnote {
+  margin: 0;
+  color: var(--text-muted);
+}

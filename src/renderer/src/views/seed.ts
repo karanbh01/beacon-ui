@@ -25,6 +25,22 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     linkSourceId: 'seed-prices'
   },
   {
+    id: 'seed-reference',
+    page: 'data-explorer',
+    viewKind: 'reference-data',
+    archetype: 'query',
+    title: 'Reference Data',
+    subject: 'AAPL'
+  },
+  {
+    id: 'seed-corporate-actions',
+    page: 'data-explorer',
+    viewKind: 'corporate-actions',
+    archetype: 'query',
+    title: 'Corporate Actions',
+    subject: 'AAPL'
+  },
+  {
     id: 'seed-overview',
     page: 'beacon-view',
     viewKind: 'overview',

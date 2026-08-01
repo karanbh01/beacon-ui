@@ -1,0 +1,63 @@
+import { useQuery } from '@tanstack/react-query'
+import { keys } from '../../api/keys'
+import { useBeacon } from '../../api/queryClient'
+
+/**
+ * Queries shared by more than one Data Explorer view.
+ *
+ * Reference data is the header caption in Prices and the entire subject in
+ * Reference Data, so it lives here rather than inside either view — two
+ * copies would eventually drift on the query key and silently stop sharing
+ * the cache.
+ */
+
+export interface ReferenceOptions {
+  /**
+   * Set by Prices, which shows reference data as a header caption and treats
+   * its absence as cosmetic — a missing one must not stop prices rendering.
+   * The Reference Data view omits it and inherits the app-wide retry policy,
+   * because there the reference IS the pane.
+   */
+  noRetry?: boolean
+}
+
+export function useReference(identifier: string, options: ReferenceOptions = {}) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.data.reference(identifier),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.reference(identifier, signal)
+    },
+    // No client means no engine — BU-19 is still starting or the server died.
+    enabled: client !== null && identifier !== '',
+    ...(options.noRetry === true ? { retry: false } : {})
+  })
+}
+
+export interface CorporateActionsOptions {
+  start?: string | undefined
+}
+
+/**
+ * The whole history in one call.
+ *
+ * The `types` query parameter is deliberately not used: the summary aggregates
+ * py-beacon returns are computed over everything it sent, so filtering at the
+ * server would leave a dividend total sitting above a table that excludes
+ * dividends. The type filter is applied client-side instead.
+ */
+export function useCorporateActions(identifier: string, options: CorporateActionsOptions = {}) {
+  const client = useBeacon()
+  const query = options.start === undefined ? {} : { start: options.start }
+
+  return useQuery({
+    queryKey: keys.data.corporateActions(identifier, query),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.corporateActions(identifier, query, signal)
+    },
+    enabled: client !== null && identifier !== ''
+  })
+}

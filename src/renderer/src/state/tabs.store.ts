@@ -3,6 +3,28 @@ import { persist } from 'zustand/middleware'
 import * as logic from './tabs.logic'
 import type { OpenTabInput } from './tabs.logic'
 import type { Tab, WorkspaceState } from './tabs.types'
+import { SEED_TABS } from '../views/seed'
+
+/**
+ * Bumped whenever SEED_TABS gains a tab that an existing workspace should
+ * receive. The seed itself only ever runs on an empty workspace, so without
+ * this a user who launched the app once would never see a view added later.
+ */
+export const WORKSPACE_VERSION = 1
+
+/**
+ * Append seed tabs the workspace has never had.
+ *
+ * Safe to run because a migration runs once per version bump, not per launch:
+ * a seed tab the user closed stays closed, and only tabs introduced since
+ * their last version appear.
+ */
+export function addNewSeedTabs(state: WorkspaceState): WorkspaceState {
+  return SEED_TABS.reduce(
+    (acc, input) => (acc.tabs.some((tab) => tab.id === input.id) ? acc : logic.openTab(acc, input)),
+    state
+  )
+}
 
 export interface WorkspaceStore extends WorkspaceState {
   openTab: (input: OpenTabInput) => void
@@ -61,9 +83,11 @@ export const useWorkspace = create<WorkspaceStore>()(
     }),
     {
       name: 'beacon.workspace',
+      version: WORKSPACE_VERSION,
       // Closed tabs are a session-scoped undo buffer, not workspace state —
       // reopening something from three days ago is surprising, not helpful.
-      partialize: (state) => ({ tabs: state.tabs, activeByPage: state.activeByPage })
+      partialize: (state) => ({ tabs: state.tabs, activeByPage: state.activeByPage }),
+      migrate: (persisted) => addNewSeedTabs(persisted as WorkspaceState)
     }
   )
 )

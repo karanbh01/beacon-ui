@@ -1,0 +1,23 @@
+/* Figma 234:4680: 2x2 grid of 440px cards, 16px gaps. */
+
+.reference-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.reference-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 440px);
+  gap: 16px;
+}
+
+.reference-card {
+  width: 440px;
+}
+
+.reference-footnote {
+  margin: 0;
+  color: var(--text-muted);
+}

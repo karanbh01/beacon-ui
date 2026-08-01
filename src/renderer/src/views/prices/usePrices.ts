@@ -53,19 +53,3 @@ export function usePrices(identifier: string, params: PricesParams = {}) {
     enabled: client !== null && identifier !== ''
   })
 }
-
-export function useReference(identifier: string) {
-  const client = useBeacon()
-
-  return useQuery({
-    queryKey: keys.data.reference(identifier),
-    queryFn: ({ signal }) => {
-      if (client === null) throw new Error('No engine')
-      return client.data.reference(identifier, signal)
-    },
-    enabled: client !== null && identifier !== '',
-    // Reference data is descriptive, not a number anyone trades on. A missing
-    // one must not stop prices rendering, so failures stay quiet.
-    retry: false
-  })
-}

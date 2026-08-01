@@ -1,22 +1,26 @@
 import { registerView } from '../shell/viewRegistry'
 import { GenericView, OverviewView, WeightsView } from './PlaceholderViews'
+import { CorporateActionsView } from './corporate-actions/CorporateActionsView'
 import { PricesView } from './prices/PricesView'
+import { ReferenceView } from './reference/ReferenceView'
 
 /**
  * Registers stand-in views so the shell is navigable before real ones land.
  *
  * Called once at startup. A real view replaces its placeholder by
- * re-registering the same viewKind — BU-22 will do exactly that for `prices`.
+ * re-registering the same viewKind.
  */
 export function registerPlaceholderViews(): void {
   registerView('weights', WeightsView)
   registerView('overview', OverviewView)
-  // Live against py-beacon (BU-22); no longer a placeholder.
+
+  // Live against py-beacon; no longer placeholders.
   registerView('prices', PricesView)
+  registerView('reference-data', ReferenceView)
+  registerView('corporate-actions', CorporateActionsView)
 
   for (const kind of [
     'charting',
-    'reference-data',
     'index-definition',
     'universe',
     'constraint-set',

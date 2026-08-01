@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
-import { ApiError, NetworkError } from '../../api/errors'
 import { num, type FrameRow } from '../../api/frame'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
@@ -8,7 +7,9 @@ import { SegmentedControl } from '../../components/SegmentedControl/SegmentedCon
 import { Stat, StatStrip } from '../../components/Stat/Stat'
 import { Table, type Column } from '../../components/Table/Table'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { RANGES, rangeStart, usePrices, useReference, type Range } from './usePrices'
+import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { useReference } from '../shared/queries'
+import { RANGES, rangeStart, usePrices, type Range } from './usePrices'
 import { compactVolume, price, signedPercent, summarise } from './summary'
 import './PricesView.css'
 
@@ -69,52 +70,6 @@ function formatDate(value: unknown): string {
 }
 
 /**
- * The error a user can actually act on.
- *
- * py-beacon's envelope carries a stable `code`, so the one failure that is
- * certain to happen on a fresh install — a server started without a data
- * source — gets a specific explanation rather than a raw 500.
- */
-function PricesError({ error }: { error: unknown }): ReactElement {
-  if (error instanceof NetworkError) {
-    return (
-      <div className="prices-state">
-        <p className="type-13">The Beacon engine is not reachable.</p>
-        <p className="type-11">Check the footer — it reports what the python process is doing.</p>
-      </div>
-    )
-  }
-
-  if (error instanceof ApiError && error.code === 'CONFIGURATION_ERROR') {
-    return (
-      <div className="prices-state">
-        <p className="type-13">This engine has no data source.</p>
-        <p className="type-11">
-          py-beacon is running, but <code>python -m beacon.server</code> was started without one, so
-          no market data can be served. See beacon-ui issue #40.
-        </p>
-      </div>
-    )
-  }
-
-  if (error instanceof ApiError && error.isNotFound) {
-    return (
-      <div className="prices-state">
-        <p className="type-13">No prices for this identifier.</p>
-        <p className="type-11">{error.message}</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="prices-state">
-      <p className="type-13">Could not load prices.</p>
-      <p className="type-11">{error instanceof Error ? error.message : 'Unknown error.'}</p>
-    </div>
-  )
-}
-
-/**
  * Data Explorer → Prices. Figma frame 234:4402 / pane-content 266:2820.
  *
  * The first view served entirely by py-beacon: query header, summary strip
@@ -126,7 +81,7 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
 
   const start = useMemo(() => rangeStart(range), [range])
   const prices = usePrices(identifier, { start })
-  const reference = useReference(identifier)
+  const reference = useReference(identifier, { noRetry: true })
 
   const summary = useMemo(() => summarise(prices.data?.prices), [prices.data])
   const columns = useMemo(() => buildColumns(summary.columns), [summary.columns])
@@ -183,14 +138,14 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
 
       <SegmentedControl segments={RANGES} value={range} onChange={setRange} label="Range" />
 
-      {prices.isPending && identifier !== '' && (
-        <p className="prices-state type-11">Loading {identifier}…</p>
-      )}
+      {identifier === '' && <ViewEmpty>Type an identifier to load its price history.</ViewEmpty>}
 
-      {prices.isError && <PricesError error={prices.error} />}
+      {prices.isPending && identifier !== '' && <ViewLoading what={identifier} />}
+
+      {prices.isError && <ViewError error={prices.error} />}
 
       {prices.isSuccess && summary.rows.length === 0 && (
-        <p className="prices-state type-11">No rows in this range.</p>
+        <ViewEmpty>No rows in this range.</ViewEmpty>
       )}
 
       {prices.isSuccess && summary.rows.length > 0 && (
