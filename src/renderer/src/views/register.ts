@@ -6,10 +6,15 @@ import { ChartingView } from './charting/ChartingView'
 import { CorporateActionsView } from './corporate-actions/CorporateActionsView'
 import { ConstituentPreviewView } from './constituent-preview/ConstituentPreviewView'
 import { ComparisonView } from './comparison/ComparisonView'
+import { ConstraintSetView } from './constraint-set/ConstraintSetView'
 import { CoverageView } from './coverage/CoverageView'
 import { DrilldownView } from './drilldown/DrilldownView'
+import { ExposuresPaneView } from './exposures/ExposuresPaneView'
+import { FrontierPaneView } from './frontier/FrontierPaneView'
 import { IndexOverviewView } from './index-overview/IndexOverviewView'
 import { IndexWeightsView } from './weights/IndexWeightsView'
+import { OptimisationRunView } from './optimisation-run/OptimisationRunView'
+import { RiskModelPaneView } from './risk-model/RiskModelPaneView'
 import { IndexDefinitionView } from './index-definition/IndexDefinitionView'
 import { PricesView } from './prices/PricesView'
 import { ReferenceView } from './reference/ReferenceView'
@@ -39,6 +44,11 @@ export function registerPlaceholderViews(): void {
   registerView('attribution', AttributionView)
   registerView('asset-drilldown', DrilldownView)
   registerView('comparison', ComparisonView)
+  registerView('constraint-set', ConstraintSetView)
+  registerView('optimisation-run', OptimisationRunView)
+  registerView('frontier', FrontierPaneView)
+  registerView('factor-exposures', ExposuresPaneView)
+  registerView('risk-model', RiskModelPaneView)
 
   for (const kind of ['constraint-set', 'frontier', 'futures-pricer', 'factsheet']) {
     registerView(kind, GenericView)

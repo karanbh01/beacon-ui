@@ -131,8 +131,37 @@ export const SEED_TABS: readonly OpenTabInput[] = [
     id: 'seed-constraints',
     page: 'optimiser',
     viewKind: 'constraint-set',
-    archetype: 'global',
+    archetype: 'query',
     title: 'Constraint Set'
+  },
+  {
+    id: 'seed-opt-run',
+    page: 'optimiser',
+    viewKind: 'optimisation-run',
+    archetype: 'query',
+    title: 'Run',
+    subject: 'TECH10'
+  },
+  {
+    id: 'seed-frontier',
+    page: 'optimiser',
+    viewKind: 'frontier',
+    archetype: 'query',
+    title: 'Frontier'
+  },
+  {
+    id: 'seed-exposures',
+    page: 'optimiser',
+    viewKind: 'factor-exposures',
+    archetype: 'query',
+    title: 'Exposures'
+  },
+  {
+    id: 'seed-risk-model',
+    page: 'optimiser',
+    viewKind: 'risk-model',
+    archetype: 'query',
+    title: 'Risk Model'
   },
   {
     id: 'seed-futures',

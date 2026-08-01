@@ -1,0 +1,16 @@
+/* Figma 342:1254. SVG scatter — the d3 half of ADR-0002. */
+
+.frontier-chart {
+  display: block;
+  max-width: 100%;
+  font-family: var(--font-ui);
+}
+
+.frontier-marker,
+.frontier-axis-title {
+  font-size: 10px;
+}
+
+.frontier-cml {
+  pointer-events: none;
+}

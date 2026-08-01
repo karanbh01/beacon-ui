@@ -1,0 +1,50 @@
+/* Figma 340:1240. Same accordion geometry as the index rule editor. */
+
+.constraint-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 14px 56px;
+  background: var(--canvas);
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+}
+
+.constraint-editor-fields {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.constraint-editor-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.constraint-editor-input:focus {
+  outline: none;
+}
+
+.constraint-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.constraint-editor-note {
+  padding-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.constraint-editor-actions {
+  display: flex;
+  gap: 8px;
+}

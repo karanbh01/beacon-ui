@@ -1,0 +1,50 @@
+/* Figma 347:11024. Square cells, tickers down the left and across the top. */
+
+.heatmap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.heatmap-grid {
+  display: grid;
+  gap: 1px;
+  width: max-content;
+}
+
+.heatmap-corner {
+  display: block;
+}
+
+.heatmap-head,
+.heatmap-row-head {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.heatmap-head {
+  justify-content: center;
+  padding-bottom: 4px;
+  font-size: 10px;
+}
+
+.heatmap-row-head {
+  padding-right: 8px;
+  justify-content: flex-end;
+}
+
+.heatmap-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A pair with no overlapping history is absent, not zero-correlated. */
+.heatmap-empty {
+  background: var(--divider);
+}

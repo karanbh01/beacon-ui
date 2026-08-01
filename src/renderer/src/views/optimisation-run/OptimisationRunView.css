@@ -1,0 +1,67 @@
+/* Figma pane-content – optimisation-run, 341:1244. */
+
+.optimisation-run-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.run-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.run-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 480px;
+  max-width: 100%;
+  color: var(--text-muted);
+}
+
+.run-progress p {
+  margin: 0;
+}
+
+.run-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--divider);
+  overflow: hidden;
+}
+
+.run-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
+
+/*
+ * A non-monotonic frontier is a solver failure, not a data quirk — the
+ * warning has to look like one.
+ */
+.run-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 720px;
+  padding: 16px 20px;
+  background: var(--status-running-bg);
+  border: 1px solid var(--status-running-text);
+  border-radius: 6px;
+  color: var(--status-running-text);
+}
+
+.run-warning p {
+  margin: 0;
+}
+
+.run-footnote {
+  margin: 0;
+  max-width: 800px;
+  color: var(--text-muted);
+}

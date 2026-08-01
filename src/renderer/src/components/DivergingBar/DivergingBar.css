@@ -1,0 +1,32 @@
+/* Figma 351:1259. Centre line with the bar growing either way. */
+
+.diverging-bar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 8px;
+}
+
+.diverging-axis {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--divider);
+}
+
+.diverging-fill {
+  position: absolute;
+  top: 2px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.diverging-fill.is-positive {
+  background: var(--success);
+}
+
+.diverging-fill.is-negative {
+  background: var(--danger);
+}

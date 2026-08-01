@@ -1,0 +1,21 @@
+/* Figma pane-content – frontier, 342:1254. */
+
+.frontier-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.frontier-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.frontier-footnote {
+  margin: 0;
+  max-width: 800px;
+  color: var(--text-muted);
+}

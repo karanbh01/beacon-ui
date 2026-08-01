@@ -1,0 +1,38 @@
+/* Figma pane-content – risk-model, 347:11024. */
+
+.risk-model-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.risk-matrix-card {
+  max-width: 100%;
+}
+
+/*
+ * A matrix that is not PSD is a correctness failure, not a quality note — an
+ * optimiser inverting it produces weights that mean nothing.
+ */
+.risk-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 720px;
+  padding: 16px 20px;
+  background: var(--status-failed-bg);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  color: var(--status-failed-text);
+}
+
+.risk-warning p {
+  margin: 0;
+}
+
+.risk-footnote {
+  margin: 0;
+  max-width: 860px;
+  color: var(--text-muted);
+}

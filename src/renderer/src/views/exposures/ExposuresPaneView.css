@@ -1,0 +1,30 @@
+/* Figma pane-content – factor-exposures, 351:1259. */
+
+.exposures-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.exposures-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 720px;
+  padding: 16px 20px;
+  background: var(--status-running-bg);
+  border: 1px solid var(--status-running-text);
+  border-radius: 6px;
+  color: var(--status-running-text);
+}
+
+.exposures-warning p {
+  margin: 0;
+}
+
+.exposures-footnote {
+  margin: 0;
+  max-width: 800px;
+  color: var(--text-muted);
+}
