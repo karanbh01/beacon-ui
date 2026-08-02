@@ -1,0 +1,22 @@
+# Line endings are LF everywhere, in the repo AND in the working tree.
+#
+# Not cosmetic. Git on Windows defaults to `core.autocrlf=true`, so without
+# this a fresh clone here checks out CRLF — and then:
+#
+#   - `pnpm format:check` fails on every file, because .prettierrc pins
+#     `endOfLine: lf`;
+#   - every drift gate (tokens:check, icons:check, fonts:check, api:check)
+#     fails, because the generators write LF and the checked-out file is CRLF.
+#
+# It has not bitten yet only because every file in this repo was authored on
+# this machine and has never been through a checkout conversion. The first
+# clone would have hit all of it at once.
+* text=auto eol=lf
+
+# Binary, so git never inspects or converts them.
+*.woff2 binary
+*.woff binary
+*.png binary
+*.ico binary
+*.icns binary
+*.pdf binary
