@@ -1,17 +1,57 @@
 /*
- * Type scale (BU-6). Values read from Figma rather than inferred:
- * Stat 388:153 gives 10px Medium at 0.4px tracking and 16px Medium;
- * Section Label 73:2 is Source Serif Pro SemiBold Italic, not Inter.
+ * Type scale (BU-6) and the faces it needs (BU-38). Values read from Figma
+ * rather than inferred: Stat 388:153 gives 10px Medium at 0.4px tracking and
+ * 16px Medium; Section Label 73:2 is Source Serif Pro SemiBold Italic, not
+ * Inter.
  *
  * Two families are in play. Inter carries the whole UI; Source Serif Pro
- * appears only as the italic section label. Font FILES are not bundled yet —
- * see issue #38. Until they are, these stacks fall back to system faces and
- * metrics will be slightly off.
+ * appears only as the italic section label.
+ *
+ * The files are bundled, never fetched: the CSP is `default-src 'self'` and
+ * the app has to work offline, so a CDN is not an option. Generated into
+ * ../assets/fonts by scripts/build-fonts.mjs — see NOTICE.txt there for
+ * versions and licences.
  */
 
+/*
+ * `font-display: block` rather than `swap`. The files are local, so the block
+ * period is imperceptible — and swapping would repaint the whole app once the
+ * real metrics arrive, which in a dense table view is a visible jolt for no
+ * benefit.
+ */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/inter-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('../assets/fonts/inter-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Source Serif Pro';
+  font-style: italic;
+  font-weight: 600;
+  font-display: block;
+  src: url('../assets/fonts/source-serif-pro-latin-600-italic.woff2') format('woff2');
+}
+
+/*
+ * The fallbacks stay, shortened to one entry each. They are unreachable in a
+ * working build — but a font that failed to load should degrade to a sans
+ * face rather than to whatever the platform calls default, which on Windows
+ * is a serif.
+ */
 :root {
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: 'Source Serif Pro', 'Source Serif 4', Georgia, serif;
+  --font-ui: 'Inter', sans-serif;
+  --font-serif: 'Source Serif Pro', Georgia, serif;
 }
 
 /* 16px Medium — stat values, page headings. */

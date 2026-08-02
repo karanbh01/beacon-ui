@@ -1,6 +1,15 @@
 @import './tokens/tokens.css';
 
 /*
+ * type.css carries the @font-face rules and the .type-* scale. It was for a
+ * long time imported ONLY by .storybook/preview.ts, so every `type-11` and
+ * `type-13` in the app resolved to nothing while Storybook rendered them
+ * correctly — the worst shape a Storybook divergence can take, because the
+ * component looked right in the place you go to check it. Found in BU-38.
+ */
+@import './tokens/type.css';
+
+/*
  * Scaffold shell styling. Real app chrome (menu bar, sidebar, footer) is
  * BU-15. Every colour resolves through a token — no literals below this line.
  */
@@ -11,12 +20,8 @@
 
 body {
   margin: 0;
-  font-family:
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  /* The stack lives in one place now that the faces are bundled. */
+  font-family: var(--font-ui);
   background: var(--canvas);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;

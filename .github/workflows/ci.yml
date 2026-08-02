@@ -37,6 +37,11 @@ jobs:
       - name: Icon drift
         run: pnpm run icons:check
 
+      # The committed woff2 files against the installed @fontsource packages.
+      # A version bump that changes the binaries has to land as a diff.
+      - name: Font drift
+        run: pnpm run fonts:check
+
       # Generated TypeScript vs the committed spec. Cheap and always run —
       # catches a hand-edited or un-regenerated client. Whether the spec
       # itself is stale is a cross-repo question, handled by spec-drift.yml.

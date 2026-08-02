@@ -14,6 +14,8 @@
     "build": "electron-vite build",
     "predev": "node scripts/build-tokens.mjs && node scripts/build-icons.mjs",
     "prebuild": "node scripts/build-tokens.mjs && node scripts/build-icons.mjs",
+    "fonts:build": "node scripts/build-fonts.mjs",
+    "fonts:check": "node scripts/build-fonts.mjs && git diff --exit-code -- src/renderer/src/assets/fonts",
     "tokens:build": "node scripts/build-tokens.mjs",
     "tokens:check": "node scripts/build-tokens.mjs && git diff --exit-code -- src/renderer/src/tokens",
     "start": "electron-vite preview",
@@ -52,6 +54,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@fontsource/inter": "^5",
+    "@fontsource/source-serif-pro": "^5",
     "@storybook/addon-essentials": "^8",
     "@storybook/addon-themes": "^8",
     "@storybook/react": "^8",
