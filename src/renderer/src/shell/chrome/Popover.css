@@ -15,17 +15,26 @@
 }
 
 /*
- * NO backdrop blur, deliberately.
+ * A deliberate, small departure from the frames.
  *
- * "Glass" here means a translucent tint that dims what is behind it, not a
- * frosted one that smears it. Measured off the frames that show a panel over
- * real content (145:2 and 145:8): the tab labels underneath keep their glyph
- * edges intact — a 90px scan across them still swings 28–31 levels with
- * 20-level steps between neighbours, which no 16px blur would leave standing.
+ * The mock applies NO background blur: in 145:2 and 145:8 the tab labels under
+ * the panel keep their glyph edges intact — a 90px scan across them swings
+ * 28–31 levels with 20-level steps between neighbours. An earlier
+ * blur(16px) saturate(140%) here was, correctly, called far too blurry.
  *
- * I had blur(16px) saturate(140%) here and it was, correctly, called far too
- * blurry. The fill alone does the work.
+ * 3px is the compromise Karan asked for: enough to take the hard edges off
+ * whatever sits underneath so the panel's own text reads cleanly on top of
+ * it, far too little to smear the backdrop into frosting. It costs nothing
+ * where the backdrop is flat, so the panel still composites to the frames'
+ * exact colours over the canvas — #202020 dark, #f1e0cc light.
+ *
+ * If this ever needs revisiting, it is one number, and the frames say zero.
  */
+@supports (backdrop-filter: blur(3px)) {
+  .popover {
+    backdrop-filter: blur(3px);
+  }
+}
 
 .popover-end {
   right: 0;
