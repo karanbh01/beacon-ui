@@ -4,6 +4,7 @@ import { EventEmitter } from 'node:events'
 import type { EngineState } from '@shared/ipc'
 import { restartDelay, shouldGiveUp } from './backoff'
 import { SERVER_MODULE, locatePython, parsePort } from './python'
+import { generateSynthetic, readStoreStatus, shouldGenerate } from './synthetic'
 
 /** How often to confirm the server is still answering. */
 const HEALTH_INTERVAL_MS = 4_000
@@ -132,17 +133,68 @@ export class Engine extends EventEmitter {
       this.beginHealthPolling()
       return
     }
-    this.spawnServer()
+    void this.prepareData().then(() => {
+      if (!this.stopping) this.spawnServer()
+    })
   }
 
-  private spawnServer(): void {
-    const python = locatePython({
+  /**
+   * Give the server something to serve, if nothing else has (BU-57).
+   *
+   * py-beacon auto-loads a store from its app-data directory, so generating
+   * one there is all it takes. Never runs when a store already exists or when
+   * the user has named their own via `$BEACON_DATA_PATH` — a demo store
+   * written over real data would be unforgivable, so the check is a guard
+   * rather than a preference.
+   *
+   * Failure here is not fatal. The server still starts; it starts without
+   * data, which is exactly where it was before, and says so.
+   */
+  private async prepareData(): Promise<void> {
+    const python = this.python()
+
+    try {
+      const status = await readStoreStatus(python)
+      if (!shouldGenerate(status, process.env)) return
+
+      this.setState({
+        status: 'starting',
+        detail: 'generating synthetic data — first run only',
+        restarts: this.attempt
+      })
+      this.emit(
+        'log',
+        `generating synthetic data into ${status.path}
+`
+      )
+
+      await generateSynthetic(python, {
+        onLog: (line) => {
+          this.emit('log', line)
+        }
+      })
+    } catch (cause) {
+      const reason = cause instanceof Error ? cause.message : String(cause)
+      this.emit(
+        'log',
+        `synthetic data unavailable: ${reason}
+`
+      )
+    }
+  }
+
+  private python(): string {
+    return locatePython({
       override: this.options.pythonPath,
       ...(this.options.appRoot === undefined ? {} : { appRoot: this.options.appRoot }),
       ...(this.options.resourcesPath === undefined
         ? {}
         : { resourcesPath: this.options.resourcesPath })
     })
+  }
+
+  private spawnServer(): void {
+    const python = this.python()
 
     this.setState({ status: 'starting', detail: undefined, restarts: this.attempt })
 
