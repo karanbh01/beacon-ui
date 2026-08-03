@@ -65,13 +65,15 @@ export function MenuBar({
             if (event.key === 'Enter') onSearch?.(event.currentTarget.value)
           }}
         />
+        {/* Inside the field, per 81:2 — the divider and arrow sit within the
+            field's own box, not out in the icon cluster. */}
+        <span className="menu-bar-search-divider" aria-hidden="true" />
+        <button type="button" className="menu-bar-search-chevron" aria-label="Search options">
+          <ChevronIcon size={24} />
+        </button>
       </div>
 
       <div className="menu-bar-cluster">
-        <button type="button" className="menu-bar-icon" aria-label="History">
-          <ChevronIcon size={24} />
-        </button>
-        <span className="menu-bar-rule menu-bar-rule-tall" />
         <button
           type="button"
           className="menu-bar-icon"

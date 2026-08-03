@@ -5,13 +5,22 @@
  * interactive descendant must opt back out with no-drag or it becomes
  * unclickable — that is the classic frameless-window bug.
  */
+/*
+ * Anchors taken from Figma 81:2, which is drawn at 1440 and absolutely
+ * positioned. Reproduced here with flex, so the numbers are expressed as the
+ * gaps between things rather than as left offsets:
+ *
+ *   logo      5      55 wide
+ *   File     94      menu text runs, 20px apart, Help ends 678
+ *   search  713      479 x 32, top 19, chevron section on its right edge
+ *   cluster 1206     icons, then the window controls, last edge 1427
+ */
 .menu-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
   height: 62px;
   flex: none;
-  padding: 0 8px 0 5px;
+  padding: 0 13px 0 5px;
   border-bottom: 0.5px solid var(--chrome-border);
   -webkit-app-region: drag;
 }
@@ -26,7 +35,10 @@
   display: flex;
   align-items: center;
   flex: none;
-  width: 84px;
+  /* 5 + 55 = 60, then 26 to the first menu button, whose 8px padding puts
+     the word `File` on Figma's x=94. */
+  width: 55px;
+  margin-right: 26px;
   color: var(--text-primary);
 }
 
@@ -45,10 +57,17 @@
 /*
  * Roboto 18px is what the frame specifies. It reads as the designer standing
  * in for a native menu bar, so revisit if real menus land in src/main.
+ *
+ * --font-chrome, not a bare `Roboto`: the face is bundled now, because
+ * leaving it to the system meant this bar rendered 5% wider on any machine
+ * without Roboto installed (BU-52).
+ *
+ * 8px of side padding and a 4px gap put exactly 20px between text runs, which
+ * is the spacing every pair in 81:2 uses.
  */
 .menu-bar-menu {
   padding: 4px 8px;
-  font-family: Roboto, var(--font-ui);
+  font-family: var(--font-chrome);
   font-size: 18px;
   font-weight: 400;
   line-height: normal;
@@ -64,19 +83,31 @@
   background: var(--sidebar-active-bg);
 }
 
+/*
+ * 479x32 at x=713 (Figma 81:68), and it sits 19px from the top rather than
+ * centred — a 32px box centred in a 62px bar would be at 15. The 4px is in
+ * the frame, so it is here too.
+ *
+ * `flex: 0 1 479px` — it takes its designed width and only gives ground when
+ * the window is too narrow for everything, which is what keeps it in
+ * proportion at the 1280 minimum instead of absorbing all the slack.
+ */
 .menu-bar-search {
-  flex: 1 1 auto;
-  max-width: 479px;
-  min-width: 120px;
+  display: flex;
+  align-items: center;
+  flex: 0 1 479px;
+  min-width: 180px;
   height: 32px;
-  margin-left: 16px;
+  margin-top: 8px;
+  margin-left: 27px;
   background: var(--chrome-search-bg);
   border: 1px solid var(--chrome-search-stroke);
   border-radius: 5px;
 }
 
 .menu-bar-search input {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   height: 100%;
   padding: 0 12px;
   font-family: var(--font-ui);
@@ -87,11 +118,59 @@
   outline: none;
 }
 
+/*
+ * The chevron is INSIDE the field, on its right edge, behind a full-height
+ * divider — Figma puts the rule at x=1163 and the arrow at 1166, both within
+ * the field's 713..1192 span. It had been sitting out in the icon cluster
+ * labelled "History", which is a different control entirely.
+ */
+.menu-bar-search-divider {
+  width: 1px;
+  height: 100%;
+  flex: none;
+  background: var(--chrome-search-stroke);
+}
+
+.menu-bar-search-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 29px;
+  height: 100%;
+  padding: 0;
+  color: var(--chrome-icon);
+  background: none;
+  border: 0;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+}
+
+.menu-bar-search-chevron:hover {
+  color: var(--text-primary);
+}
+
+.menu-bar-search-chevron:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/*
+ * Figma spaces these unevenly — 1206 data-sources, 1237 ai-agents, 1273 rule,
+ * 1285 window-format, 1321 rule — because the icons are different sizes and
+ * the designer aligned the glyphs, not the boxes. A single gap plus the 4px
+ * padding on .menu-bar-icon lands within about a pixel of each, which is
+ * closer than chasing per-item margins would stay after any icon changes.
+ */
 .menu-bar-cluster {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  /* `auto`, not a fixed 14px. The window controls live in here and have to
+     stay in the top-right corner at every window width; at 1440 the row is
+     tight enough that auto resolves to the frame's own 14px anyway. */
   margin-left: auto;
+  padding-left: 14px;
   flex: none;
 }
 
@@ -125,7 +204,5 @@
   background: var(--chrome-border);
 }
 
-.menu-bar-rule-tall {
-  height: 31px;
-  width: 1px;
-}
+/* The 31px rule in 81:2 belongs to the search field's chevron section, which
+   now owns it as .menu-bar-search-divider. Nothing in the cluster is tall. */

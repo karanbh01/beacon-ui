@@ -87,7 +87,22 @@ describe('type scale', () => {
     )
 
     expect(declared).toEqual(
-      new Set(['Inter 400 normal', 'Inter 500 normal', 'Source Serif Pro 600 italic'])
+      new Set([
+        'Inter 400 normal',
+        'Inter 500 normal',
+        'Source Serif Pro 600 italic',
+        // Window chrome only, and bundled for the reason BU-52 found: it was
+        // resolving off the local machine and falling back to Inter — 5%
+        // wider — anywhere it was not installed.
+        'Roboto 400 normal'
+      ])
     )
+  })
+
+  it('gives the chrome its own family, separate from the UI stack', () => {
+    // If --font-chrome ever collapses into --font-ui the menu bar silently
+    // goes back to being 5% wide, which is a hard symptom to trace back.
+    const chrome = /--font-chrome:\s*([^;]+);/.exec(TYPE_CSS)?.[1]
+    expect(chrome).toMatch(/^'Roboto'/)
   })
 })

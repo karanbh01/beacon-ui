@@ -44,6 +44,25 @@
 }
 
 /*
+ * Roboto is the menu bar and nowhere else — Figma 81:2 specifies it there,
+ * standing in for a native menu.
+ *
+ * Bundled rather than left to the system, and BU-52 is the argument: it was
+ * resolving off this machine, which happens to have it, and falling back to
+ * Inter on machines that do not. The nine menu labels sum to 419.8px in
+ * Roboto and 441.4px in Inter — 5% wider, enough to push the search field
+ * out of shape, which is exactly the symptom that was reported and that I
+ * could not reproduce.
+ */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/roboto-latin-400-normal.woff2') format('woff2');
+}
+
+/*
  * The fallbacks stay, shortened to one entry each. They are unreachable in a
  * working build — but a font that failed to load should degrade to a sans
  * face rather than to whatever the platform calls default, which on Windows
@@ -52,6 +71,8 @@
 :root {
   --font-ui: 'Inter', sans-serif;
   --font-serif: 'Source Serif Pro', Georgia, serif;
+  /* Window chrome only. Deliberately not --font-ui: see the @font-face above. */
+  --font-chrome: 'Roboto', 'Inter', sans-serif;
 }
 
 /* 16px Medium — stat values, page headings. */

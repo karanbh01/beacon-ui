@@ -26,12 +26,17 @@ const MODULES = join(ROOT, 'node_modules', '@fontsource')
 const FACES = [
   { package: 'inter', file: 'inter-latin-400-normal.woff2' },
   { package: 'inter', file: 'inter-latin-500-normal.woff2' },
-  { package: 'source-serif-pro', file: 'source-serif-pro-latin-600-italic.woff2' }
+  { package: 'source-serif-pro', file: 'source-serif-pro-latin-600-italic.woff2' },
+  // The menu bar only (Figma 81:2 specifies Roboto there, not Inter). Bundled
+  // for the same reason as the others: it is on some machines and not others,
+  // and the fallback is 5% wider — see BU-52.
+  { package: 'roboto', file: 'roboto-latin-400-normal.woff2' }
 ]
 
 const LICENCES = [
   { package: 'inter', to: 'Inter-OFL.txt' },
-  { package: 'source-serif-pro', to: 'SourceSerifPro-OFL.txt' }
+  { package: 'source-serif-pro', to: 'SourceSerifPro-OFL.txt' },
+  { package: 'roboto', to: 'Roboto-Apache-2.0.txt' }
 ]
 
 async function version(name) {
@@ -54,6 +59,7 @@ async function main() {
 
   const inter = await version('inter')
   const serif = await version('source-serif-pro')
+  const roboto = await version('roboto')
 
   // Provenance beside the binaries. A woff2 in a repo with no note saying
   // where it came from or what licence it carries is a liability.
@@ -68,10 +74,13 @@ async function main() {
       '  https://github.com/rsms/inter',
       `Source Serif Pro ${serif.version} (${serif.license}) — @fontsource/source-serif-pro`,
       '  https://github.com/adobe-fonts/source-serif',
+      `Roboto ${roboto.version} (${roboto.license}) — @fontsource/roboto`,
+      '  https://github.com/googlefonts/roboto',
       '',
-      'Both are licensed under the SIL Open Font License 1.1, which permits',
-      'redistribution as part of a bundled application. Full terms are in',
-      'Inter-OFL.txt and SourceSerifPro-OFL.txt in this directory.',
+      'Inter and Source Serif Pro are under the SIL Open Font License 1.1;',
+      'Roboto is under the Apache License 2.0. All three permit redistribution',
+      'as part of a bundled application. Full terms are in Inter-OFL.txt,',
+      'SourceSerifPro-OFL.txt and Roboto-Apache-2.0.txt in this directory.',
       ''
     ].join('\n')
   )
