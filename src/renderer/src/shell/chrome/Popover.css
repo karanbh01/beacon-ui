@@ -15,17 +15,17 @@
 }
 
 /*
- * The fill is 65% opaque, so this is what makes it read as glass rather than
- * as a flat tint: the backdrop has to be visibly refracted, not merely dimmed.
- * `saturate` is the half of the recipe that is easy to leave out and the half
- * that does most of the work — blur alone over a low-contrast backdrop is
- * indistinguishable from an opaque panel.
+ * NO backdrop blur, deliberately.
+ *
+ * "Glass" here means a translucent tint that dims what is behind it, not a
+ * frosted one that smears it. Measured off the frames that show a panel over
+ * real content (145:2 and 145:8): the tab labels underneath keep their glyph
+ * edges intact — a 90px scan across them still swings 28–31 levels with
+ * 20-level steps between neighbours, which no 16px blur would leave standing.
+ *
+ * I had blur(16px) saturate(140%) here and it was, correctly, called far too
+ * blurry. The fill alone does the work.
  */
-@supports (backdrop-filter: blur(16px)) {
-  .popover {
-    backdrop-filter: blur(16px) saturate(140%);
-  }
-}
 
 .popover-end {
   right: 0;

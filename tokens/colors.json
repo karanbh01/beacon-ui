@@ -255,12 +255,12 @@
       }
     },
     "glass": {
-      "description": "Chrome popover fill — layout menu, data sources panel, search dropdown. Light is Figma's color/glass. Figma gives no dark value; #373737 is the tone its other dark chrome surfaces use (chrome-search-bg, sidebar-active-bg), because the canvas colour at 65% over the canvas has no presence at all.",
-      "light": "#ffedd8a6",
-      "dark": "#373737a6",
+      "description": "Chrome popover fill — layout menu, data sources panel, search dropdown. Solved from the rendered frames (145:2 / 145:8), where the panel body over the canvas measures #f1e0cc light and #202020 dark: the glass DARKENS what is behind it. The color/glass variable alone (#ffedd8a6) does not reproduce that, so these are the values that match the mock.",
+      "light": "#e9d9c6a6",
+      "dark": "#1e1e1ea6",
       "source": {
-        "light": "figma",
-        "dark": "derived"
+        "light": "measured",
+        "dark": "measured"
       }
     }
   },

@@ -20,11 +20,7 @@
   -webkit-app-region: no-drag;
 }
 
-@supports (backdrop-filter: blur(16px)) {
-  .search-dropdown {
-    backdrop-filter: blur(16px) saturate(140%);
-  }
-}
+/* No backdrop blur, for the reason set out in Popover.css. */
 
 /* 14px in the frame, against the popovers' 12px. */
 .search-dropdown .popover-heading,
