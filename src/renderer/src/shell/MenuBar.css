@@ -92,18 +92,66 @@
  * the window is too narrow for everything, which is what keeps it in
  * proportion at the 1280 minimum instead of absorbing all the slack.
  */
+/*
+ * Only the slot in the bar. The visible box is .menu-bar-search-surface,
+ * which is absolutely positioned inside this so it can grow downwards over
+ * the pane without stretching a 62px bar.
+ */
 .menu-bar-search {
   position: relative;
-  display: flex;
-  align-items: center;
   flex: 0 1 479px;
   min-width: 180px;
   height: 32px;
   margin-top: 8px;
   margin-left: 27px;
-  background: var(--chrome-search-bg);
+}
+
+/*
+ * ONE rounded rectangle. Figma 147:13 is a single container — one border, one
+ * 5px radius, `overflow-clip` — that contains the field row, a full-width
+ * rule and the results. Opening the search makes this box taller.
+ *
+ * It was previously a field plus a separate panel with its top border
+ * removed and a -1px margin pulling them together, which is exactly what two
+ * rectangles glued together look like.
+ */
+.menu-bar-search-surface {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 40;
   border: 1px solid var(--chrome-search-stroke);
   border-radius: 5px;
+  overflow: hidden;
+  -webkit-app-region: no-drag;
+}
+
+/* Glass only once open; closed, the field row's own fill is the whole box. */
+.menu-bar-search-surface-open {
+  background: var(--glass);
+  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+}
+
+@supports (backdrop-filter: blur(3px)) {
+  .menu-bar-search-surface-open {
+    backdrop-filter: blur(3px);
+  }
+}
+
+/* 30px + the 1px border top and bottom = the frame's 32. */
+.menu-bar-search-row {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  background: var(--chrome-search-bg);
+}
+
+/* 147:21 — full width, separating the field from the results. */
+.menu-bar-search-rule {
+  display: block;
+  height: 0.5px;
+  background: var(--chrome-border);
 }
 
 .menu-bar-search input {
@@ -129,30 +177,40 @@
 }
 
 /*
- * The chevron is INSIDE the field, on its right edge, behind a full-height
- * divider — Figma puts the rule at x=1163 and the arrow at 1166, both within
- * the field's 713..1192 span. It had been sitting out in the icon cluster
+ * The chevron is INSIDE the field, on its right edge, behind a divider —
+ * Figma puts the rule at x=1163 and the arrow at 1166, both within the
+ * field's 713..1192 span. It had been sitting out in the icon cluster
  * labelled "History", which is a different control entirely.
+ *
+ * The rule runs the field's full height when closed (81:69 is 31px in a 32px
+ * box) and insets to 26px once open (147:18), which is the frame's own way of
+ * softening it when the box below is doing the separating.
  */
 .menu-bar-search-divider {
-  width: 1px;
+  width: 0.75px;
   height: 100%;
   flex: none;
-  background: var(--chrome-search-stroke);
+  background: var(--chrome-border);
 }
 
+.menu-bar-search-surface-open .menu-bar-search-divider {
+  height: 26px;
+}
+
+/* 147:17 — 24px arrow, 4px from the rule, 6px from the field's right edge. */
 .menu-bar-search-chevron {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 29px;
-  height: 100%;
+  width: 24px;
+  height: 24px;
+  margin: 0 6px 0 4px;
   padding: 0;
   color: var(--chrome-icon);
   background: none;
   border: 0;
-  border-radius: 0 4px 4px 0;
+  border-radius: 2px;
   cursor: pointer;
 }
 

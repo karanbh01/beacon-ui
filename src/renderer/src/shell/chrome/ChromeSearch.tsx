@@ -70,49 +70,63 @@ export function ChromeSearch({
   }
 
   return (
-    <div className={`menu-bar-search${open ? ' menu-bar-search-open' : ''}`}>
-      <input
-        ref={input}
-        type="search"
-        aria-label="Search"
-        role="combobox"
-        aria-expanded={open}
-        aria-controls="search-results"
-        aria-autocomplete="list"
-        spellCheck={false}
-        value={query}
-        onChange={(event) => {
-          setQuery(event.target.value)
-          setDismissed(false)
-          setActive(-1)
-        }}
-        onKeyDown={onKeyDown}
-      />
+    <div className="menu-bar-search">
+      {/*
+        One rounded rectangle, not two. Figma 147:13 is a single container
+        with one border and one 5px radius; the field row lives INSIDE it,
+        above a full-width rule. Opening the search grows this box downwards
+        rather than hanging a second box off the bottom of it.
+      */}
+      <div className={`menu-bar-search-surface${open ? ' menu-bar-search-surface-open' : ''}`}>
+        <div className="menu-bar-search-row">
+          <input
+            ref={input}
+            type="search"
+            aria-label="Search"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls="search-results"
+            aria-autocomplete="list"
+            spellCheck={false}
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setDismissed(false)
+              setActive(-1)
+            }}
+            onKeyDown={onKeyDown}
+          />
 
-      {/* Inside the field, per 81:2 — the divider and arrow sit within the
-          field's own box, not out in the icon cluster. */}
-      <span className="menu-bar-search-divider" aria-hidden="true" />
-      <button
-        type="button"
-        className="menu-bar-search-chevron"
-        aria-label="Search options"
-        aria-expanded={open}
-        onClick={() => {
-          setDismissed((was) => !was)
-          input.current?.focus()
-        }}
-      >
-        <ChevronIcon size={24} />
-      </button>
+          {/* The chevron section on the field's right edge — 81:69 when
+              closed, 147:17 when open. Inside the field, not out in the
+              icon cluster. */}
+          <span className="menu-bar-search-divider" aria-hidden="true" />
+          <button
+            type="button"
+            className="menu-bar-search-chevron"
+            aria-label="Search options"
+            aria-expanded={open}
+            onClick={() => {
+              setDismissed((was) => !was)
+              input.current?.focus()
+            }}
+          >
+            <ChevronIcon size={24} />
+          </button>
+        </div>
 
-      {open && (
-        <SearchDropdown
-          rows={rows}
-          activeIndex={active}
-          onActivate={activate}
-          onHover={setActive}
-        />
-      )}
+        {open && (
+          <>
+            <span className="menu-bar-search-rule" aria-hidden="true" />
+            <SearchDropdown
+              rows={rows}
+              activeIndex={active}
+              onActivate={activate}
+              onHover={setActive}
+            />
+          </>
+        )}
+      </div>
     </div>
   )
 }

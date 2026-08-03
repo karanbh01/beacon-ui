@@ -44,7 +44,14 @@
   left: 0;
 }
 
+/*
+ * `margin: 0` is load-bearing. This is a <p>, so the browser default is
+ * `1em 0` — 10px at this font size — and it collapsed out of the surface,
+ * pushing the results 10px clear of the rule above them and opening a gap
+ * that looked like a seam between two boxes.
+ */
 .popover-heading {
+  margin: 0;
   padding: 4px 12px 2px;
   font-family: var(--font-ui);
   font-size: 10px;

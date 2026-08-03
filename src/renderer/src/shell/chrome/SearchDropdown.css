@@ -1,30 +1,11 @@
 /*
- * Figma 147:13. Hangs from the search field and shares its edge: the field
- * keeps its top corners, this takes the bottom ones, and the -1px pulls the
- * two borders onto each other so they read as one surface rather than as two
- * boxes that happen to touch.
+ * Just the results. Figma 147:13 is ONE container and it owns the border, the
+ * radius, the glass and the shadow — see .menu-bar-search-surface in
+ * MenuBar.css. This is the part of it below the rule, so it carries only the
+ * frame's 8px of bottom padding.
  */
 .search-dropdown {
-  position: absolute;
-  top: 100%;
-  right: -1px;
-  left: -1px;
-  z-index: 40;
-  margin-top: -1px;
   padding-bottom: 8px;
-  background: var(--glass);
-  border: 1px solid var(--chrome-search-stroke);
-  border-top: 0;
-  border-radius: 0 0 5px 5px;
-  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
-  -webkit-app-region: no-drag;
-}
-
-/* The same 3px as the popovers, for the reason set out in Popover.css. */
-@supports (backdrop-filter: blur(3px)) {
-  .search-dropdown {
-    backdrop-filter: blur(3px);
-  }
 }
 
 /* 14px in the frame, against the popovers' 12px. */
@@ -32,6 +13,11 @@
 .search-dropdown-row {
   padding-left: 14px;
   padding-right: 14px;
+}
+
+/* 147:22 — 8px above a group heading, against the popovers' 4px. */
+.search-dropdown .popover-heading {
+  padding-top: 8px;
 }
 
 .search-dropdown-row {
@@ -51,10 +37,4 @@
  */
 .search-dropdown-row-active {
   background: var(--sidebar-active-bg);
-}
-
-/* The field is square-bottomed while the panel is under it. */
-.menu-bar-search-open {
-  border-bottom-right-radius: 0;
-  border-bottom-left-radius: 0;
 }
