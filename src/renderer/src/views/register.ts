@@ -1,4 +1,4 @@
-import { getView, registerView } from '../shell/viewRegistry'
+import { getView, registerView, type ViewComponent, type ViewMeta } from '../shell/viewRegistry'
 import { GenericView } from './PlaceholderViews'
 import { AttributionView } from './attribution/AttributionView'
 import { BacktestView } from './backtest/BacktestView'
@@ -40,33 +40,196 @@ function registerPending(kind: string): void {
   registerView(kind, GenericView)
 }
 
+/**
+ * Every view the app can render, with what a tab of it looks like.
+ *
+ * One table, two consumers: this registers the components, and the new-tab
+ * menu (BU-56) reads the same rows through `viewsForPage`. A separate
+ * page→view list for the menu would drift the first time a view was added
+ * here and not there.
+ */
+const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] = [
+  {
+    kind: 'prices',
+    page: 'data-explorer',
+    title: 'Prices',
+    archetype: 'query',
+    component: PricesView
+  },
+  {
+    kind: 'charting',
+    page: 'data-explorer',
+    title: 'Charting',
+    archetype: 'linked',
+    component: ChartingView
+  },
+  {
+    kind: 'reference-data',
+    page: 'data-explorer',
+    title: 'Reference Data',
+    archetype: 'query',
+    component: ReferenceView
+  },
+  {
+    kind: 'corporate-actions',
+    page: 'data-explorer',
+    title: 'Corporate Actions',
+    archetype: 'query',
+    component: CorporateActionsView
+  },
+  {
+    kind: 'watchlist',
+    page: 'data-explorer',
+    title: 'Watchlist',
+    archetype: 'global',
+    component: WatchlistView
+  },
+  {
+    kind: 'data-coverage',
+    page: 'data-explorer',
+    title: 'Data Coverage',
+    archetype: 'global',
+    component: CoverageView
+  },
+  {
+    kind: 'overview',
+    page: 'beacon-view',
+    title: 'Overview',
+    archetype: 'pinned',
+    component: IndexOverviewView
+  },
+  {
+    kind: 'weights',
+    page: 'beacon-view',
+    title: 'Weights',
+    archetype: 'pinned',
+    component: IndexWeightsView
+  },
+  {
+    kind: 'attribution',
+    page: 'beacon-view',
+    title: 'Attribution',
+    archetype: 'pinned',
+    component: AttributionView
+  },
+  {
+    kind: 'asset-drilldown',
+    page: 'beacon-view',
+    title: 'Drilldown',
+    archetype: 'linked',
+    component: DrilldownView
+  },
+  {
+    kind: 'comparison',
+    page: 'beacon-view',
+    title: 'Comparison',
+    archetype: 'pinned',
+    component: ComparisonView
+  },
+  {
+    kind: 'backtest',
+    page: 'beacon-view',
+    title: 'Backtest',
+    archetype: 'pinned',
+    component: BacktestView
+  },
+  {
+    kind: 'index-definition',
+    page: 'strategy-builder',
+    title: 'Index Definition',
+    archetype: 'document',
+    component: IndexDefinitionView
+  },
+  {
+    kind: 'universe-set',
+    page: 'strategy-builder',
+    title: 'Universe Set',
+    archetype: 'query',
+    component: UniverseView
+  },
+  {
+    kind: 'constituent-preview',
+    page: 'strategy-builder',
+    title: 'Constituent Preview',
+    archetype: 'query',
+    component: ConstituentPreviewView
+  },
+  {
+    kind: 'constraint-set',
+    page: 'optimiser',
+    title: 'Constraint Set',
+    archetype: 'query',
+    component: ConstraintSetView
+  },
+  {
+    kind: 'optimisation-run',
+    page: 'optimiser',
+    title: 'Run',
+    archetype: 'query',
+    component: OptimisationRunView
+  },
+  {
+    kind: 'frontier',
+    page: 'optimiser',
+    title: 'Frontier',
+    archetype: 'query',
+    component: FrontierPaneView
+  },
+  {
+    kind: 'factor-exposures',
+    page: 'optimiser',
+    title: 'Exposures',
+    archetype: 'query',
+    component: ExposuresPaneView
+  },
+  {
+    kind: 'risk-model',
+    page: 'optimiser',
+    title: 'Risk Model',
+    archetype: 'query',
+    component: RiskModelPaneView
+  },
+  {
+    kind: 'futures-pricer',
+    page: 'derivatives',
+    title: 'Futures',
+    archetype: 'global',
+    component: FuturesPricerView
+  },
+  {
+    kind: 'trs-pricer',
+    page: 'derivatives',
+    title: 'TRS',
+    archetype: 'global',
+    component: TrsPricerView
+  },
+  {
+    kind: 'term-structure',
+    page: 'derivatives',
+    title: 'Term Structure',
+    archetype: 'pinned',
+    component: TermStructureView
+  },
+  {
+    kind: 'factsheet',
+    page: 'reports',
+    title: 'Factsheet',
+    archetype: 'pinned',
+    component: FactsheetView
+  },
+  {
+    kind: 'template-editor',
+    page: 'reports',
+    title: 'Template Editor',
+    archetype: 'query',
+    component: TemplateEditorView
+  }
+]
+
 export function registerPlaceholderViews(): void {
-  // Live against py-beacon; no longer placeholders.
-  registerView('prices', PricesView)
-  registerView('reference-data', ReferenceView)
-  registerView('corporate-actions', CorporateActionsView)
-  registerView('watchlist', WatchlistView)
-  registerView('data-coverage', CoverageView)
-  registerView('charting', ChartingView)
-  registerView('index-definition', IndexDefinitionView)
-  registerView('universe-set', UniverseView)
-  registerView('constituent-preview', ConstituentPreviewView)
-  registerView('backtest', BacktestView)
-  registerView('overview', IndexOverviewView)
-  registerView('weights', IndexWeightsView)
-  registerView('attribution', AttributionView)
-  registerView('asset-drilldown', DrilldownView)
-  registerView('comparison', ComparisonView)
-  registerView('constraint-set', ConstraintSetView)
-  registerView('optimisation-run', OptimisationRunView)
-  registerView('frontier', FrontierPaneView)
-  registerView('factor-exposures', ExposuresPaneView)
-  registerView('risk-model', RiskModelPaneView)
-  registerView('futures-pricer', FuturesPricerView)
-  registerView('trs-pricer', TrsPricerView)
-  registerView('term-structure', TermStructureView)
-  registerView('factsheet', FactsheetView)
-  registerView('template-editor', TemplateEditorView)
+  for (const { kind, component, ...meta } of VIEWS) {
+    registerView(kind, component, meta)
+  }
 
   for (const kind of ['performance-report', 'attribution-report']) {
     registerPending(kind)

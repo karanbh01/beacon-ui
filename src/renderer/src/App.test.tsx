@@ -66,32 +66,36 @@ describe('App boots the real shell', () => {
     render(<App />)
 
     await userEvent.click(screen.getByRole('button', { name: 'Beacon View' }))
-    expect(screen.getByRole('button', { name: /^Weights/ })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 1, name: 'Home' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'New tab' })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Home' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
   })
 
-  it('switches pages and shows that page tabs', async () => {
+  it('opens every page empty, with nothing the user did not ask for (BU-59)', async () => {
     render(<App />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Beacon View' }))
-    expect(screen.getByRole('button', { name: /^Weights/ })).toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Data Explorer' }))
-    expect(screen.getByRole('button', { name: /^Prices/ })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Weights/ })).toBeNull()
+    for (const page of ['Beacon View', 'Data Explorer', 'Reports']) {
+      await userEvent.click(screen.getByRole('button', { name: page }))
+      expect(screen.queryAllByRole('tab')).toHaveLength(0)
+      expect(screen.getByText(/Nothing open here yet/)).toBeInTheDocument()
+    }
   })
 
-  it('seeds only an empty workspace, so closed tabs stay closed', () => {
-    const first = render(<App />)
-    useWorkspace.getState().closeTab('seed-prices')
-    first.unmount()
-
+  it('keeps a page as the user left it when switching away and back', async () => {
     render(<App />)
 
-    expect(screen.queryByRole('button', { name: /^Prices/ })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Derivatives' }))
+    await userEvent.click(screen.getByRole('button', { name: 'New tab' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Futures' }))
+    expect(screen.getByRole('button', { name: /^Futures/ })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reports' }))
+    expect(screen.queryByRole('button', { name: /^Futures/ })).toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Derivatives' }))
+    expect(screen.getByRole('button', { name: /^Futures/ })).toBeInTheDocument()
   })
 })
 

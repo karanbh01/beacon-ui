@@ -3,27 +3,27 @@ import { persist } from 'zustand/middleware'
 import * as logic from './tabs.logic'
 import type { OpenTabInput } from './tabs.logic'
 import type { Tab, WorkspaceState } from './tabs.types'
-import { SEED_TABS } from '../views/seed'
 
 /**
- * Bumped whenever SEED_TABS gains a tab that an existing workspace should
- * receive. The seed itself only ever runs on an empty workspace, so without
- * this a user who launched the app once would never see a view added later.
- */
-export const WORKSPACE_VERSION = 8
-
-/**
- * Append seed tabs the workspace has never had.
+ * Bumped when a stored workspace needs reshaping.
  *
- * Safe to run because a migration runs once per version bump, not per launch:
- * a seed tab the user closed stays closed, and only tabs introduced since
- * their last version appear.
+ * Version 9 drops the seeded tabs (BU-59): every page opens empty and the
+ * user opens what they want from the `+`. The migration clears tabs whose ids
+ * came from the seed, because they name instruments nobody chose — and with
+ * synthetic data they name instruments that do not exist.
  */
-export function addNewSeedTabs(state: WorkspaceState): WorkspaceState {
-  return SEED_TABS.reduce(
-    (acc, input) => (acc.tabs.some((tab) => tab.id === input.id) ? acc : logic.openTab(acc, input)),
-    state
+export const WORKSPACE_VERSION = 9
+
+/** Ids the seed used, all of which were `seed-` prefixed. */
+export function dropSeededTabs(state: WorkspaceState): WorkspaceState {
+  const tabs = state.tabs.filter((tab) => !tab.id.startsWith('seed-'))
+  const activeByPage = Object.fromEntries(
+    Object.entries(state.activeByPage).map(([page, id]) => [
+      page,
+      tabs.some((tab) => tab.id === id) ? id : undefined
+    ])
   )
+  return { ...state, tabs, activeByPage, closed: [] }
 }
 
 export interface WorkspaceStore extends WorkspaceState {
@@ -96,7 +96,7 @@ export const useWorkspace = create<WorkspaceStore>()(
       // Closed tabs are a session-scoped undo buffer, not workspace state —
       // reopening something from three days ago is surprising, not helpful.
       partialize: (state) => ({ tabs: state.tabs, activeByPage: state.activeByPage }),
-      migrate: (persisted) => addNewSeedTabs(persisted as WorkspaceState)
+      migrate: (persisted) => dropSeededTabs(persisted as WorkspaceState)
     }
   )
 )

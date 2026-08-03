@@ -17,7 +17,36 @@
   overflow: auto;
 }
 
-.pane-empty,
+/*
+ * Since BU-59 this is a first-run state rather than an error, so it is given
+ * room and a name instead of a one-line report that nothing is here.
+ */
+.pane-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 48ch;
+  padding-top: 8px;
+}
+
+.pane-empty-title {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.pane-empty-body {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.pane-empty-key {
+  padding: 0 5px;
+  font-family: var(--font-ui);
+  color: var(--text-primary);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 3px;
+}
+
 .pane-missing {
   color: var(--text-muted);
 }

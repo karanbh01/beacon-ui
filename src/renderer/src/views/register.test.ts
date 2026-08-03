@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { clearViews, getView, registeredViewKinds } from '../shell/viewRegistry'
-import { SEED_TABS } from './seed'
+import { clearViews, getView, registeredViewKinds, viewsForPage } from '../shell/viewRegistry'
+import { SIDEBAR_PAGES } from '../shell/pages'
 import { registerPlaceholderViews } from './register'
 
 beforeEach(() => {
@@ -9,11 +9,24 @@ beforeEach(() => {
 })
 
 describe('the view registry', () => {
-  it('has a view for every kind the seed opens', () => {
-    // A seeded tab pointing at an unregistered kind renders MissingView, and
-    // the app looks broken on first launch.
-    for (const tab of SEED_TABS) {
-      expect(getView(tab.viewKind), `no view registered for ${tab.viewKind}`).toBeDefined()
+  it('has a view for every kind a page can open', () => {
+    // Was "every kind the seed opens" until BU-59 removed the seeds. Same
+    // guarantee, sourced from the registry itself: an option in the new-tab
+    // menu that renders MissingView is the same failure, now reachable by a
+    // click rather than on launch.
+    const offered = SIDEBAR_PAGES.flatMap((page) => viewsForPage(page.id))
+
+    expect(offered.length).toBeGreaterThan(20)
+    for (const option of offered) {
+      expect(getView(option.viewKind), `no view for ${option.viewKind}`).toBeDefined()
+    }
+  })
+
+  it('gives every page something to open', () => {
+    // An empty page with an empty `+` menu is a dead end, and BU-59 makes
+    // every page start empty.
+    for (const page of SIDEBAR_PAGES) {
+      expect(viewsForPage(page.id).length, `${page.id} offers nothing`).toBeGreaterThan(0)
     }
   })
 

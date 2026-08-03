@@ -80,9 +80,14 @@ describe('rendering the active view', () => {
     expect(screen.getByText(/No view registered for/)).toHaveTextContent('index-definition')
   })
 
-  it('says so when a page has no tabs', () => {
+  it('names the page and points at the + when nothing is open', () => {
+    // Since BU-59 this is the first thing a new user sees on every page, so
+    // it introduces the page rather than reporting a count of zero.
     render(<PaneHost page="reports" />)
-    expect(screen.getByText('No tabs open on this page.')).toBeInTheDocument()
+
+    expect(screen.getByText('Reports')).toBeInTheDocument()
+    expect(screen.getByText(/Nothing open here yet/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'New tab' })).toBeInTheDocument()
   })
 })
 

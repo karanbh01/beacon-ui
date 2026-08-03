@@ -1,0 +1,39 @@
+/*
+ * Anchored under the `+` rather than under the whole tab bar, which is what
+ * .menu-bar-anchor does for the two popovers in the menu bar.
+ */
+.tab-bar-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.new-tab-menu {
+  min-width: 220px;
+  padding: 8px 0;
+}
+
+.new-tab-row {
+  gap: 24px;
+}
+
+/* Follows the keyboard, so it cannot be :hover — arrows move the selection
+   while the pointer sits wherever it was left. */
+.new-tab-row-active:not(:disabled) {
+  background: var(--sidebar-active-bg);
+}
+
+/*
+ * An unavailable entry still reads as a real row, just an inert one. Hiding
+ * it would make the menu change shape as tabs open, which is harder to learn
+ * than a list that stays put and says why.
+ */
+.new-tab-row:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.new-tab-row:disabled:hover {
+  background: none;
+}

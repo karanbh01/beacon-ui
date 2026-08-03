@@ -16,7 +16,6 @@ import { useTheme } from './state/theme'
 import { runUpdateAction, useUpdate } from './state/update'
 import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
-import { SEED_TABS } from './views/seed'
 
 type BridgeState = { status: 'pending' } | { status: 'ok'; info: AppInfo } | { status: 'failed' }
 
@@ -54,7 +53,6 @@ function AppBody(): ReactElement {
   const engine = useEngine()
   const update = useUpdate()
   const dataAge = useDataAge()
-  const openTab = useWorkspace((state) => state.openTab)
   const selectTab = useWorkspace((state) => state.selectTab)
   const jobs = useJobs((state) => state.jobs)
 
@@ -96,13 +94,6 @@ function AppBody(): ReactElement {
     }
     void load()
   }, [])
-
-  useEffect(() => {
-    // Seed only an empty workspace. Reopening the app must not resurrect
-    // tabs the user closed, and persistence has already rehydrated by now.
-    if (useWorkspace.getState().tabs.length > 0) return
-    for (const tab of SEED_TABS) openTab(tab)
-  }, [openTab])
 
   // beacon-ui's own version, distinct from py-beacon's which the engine reports.
   const appVersion = bridge.status === 'ok' ? bridge.info.version : undefined

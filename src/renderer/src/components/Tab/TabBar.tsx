@@ -6,6 +6,8 @@ export interface TabBarProps {
   children: ReactNode
   /** Omit to hide the new-tab affordance, e.g. on a fixed global page. */
   onNewTab?: () => void
+  /** Rendered beside the `+` so its popover anchors to the button (BU-56). */
+  newTabMenu?: ReactNode
   /**
    * Index of the active tab. Used only to scroll it into view; the tabs
    * themselves own their active styling.
@@ -27,7 +29,13 @@ export interface TabBarProps {
  * active tab into view whenever it changes, so keyboard and programmatic
  * navigation never strand the user looking at the wrong part of the strip.
  */
-export function TabBar({ children, onNewTab, activeIndex, className }: TabBarProps): ReactElement {
+export function TabBar({
+  children,
+  onNewTab,
+  newTabMenu,
+  activeIndex,
+  className
+}: TabBarProps): ReactElement {
   const stripRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -43,9 +51,18 @@ export function TabBar({ children, onNewTab, activeIndex, className }: TabBarPro
         {children}
       </div>
       {onNewTab !== undefined && (
-        <button type="button" className="tab-bar-new" onClick={onNewTab} aria-label="New tab">
-          +
-        </button>
+        <span className="tab-bar-anchor">
+          <button
+            type="button"
+            className="tab-bar-new"
+            onClick={onNewTab}
+            aria-label="New tab"
+            aria-haspopup="menu"
+          >
+            +
+          </button>
+          {newTabMenu}
+        </span>
       )}
     </div>
   )
