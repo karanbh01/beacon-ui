@@ -49,26 +49,39 @@ describe('App boots the real shell', () => {
     expect(container.querySelector('.menu-bar')).not.toBeNull()
     expect(container.querySelector('.sidebar')).not.toBeNull()
     expect(container.querySelector('.footer')).not.toBeNull()
-    expect(container.querySelector('.pane-host')).not.toBeNull()
+    expect(container.querySelector('.home')).not.toBeNull()
   })
 
-  it('opens on the first sidebar page with its seeded tabs', () => {
+  it('opens on Home, with no sidebar page claimed (BU-54)', () => {
+    // Home is not a sidebar destination: measured against frame 2:3, its
+    // Sidebar instance highlights no slot where every workspace page's does.
+    const { container } = render(<App />)
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+    expect(container.querySelectorAll('.sidebar-active')).toHaveLength(0)
+    expect(container.querySelector('.pane-host')).toBeNull()
+  })
+
+  it('leaves Home for a sidebar page, and comes back via the logo', async () => {
     render(<App />)
 
-    expect(screen.getByRole('button', { name: 'Data Explorer' })).toHaveAttribute(
-      'aria-current',
-      'page'
-    )
-    expect(screen.getByRole('button', { name: /^Prices/ })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Beacon View' }))
+    expect(screen.getByRole('button', { name: /^Weights/ })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: 'Home' })).toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Home' }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
   })
 
   it('switches pages and shows that page tabs', async () => {
     render(<App />)
 
     await userEvent.click(screen.getByRole('button', { name: 'Beacon View' }))
-
     expect(screen.getByRole('button', { name: /^Weights/ })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Prices/ })).toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Data Explorer' }))
+    expect(screen.getByRole('button', { name: /^Prices/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Weights/ })).toBeNull()
   })
 
   it('seeds only an empty workspace, so closed tabs stay closed', () => {
@@ -121,7 +134,7 @@ describe('engine state reaches the footer (BU-19)', () => {
 
     expect(await screen.findByText('engine stopped')).toBeInTheDocument()
     // The shell must still render without an engine.
-    expect(container.querySelector('.pane-host')).not.toBeNull()
+    expect(container.querySelector('.home')).not.toBeNull()
   })
 
   it('reports beacon-ui version separately from py-beacon version', async () => {

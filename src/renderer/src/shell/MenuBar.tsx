@@ -18,6 +18,8 @@ export interface MenuBarProps {
   onManageSources?: () => void
   onSelectTab?: (id: string) => void
   onCreateIndex?: (name: string) => void
+  /** The logo is how Home is reached — see HomeView. */
+  onGoHome?: () => void
   /** process.platform, so macOS can leave room for its traffic lights. */
   platform?: string
   className?: string
@@ -43,6 +45,7 @@ export function MenuBar({
   onManageSources,
   onSelectTab,
   onCreateIndex,
+  onGoHome,
   platform,
   className
 }: MenuBarProps): ReactElement {
@@ -65,9 +68,15 @@ export function MenuBar({
 
   return (
     <header className={classes}>
-      <div className="menu-bar-logo">
-        <LogoBetaIcon size={47} aria-label="Beacon" />
-      </div>
+      {/*
+        The logo goes Home. Measured rather than assumed: the Home frame's
+        sidebar (89:558) highlights no slot, where every workspace page's
+        does, so Home is not a sidebar destination — and the logo is the only
+        control present in every frame with nothing else to do.
+      */}
+      <button type="button" className="menu-bar-logo" aria-label="Home" onClick={onGoHome}>
+        <LogoBetaIcon size={47} aria-hidden="true" />
+      </button>
 
       <nav className="menu-bar-menus" aria-label="Application menu">
         {MENUS.map((menu) => (

@@ -35,6 +35,31 @@
   src: url('../assets/fonts/inter-latin-500-normal.woff2') format('woff2');
 }
 
+/*
+ * Real italics for both families.
+ *
+ * A `font-style: italic` with no italic face does not fail — the browser
+ * shears the upright one and carries on, which is why this went unnoticed in
+ * the footer for so long. Inter's italic is a redrawn face, not a slanted
+ * one, so the synthesised version was never the right shape.
+ */
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/inter-latin-400-italic.woff2') format('woff2');
+}
+
+/* 400 for the page title (Home 40:242), 600 for section labels (73:2). */
+@font-face {
+  font-family: 'Source Serif Pro';
+  font-style: italic;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/source-serif-pro-latin-400-italic.woff2') format('woff2');
+}
+
 @font-face {
   font-family: 'Source Serif Pro';
   font-style: italic;
@@ -127,6 +152,15 @@
   font-style: italic;
   font-weight: 600;
   line-height: 17.4px;
+}
+
+/* Source Serif Pro Italic 32px — the page title (Home 40:242). */
+.type-page-title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: normal;
 }
 
 /* Numeric columns align on the decimal; tables depend on this. */

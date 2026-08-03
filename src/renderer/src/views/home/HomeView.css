@@ -1,0 +1,277 @@
+/*
+ * Figma 7:113 — frames 2:3 (light) and 4:8 (dark), both 1440x1024.
+ *
+ * Every number below is frame geometry converted to pane coordinates. The
+ * pane starts at x=58 (sidebar) and y=62 (menu bar), so a frame x of 114
+ * becomes an inset of 56.
+ *
+ *   title        114, 118    -> 56 in, 56 down
+ *   quickstart   111.6, 209.5
+ *   changelog    841.6, 207.63   238 wide
+ *   activity     114, 387.6      663 wide
+ *   Guides label 114, 799.5
+ *   guide cards  114 / 519.26 / 924.52, 830.27   388 x 83
+ *
+ * Three cards at 388 with two 17.26 gaps is 1198.5, which is exactly the
+ * content width — 114 out to 1312.5, where the date's right edge also lands.
+ */
+/*
+ * The negative margin cancels `.app-shell-pane`'s own 20/24 padding, which
+ * exists for tab pages and which Home's frame insets already include. Without
+ * it every number below is silently 24 out horizontally and 20 vertically —
+ * measured, before it was fixed.
+ *
+ * Cancelling rather than subtracting keeps the frame's real numbers in this
+ * file, so they can still be checked against 2:3 directly.
+ */
+.home {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% + 40px);
+  margin: -20px -24px;
+  padding: 56px 127.6px 0 56px;
+  overflow-y: auto;
+}
+
+.home-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  flex: none;
+}
+
+.home-title {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+/* Inter ITALIC 12px (40:243), which is why the italic face is now bundled. */
+.home-date {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/*
+ * Quickstart and Recent Activity share a 663-wide column; Changelog is a
+ * 238-wide column 64.6 to its right. Not a symmetric two-up — the frame
+ * leaves the space beyond the changelog empty.
+ */
+.home-band {
+  display: flex;
+  align-items: flex-start;
+  gap: 64.6px;
+  margin-top: 51.4px;
+  flex: none;
+}
+
+.home-main {
+  display: flex;
+  flex-direction: column;
+  gap: 36.1px;
+  flex: 0 1 663px;
+  min-width: 0;
+}
+
+.home-changelog {
+  flex: none;
+  width: 238px;
+}
+
+.home-section {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Source Serif Pro SemiBold Italic in text-muted (73:2). */
+.home-label {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* ---- Quickstart (76:6) ---------------------------------------------- */
+
+.home-quickstart {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-quickstart-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.home-quickstart-item:hover span {
+  text-decoration: underline;
+}
+
+.home-quickstart-item svg {
+  flex: none;
+  color: var(--chrome-icon);
+}
+
+.home-quickstart-item:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- Recent Activity (73:185) ---------------------------------------- */
+
+.home-activity-rows {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-activity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 0;
+  border-bottom: 0.5px solid var(--divider);
+}
+
+/* 73:208 — the last row carries no rule, so the list does not look cut off. */
+.home-activity-row:last-child {
+  border-bottom: 0;
+}
+
+.home-activity-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.home-activity-label:disabled {
+  cursor: default;
+}
+
+.home-activity-label:not(:disabled):hover .home-activity-name {
+  text-decoration: underline;
+}
+
+.home-activity-label:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.home-activity-name {
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-activity-when {
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.home-activity-empty {
+  max-width: 44ch;
+  margin: 6px 0 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: 17.4px;
+  color: var(--text-muted);
+}
+
+/* ---- Changelog (40:295) ---------------------------------------------- */
+
+.home-changelog-entry {
+  margin-top: 6px;
+}
+
+.home-changelog-version {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+/* 11.5px is the frame's, not a rounding of 12 — the two sit side by side. */
+.home-changelog-summary {
+  margin: 4px 0 0;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+/* ---- Guides (71:188) -------------------------------------------------- */
+
+/*
+ * `margin-top: auto` pins this to the bottom of the pane, which is where the
+ * frame puts it — 278px below Recent Activity and 79px above the footer,
+ * with nothing in between. A fixed margin would leave it stranded mid-pane
+ * on a taller window.
+ */
+.home-guides {
+  margin-top: auto;
+  padding: 40px 0 79px;
+  flex: none;
+}
+
+.home-guide-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12.77px 17.26px;
+  margin-top: 12.77px;
+}
+
+.home-guide-card {
+  padding: 19px 21px 21px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.home-guide-title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 19px;
+  color: var(--text-primary);
+}
+
+.home-guide-subtitle {
+  margin: 6px 0 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: 17.4px;
+  color: var(--text-muted);
+}

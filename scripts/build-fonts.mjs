@@ -26,6 +26,12 @@ const MODULES = join(ROOT, 'node_modules', '@fontsource')
 const FACES = [
   { package: 'inter', file: 'inter-latin-400-normal.woff2' },
   { package: 'inter', file: 'inter-latin-500-normal.woff2' },
+  // Real italics. Without them the browser slants the upright face, which is
+  // not the same shape — Inter's italic is redrawn, not sheared. The footer's
+  // version line has been faking it since BU-14; the Home date and title
+  // (BU-54) made it worth fixing.
+  { package: 'inter', file: 'inter-latin-400-italic.woff2' },
+  { package: 'source-serif-pro', file: 'source-serif-pro-latin-400-italic.woff2' },
   { package: 'source-serif-pro', file: 'source-serif-pro-latin-600-italic.woff2' },
   // The menu bar only (Figma 81:2 specifies Roboto there, not Inter). Bundled
   // for the same reason as the others: it is on some machines and not others,

@@ -8,7 +8,9 @@ import { AssistantPanel } from './assistant/AssistantPanel'
 import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
 import { PaneHost } from './shell/PaneHost'
-import { SIDEBAR_PAGES } from './shell/pages'
+import { useJobs } from './api/jobs'
+import { HomeView } from './views/home/HomeView'
+import { activityRows } from './views/home/activityRows'
 import { useEngine } from './state/engine'
 import { useTheme } from './state/theme'
 import { runUpdateAction, useUpdate } from './state/update'
@@ -22,7 +24,14 @@ type BridgeState = { status: 'pending' } | { status: 'ok'; info: AppInfo } | { s
 // render — a view resolved during render would otherwise miss it.
 registerPlaceholderViews()
 
-const DEFAULT_PAGE = SIDEBAR_PAGES[0]?.id ?? 'data-explorer'
+/**
+ * Home, every launch — not the last page visited.
+ *
+ * `home` deliberately matches no sidebar id, which is what leaves every slot
+ * unhighlighted while it is showing. That is the frame's behaviour (its
+ * Sidebar instance highlights nothing) rather than an oversight.
+ */
+const HOME_PAGE = 'home'
 
 /**
  * Everything that needs the API client sits inside BeaconProvider, so the
@@ -40,13 +49,18 @@ export function App(): ReactElement {
 
 function AppBody(): ReactElement {
   const [bridge, setBridge] = useState<BridgeState>({ status: 'pending' })
-  const [page, setPage] = useState(DEFAULT_PAGE)
+  const [page, setPage] = useState(HOME_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const engine = useEngine()
   const update = useUpdate()
   const dataAge = useDataAge()
   const openTab = useWorkspace((state) => state.openTab)
   const selectTab = useWorkspace((state) => state.selectTab)
+  const jobs = useJobs((state) => state.jobs)
+
+  // Fixed at mount rather than recomputed each render, so Home's date and its
+  // relative timestamps agree with each other and nothing re-renders on a tick.
+  const [today] = useState(() => new Date())
 
   /**
    * `Manage sources…` goes to Data Coverage, which is the pane that can
@@ -105,6 +119,9 @@ function AppBody(): ReactElement {
         engine: engine.status,
         onManageSources: openCoverage,
         onSelectTab: selectTab,
+        onGoHome: () => {
+          setPage(HOME_PAGE)
+        },
         ...(bridge.status === 'ok' ? { platform: bridge.info.platform } : {})
       }}
       footer={{
@@ -139,7 +156,18 @@ function AppBody(): ReactElement {
           }
         : {})}
     >
-      <PaneHost page={page} />
+      {page === HOME_PAGE ? (
+        <HomeView
+          today={today}
+          activity={activityRows(jobs, today.getTime())}
+          onQuickstart={(target, tab) => {
+            setPage(target)
+            selectTab(tab)
+          }}
+        />
+      ) : (
+        <PaneHost page={page} />
+      )}
       <JobTray />
     </AppShell>
   )
