@@ -37,7 +37,14 @@ export function NewTabMenu({ open, onClose, options, onChoose }: NewTabMenuProps
   }
 
   return (
-    <Popover open={open} onClose={onClose} label="New tab" align="start" className="new-tab-menu">
+    <Popover
+      open={open}
+      onClose={onClose}
+      label="New tab"
+      align="start"
+      side="beside"
+      className="new-tab-menu"
+    >
       <p className="popover-heading">NEW TAB</p>
       <div ref={list} role="menu" onKeyDown={onKeyDown}>
         {options.map((option) => {

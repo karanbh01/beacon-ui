@@ -6,7 +6,7 @@ import {
   type ReactElement,
   type ReactNode
 } from 'react'
-import { fittingAlign, type PopoverAlign } from './popoverAlign'
+import { fittingAlign, type PopoverAlign, type PopoverSide } from './popoverAlign'
 import './Popover.css'
 
 export interface PopoverProps {
@@ -20,6 +20,8 @@ export interface PopoverProps {
    * off the window — see below.
    */
   align?: PopoverAlign
+  /** `below` drops it under the trigger; `beside` puts it alongside. */
+  side?: PopoverSide
   className?: string
   children: ReactNode
 }
@@ -29,6 +31,7 @@ export function Popover({
   onClose,
   label,
   align = 'end',
+  side = 'below',
   className,
   children
 }: PopoverProps): ReactElement | null {
@@ -45,14 +48,8 @@ export function Popover({
     if (node === null || anchor === undefined || anchor === null) return
 
     const box = anchor.getBoundingClientRect()
-    setPlaced(
-      fittingAlign(
-        align,
-        { left: box.left, right: box.right, width: node.offsetWidth },
-        window.innerWidth
-      )
-    )
-  }, [open, align])
+    setPlaced(fittingAlign(align, side, box, node.offsetWidth, window.innerWidth))
+  }, [open, align, side])
 
   // Reopening should re-measure rather than reuse the last answer, since the
   // trigger may have moved in the meantime.
@@ -91,7 +88,9 @@ export function Popover({
   return (
     <div
       ref={surface}
-      className={['popover', `popover-${placed}`, className].filter(Boolean).join(' ')}
+      className={['popover', `popover-${side}`, `popover-${placed}`, className]
+        .filter(Boolean)
+        .join(' ')}
       role="dialog"
       aria-label={label}
     >

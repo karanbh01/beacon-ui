@@ -5,7 +5,7 @@ import { LAYOUT_OPTIONS, useChrome } from '../../state/chrome'
 import { useWorkspace } from '../../state/tabs.store'
 import { sourceRows } from './dataSources'
 import { LayoutMenu } from './LayoutMenu'
-import { fittingAlign } from './popoverAlign'
+import { fittingAlign, leftEdge } from './popoverAlign'
 import { MenuBar } from '../MenuBar'
 import { groupRows, nextIndex, searchRows } from './searchResults'
 import type { Tab } from '../../state/tabs.types'
@@ -231,29 +231,42 @@ describe('chrome search', () => {
 
 describe('fittingAlign', () => {
   const WIDE = 1440
+  // The `+` on an empty tab strip, and the same button after six tabs.
+  const EMPTY = { left: 58, right: 92 }
+  const CROWDED = { left: 1300, right: 1334 }
 
-  it('opens rightward when there is room', () => {
-    // The `+` on an empty tab strip: plenty of window to its right.
-    expect(fittingAlign('start', { left: 58, right: 92, width: 220 }, WIDE)).toBe('start')
+  it('sits beside the + when there is room to its right', () => {
+    expect(fittingAlign('start', 'beside', EMPTY, 220, WIDE)).toBe('start')
   })
 
-  it('flips leftward once the trigger has walked too far right', () => {
-    // Which is what happens to the `+` as tabs open — it is a measurement,
-    // not a breakpoint, because how far it has got depends on how many tabs
-    // there are and how wide their labels ran.
-    expect(fittingAlign('start', { left: 1300, right: 1334, width: 220 }, WIDE)).toBe('end')
+  it('flips to the other side once the + has walked too far right', () => {
+    // A measurement, not a breakpoint: how far it has travelled depends on
+    // how many tabs are open and how wide their labels ran.
+    expect(fittingAlign('start', 'beside', CROWDED, 220, WIDE)).toBe('end')
   })
 
   it('stays put when neither side fits, rather than swapping to a worse one', () => {
-    expect(fittingAlign('start', { left: 700, right: 734, width: 1400 }, WIDE)).toBe('start')
+    expect(fittingAlign('start', 'beside', { left: 700, right: 734 }, 1400, WIDE)).toBe('start')
+  })
+
+  it('leaves a right-aligned menu-bar panel in the corner it belongs in', () => {
+    expect(fittingAlign('end', 'below', { left: 1200, right: 1234 }, 260, WIDE)).toBe('end')
   })
 
   it('flips a right-aligned panel that would run off the left', () => {
-    expect(fittingAlign('end', { left: 20, right: 54, width: 260 }, WIDE)).toBe('start')
+    expect(fittingAlign('end', 'below', { left: 20, right: 54 }, 260, WIDE)).toBe('start')
   })
+})
 
-  it('leaves a right-aligned panel alone in the corner it belongs in', () => {
-    // The menu-bar popovers live at the right edge and must not move.
-    expect(fittingAlign('end', { left: 1200, right: 1234, width: 260 }, WIDE)).toBe('end')
+describe('leftEdge', () => {
+  it('places a beside panel past the trigger, and a below panel over it', () => {
+    // The distinction that makes the fit check correct: `beside` starts where
+    // the trigger ends, `below` starts where it starts.
+    const anchor = { left: 100, right: 134 }
+
+    expect(leftEdge('start', 'beside', anchor, 220)).toBe(134)
+    expect(leftEdge('start', 'below', anchor, 220)).toBe(100)
+    expect(leftEdge('end', 'beside', anchor, 220)).toBe(-120)
+    expect(leftEdge('end', 'below', anchor, 220)).toBe(-86)
   })
 })
