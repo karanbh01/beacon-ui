@@ -1,11 +1,10 @@
-import type { ReactElement } from 'react'
-import {
-  AiAgentsIcon,
-  ChevronIcon,
-  DataSourcesIcon,
-  LogoBetaIcon,
-  WindowFormatIcon
-} from '../icons/generated'
+import { useState, type ReactElement } from 'react'
+import type { EngineStatus } from '@shared/ipc'
+import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
+import { useChrome } from '../state/chrome'
+import { ChromeSearch } from './chrome/ChromeSearch'
+import { DataSourcesPanel } from './chrome/DataSourcesPanel'
+import { LayoutMenu } from './chrome/LayoutMenu'
 import { MENUS } from './pages'
 import { WindowControls } from './WindowControls'
 import './MenuBar.css'
@@ -13,12 +12,19 @@ import './MenuBar.css'
 export interface MenuBarProps {
   onSearch?: (query: string) => void
   onToggleAssistant?: () => void
-  onOpenDataSources?: () => void
-  onOpenLayout?: () => void
+  /** Engine status, so the data sources panel can tell the truth. */
+  engine?: EngineStatus
+  /** Opens the pane that reports coverage, from `Manage sources…`. */
+  onManageSources?: () => void
+  onSelectTab?: (id: string) => void
+  onCreateIndex?: (name: string) => void
   /** process.platform, so macOS can leave room for its traffic lights. */
   platform?: string
   className?: string
 }
+
+/** Only one chrome popover open at a time — two would overlap and compete. */
+type OpenPanel = 'none' | 'sources' | 'layout'
 
 /**
  * Figma 81:2. 62px tall, 0.5px bottom rule, 479px search field.
@@ -33,14 +39,29 @@ export interface MenuBarProps {
 export function MenuBar({
   onSearch,
   onToggleAssistant,
-  onOpenDataSources,
-  onOpenLayout,
+  engine = 'starting',
+  onManageSources,
+  onSelectTab,
+  onCreateIndex,
   platform,
   className
 }: MenuBarProps): ReactElement {
+  const [panel, setPanel] = useState<OpenPanel>('none')
+  const layout = useChrome((state) => state.layout)
+  const setLayout = useChrome((state) => state.setLayout)
+
   const classes = ['menu-bar', platform === 'darwin' && 'menu-bar-mac', className]
     .filter(Boolean)
     .join(' ')
+
+  /** Clicking the open panel's own trigger closes it, as a menu should. */
+  const toggle = (which: OpenPanel) => () => {
+    setPanel((current) => (current === which ? 'none' : which))
+  }
+
+  const close = (): void => {
+    setPanel('none')
+  }
 
   return (
     <header className={classes}>
@@ -56,32 +77,32 @@ export function MenuBar({
         ))}
       </nav>
 
-      <div className="menu-bar-search">
-        <input
-          type="search"
-          aria-label="Search"
-          spellCheck={false}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') onSearch?.(event.currentTarget.value)
-          }}
-        />
-        {/* Inside the field, per 81:2 — the divider and arrow sit within the
-            field's own box, not out in the icon cluster. */}
-        <span className="menu-bar-search-divider" aria-hidden="true" />
-        <button type="button" className="menu-bar-search-chevron" aria-label="Search options">
-          <ChevronIcon size={24} />
-        </button>
-      </div>
+      <ChromeSearch
+        {...(onSearch === undefined ? {} : { onSubmit: onSearch })}
+        {...(onSelectTab === undefined ? {} : { onSelectTab })}
+        {...(onCreateIndex === undefined ? {} : { onCreateIndex })}
+      />
 
       <div className="menu-bar-cluster">
-        <button
-          type="button"
-          className="menu-bar-icon"
-          aria-label="Data sources"
-          onClick={onOpenDataSources}
-        >
-          <DataSourcesIcon size={23} />
-        </button>
+        <span className="menu-bar-anchor">
+          <button
+            type="button"
+            className={`menu-bar-icon${panel === 'sources' ? ' menu-bar-icon-open' : ''}`}
+            aria-label="Data sources"
+            aria-expanded={panel === 'sources'}
+            aria-haspopup="dialog"
+            onClick={toggle('sources')}
+          >
+            <DataSourcesIcon size={23} />
+          </button>
+          <DataSourcesPanel
+            open={panel === 'sources'}
+            onClose={close}
+            engine={engine}
+            onManage={() => onManageSources?.()}
+          />
+        </span>
+
         <button
           type="button"
           className="menu-bar-icon"
@@ -91,9 +112,26 @@ export function MenuBar({
           <AiAgentsIcon size={30} />
         </button>
         <span className="menu-bar-rule" />
-        <button type="button" className="menu-bar-icon" aria-label="Layout" onClick={onOpenLayout}>
-          <WindowFormatIcon size={22} />
-        </button>
+
+        <span className="menu-bar-anchor">
+          <button
+            type="button"
+            className={`menu-bar-icon${panel === 'layout' ? ' menu-bar-icon-open' : ''}`}
+            aria-label="Layout"
+            aria-expanded={panel === 'layout'}
+            aria-haspopup="dialog"
+            onClick={toggle('layout')}
+          >
+            <WindowFormatIcon size={22} />
+          </button>
+          <LayoutMenu
+            open={panel === 'layout'}
+            onClose={close}
+            value={layout}
+            onSelect={setLayout}
+          />
+        </span>
+
         <span className="menu-bar-rule" />
         <WindowControls />
       </div>

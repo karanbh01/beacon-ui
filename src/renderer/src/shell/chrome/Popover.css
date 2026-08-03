@@ -1,0 +1,94 @@
+/*
+ * Figma 119:2 / 145:3460 / 147:13 all draw the same surface: a translucent
+ * `glass` fill, a 0.5px border laid over the top, and a soft drop shadow.
+ */
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 40;
+  background: var(--glass);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 2px;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+  /* The bar is the window drag region; a popover inside it must not be. */
+  -webkit-app-region: no-drag;
+}
+
+/*
+ * The fill is 65% opaque, so this is what makes it read as glass rather than
+ * as a flat tint: the backdrop has to be visibly refracted, not merely dimmed.
+ * `saturate` is the half of the recipe that is easy to leave out and the half
+ * that does most of the work — blur alone over a low-contrast backdrop is
+ * indistinguishable from an opaque panel.
+ */
+@supports (backdrop-filter: blur(16px)) {
+  .popover {
+    backdrop-filter: blur(16px) saturate(140%);
+  }
+}
+
+.popover-end {
+  right: 0;
+}
+
+.popover-start {
+  left: 0;
+}
+
+.popover-heading {
+  padding: 4px 12px 2px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.popover-divider {
+  height: 0.5px;
+  margin: 4px 0;
+  background: var(--chrome-border);
+}
+
+/*
+ * Rows are buttons, so they are reachable by keyboard and announce as
+ * actionable. Nothing about them should look like a button until it is
+ * pointed at — these panels are dense and a visible chrome per row would
+ * make them unreadable.
+ */
+.popover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 6px 12px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.popover-row:hover,
+.popover-row:focus-visible {
+  background: var(--sidebar-active-bg);
+  outline: none;
+}
+
+.popover-row-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.popover-row-accent {
+  color: var(--accent);
+}
+
+.popover-row-success {
+  color: var(--success);
+}

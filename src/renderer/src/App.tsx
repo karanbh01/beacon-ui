@@ -46,6 +46,18 @@ function AppBody(): ReactElement {
   const update = useUpdate()
   const dataAge = useDataAge()
   const openTab = useWorkspace((state) => state.openTab)
+  const selectTab = useWorkspace((state) => state.selectTab)
+
+  /**
+   * `Manage sources…` goes to Data Coverage, which is the pane that can
+   * actually say something about what is configured. There is no settings
+   * surface for sources, and sending the user nowhere would be worse than
+   * sending them to the nearest true answer.
+   */
+  const openCoverage = (): void => {
+    setPage('data-explorer')
+    selectTab('seed-coverage')
+  }
 
   // No visible control yet — the theme picker belongs in the footer and the
   // mockup for it does not exist. Called anyway so the app keeps following
@@ -88,6 +100,11 @@ function AppBody(): ReactElement {
         onToggleAssistant: () => {
           setAssistantOpen((open) => !open)
         },
+        // The data sources panel reports what is actually connected, so it
+        // needs the same engine state the footer uses.
+        engine: engine.status,
+        onManageSources: openCoverage,
+        onSelectTab: selectTab,
         ...(bridge.status === 'ok' ? { platform: bridge.info.platform } : {})
       }}
       footer={{

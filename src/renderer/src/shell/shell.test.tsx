@@ -74,7 +74,9 @@ describe('MenuBar', () => {
     const onSearch = vi.fn()
     render(<MenuBar onSearch={onSearch} />)
 
-    const input = screen.getByRole('searchbox', { name: 'Search' })
+    // A combobox rather than a searchbox since BU-53: it owns a typeahead
+    // panel now, and that is the role that says so.
+    const input = screen.getByRole('combobox', { name: 'Search' })
     await userEvent.type(input, 'AAPL')
     expect(onSearch).not.toHaveBeenCalled()
 

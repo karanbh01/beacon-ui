@@ -129,6 +129,6 @@ describe('MenuBar as title bar', () => {
     render(<MenuBar platform="win32" />)
 
     expect(screen.getByRole('button', { name: 'AI assistant' })).toBeInTheDocument()
-    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Search' })).toBeInTheDocument()
   })
 })

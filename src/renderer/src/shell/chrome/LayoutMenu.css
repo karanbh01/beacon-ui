@@ -1,0 +1,74 @@
+/* Figma 119:2 — 12px padding, 10px between the row, rule and presets. */
+.layout-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.layout-menu-options {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.layout-option {
+  display: flex;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.layout-option:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/*
+ * The glyph is five outlined rectangles on a 24x24 grid, positioned exactly
+ * as 119:4…119:13 place them. Not an icon font and not an SVG: the shapes are
+ * the option's own geometry, so the picture cannot disagree with the layout
+ * it selects.
+ */
+.layout-glyph {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+  color: var(--chrome-icon);
+}
+
+.layout-glyph-pane {
+  position: absolute;
+  border: 1.5px solid currentcolor;
+  border-radius: 1.5px;
+}
+
+.layout-option:hover .layout-glyph {
+  color: var(--text-primary);
+}
+
+.layout-option-active .layout-glyph {
+  color: var(--accent);
+}
+
+/* The divider spans the padding box, matching 119:16's full-width rule. */
+.layout-menu .popover-divider {
+  margin: 0;
+}
+
+.layout-menu-presets {
+  padding: 0;
+  color: var(--text-secondary);
+}
+
+.layout-menu-presets:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.layout-menu-presets:disabled:hover {
+  background: none;
+}

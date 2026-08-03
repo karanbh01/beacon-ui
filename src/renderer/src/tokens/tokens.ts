@@ -29,6 +29,7 @@ export type ColorToken =
   | 'sidebar-active-bg'
   | 'series-2'
   | 'series-3'
+  | 'glass'
 
 /**
  * Resolved literals per mode. Chart libraries paint to canvas and cannot read
@@ -62,7 +63,8 @@ export const COLORS: Record<ThemeMode, Record<ColorToken, string>> = {
     'status-failed-bg': '#f3ddd8',
     'sidebar-active-bg': '#2a241933',
     'series-2': '#7d4fb8',
-    'series-3': '#b5701a'
+    'series-3': '#b5701a',
+    'glass': '#ffedd8a6'
   },
   dark: {
     'canvas': '#232323',
@@ -90,7 +92,8 @@ export const COLORS: Record<ThemeMode, Record<ColorToken, string>> = {
     'status-failed-bg': '#462b28',
     'sidebar-active-bg': '#44444426',
     'series-2': '#b98fd9',
-    'series-3': '#e8a33d'
+    'series-3': '#e8a33d',
+    'glass': '#373737a6'
   }
 }
 

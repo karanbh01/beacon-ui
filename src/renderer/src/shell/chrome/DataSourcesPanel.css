@@ -1,0 +1,15 @@
+/* Figma 145:3460 — 260 wide, 8px of vertical padding. */
+.data-sources-panel {
+  width: 260px;
+  padding: 8px 0;
+}
+
+/* A status line, not a control: no pointer, no hover lift. */
+.data-sources-row {
+  margin: 0;
+  cursor: default;
+}
+
+.data-sources-row:hover {
+  background: none;
+}

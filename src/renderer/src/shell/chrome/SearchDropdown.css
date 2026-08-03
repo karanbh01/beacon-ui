@@ -1,0 +1,59 @@
+/*
+ * Figma 147:13. Hangs from the search field and shares its edge: the field
+ * keeps its top corners, this takes the bottom ones, and the -1px pulls the
+ * two borders onto each other so they read as one surface rather than as two
+ * boxes that happen to touch.
+ */
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  right: -1px;
+  left: -1px;
+  z-index: 40;
+  margin-top: -1px;
+  padding-bottom: 8px;
+  background: var(--glass);
+  border: 1px solid var(--chrome-search-stroke);
+  border-top: 0;
+  border-radius: 0 0 5px 5px;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+  -webkit-app-region: no-drag;
+}
+
+@supports (backdrop-filter: blur(16px)) {
+  .search-dropdown {
+    backdrop-filter: blur(16px) saturate(140%);
+  }
+}
+
+/* 14px in the frame, against the popovers' 12px. */
+.search-dropdown .popover-heading,
+.search-dropdown-row {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.search-dropdown-row {
+  /* Long titles truncate rather than push the description off the edge. */
+  overflow: hidden;
+}
+
+.search-dropdown-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The highlight follows the keyboard, so it cannot be :hover — the pointer
+ * may be resting anywhere on screen while arrow keys move the selection.
+ */
+.search-dropdown-row-active {
+  background: var(--sidebar-active-bg);
+}
+
+/* The field is square-bottomed while the panel is under it. */
+.menu-bar-search-open {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
