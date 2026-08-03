@@ -16,8 +16,16 @@ const isMac = process.platform === 'darwin'
  * leave no way to close the window. Windows and Linux go fully frameless and
  * the renderer draws minimise / maximise / close itself.
  */
+/**
+ * Kept in step with `--menu-bar-height` in MenuBar.css by hand — main cannot
+ * read the renderer's CSS, and there is no way to make this follow it. The
+ * traffic lights are ~14px tall, so this centres them on a 48px bar; if the
+ * bar height changes and this does not, they sit visibly off it.
+ */
+const TRAFFIC_LIGHT_Y = 17
+
 const frameOptions = isMac
-  ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: 23 } }
+  ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: TRAFFIC_LIGHT_Y } }
   : { frame: false }
 
 export function createMainWindow(): BrowserWindow {

@@ -16,20 +16,31 @@
  *   cluster 1206     icons, then the window controls, last edge 1427
  */
 .menu-bar {
+  /*
+   * ---- THE KNOB ----
+   * How tall the window chrome is. Frame 81:2 draws 62; this is deliberately
+   * shorter, because 62 is a lot of height above a 14px menu row.
+   *
+   * Everything in the bar centres in whatever this is set to, so changing it
+   * moves the words, the field and the icons together and they stay on one
+   * line. Two things do NOT follow it automatically and are worth a glance if
+   * it changes much: the logo glyph below, and the macOS traffic-light inset
+   * in src/main/window.ts.
+   */
+  --menu-bar-height: 48px;
+
   display: flex;
   align-items: center;
-  height: 62px;
+  height: var(--menu-bar-height);
   flex: none;
   /*
-   * The 8px top is why everything lines up. Frame 81:2 does NOT centre its
-   * contents in the 62px bar — it sits them ~4px low, all at the same
-   * baseline: File's text centres at 35.5, the search rect at 35, the icons
-   * between 35 and 36.5. Centring the row and then nudging only the search
-   * down to 19 (which is what this did) put the field 4px below the words and
-   * icons beside it. Dropping the whole row instead lands each of them where
-   * the frame has it.
+   * Centred, no top inset. Frame 81:2 sits its contents ~4px low in a 62px
+   * bar — File's text centres at 35.5, the search rect at 35, the icons
+   * between 35 and 36.5 — which an 8px top padding used to reproduce. At a
+   * compact height that offset is just lost space, and centring keeps the row
+   * on one line, which was the point of it.
    */
-  padding: 8px 13px 0 5px;
+  padding: 0 13px 0 5px;
   border-bottom: 0.5px solid var(--chrome-border);
   -webkit-app-region: drag;
 }
@@ -46,7 +57,9 @@
   justify-content: center;
   flex: none;
   /* 5 + 55 = 60, then 26 to the first menu button, whose 8px padding puts
-     the word `File` on Figma's x=94. */
+     the word `File` on Figma's x=94. The BOX keeps the frame's width so the
+     menu row does not move when the bar gets shorter; only the glyph inside
+     it shrinks. */
   width: 55px;
   margin-right: 26px;
   padding: 0;
@@ -55,6 +68,16 @@
   border: 0;
   border-radius: 3px;
   cursor: pointer;
+}
+
+/*
+ * Sized from the bar rather than from the icon's own prop, so it cannot
+ * outgrow a shorter chrome. 0.75 is the frame's ratio — a 47px glyph in a
+ * 62px bar.
+ */
+.menu-bar-logo svg {
+  width: auto;
+  height: calc(var(--menu-bar-height) * 0.75);
 }
 
 .menu-bar-logo:focus-visible {
@@ -125,7 +148,7 @@
    * Help and stops here rather than running all the way to the icons.
    * 479px is frame 81:68's own width, which is why it is the default.
    */
-  --search-max-width: 479px;
+  --search-max-width: 500px;
 
   position: relative;
   flex: 1 1 auto;
