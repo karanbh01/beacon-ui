@@ -1,13 +1,36 @@
 /* Figma set 118:6, archetypes 229:4264. */
 
 .tab {
+  /*
+   * Geometry read structurally out of Tab 118:2 / 118:4 — autolayout padding,
+   * gap and height — not measured off a screenshot. Named here so the numbers
+   * appear once and every rule below refers to them; tabGeometry.ts carries
+   * the same values for the test that checks rendered widths against Figma.
+   */
+  --tab-height: 34px;
+  --tab-pad-x: 14px;
+  --tab-gap: 6px;
+  --tab-underline: 2px;
+  --tab-dirty-size: 5px;
+
+  /*
+   * The close affordance does not exist in the Figma component at all: a tab
+   * there is padding, label, optional chip, optional dot, padding. The app
+   * still needs a way to close one, so it is drawn OVER the trailing padding
+   * rather than added to the row — see .tab-close. These two are therefore
+   * the sizes of something the mock has no opinion about.
+   */
+  --tab-close-glyph: 12px;
+  --tab-close-hit: 16px;
+
+  position: relative;
   display: flex;
   align-items: center;
-  height: 34px;
+  height: var(--tab-height);
   flex: none;
   /* Reserve the underline on every tab so activating one does not shift the
      row by 2px. */
-  border-bottom: 2px solid transparent;
+  border-bottom: var(--tab-underline) solid transparent;
 }
 
 .tab-active {
@@ -17,9 +40,9 @@
 .tab-select {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--tab-gap);
   height: 100%;
-  padding: 0 14px;
+  padding: 0 var(--tab-pad-x);
   font: inherit;
   background: none;
   border: 0;
@@ -40,8 +63,8 @@
 }
 
 .tab-dirty {
-  width: 5px;
-  height: 5px;
+  width: var(--tab-dirty-size);
+  height: var(--tab-dirty-size);
   flex: none;
   border-radius: 50%;
   background: var(--text-muted);
@@ -52,9 +75,19 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 6px;
-  border: 0.5px solid var(--chrome-border);
   border-radius: 3px;
   overflow: hidden;
+
+  /*
+   * The hairline is an INSET SHADOW, not a border, and the reason is
+   * measurable. Figma's 0.5px stroke sits inside the frame and adds nothing
+   * to its width. A CSS border always grows an auto-width box, and Chromium
+   * rounds 0.5px up to a whole device pixel at DPR 1 — so `border: 0.5px`
+   * cost 2px per chip, which is what pushed the query tab 2.7px past its
+   * Figma width when everything else was within 1px. An inset shadow draws
+   * the same hairline and takes part in no layout at all.
+   */
+  box-shadow: inset 0 0 0 0.5px var(--chrome-border);
 }
 
 .tab-chip-pin {
@@ -84,14 +117,31 @@
  * Close stays hidden until hover or keyboard focus. Six visible affordances
  * across a full tab bar would compete with the chips, which carry the
  * meaning.
+ *
+ * ABSOLUTE, and that is the whole of BU-51. In flow it was 14px wide with an
+ * 8px margin, so every tab carried 22px of width for a control the Figma
+ * component does not have — a 74px `TECH10` rendered at 96px, and no amount
+ * of adjusting the padding would have closed a gap that was not in the
+ * padding. Taken out of flow it costs nothing at rest, which is what lets the
+ * row match the mock exactly.
+ *
+ * It sits over the trailing padding. The hit box is larger than the glyph, so
+ * it overlaps the content edge by a couple of px — harmless, because a chip
+ * carries 6px of its own right padding and the glyph never reaches its text.
  */
 .tab-close {
-  width: 14px;
-  height: 14px;
-  margin-right: 8px;
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tab-close-hit);
+  height: var(--tab-close-hit);
   padding: 0;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--tab-close-glyph);
   line-height: 1;
   color: var(--text-muted);
   background: none;
