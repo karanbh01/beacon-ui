@@ -18,12 +18,20 @@
   min-height: 0;
 }
 
+/*
+ * No padding. The Pane component (118:7) puts its tab bar at 0,0 spanning the
+ * full width, and `pane-content` in every page frame sits at 58,96 — flush
+ * against the sidebar, 34px below the menu bar. The 20/24 inset belongs to
+ * the content BELOW the tab bar, and lives on .pane-body.
+ *
+ * Padding here pushed the tab strip 24px off the sidebar, so its bottom rule
+ * stopped short instead of meeting the sidebar's border — which in the frame
+ * it runs straight into, both at x=57.
+ */
 .app-shell-pane {
   flex: 1 1 auto;
   min-width: 0;
   overflow: auto;
-  /* Pane padding is 20/24 in the frames; BU-17 owns the inner layout. */
-  padding: 20px 24px;
 }
 
 /* 380px rail; the pane narrows to 1002 on a 1440 window (BU-18). */

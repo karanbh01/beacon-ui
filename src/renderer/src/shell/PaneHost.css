@@ -5,10 +5,15 @@
   min-height: 0;
 }
 
+/*
+ * The pane's inset lives here, not on .app-shell-pane: every page frame puts
+ * `pane-content` flush at 58,96 and its `pane-header` at 24,20 inside that.
+ * The tab bar above must reach the sidebar; the content below must not.
+ */
 .pane-body {
   flex: 1 1 auto;
   min-height: 0;
-  padding-top: 16px;
+  padding: 20px 24px;
   overflow: auto;
 }
 

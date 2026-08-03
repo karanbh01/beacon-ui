@@ -16,19 +16,14 @@
  * content width — 114 out to 1312.5, where the date's right edge also lands.
  */
 /*
- * The negative margin cancels `.app-shell-pane`'s own 20/24 padding, which
- * exists for tab pages and which Home's frame insets already include. Without
- * it every number below is silently 24 out horizontally and 20 vertically —
- * measured, before it was fixed.
- *
- * Cancelling rather than subtracting keeps the frame's real numbers in this
- * file, so they can still be checked against 2:3 directly.
+ * Straight frame insets. The pane carries no padding of its own — that moved
+ * onto .pane-body when the tab bar was brought flush against the sidebar —
+ * so these are exactly 2:3's numbers with nothing to cancel.
  */
 .home {
   display: flex;
   flex-direction: column;
-  height: calc(100% + 40px);
-  margin: -20px -24px;
+  height: 100%;
   padding: 56px 127.6px 0 56px;
   overflow-y: auto;
 }

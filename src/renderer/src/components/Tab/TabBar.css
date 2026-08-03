@@ -30,9 +30,10 @@
   border-radius: 2px;
 }
 
+/* 34x34 (122:4), sitting immediately after the last tab. */
 .tab-bar-new {
   flex: none;
-  width: 28px;
+  width: 34px;
   height: 34px;
   padding: 0;
   font: inherit;
