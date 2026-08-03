@@ -20,7 +20,16 @@
   align-items: center;
   height: 62px;
   flex: none;
-  padding: 0 13px 0 5px;
+  /*
+   * The 8px top is why everything lines up. Frame 81:2 does NOT centre its
+   * contents in the 62px bar — it sits them ~4px low, all at the same
+   * baseline: File's text centres at 35.5, the search rect at 35, the icons
+   * between 35 and 36.5. Centring the row and then nudging only the search
+   * down to 19 (which is what this did) put the field 4px below the words and
+   * icons beside it. Dropping the whole row instead lands each of them where
+   * the frame has it.
+   */
+  padding: 8px 13px 0 5px;
   border-bottom: 0.5px solid var(--chrome-border);
   -webkit-app-region: drag;
 }
@@ -58,18 +67,11 @@
   margin-left: 76px;
 }
 
-/*
- * The frame's menu block runs 86 to 686, and the search field starts 27 after
- * it at x=713. Holding that width keeps the search where 81:68 puts it rather
- * than letting it slide left by however much the type shrank — the field's
- * position is designed, the gap after the menus is merely derived.
- */
 .menu-bar-menus {
   display: flex;
   align-items: center;
   gap: 4px;
   flex: none;
-  min-width: 600px;
 }
 
 /*
@@ -88,7 +90,7 @@
 .menu-bar-menu {
   padding: 4px 8px;
   font-family: var(--font-chrome);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 400;
   line-height: normal;
   color: var(--chrome-text);
@@ -104,25 +106,23 @@
 }
 
 /*
- * 479x32 at x=713 (Figma 81:68), and it sits 19px from the top rather than
- * centred — a 32px box centred in a 62px bar would be at 15. The 4px is in
- * the frame, so it is here too.
- *
- * `flex: 0 1 479px` — it takes its designed width and only gives ground when
- * the window is too narrow for everything, which is what keeps it in
- * proportion at the 1280 minimum instead of absorbing all the slack.
- */
-/*
  * Only the slot in the bar. The visible box is .menu-bar-search-surface,
  * which is absolutely positioned inside this so it can grow downwards over
  * the pane without stretching a 62px bar.
+ *
+ * `flex: 1 1 auto` rather than the frame's fixed 479: it begins 27px after
+ * the last menu word — wherever that now falls, since the type is 14px rather
+ * than 81:2's 18 — and runs to the icon cluster. Holding 479 with smaller
+ * type would leave a widening gap after Help and waste the bar.
+ *
+ * No margin-top: the row's own 8px padding puts this at the frame's y=19 and
+ * puts the words and icons on the same line as it.
  */
 .menu-bar-search {
   position: relative;
-  flex: 0 1 479px;
+  flex: 1 1 auto;
   min-width: 180px;
   height: 32px;
-  margin-top: 8px;
   margin-left: 27px;
 }
 
