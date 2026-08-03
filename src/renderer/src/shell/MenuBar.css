@@ -58,16 +58,25 @@
   margin-left: 76px;
 }
 
+/*
+ * The frame's menu block runs 86 to 686, and the search field starts 27 after
+ * it at x=713. Holding that width keeps the search where 81:68 puts it rather
+ * than letting it slide left by however much the type shrank — the field's
+ * position is designed, the gap after the menus is merely derived.
+ */
 .menu-bar-menus {
   display: flex;
   align-items: center;
   gap: 4px;
   flex: none;
+  min-width: 600px;
 }
 
 /*
- * Roboto 18px is what the frame specifies. It reads as the designer standing
- * in for a native menu bar, so revisit if real menus land in src/main.
+ * 16px, which is a deliberate 2px under the 18px frame 81:2 specifies —
+ * Karan's call, because 18 reads oversized against everything around it.
+ * Recorded rather than quietly applied, so a future parity check finds the
+ * reason here instead of filing it as drift.
  *
  * --font-chrome, not a bare `Roboto`: the face is bundled now, because
  * leaving it to the system meant this bar rendered 5% wider on any machine
@@ -79,7 +88,7 @@
 .menu-bar-menu {
   padding: 4px 8px;
   font-family: var(--font-chrome);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 400;
   line-height: normal;
   color: var(--chrome-text);
