@@ -1,4 +1,12 @@
-import { useEffect, useRef, type ReactElement, type ReactNode } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode
+} from 'react'
+import { fittingAlign, type PopoverAlign } from './popoverAlign'
 import './Popover.css'
 
 export interface PopoverProps {
@@ -6,22 +14,16 @@ export interface PopoverProps {
   onClose: () => void
   /** Labels the surface for assistive tech; every chrome popover has a title. */
   label: string
-  /** Right-aligned under its trigger by default; the search panel overrides. */
-  align?: 'start' | 'end'
+  /**
+   * Which edge it hangs from. `start` opens rightward from its trigger, `end`
+   * leftward. Whichever is asked for, it flips when that direction would run
+   * off the window — see below.
+   */
+  align?: PopoverAlign
   className?: string
   children: ReactNode
 }
 
-/**
- * The glass surface all three chrome popovers share (Figma 119:2, 145:3460,
- * 147:13): a `--glass` fill, a 0.5px border overlay and a soft drop shadow.
- *
- * Dismissal lives here rather than in each panel, because getting it wrong is
- * the same bug three times: Escape must close, a click outside must close, and
- * a click *inside* must not. `pointerdown` rather than `click` — a click fires
- * after the mouse is released, so a drag that starts inside and ends outside
- * would otherwise close the panel mid-interaction.
- */
 export function Popover({
   open,
   onClose,
@@ -31,6 +33,32 @@ export function Popover({
   children
 }: PopoverProps): ReactElement | null {
   const surface = useRef<HTMLDivElement>(null)
+  const [placed, setPlaced] = useState<PopoverAlign>(align)
+
+  // Before paint, so a panel that has to flip never renders in the wrong
+  // place first. Measured against the trigger's box, not the panel's own
+  // left edge, which has already been positioned by the requested align.
+  useLayoutEffect(() => {
+    if (!open) return
+    const node = surface.current
+    const anchor = node?.parentElement
+    if (node === null || anchor === undefined || anchor === null) return
+
+    const box = anchor.getBoundingClientRect()
+    setPlaced(
+      fittingAlign(
+        align,
+        { left: box.left, right: box.right, width: node.offsetWidth },
+        window.innerWidth
+      )
+    )
+  }, [open, align])
+
+  // Reopening should re-measure rather than reuse the last answer, since the
+  // trigger may have moved in the meantime.
+  useEffect(() => {
+    if (!open) setPlaced(align)
+  }, [open, align])
 
   useEffect(() => {
     if (!open) return undefined
@@ -63,7 +91,7 @@ export function Popover({
   return (
     <div
       ref={surface}
-      className={['popover', `popover-${align}`, className].filter(Boolean).join(' ')}
+      className={['popover', `popover-${placed}`, className].filter(Boolean).join(' ')}
       role="dialog"
       aria-label={label}
     >

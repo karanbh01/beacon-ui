@@ -5,6 +5,7 @@ import { LAYOUT_OPTIONS, useChrome } from '../../state/chrome'
 import { useWorkspace } from '../../state/tabs.store'
 import { sourceRows } from './dataSources'
 import { LayoutMenu } from './LayoutMenu'
+import { fittingAlign } from './popoverAlign'
 import { MenuBar } from '../MenuBar'
 import { groupRows, nextIndex, searchRows } from './searchResults'
 import type { Tab } from '../../state/tabs.types'
@@ -225,5 +226,34 @@ describe('chrome search', () => {
 
     expect(input).toHaveValue('')
     expect(screen.queryByRole('listbox')).toBeNull()
+  })
+})
+
+describe('fittingAlign', () => {
+  const WIDE = 1440
+
+  it('opens rightward when there is room', () => {
+    // The `+` on an empty tab strip: plenty of window to its right.
+    expect(fittingAlign('start', { left: 58, right: 92, width: 220 }, WIDE)).toBe('start')
+  })
+
+  it('flips leftward once the trigger has walked too far right', () => {
+    // Which is what happens to the `+` as tabs open — it is a measurement,
+    // not a breakpoint, because how far it has got depends on how many tabs
+    // there are and how wide their labels ran.
+    expect(fittingAlign('start', { left: 1300, right: 1334, width: 220 }, WIDE)).toBe('end')
+  })
+
+  it('stays put when neither side fits, rather than swapping to a worse one', () => {
+    expect(fittingAlign('start', { left: 700, right: 734, width: 1400 }, WIDE)).toBe('start')
+  })
+
+  it('flips a right-aligned panel that would run off the left', () => {
+    expect(fittingAlign('end', { left: 20, right: 54, width: 260 }, WIDE)).toBe('start')
+  })
+
+  it('leaves a right-aligned panel alone in the corner it belongs in', () => {
+    // The menu-bar popovers live at the right edge and must not move.
+    expect(fittingAlign('end', { left: 1200, right: 1234, width: 260 }, WIDE)).toBe('end')
   })
 })
