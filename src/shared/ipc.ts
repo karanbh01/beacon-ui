@@ -110,6 +110,18 @@ export interface IpcContract {
     request: undefined
     response: undefined
   }
+  /**
+   * The splash reporting that startup finished.
+   *
+   * Sent by the splash window rather than decided in main, because the thing
+   * that knows the engine is ready is the same code drawing the bar — and
+   * main deciding separately would let the two disagree about when to hand
+   * over.
+   */
+  'window:splashDone': {
+    request: undefined
+    response: undefined
+  }
   'window:minimize': {
     request: undefined
     response: undefined
@@ -184,6 +196,8 @@ export interface BeaconBridge {
     onChange: (listener: (state: UpdateState) => void) => () => void
   }
   window: {
+    /** Splash only: startup is complete, show the app. */
+    splashDone: () => Promise<void>
     minimize: () => Promise<void>
     toggleMaximize: () => Promise<boolean>
     close: () => Promise<void>

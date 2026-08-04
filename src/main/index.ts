@@ -6,7 +6,8 @@ import { registerAppScheme, serveRenderer } from './appProtocol'
 import { Engine } from './engine/engine'
 import { forwardEngineChanges, forwardUpdateChanges, registerIpcHandlers } from './ipc'
 import { Updater } from './updater'
-import { createMainWindow } from './window'
+import { createSplashWindow } from './splash'
+import { createMainWindow, revealMainWindow } from './window'
 
 // Windows: gives notifications and the taskbar a stable identity.
 if (process.platform === 'win32') {
@@ -68,11 +69,32 @@ void app.whenReady().then(() => {
     serveRenderer(join(__dirname, '..', 'renderer'))
   }
 
-  registerIpcHandlers(engine, updater)
+  /*
+   * The splash goes up first and the app waits behind it (BU-66).
+   *
+   * Both windows are created now rather than the app being built after the
+   * engine answers: the renderer has its own work to do — fonts, tokens, the
+   * workspace store — and doing it behind the splash is the whole point of
+   * having one. It is simply not shown until the splash says so.
+   */
+  const splash = createSplashWindow()
+  const window = createMainWindow({ deferShow: true })
+
+  const handOver = (): void => {
+    revealMainWindow(window)
+    if (!splash.isDestroyed()) splash.close()
+  }
+
+  registerIpcHandlers(engine, updater, { onSplashDone: handOver })
   engine.start()
   updater.start()
 
-  const window = createMainWindow()
+  // Closing the splash before the engine answers is a decision to carry on
+  // without it, not a reason to leave the user with no window at all.
+  splash.on('closed', handOver)
+
+  forwardEngineChanges(engine, splash)
+  forwardUpdateChanges(updater, splash)
   forwardEngineChanges(engine, window)
   forwardUpdateChanges(updater, window)
 

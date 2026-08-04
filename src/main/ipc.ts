@@ -49,7 +49,21 @@ function senderWindow(event: IpcMainInvokeEvent): BrowserWindow | null {
   return BrowserWindow.fromWebContents(event.sender)
 }
 
-export function registerIpcHandlers(engine: Engine, updater: Updater): void {
+export interface IpcHandlerOptions {
+  /** Called when the splash reports startup finished. */
+  onSplashDone?: () => void
+}
+
+export function registerIpcHandlers(
+  engine: Engine,
+  updater: Updater,
+  options: IpcHandlerOptions = {}
+): void {
+  handle('window:splashDone', () => {
+    options.onSplashDone?.()
+    return undefined
+  })
+
   handle('engine:state', (): EngineState => engine.getState())
 
   handle('engine:restart', () => {

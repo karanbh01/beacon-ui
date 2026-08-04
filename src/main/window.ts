@@ -28,7 +28,17 @@ const frameOptions = isMac
   ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: TRAFFIC_LIGHT_Y } }
   : { frame: false }
 
-export function createMainWindow(): BrowserWindow {
+export interface MainWindowOptions {
+  /**
+   * Hold the window back until something else says so.
+   *
+   * The splash is in front of it during startup, and two windows appearing at
+   * once — one of them empty — is worse than one appearing late.
+   */
+  deferShow?: boolean
+}
+
+export function createMainWindow(options: MainWindowOptions = {}): BrowserWindow {
   const saved = restoredBounds()
 
   const window = new BrowserWindow({
@@ -80,8 +90,15 @@ export function createMainWindow(): BrowserWindow {
     if (wasMaximized()) window.maximize()
   }
 
-  window.once('ready-to-show', reveal)
-  window.webContents.once('did-finish-load', reveal)
+  if (options.deferShow === true) {
+    // The caller reveals it. `revealMainWindow` still has to exist as a
+    // separate step, because the deadlock the comment above describes applies
+    // just as much to a window revealed later.
+    window.once('ready-to-show', () => undefined)
+  } else {
+    window.once('ready-to-show', reveal)
+    window.webContents.once('did-finish-load', reveal)
+  }
 
   /*
    * A packaged renderer that fails to load is otherwise silent: the window
@@ -116,5 +133,18 @@ export function createMainWindow(): BrowserWindow {
     void window.loadURL(`${APP_ORIGIN}/index.html`)
   }
 
+  revealers.set(window, reveal)
   return window
+}
+
+/**
+ * Weak, so a closed window does not keep its reveal closure alive. The map
+ * exists because `reveal` closes over the saved-maximised state and cannot be
+ * reconstructed from the window alone.
+ */
+const revealers = new WeakMap<BrowserWindow, () => void>()
+
+/** Show a window created with `deferShow`. */
+export function revealMainWindow(window: BrowserWindow): void {
+  revealers.get(window)?.()
 }

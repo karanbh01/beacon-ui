@@ -45,6 +45,7 @@ const bridge: BeaconBridge = {
     }
   },
   window: {
+    splashDone: () => ipcRenderer.invoke('window:splashDone') as Promise<void>,
     minimize: () => ipcRenderer.invoke('window:minimize') as Promise<void>,
     toggleMaximize: () => ipcRenderer.invoke('window:toggleMaximize') as Promise<boolean>,
     close: () => ipcRenderer.invoke('window:close') as Promise<void>,

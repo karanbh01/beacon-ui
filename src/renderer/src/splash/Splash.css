@@ -1,0 +1,146 @@
+/*
+ * Figma 0:1 — frames 2:2 and 4:8, 573x883.
+ *
+ *   title bar   rule at y=42, window controls at its right
+ *   logo        112,148   349x160
+ *   progress    127,523   320x6, with "Loading…" beneath
+ *   rule        113,634   336 wide
+ *   licence      93,653   388x161
+ *   footer       19,854   version · update pill · GitHub at 529
+ */
+.splash {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  background: var(--canvas);
+  color: var(--text-primary);
+  overflow: hidden;
+  /* The whole surface drags, since there is no menu bar to carry it. */
+  -webkit-app-region: drag;
+}
+
+.splash-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  height: 42px;
+  flex: none;
+  padding-right: 13px;
+  border-bottom: 0.5px solid var(--chrome-border);
+}
+
+.splash-bar button {
+  -webkit-app-region: no-drag;
+}
+
+.splash-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  margin-top: 106px;
+  color: var(--text-primary);
+}
+
+/* 320x6 at y=523, "Loading…" 11px italic muted beneath it (38:145). */
+.splash-progress {
+  width: 320px;
+  margin-top: 215px;
+  flex: none;
+}
+
+.splash-progress-track {
+  height: 6px;
+  background: var(--surface);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.splash-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  /* Long enough to read as motion, short enough not to lag the real step. */
+  transition: width 400ms ease-out;
+}
+
+.splash-progress-failed {
+  background: var(--danger);
+}
+
+.splash-progress-label {
+  margin: 9px 0 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.splash-progress-label-failed {
+  font-style: normal;
+  color: var(--danger);
+}
+
+.splash-rule {
+  width: 336px;
+  height: 0.5px;
+  margin-top: auto;
+  background: var(--chrome-border);
+}
+
+/*
+ * The only place the app states that its output is not investment advice,
+ * which for something that prices derivatives is worth passing through.
+ */
+.splash-licence {
+  width: 388px;
+  margin: 19px 0 0;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  line-height: 13px;
+  color: var(--text-muted);
+  text-align: justify;
+}
+
+.splash-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+  padding: 0 20px 14px;
+  flex: none;
+}
+
+.splash-version {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* 68x17 pill at x=100 (10:5), beside the version. */
+.splash-update {
+  padding: 1px 10px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-style: italic;
+  color: var(--accent);
+  background: var(--info-bg);
+  border-radius: 9px;
+}
+
+.splash-github {
+  display: flex;
+  margin-left: auto;
+  color: var(--chrome-icon);
+  -webkit-app-region: no-drag;
+}
+
+.splash-github:hover {
+  color: var(--text-primary);
+}
