@@ -5,11 +5,12 @@ import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
 import { WeightBar } from '../../components/WeightBar/WeightBar'
+import { DeltaCell } from '../../components/Table/cells'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useWeights } from '../shared/beaconQueries'
-import { percent, weightRows, type WeightRow } from '../shared/indexMetrics'
+import { constituentRows, percent, weightRows, type WeightRow } from '../shared/indexMetrics'
 import './IndexWeightsView.css'
 
 const COLUMNS: readonly Column<WeightRow>[] = [
@@ -41,6 +42,29 @@ const COLUMNS: readonly Column<WeightRow>[] = [
     )
   },
   {
+    key: 'shares',
+    header: 'Shares (000)',
+    width: 110,
+    align: 'right',
+    render: (row) =>
+      row.shares === undefined ? '—' : Math.round(row.shares / 1000).toLocaleString('en-US')
+  },
+  {
+    key: 'delta',
+    header: 'Δ since rebal',
+    width: 105,
+    align: 'right',
+    render: (row) => (row.delta === undefined ? '—' : <DeltaCell value={row.delta * 100} />)
+  },
+  {
+    key: 'risk',
+    header: 'Risk contrib',
+    width: 100,
+    align: 'right',
+    render: (row) =>
+      row.riskContribution === undefined ? '—' : percent(row.riskContribution * 100)
+  },
+  {
     key: 'capped',
     header: 'Capped',
     width: 80,
@@ -51,11 +75,15 @@ const COLUMNS: readonly Column<WeightRow>[] = [
 /**
  * Beacon View → Weights. Figma 234:8155.
  *
- * Figma's table also carries Name, GICS Sub-Industry, Shares (000) and a
- * per-name "Δ since rebal". Name and sector are one reference call per
- * constituent (#45); shares and the per-name delta are not in `WeightsView`
- * at all — `drift` is an aggregate (turnover, maximum, worst name) with no
- * per-constituent breakdown. Filed as #46.
+ * Shares, Δ since rebal and risk contribution come from `WeightsView.rows`
+ * (BN-123) — the per-constituent breakdown this pane had no source for, when
+ * `drift` was an aggregate carrying only turnover and the worst mover.
+ *
+ * Each is rendered only when the engine sent it. A dash means it did not; a
+ * zero would be a claim.
+ *
+ * Name and GICS Sub-Industry still need the batch reference join and land
+ * with it.
  */
 export function IndexWeightsView({ tab, subject }: ViewProps): ReactElement {
   // The INDEX comes from the pin; `subject` is the selected CONSTITUENT.
@@ -67,10 +95,16 @@ export function IndexWeightsView({ tab, subject }: ViewProps): ReactElement {
   const weights = useWeights(indexId, asof)
   const setSubject = useWorkspace((state) => state.setSubject)
 
-  const rows = useMemo(
-    () => weightRows(weights.data?.weights ?? {}, weights.data?.capped ?? []),
-    [weights.data]
-  )
+  // Prefer the per-constituent rows; fall back to the identifier→fraction map,
+  // because a response without `rows` is still a valid one and the table
+  // should draw what it can rather than nothing.
+  const rows = useMemo(() => {
+    const detailed = weights.data?.rows
+    if (detailed !== undefined && detailed.length > 0) {
+      return constituentRows(detailed)
+    }
+    return weightRows(weights.data?.weights ?? {}, weights.data?.capped ?? [])
+  }, [weights.data])
 
   const concentration = weights.data?.concentration
   const drift = weights.data?.drift

@@ -17,6 +17,8 @@ import './DrilldownView.css'
 interface HistoryRow {
   rebalance: string
   weight: number
+  /** Pre-cap, from `raw_weight_history` (BN-126). */
+  raw: number | undefined
 }
 
 const HISTORY_COLUMNS: readonly Column<HistoryRow>[] = [
@@ -28,11 +30,35 @@ const HISTORY_COLUMNS: readonly Column<HistoryRow>[] = [
     render: (row) => row.rebalance.slice(0, 10)
   },
   {
+    key: 'raw',
+    header: 'Raw',
+    width: 90,
+    align: 'right',
+    render: (row) => (row.raw === undefined ? '—' : `${(row.raw * 100).toFixed(2)}%`)
+  },
+  {
     key: 'weight',
     header: 'Applied',
     width: 90,
     align: 'right',
     render: (row) => `${(row.weight * 100).toFixed(2)}%`
+  },
+  {
+    /*
+     * Derived, not reported: a name was capped on a rebalance exactly when
+     * less weight was applied than the rules asked for. That is what "capped"
+     * means, and comparing the two series says it for every rebalance —
+     * where `WeightsView.capped` only ever described the current one.
+     */
+    key: 'capped',
+    header: 'Capped',
+    width: 80,
+    render: (row) =>
+      row.raw !== undefined && row.raw - row.weight > 1e-9 ? (
+        <span className="drilldown-capped">at cap</span>
+      ) : (
+        '—'
+      )
   }
 ]
 
@@ -45,9 +71,11 @@ const HISTORY_COLUMNS: readonly Column<HistoryRow>[] = [
  * other — both just resolve their subject from whatever tab they were linked
  * to (taxonomy §1, archetype 6).
  *
- * Figma's weight-history table also carries Raw and Capped columns.
- * `AssetView.weight_history` is rebalance → the APPLIED weight only, with no
- * pre-cap figure, so those two are left out (#46).
+ * Raw and Capped are live since BN-126 added `raw_weight_history`. Capped is
+ * derived from the pair rather than reported: a name was held at the cap on a
+ * rebalance exactly when less was applied than the rules asked for, which is
+ * true for every rebalance in the history — `WeightsView.capped` only ever
+ * described the current one.
  */
 export function DrilldownView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
@@ -77,13 +105,12 @@ export function DrilldownView({ tab, subject }: ViewProps): ReactElement {
   )
   const mine = ranked.find((row) => row.ticker === identifier)
 
-  const history = useMemo<HistoryRow[]>(
-    () =>
-      Object.entries(asset.data?.weight_history ?? {})
-        .map(([rebalance, weight]) => ({ rebalance, weight }))
-        .sort((a, b) => b.rebalance.localeCompare(a.rebalance)),
-    [asset.data]
-  )
+  const history = useMemo<HistoryRow[]>(() => {
+    const raw = asset.data?.raw_weight_history ?? {}
+    return Object.entries(asset.data?.weight_history ?? {})
+      .map(([rebalance, weight]) => ({ rebalance, weight, raw: raw[rebalance] }))
+      .sort((a, b) => b.rebalance.localeCompare(a.rebalance))
+  }, [asset.data])
 
   return (
     <div className="drilldown-view">

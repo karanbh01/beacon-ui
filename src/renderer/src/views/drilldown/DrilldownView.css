@@ -35,3 +35,10 @@
   margin: 0;
   color: var(--text-muted);
 }
+
+/* Same mark the Weights table uses, so "at cap" reads identically in both. */
+.drilldown-capped {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--accent);
+}

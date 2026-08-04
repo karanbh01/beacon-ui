@@ -1,8 +1,11 @@
+import type { components } from '@shared/api.generated'
 import type { Point } from '../../charts/transform'
 import type { SeriesPayload } from '../backtest/backtest'
 import { toPoints } from '../backtest/backtest'
 
 export { toPoints }
+
+type ConstituentRow = components['schemas']['ConstituentRow']
 export type { SeriesPayload }
 
 /**
@@ -107,6 +110,45 @@ export interface WeightRow {
   /** 0–1 against the heaviest name, for the inline bar. */
   share: number
   capped: boolean
+  /** Weight before the cap was applied. Only rows carry it. */
+  rawWeight?: number
+  shares?: number
+  /** This name's own move since the rebalance, not the aggregate drift. */
+  delta?: number
+  riskContribution?: number
+}
+
+/**
+ * Rows from `WeightsView.rows` (BN-123), which is the per-constituent
+ * breakdown the pane used to have no source for.
+ *
+ * `weights` — the identifier→fraction map — is still the fallback, because a
+ * response without `rows` is a valid one and the table should still draw.
+ * Everything the map cannot supply is left undefined rather than defaulted:
+ * a share count of zero is a claim, and absent is the truth.
+ */
+export function constituentRows(rows: readonly ConstituentRow[]): WeightRow[] {
+  const sorted = [...rows].sort((a, b) => b.weight - a.weight)
+  const heaviest = sorted[0]?.weight ?? 0
+
+  return sorted.map((row, position) => ({
+    rank: position + 1,
+    ticker: row.identifier,
+    weight: row.weight,
+    share: heaviest === 0 ? 0 : row.weight / heaviest,
+    capped: row.capped,
+    // raw_weight is required on the row; the rest are nullable.
+    rawWeight: row.raw_weight,
+    ...(row.shares_outstanding === null || row.shares_outstanding === undefined
+      ? {}
+      : { shares: row.shares_outstanding }),
+    ...(row.delta_since_rebalance === null || row.delta_since_rebalance === undefined
+      ? {}
+      : { delta: row.delta_since_rebalance }),
+    ...(row.risk_contribution === null || row.risk_contribution === undefined
+      ? {}
+      : { riskContribution: row.risk_contribution })
+  }))
 }
 
 export function weightRows(
