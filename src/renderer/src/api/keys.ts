@@ -20,6 +20,11 @@ export const keys = {
     prices: (identifier: string, params?: Record<string, unknown>) =>
       ['data', 'prices', identifier, params ?? {}] as const,
     reference: (identifier: string) => ['data', 'reference', identifier] as const,
+    // Keyed by the identifiers AND the fields: asking for adv_3m is a
+    // different request from asking for names, and caching them as one
+    // would serve a hit that is missing the column the caller wanted.
+    referenceBatch: (identifiers: readonly string[], fields: readonly string[]) =>
+      ['data', 'reference-batch', identifiers.join(','), fields.join(',')] as const,
     corporateActions: (identifier: string, params?: Record<string, unknown>) =>
       ['data', 'corporate-actions', identifier, params ?? {}] as const,
     coverage: () => ['data', 'coverage'] as const,

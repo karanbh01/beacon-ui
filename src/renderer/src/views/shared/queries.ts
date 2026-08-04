@@ -36,6 +36,47 @@ export function useReference(identifier: string, options: ReferenceOptions = {})
   })
 }
 
+/**
+ * The reference columns a table needs, named rather than taking everything.
+ *
+ * `adv_3m` is derived and only returned when asked for — the reason ADV 3M
+ * could not be shown before was never just the fan-out.
+ */
+export const TABLE_REFERENCE_FIELDS = [
+  'name',
+  'gics_sector',
+  'gics_sub_industry',
+  'free_float_market_cap',
+  'market_cap',
+  'adv_3m'
+] as const
+
+/** py-beacon caps a batch at 1000 identifiers per call. */
+export const REFERENCE_BATCH_LIMIT = 1000
+
+/**
+ * Reference for a whole list in one request (BN-—, #45).
+ *
+ * Replaces a `useQueries` fan-out of one call per name, which is what forced
+ * the universe table to fill only its first 60 rows.
+ */
+export function useReferenceBatch(
+  identifiers: readonly string[],
+  fields: readonly string[] = TABLE_REFERENCE_FIELDS
+) {
+  const client = useBeacon()
+  const wanted = identifiers.slice(0, REFERENCE_BATCH_LIMIT)
+
+  return useQuery({
+    queryKey: keys.data.referenceBatch(wanted, fields),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.referenceBatch(wanted, fields, signal)
+    },
+    enabled: client !== null && wanted.length > 0
+  })
+}
+
 export interface CorporateActionsOptions {
   start?: string | undefined
 }

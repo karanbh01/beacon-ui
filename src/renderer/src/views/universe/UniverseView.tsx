@@ -1,7 +1,4 @@
 import { useMemo, type ReactElement } from 'react'
-import { useQueries } from '@tanstack/react-query'
-import { keys } from '../../api/keys'
-import { useBeacon } from '../../api/queryClient'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
@@ -10,7 +7,8 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useUniverseMembers, useUniverses } from '../shared/strategyQueries'
-import { DETAIL_LIMIT, billions, buildRow, type UniverseRow } from './universe'
+import { REFERENCE_BATCH_LIMIT, useReferenceBatch } from '../shared/queries'
+import { billions, buildRow, fieldsByIdentifier, volume, type UniverseRow } from './universe'
 import './UniverseView.css'
 
 const COLUMNS: readonly Column<UniverseRow>[] = [
@@ -26,24 +24,26 @@ const COLUMNS: readonly Column<UniverseRow>[] = [
   { key: 'sector', header: 'GICS Sector', width: 190, render: (row) => row.sector ?? '—' },
   {
     key: 'cap',
-    header: 'Mkt Cap ($B)',
+    header: 'FF Mkt Cap ($B)',
     width: 130,
     align: 'right',
     render: (row) => billions(row.marketCap)
-  }
+  },
+  { key: 'adv', header: 'ADV 3M', width: 100, align: 'right', render: (row) => volume(row.adv) }
 ]
 
 /**
  * Strategy Builder → Universe Set. Figma 234:6348.
  *
- * Figma's table also carries ADV 3M, which needs a prices call per name — 512
- * of them for a large-cap universe — so it is left out rather than fetched at
- * that cost. Name, sector and market cap come from reference, which has the
- * same shape of problem; those are filled for the first DETAIL_LIMIT rows and
- * the footnote says so. See #45.
+ * Every column the frame draws, from one request. This table used to fan out
+ * a reference call per name and stop at 60, with a footnote explaining why —
+ * `/data/reference` takes a list now (#45).
+ *
+ * ADV 3M comes back too, and not because of the batching: it is a DERIVED
+ * field, returned only when named in `fields`. The endpoint's default is
+ * stored columns, so asking for everything would still not have produced it.
  */
 export function UniverseView({ tab, subject }: ViewProps): ReactElement {
-  const client = useBeacon()
   const universes = useUniverses()
   const setSubject = useWorkspace((state) => state.setSubject)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
@@ -53,22 +53,17 @@ export function UniverseView({ tab, subject }: ViewProps): ReactElement {
   const members = useUniverseMembers(selected)
 
   const identifiers = useMemo(() => members.data?.identifiers ?? [], [members.data])
-  const detailed = useMemo(() => identifiers.slice(0, DETAIL_LIMIT), [identifiers])
 
-  const references = useQueries({
-    queries: detailed.map((identifier) => ({
-      queryKey: keys.data.reference(identifier),
-      queryFn: ({ signal }: { signal: AbortSignal }) => {
-        if (client === null) throw new Error('No engine')
-        return client.data.reference(identifier, signal)
-      },
-      enabled: client !== null,
-      retry: false
-    }))
-  })
+  // One request for the whole universe, where this was a useQueries fan-out
+  // of one call per name that stopped at 60.
+  const reference = useReferenceBatch(identifiers)
+  const byIdentifier = useMemo(
+    () => fieldsByIdentifier(reference.data?.entries ?? []),
+    [reference.data]
+  )
 
   const rows = identifiers.map((identifier, index) =>
-    buildRow(identifier, index + 1, references[index]?.data?.fields, index < DETAIL_LIMIT)
+    buildRow(identifier, index + 1, byIdentifier.get(identifier), byIdentifier.has(identifier))
   )
 
   return (
@@ -116,8 +111,8 @@ export function UniverseView({ tab, subject }: ViewProps): ReactElement {
           />
           <p className="universe-footnote type-11">
             {identifiers.length.toLocaleString('en-US')} assets
-            {identifiers.length > DETAIL_LIMIT &&
-              ` · detail shown for the first ${String(DETAIL_LIMIT)} (py-beacon has no batch reference endpoint)`}{' '}
+            {identifiers.length > REFERENCE_BATCH_LIMIT &&
+              ` · detail for the first ${REFERENCE_BATCH_LIMIT.toLocaleString('en-US')}, which is py-beacon's cap per call`}{' '}
             · click a row to open Reference Data
           </p>
         </>

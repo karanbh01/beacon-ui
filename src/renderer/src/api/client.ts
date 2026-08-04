@@ -150,6 +150,18 @@ export interface BeaconClient {
       identifier: string,
       signal?: AbortSignal
     ) => Promise<ResponseOf<'/data/reference/{identifier}'>>
+    /**
+     * Reference for many identifiers in one call.
+     *
+     * `fields` is not an optimisation here — it is what makes `adv_3m`
+     * reachable at all, since the endpoint returns stored columns by default
+     * and derived ones only when asked for.
+     */
+    referenceBatch: (
+      identifiers: readonly string[],
+      fields?: readonly string[],
+      signal?: AbortSignal
+    ) => Promise<ResponseOf<'/data/reference'>>
     corporateActions: (
       identifier: string,
       query?: QueryOf<'/data/corporate-actions/{identifier}'>,
@@ -323,6 +335,14 @@ export function createClient(options: ClientOptions): BeaconClient {
       reference: (identifier, signal) =>
         get('/data/reference/{identifier}', {
           params: { identifier },
+          ...(signal === undefined ? {} : { signal })
+        }),
+      referenceBatch: (identifiers, fields, signal) =>
+        get('/data/reference', {
+          query: {
+            identifiers: [...identifiers],
+            ...(fields === undefined ? {} : { fields: [...fields] })
+          },
           ...(signal === undefined ? {} : { signal })
         }),
       corporateActions: (identifier, query, signal) =>
