@@ -195,6 +195,18 @@ export interface BeaconClient {
       id: string,
       body?: BodyOf<'post', '/indices/{index_id}/preview'>
     ) => Promise<WriteResponse<'post', '/indices/{index_id}/preview'>>
+    /**
+     * Preview a DRAFT rather than what is saved.
+     *
+     * The id-only form can only describe the stored document, so the editor
+     * had to say its resolved figures belonged to the last save. This takes
+     * the document being edited.
+     */
+    previewDocument: (
+      body: BodyOf<'post', '/indices/preview'>
+    ) => Promise<WriteResponse<'post', '/indices/preview'>>
+    /** The catalogue that makes a real methodology form possible (#43). */
+    ruleTypes: (signal?: AbortSignal) => Promise<ResponseOf<'/indices/rule-types'>>
   }
   reports: {
     templates: (signal?: AbortSignal) => Promise<ResponseOf<'/reports/templates'>>
@@ -376,7 +388,10 @@ export function createClient(options: ClientOptions): BeaconClient {
         write('post', '/indices/{index_id}/preview', {
           params: { index_id: id },
           body: body ?? {}
-        })
+        }),
+      previewDocument: (body) => write('post', '/indices/preview', { body }),
+      ruleTypes: (signal) =>
+        get('/indices/rule-types', { ...(signal === undefined ? {} : { signal }) })
     },
     reports: {
       templates: (signal) =>

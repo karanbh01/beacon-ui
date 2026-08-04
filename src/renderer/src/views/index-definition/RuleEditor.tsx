@@ -1,129 +1,193 @@
 import { useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
+import { Select } from '../../components/Select/Select'
+import { useRuleTypes } from '../shared/strategyQueries'
 import type { RuleSpec } from './pipeline'
+import {
+  fieldValue,
+  findType,
+  missingRequired,
+  orderedParameters,
+  parseValue,
+  typesFor,
+  type ParameterSpec
+} from './ruleCatalogue'
 import './RuleEditor.css'
 
 export interface RuleEditorProps {
   rule: RuleSpec
+  /** Which stage the rule belongs to, so the type list is the right one. */
+  stage?: 'selection' | 'weighting'
   onApply: (rule: RuleSpec) => void
   onCancel: () => void
 }
 
-interface Param {
-  key: string
+/** A control matched to the catalogue's display type, not guessed from the value. */
+function ParamField({
+  param,
+  value,
+  onChange
+}: {
+  param: ParameterSpec
   value: string
-}
+  onChange: (next: string) => void
+}): ReactElement {
+  const label = param.required ? `${param.label} *` : param.label
 
-function toParams(rule: RuleSpec): Param[] {
-  return Object.entries(rule.params ?? {}).map(([key, value]) => ({
-    key,
-    value: typeof value === 'string' ? value : JSON.stringify(value)
-  }))
-}
-
-/**
- * Parse back to the type the user typed.
- *
- * JSON first so numbers, booleans and lists survive a round trip; a value
- * that is not JSON is kept as a string, which is what a bare word is.
- */
-function parse(value: string): unknown {
-  const trimmed = value.trim()
-  if (trimmed === '') return ''
-  try {
-    return JSON.parse(trimmed)
-  } catch {
-    return trimmed
+  if (param.choices !== null && param.choices !== undefined && param.choices.length > 0) {
+    return (
+      <Field label={label} width={180}>
+        <Select
+          label={param.label}
+          options={param.choices.map((choice) => ({ value: choice, label: choice }))}
+          value={value}
+          onChange={onChange}
+          placeholder="—"
+        />
+      </Field>
+    )
   }
+
+  if (param.type === 'boolean') {
+    return (
+      <Field label={label} width={180}>
+        <Select
+          label={param.label}
+          options={[
+            { value: 'true', label: 'true' },
+            { value: 'false', label: 'false' }
+          ]}
+          value={value === '' ? 'false' : value}
+          onChange={onChange}
+        />
+      </Field>
+    )
+  }
+
+  return (
+    <Field label={label} width={180}>
+      <input
+        className="rule-editor-input"
+        aria-label={param.label}
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value)
+        }}
+      />
+    </Field>
+  )
 }
 
 /**
  * Figma 324:1614, the accordion that opens under a selected rule.
  *
- * Figma draws named controls — Scope, Cap level, Redistribution, Breach
- * handling — because it knows what a CapRule takes. beacon-ui does not:
- * `RuleSpec.params` is a free-form object and py-beacon publishes no
- * catalogue of rule types or their arguments, unlike `/optimise/constraint-
- * types` which does exactly that for constraints. So the editor is generic —
- * type plus key/value pairs — and issue #43 asks for the catalogue that would
- * let it render real fields.
+ * The frame draws named controls — Scope, Cap level, Redistribution, Breach
+ * handling — because the designer knew what a CapRule takes. This used to be
+ * a free-text type plus untyped key/value pairs, because `RuleSpec.params` is
+ * an open object and nothing published which arguments a rule accepts.
+ *
+ * `/indices/rule-types` (BN-117) publishes exactly that, so the type is a
+ * closed list and every parameter renders as the control its display type
+ * asks for, labelled and ordered by the catalogue. A misspelled type is
+ * unselectable rather than discovered on validate, and a missing required
+ * argument is reported before the round trip.
+ *
+ * With no catalogue — an older engine, or one still starting — it degrades to
+ * the free-form editor rather than blocking the pane.
  */
-export function RuleEditor({ rule, onApply, onCancel }: RuleEditorProps): ReactElement {
+export function RuleEditor({
+  rule,
+  stage = 'selection',
+  onApply,
+  onCancel
+}: RuleEditorProps): ReactElement {
+  const catalogue = useRuleTypes()
   const [type, setType] = useState(rule.type)
-  const [params, setParams] = useState<Param[]>(toParams(rule))
+  const [edited, setEdited] = useState<Record<string, string>>({})
 
-  const apply = (): void => {
-    const entries = params
-      .filter((param) => param.key.trim() !== '')
-      .map((param) => [param.key.trim(), parse(param.value)] as const)
-    onApply({ id: rule.id, type: type.trim(), params: Object.fromEntries(entries) })
+  const spec = findType(catalogue.data, type)
+  const parameters = orderedParameters(spec)
+  const options = typesFor(catalogue.data, stage).map((entry) => ({
+    value: entry.name,
+    label: entry.label
+  }))
+
+  const current = (param: ParameterSpec): string =>
+    edited[param.name] ?? fieldValue(param, rule.params ?? {})
+
+  const applied = (): Record<string, unknown> => {
+    const params: Record<string, unknown> = {}
+    for (const param of parameters) {
+      const parsed = parseValue(param, current(param))
+      // Null means the field was left empty. Omitting it lets py-beacon apply
+      // its own default rather than being told the value is None.
+      if (parsed !== null) params[param.name] = parsed
+    }
+    return params
   }
 
-  const update = (index: number, patch: Partial<Param>): void => {
-    setParams((current) =>
-      current.map((param, at) => (at === index ? { ...param, ...patch } : param))
-    )
-  }
+  const missing = missingRequired(spec, applied())
 
   return (
     <div className="rule-editor">
       <div className="rule-editor-fields">
-        <Field label="Rule type" width={200}>
-          <input
-            className="rule-editor-input"
-            aria-label="Rule type"
-            value={type}
-            onChange={(event) => {
-              setType(event.target.value)
-            }}
-          />
+        <Field label="Rule type" width={220}>
+          {options.length > 0 ? (
+            <Select label="Rule type" options={options} value={type} onChange={setType} />
+          ) : (
+            <input
+              className="rule-editor-input"
+              aria-label="Rule type"
+              value={type}
+              onChange={(event) => {
+                setType(event.target.value)
+              }}
+            />
+          )}
         </Field>
 
-        {params.map((param, index) => (
-          <div className="rule-editor-param" key={index}>
-            <Field label="Parameter" width={160}>
-              <input
-                className="rule-editor-input"
-                aria-label={`Parameter ${String(index + 1)} name`}
-                value={param.key}
-                onChange={(event) => {
-                  update(index, { key: event.target.value })
-                }}
-              />
-            </Field>
-            <Field label="Value" width={160}>
-              <input
-                className="rule-editor-input"
-                aria-label={`Parameter ${String(index + 1)} value`}
-                value={param.value}
-                onChange={(event) => {
-                  update(index, { value: event.target.value })
-                }}
-              />
-            </Field>
-          </div>
+        {parameters.map((param) => (
+          <ParamField
+            key={param.name}
+            param={param}
+            value={current(param)}
+            onChange={(next) => {
+              setEdited((all) => ({ ...all, [param.name]: next }))
+            }}
+          />
         ))}
       </div>
 
       <div className="rule-editor-actions">
-        <Button variant="accent" onClick={apply}>
+        <Button
+          variant="accent"
+          onClick={() => {
+            onApply({ id: rule.id, type, params: applied() })
+          }}
+          disabled={missing.length > 0}
+        >
           Apply
         </Button>
         <Button onClick={onCancel}>Cancel</Button>
-        <Button
-          onClick={() => {
-            setParams((current) => [...current, { key: '', value: '' }])
-          }}
-        >
-          Add parameter
-        </Button>
       </div>
 
-      <p className="rule-editor-note type-11">
-        Parameters are free-form: py-beacon does not publish which arguments a rule type accepts.
-        Values are read as JSON where they parse, otherwise as text.
-      </p>
+      {spec !== undefined && spec.summary !== '' && (
+        <p className="rule-editor-note type-11">{spec.summary}</p>
+      )}
+
+      {missing.length > 0 && (
+        <p className="rule-editor-note type-11">
+          Needs {missing.join(', ')} before this rule can be applied.
+        </p>
+      )}
+
+      {options.length === 0 && (
+        <p className="rule-editor-note type-11">
+          This engine publishes no rule catalogue, so the type is free text and parameters cannot be
+          labelled. Values are read as JSON where they parse, otherwise as text.
+        </p>
+      )}
     </div>
   )
 }

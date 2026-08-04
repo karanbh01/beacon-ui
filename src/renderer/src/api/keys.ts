@@ -39,6 +39,7 @@ export const keys = {
    * for a reason the user did not cause.
    */
   strategy: {
+    ruleTypes: () => ['strategy', 'rule-types'] as const,
     all: () => ['strategy'] as const,
     indices: () => ['strategy', 'indices'] as const,
     index: (indexId: string) => ['strategy', 'index', indexId] as const,

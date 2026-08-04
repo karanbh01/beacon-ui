@@ -205,3 +205,23 @@ export function useRunBacktest() {
     }
   })
 }
+
+/**
+ * The rule-type catalogue (BN-117).
+ *
+ * Static for the life of a server — it is derived from the classes py-beacon
+ * ships — so it is cached hard rather than refetched per editor.
+ */
+export function useRuleTypes() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.strategy.ruleTypes(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.indices.ruleTypes(signal)
+    },
+    enabled: client !== null,
+    staleTime: Infinity
+  })
+}
