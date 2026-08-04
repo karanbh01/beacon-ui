@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data/reference": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reference Batch */
+        get: operations["reference_batch_data_reference_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/data/reference/{identifier}": {
         parameters: {
             query?: never;
@@ -330,6 +347,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/indices/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Document */
+        post: operations["preview_document_indices_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/indices/rule-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rule Types */
+        get: operations["rule_types_indices_rule_types_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/indices/validate": {
         parameters: {
             query?: never;
@@ -376,6 +427,23 @@ export interface paths {
         put?: never;
         /** Preview */
         post: operations["preview_indices__index_id__preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/indices/{index_id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Schedule */
+        get: operations["schedule_indices__index_id__schedule_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -717,6 +785,46 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * ActiveRiskPayload
+         * @description How tracking error against a benchmark divides among active positions.
+         *
+         *     Contributions sum to `tracking_error` exactly, the same identity the total
+         *     decomposition satisfies — on active weights rather than holdings.
+         */
+        ActiveRiskPayload: {
+            /**
+             * Benchmark
+             * @description Index the comparison is against.
+             */
+            benchmark: string;
+            /**
+             * Contributions Not Held
+             * @description Contributions from benchmark constituents the index does not hold. They have no row in the weights table but are often the largest active positions there are, so omitting them would hide the biggest sources of tracking error.
+             */
+            contributions_not_held?: {
+                [key: string]: number;
+            };
+            /**
+             * Covered Weight
+             * @description Share of *gross* active weight the model covers. Gross because active weights sum to roughly zero, so a plain sum would say nothing about coverage.
+             */
+            covered_weight: number;
+            /**
+             * Tracking Error
+             * @description Annualised volatility of the active position.
+             */
+            tracking_error: number;
+            /**
+             * Uncovered
+             * @description Names with no estimate, from either side.
+             */
+            uncovered?: string[];
+            /** Window End */
+            window_end?: string | null;
+            /** Window Start */
+            window_start?: string | null;
+        };
+        /**
          * AssetView
          * @description Response of `GET /beacon/{index_id}/assets/{identifier}`.
          */
@@ -736,6 +844,13 @@ export interface components {
             /** Observations */
             observations: number;
             price: components["schemas"]["SeriesPayload"];
+            /**
+             * Raw Weight History
+             * @description The same dates -> the weight before capping. Added alongside `weight_history` rather than replacing it, so the drilldown can show what the cap did to this name over time without breaking a client reading only the applied series.
+             */
+            raw_weight_history?: {
+                [key: string]: number;
+            };
             /** Rebalances Held */
             rebalances_held: number;
             /** Total Return */
@@ -744,7 +859,7 @@ export interface components {
             tracking_error: number;
             /**
              * Weight History
-             * @description Rebalance date -> this name's weight. Only the rebalances it was actually in.
+             * @description Rebalance date -> this name's applied weight. Only the rebalances it was actually in.
              */
             weight_history: {
                 [key: string]: number;
@@ -849,6 +964,23 @@ export interface components {
              * @default 0
              */
             transaction_cost_bps: number;
+        };
+        /**
+         * BatchReferenceResponse
+         * @description Response of `GET /data/reference`.
+         *
+         *     Entries are in the order the request named them, one per identifier, so a
+         *     table can render straight down the list without re-sorting against what it
+         *     asked for.
+         */
+        BatchReferenceResponse: {
+            /**
+             * As Of
+             * @description Point-in-time date applied, if one was requested.
+             */
+            as_of?: string | null;
+            /** Entries */
+            entries: components["schemas"]["ReferenceEntry"][];
         };
         /**
          * BenchmarkRef
@@ -969,6 +1101,60 @@ export interface components {
             };
         };
         /**
+         * ConstituentRow
+         * @description One constituent's row in the weights table.
+         *
+         *     Everything a row needs is here, so the table renders from one response
+         *     rather than joining three. The two weights are the point: `raw_weight` is
+         *     what the weighting scheme produced, `weight` is what survived the cap, and
+         *     the difference is what capping moved.
+         */
+        ConstituentRow: {
+            /**
+             * Active Risk Contribution
+             * @description This name's share of tracking error. **Can be negative**: an underweight that hedges an overweight genuinely reduces tracking error, and hiding that behind an absolute value would misreport what the index is doing.
+             */
+            active_risk_contribution?: number | null;
+            /**
+             * Active Weight
+             * @description Weight minus the benchmark's, when a `benchmark` was given. Negative is an underweight.
+             */
+            active_weight?: number | null;
+            /**
+             * Capped
+             * @description Whether this name was held at the cap on this rebalance.
+             * @default false
+             */
+            capped: boolean;
+            /**
+             * Delta Since Rebalance
+             * @description Held weight minus target weight, for this name, as of `as_of`. Null when `as_of` is the rebalance date itself: the weights were just set, so nothing has drifted and a zero would claim a measurement rather than its absence.
+             */
+            delta_since_rebalance?: number | null;
+            /** Identifier */
+            identifier: string;
+            /**
+             * Raw Weight
+             * @description Weight before capping. Equal to `weight` on an uncapped index, and the only way to see what the cap cost.
+             */
+            raw_weight: number;
+            /**
+             * Risk Contribution
+             * @description This name's share of the index's annualised volatility, in the same units. Populated only when `risk=true` was requested; null also when the risk model has no estimate for this constituent, which `risk.uncovered` lists.
+             */
+            risk_contribution?: number | null;
+            /**
+             * Shares Outstanding
+             * @description The company's shares outstanding on this date, from market data. Deliberately NOT the number of shares the index holds — that is a different figure needing a divisor and a notional, and naming this one `shares` would let the two be confused silently.
+             */
+            shares_outstanding?: number | null;
+            /**
+             * Weight
+             * @description Applied weight, after any cap.
+             */
+            weight: number;
+        };
+        /**
          * ConstraintRow
          * @description One constraint, in the shape a client's editor holds it.
          *
@@ -1032,8 +1218,13 @@ export interface components {
          */
         ConstraintTypes: {
             /**
+             * Specs
+             * @description The same constraint types in the richer shape `/indices/rule-types` uses, so one client component can render both editors.
+             */
+            specs?: components["schemas"]["TypeSpec"][];
+            /**
              * Types
-             * @description Constraint type -> the parameters it accepts.
+             * @description Constraint type -> the parameters it accepts. Kept for clients written against the original shape; `specs` carries the same set with everything needed to render it.
              */
             types: {
                 [key: string]: string[];
@@ -1056,6 +1247,12 @@ export interface components {
         /**
          * CorporateAction
          * @description One corporate action.
+         *
+         *     `kind` is the authoritative answer to what `value` means, and the reason a
+         *     client needs no list of type strings. Reading `type` and inferring cash or
+         *     ratio from a hardcoded list works until a type the client has never seen
+         *     arrives, at which point it renders as whichever the list defaults to —
+         *     confidently, and wrongly.
          */
         CorporateAction: {
             /**
@@ -1064,13 +1261,29 @@ export interface components {
              */
             ex_date: string;
             /**
+             * Kind
+             * @description What `value` means. 'cash' is an amount per share and adds up; 'ratio' is a share-count multiplier and compounds; 'structural' (rights issue, spin-off, merger) carries no directly aggregable value and should not be rendered as a quantity in either column.
+             * @enum {string}
+             */
+            kind: "cash" | "ratio" | "structural";
+            /**
+             * Pay Date
+             * @description Payment date, ISO 8601, where the source knows it. Null means unknown — omit the field in the UI rather than dashing it, since a dash reads as 'there is none'.
+             */
+            pay_date?: string | null;
+            /**
+             * Status
+             * @description Lifecycle state, where the source knows it. Null means unknown, not 'not yet announced'.
+             */
+            status?: ("announced" | "paid" | "cancelled") | null;
+            /**
              * Type
-             * @description Action type, e.g. DIVIDEND or SPLIT.
+             * @description Action type, e.g. DIVIDEND or SPLIT. A closed set the engine validates on load, but branch on `kind` rather than on this: new types are added, and a client that matches type strings breaks silently when one is.
              */
             type: string;
             /**
              * Value
-             * @description Cash amount per share for cash actions; a share-count multiplier for ratio actions. What it means depends on the type, so the two are never summed together.
+             * @description Cash amount per share for cash actions; a share-count multiplier for ratio actions. What it means depends on `kind`, so the two are never summed together.
              */
             value: number;
         };
@@ -1110,8 +1323,19 @@ export interface components {
          * @description Response of `GET /data/coverage`.
          */
         CoverageResponse: {
+            /**
+             * Cache Size Bytes
+             * @description Total bytes on disk for the whole store. Null when no store backs this process.
+             */
+            cache_size_bytes?: number | null;
             /** Datasets */
             datasets: components["schemas"]["DatasetCoverage"][];
+            /**
+             * Identifiers Union
+             * @description Distinct identifiers across every dataset. Not the sum of the per-dataset counts: a name present in both market and reference data would otherwise be counted twice, and 'assets covered' would exceed the universe.
+             * @default 0
+             */
+            identifiers_union: number;
         };
         /**
          * DataSourceStatus
@@ -1140,6 +1364,11 @@ export interface components {
              */
             cache_age?: number | null;
             /**
+             * Cache Size Bytes
+             * @description Bytes the backing store occupies on disk. Null when the data did not come from a store, in which case it has no size to report rather than a size of zero.
+             */
+            cache_size_bytes?: number | null;
+            /**
              * Configured
              * @description Whether this dataset is loaded.
              */
@@ -1155,6 +1384,18 @@ export interface components {
              */
             end?: string | null;
             /**
+             * Field Count
+             * @description Data columns this dataset holds, excluding the identifier and date keys.
+             * @default 0
+             */
+            field_count: number;
+            /**
+             * Frequency
+             * @description How often this dataset is expected to change: 'daily', 'static' or 'event'. The engine's definition of what stale means, so a client renders staleness from this rather than from thresholds of its own.
+             * @default static
+             */
+            frequency: string;
+            /**
              * Identifiers
              * @description Distinct identifiers present.
              */
@@ -1164,6 +1405,16 @@ export interface components {
              * @description When this dataset was last loaded or synced, ISO 8601. Carried alongside the age because an age is only meaningful at the instant it was read, and a client holding a response for a minute needs the timestamp.
              */
             last_refreshed?: string | null;
+            /**
+             * Source
+             * @description Where the data was loaded from, e.g. 'synthetic', 'yfinance', 'local'. Null when a fetcher was assembled in-process and nothing recorded a provenance.
+             */
+            source?: string | null;
+            /**
+             * Stale After Seconds
+             * @description Age beyond which this dataset should read as stale. Published so the mapping from frequency to a duration lives in one place; null means the question does not apply, as for static data.
+             */
+            stale_after_seconds?: number | null;
             /**
              * Start
              * @description Earliest date held, ISO 8601.
@@ -1518,12 +1769,23 @@ export interface components {
              */
             base_value: number;
             /**
+             * Calendar
+             * @description Exchange MIC backing trading-day arithmetic, e.g. 'XNYS'. Null means Monday to Friday, which is what every index defined before this field used. Naming one requires the `calendars` extra — an index that declares a calendar must never quietly compute against a different one.
+             */
+            calendar?: string | null;
+            /**
              * Currency
              * @description Index currency.
              */
             currency: string;
             /** Description */
             description?: string | null;
+            /**
+             * Effective Lag Sessions
+             * @description Sessions between a rebalance being announced and its weights taking effect. Stored now, honoured by the calculator in BN-126; until then it is declared and not applied, and 0 is the behaviour in force.
+             * @default 0
+             */
+            effective_lag_sessions: number;
             /**
              * Id
              * @description Stable identifier, used in the URL.
@@ -1536,11 +1798,35 @@ export interface components {
             name: string;
             pipeline: components["schemas"]["PipelineSpec"];
             /**
+             * Publication Time
+             * @description When the level is published, e.g. '18:00 America/New_York'. Display metadata: it says when a figure is released and changes no figure, so nothing in the calculation reads it.
+             */
+            publication_time?: string | null;
+            /**
+             * Rebalance Day Rule
+             * @description Which day of a scheduled month the rebalance falls on: FIRST_BUSINESS_DAY, LAST_BUSINESS_DAY or THIRD_FRIDAY. A date landing on a holiday rolls back to the previous session.
+             * @default FIRST_BUSINESS_DAY
+             */
+            rebalance_day_rule: string;
+            /**
              * Rebalancing Frequency
-             * @description MONTHLY, QUARTERLY, SEMI-ANNUAL or ANNUAL.
+             * @description MONTHLY, QUARTERLY, SEMI-ANNUAL or ANNUAL. The cadence; `rebalance_day_rule` decides which day of the month.
              */
             rebalancing_frequency: string;
+            /**
+             * Return Type
+             * @description How returns accumulate. PRICE ignores distributions; TOTAL_RETURN reinvests them across the index by shrinking the divisor; NET_TOTAL_RETURN does the same after withholding tax. PRICE is the default, so an index defined before this existed is unchanged.
+             * @default PRICE
+             * @enum {string}
+             */
+            return_type: "PRICE" | "TOTAL_RETURN" | "NET_TOTAL_RETURN";
             universe: components["schemas"]["UniverseRef"];
+            /**
+             * Withholding Tax Rate
+             * @description Fraction of each distribution withheld, for a net index. A flat index-level rate rather than a per-country table: a table is only as good as the country field behind it, and an unpopulated one produces a number that looks precise and is not. Ignored unless `return_type` is NET_TOTAL_RETURN.
+             * @default 0
+             */
+            withholding_tax_rate: number;
         };
         /**
          * JobCollection
@@ -1650,6 +1936,57 @@ export interface components {
             start: string;
         };
         /**
+         * ParameterSpec
+         * @description One parameter of a configurable type, described well enough to render.
+         *
+         *     Names, types, defaults and whether a parameter is required are read from
+         *     the constructor, so they cannot drift from what the code accepts. Labels,
+         *     ordering and choices are declared on the class, because a signature cannot
+         *     carry them.
+         */
+        ParameterSpec: {
+            /**
+             * Choices
+             * @description The accepted values, when this is a closed set. Null means any value of `type` is allowed.
+             */
+            choices?: string[] | null;
+            /**
+             * Default
+             * @description Value used when omitted. Null both for 'no default' and for a default of None; `required` distinguishes them.
+             */
+            default?: unknown;
+            /**
+             * Help
+             * @description One line of guidance for the field.
+             */
+            help?: string | null;
+            /**
+             * Label
+             * @description Human-readable field name.
+             */
+            label: string;
+            /**
+             * Name
+             * @description Parameter name, as it must appear in `params`.
+             */
+            name: string;
+            /**
+             * Order
+             * @description Position in the form, ascending.
+             */
+            order: number;
+            /**
+             * Required
+             * @description Whether the constructor rejects the call without it.
+             */
+            required: boolean;
+            /**
+             * Type
+             * @description Display type: number, integer, boolean, string or json. What control to render, not the Python annotation.
+             */
+            type: string;
+        };
+        /**
          * PipelineSpec
          * @description The grouped rule pipeline: Selection, Weighting, Treatment.
          */
@@ -1699,8 +2036,26 @@ export interface components {
             weight?: number | null;
         };
         /**
+         * PreviewDocumentRequest
+         * @description Body of `POST /indices/preview`, which previews a document as supplied.
+         *
+         *     The route for a draft. The by-id route reads what is stored, so while an
+         *     editor holds unsaved changes its figures describe the old definition — with
+         *     nothing on screen to say they are stale. This one previews exactly what was
+         *     sent, so editing a rule updates the resolved figures without saving.
+         */
+        PreviewDocumentRequest: {
+            /**
+             * As Of
+             * @description Date to evaluate the pipeline at, YYYY-MM-DD. Defaults to the document's base date.
+             */
+            as_of?: string | null;
+            /** @description The definition to derive, saved or not. */
+            document: components["schemas"]["IndexDocument"];
+        };
+        /**
          * PreviewRequest
-         * @description Body of `POST /indices/{id}/preview`.
+         * @description Body of `POST /indices/{id}/preview`, which previews the *saved* index.
          */
         PreviewRequest: {
             /**
@@ -1794,6 +2149,26 @@ export interface components {
             interval: string;
             /** @description Date-indexed market data. */
             prices: components["schemas"]["TableFrame"];
+        };
+        /**
+         * ReferenceEntry
+         * @description One identifier's row in a batch reference response.
+         */
+        ReferenceEntry: {
+            /**
+             * Fields
+             * @description Requested reference columns and derived fields. A column the dataset holds but this identifier has no value for is present and null, which is a different statement from the identifier being absent.
+             */
+            fields?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Found
+             * @description Whether the reference dataset holds this identifier. False leaves `fields` empty rather than failing the batch, so one unknown name does not lose the other 511.
+             */
+            found: boolean;
+            /** Identifier */
+            identifier: string;
         };
         /**
          * ReferenceResponse
@@ -2046,6 +2421,41 @@ export interface components {
             };
         };
         /**
+         * RiskPayload
+         * @description How the index's volatility divides among its holdings.
+         *
+         *     Contributions sum to `volatility` exactly rather than approximately — the
+         *     decomposition is an identity, so a client can show the parts and the whole
+         *     without them disagreeing.
+         */
+        RiskPayload: {
+            /**
+             * Covered Weight
+             * @description Fraction of the index the figure speaks for. Below 1.0 when the model has no estimate for some constituent; the covered names keep their real weights rather than being renormalised, which would restate the portfolio.
+             */
+            covered_weight: number;
+            /**
+             * Uncovered
+             * @description Constituents with no estimate, usually for want of history. Listed rather than only counted, so a reader sees which names are missing.
+             */
+            uncovered?: string[];
+            /**
+             * Volatility
+             * @description Annualised volatility of the covered holdings, at the weights they are actually held.
+             */
+            volatility: number;
+            /**
+             * Window End
+             * @description Last date of the estimation window.
+             */
+            window_end?: string | null;
+            /**
+             * Window Start
+             * @description First date of the estimation window.
+             */
+            window_start?: string | null;
+        };
+        /**
          * RollResponse
          * @description Response of `GET /derivatives/{index_id}/roll`.
          *
@@ -2102,6 +2512,27 @@ export interface components {
             type: string;
         };
         /**
+         * RuleTypes
+         * @description Response of `GET /indices/rule-types`.
+         *
+         *     Everything a methodology editor needs to render a real form: which rules
+         *     and schemes exist, what each takes, and how to label and order the fields.
+         *     Without it `RuleSpec.type` is a free-text box and `params` a list of
+         *     key/value pairs, so a misspelled parameter is only discovered on submit.
+         */
+        RuleTypes: {
+            /**
+             * Selection
+             * @description Eligibility rules available for the selection stage.
+             */
+            selection: components["schemas"]["TypeSpec"][];
+            /**
+             * Weighting
+             * @description Weighting schemes available for the weighting stage.
+             */
+            weighting: components["schemas"]["TypeSpec"][];
+        };
+        /**
          * SavedConstraintSet
          * @description Response of a successful save: the set plus any warnings.
          */
@@ -2124,6 +2555,51 @@ export interface components {
              */
             findings?: components["schemas"]["Finding"][];
             index: components["schemas"]["IndexDocument"];
+        };
+        /**
+         * ScheduleView
+         * @description Response of `GET /indices/{index_id}/schedule`.
+         *
+         *     Derived, not stored: the next rebalance is a function of the schedule, the
+         *     calendar and today, and storing it would leave a date that silently expires.
+         */
+        ScheduleView: {
+            /**
+             * As Of
+             * @description Date the answer was computed from.
+             */
+            as_of: string;
+            /**
+             * Calendar
+             * @description Null means business days.
+             */
+            calendar?: string | null;
+            /**
+             * Days Until
+             * @description Calendar days from `as_of` to `next_rebalance`. Calendar days rather than sessions, because it is displayed as 'in 57 days' and a reader counts those on a wall calendar.
+             */
+            days_until?: number | null;
+            /** Index Id */
+            index_id: string;
+            /**
+             * Next Rebalance
+             * @description Next rebalance date, ISO 8601. Null when none falls within the lookahead — which happens only for a schedule this server cannot project, not for a normal index.
+             */
+            next_rebalance?: string | null;
+            /** Rebalance Day Rule */
+            rebalance_day_rule: string;
+            /** Rebalancing Frequency */
+            rebalancing_frequency: string;
+            /**
+             * Recent
+             * @description Rebalances already passed, most recent last.
+             */
+            recent?: string[];
+            /**
+             * Upcoming
+             * @description Scheduled rebalances after `as_of`, soonest first.
+             */
+            upcoming?: string[];
         };
         /**
          * SeriesPayload
@@ -2395,6 +2871,30 @@ export interface components {
             valuation_date: string;
         };
         /**
+         * TypeSpec
+         * @description One configurable type a client can offer.
+         */
+        TypeSpec: {
+            /**
+             * Label
+             * @description Human-readable name for the type.
+             */
+            label: string;
+            /**
+             * Name
+             * @description Class name, as it must appear in `type`.
+             */
+            name: string;
+            /** Parameters */
+            parameters?: components["schemas"]["ParameterSpec"][];
+            /**
+             * Summary
+             * @description One line describing what it does.
+             * @default
+             */
+            summary: string;
+        };
+        /**
          * Universe
          * @description A named set of instrument identifiers.
          */
@@ -2557,6 +3057,13 @@ export interface components {
          * @description Response of `GET /beacon/{index_id}/weights`.
          */
         WeightsView: {
+            /** @description The tracking-error decomposition, when a `benchmark` index was named alongside `risk=true`. */
+            active_risk?: components["schemas"]["ActiveRiskPayload"] | null;
+            /**
+             * Announced Date
+             * @description When that composition was published, if earlier than `rebalance_date`. Null when the index has no lag.
+             */
+            announced_date?: string | null;
             /**
              * As Of
              * @description Date asked about.
@@ -2581,6 +3088,13 @@ export interface components {
              * @description Rebalance in force on that date. An index holds the weights set at its last rebalance until the next one, so this is usually earlier than `as_of`.
              */
             rebalance_date: string;
+            /** @description The volatility decomposition, when `risk=true` was requested. Null otherwise: estimating a covariance over every constituent is the pane's whole cost, and nobody should pay it without asking. */
+            risk?: components["schemas"]["RiskPayload"] | null;
+            /**
+             * Rows
+             * @description Per-constituent detail, heaviest first. Carries the same applied weights as `weights`, which is kept because charts and concentration maths want a mapping while a table wants ordered rows.
+             */
+            rows?: components["schemas"]["ConstituentRow"][];
             /** Weights */
             weights: {
                 [key: string]: number;
@@ -2991,6 +3505,10 @@ export interface operations {
             query?: {
                 /** @description Date to report at, YYYY-MM-DD. Defaults to the latest rebalance. */
                 asof?: string | null;
+                /** @description Decompose the index's volatility across its constituents. Off by default: estimating a covariance over every name is the pane's whole cost. */
+                risk?: boolean;
+                /** @description Index id to measure tracking error against. Requires risk=true. */
+                benchmark?: string | null;
             };
             header?: never;
             path: {
@@ -3329,6 +3847,87 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PricesResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reference_batch_data_reference_get: {
+        parameters: {
+            query?: {
+                /** @description Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call. */
+                identifiers?: string[] | null;
+                /** @description Point-in-time date, YYYY-MM-DD. Returns only rows valid then. */
+                date?: string | null;
+                /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
+                fields?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchReferenceResponse"];
                 };
             };
             /** @description Missing or invalid bearer token. */
@@ -4324,6 +4923,158 @@ export interface operations {
             };
         };
     };
+    preview_document_indices_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationReport"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rule_types_indices_rule_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleTypes"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     validate_indices_validate_post: {
         parameters: {
             query?: never;
@@ -4580,6 +5331,85 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PreviewResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    schedule_indices__index_id__schedule_get: {
+        parameters: {
+            query?: {
+                /** @description Date to answer from, YYYY-MM-DD. Defaults to today. */
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleView"];
                 };
             };
             /** @description Missing or invalid bearer token. */

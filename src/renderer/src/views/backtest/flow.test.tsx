@@ -31,6 +31,10 @@ const FRESH: IndexDocument = {
   base_date: '2020-01-01',
   base_value: 100,
   rebalancing_frequency: 'QUARTERLY',
+  return_type: 'PRICE',
+  rebalance_day_rule: 'FIRST_BUSINESS_DAY',
+  effective_lag_sessions: 0,
+  withholding_tax_rate: 0,
   universe: { universe_id: 'US-LARGECAP' },
   pipeline: {
     selection: [{ id: 'r1', type: 'FilterRule', params: { sector: 'Information Technology' } }],

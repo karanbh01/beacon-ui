@@ -253,6 +253,13 @@ export function blankIndex(id: string): IndexDocument {
     base_date: '2020-01-01',
     base_value: 100,
     rebalancing_frequency: 'QUARTERLY',
+    // py-beacon's own defaults for the metadata BN-121 and BN-125 added. A
+    // new document has to carry them because the generated type makes a
+    // defaulted field required — the server always sends one back.
+    return_type: 'PRICE',
+    rebalance_day_rule: 'FIRST_BUSINESS_DAY',
+    effective_lag_sessions: 0,
+    withholding_tax_rate: 0,
     universe: { universe_id: null },
     pipeline: {
       selection: [],

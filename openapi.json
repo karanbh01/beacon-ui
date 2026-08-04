@@ -1,6 +1,71 @@
 {
   "components": {
     "schemas": {
+      "ActiveRiskPayload": {
+        "description": "How tracking error against a benchmark divides among active positions.\n\nContributions sum to `tracking_error` exactly, the same identity the total\ndecomposition satisfies — on active weights rather than holdings.",
+        "properties": {
+          "benchmark": {
+            "description": "Index the comparison is against.",
+            "title": "Benchmark",
+            "type": "string"
+          },
+          "contributions_not_held": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Contributions from benchmark constituents the index does not hold. They have no row in the weights table but are often the largest active positions there are, so omitting them would hide the biggest sources of tracking error.",
+            "title": "Contributions Not Held",
+            "type": "object"
+          },
+          "covered_weight": {
+            "description": "Share of *gross* active weight the model covers. Gross because active weights sum to roughly zero, so a plain sum would say nothing about coverage.",
+            "title": "Covered Weight",
+            "type": "number"
+          },
+          "tracking_error": {
+            "description": "Annualised volatility of the active position.",
+            "title": "Tracking Error",
+            "type": "number"
+          },
+          "uncovered": {
+            "description": "Names with no estimate, from either side.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Uncovered",
+            "type": "array"
+          },
+          "window_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window End"
+          },
+          "window_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window Start"
+          }
+        },
+        "required": [
+          "benchmark",
+          "tracking_error",
+          "covered_weight"
+        ],
+        "title": "ActiveRiskPayload",
+        "type": "object"
+      },
       "AssetView": {
         "description": "Response of `GET /beacon/{index_id}/assets/{identifier}`.",
         "properties": {
@@ -35,6 +100,14 @@
           "price": {
             "$ref": "#/components/schemas/SeriesPayload"
           },
+          "raw_weight_history": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "The same dates -> the weight before capping. Added alongside `weight_history` rather than replacing it, so the drilldown can show what the cap did to this name over time without breaking a client reading only the applied series.",
+            "title": "Raw Weight History",
+            "type": "object"
+          },
           "rebalances_held": {
             "title": "Rebalances Held",
             "type": "integer"
@@ -51,7 +124,7 @@
             "additionalProperties": {
               "type": "number"
             },
-            "description": "Rebalance date -> this name's weight. Only the rebalances it was actually in.",
+            "description": "Rebalance date -> this name's applied weight. Only the rebalances it was actually in.",
             "title": "Weight History",
             "type": "object"
           }
@@ -266,6 +339,35 @@
         "title": "BacktestRequest",
         "type": "object"
       },
+      "BatchReferenceResponse": {
+        "description": "Response of `GET /data/reference`.\n\nEntries are in the order the request named them, one per identifier, so a\ntable can render straight down the list without re-sorting against what it\nasked for.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Point-in-time date applied, if one was requested.",
+            "title": "As Of"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "title": "BatchReferenceResponse",
+        "type": "object"
+      },
       "BenchmarkRef": {
         "description": "What to compare a backtest against.\n\nDistinct from the index being tracked. The tracked index measures\nreplication accuracy; a benchmark measures relative performance against\nsomething the portfolio was never trying to replicate.",
         "properties": {
@@ -441,6 +543,98 @@
         "title": "ConcentrationPayload",
         "type": "object"
       },
+      "ConstituentRow": {
+        "description": "One constituent's row in the weights table.\n\nEverything a row needs is here, so the table renders from one response\nrather than joining three. The two weights are the point: `raw_weight` is\nwhat the weighting scheme produced, `weight` is what survived the cap, and\nthe difference is what capping moved.",
+        "properties": {
+          "active_risk_contribution": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "This name's share of tracking error. **Can be negative**: an underweight that hedges an overweight genuinely reduces tracking error, and hiding that behind an absolute value would misreport what the index is doing.",
+            "title": "Active Risk Contribution"
+          },
+          "active_weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Weight minus the benchmark's, when a `benchmark` was given. Negative is an underweight.",
+            "title": "Active Weight"
+          },
+          "capped": {
+            "default": false,
+            "description": "Whether this name was held at the cap on this rebalance.",
+            "title": "Capped",
+            "type": "boolean"
+          },
+          "delta_since_rebalance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Held weight minus target weight, for this name, as of `as_of`. Null when `as_of` is the rebalance date itself: the weights were just set, so nothing has drifted and a zero would claim a measurement rather than its absence.",
+            "title": "Delta Since Rebalance"
+          },
+          "identifier": {
+            "title": "Identifier",
+            "type": "string"
+          },
+          "raw_weight": {
+            "description": "Weight before capping. Equal to `weight` on an uncapped index, and the only way to see what the cap cost.",
+            "title": "Raw Weight",
+            "type": "number"
+          },
+          "risk_contribution": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "This name's share of the index's annualised volatility, in the same units. Populated only when `risk=true` was requested; null also when the risk model has no estimate for this constituent, which `risk.uncovered` lists.",
+            "title": "Risk Contribution"
+          },
+          "shares_outstanding": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The company's shares outstanding on this date, from market data. Deliberately NOT the number of shares the index holds — that is a different figure needing a divisor and a notional, and naming this one `shares` would let the two be confused silently.",
+            "title": "Shares Outstanding"
+          },
+          "weight": {
+            "description": "Applied weight, after any cap.",
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "identifier",
+          "weight",
+          "raw_weight"
+        ],
+        "title": "ConstituentRow",
+        "type": "object"
+      },
       "ConstraintRow": {
         "description": "One constraint, in the shape a client's editor holds it.\n\nMaps 1:1 to a class in `beacon.optimise.constraints`: the row a user edits,\nthe JSON that is stored and the object the solver receives are the same\nthing in three representations, so a rule cannot change meaning in\ntranslation.",
         "properties": {
@@ -520,6 +714,14 @@
       "ConstraintTypes": {
         "description": "Response of `GET /optimise/constraint-types`.\n\nServed so a client builds its editor from the same source the solver reads,\nrather than from a copy that drifts.",
         "properties": {
+          "specs": {
+            "description": "The same constraint types in the richer shape `/indices/rule-types` uses, so one client component can render both editors.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Specs",
+            "type": "array"
+          },
           "types": {
             "additionalProperties": {
               "items": {
@@ -527,7 +729,7 @@
               },
               "type": "array"
             },
-            "description": "Constraint type -> the parameters it accepts.",
+            "description": "Constraint type -> the parameters it accepts. Kept for clients written against the original shape; `specs` carries the same set with everything needed to render it.",
             "title": "Types",
             "type": "object"
           }
@@ -568,20 +770,59 @@
         "type": "object"
       },
       "CorporateAction": {
-        "description": "One corporate action.",
+        "description": "One corporate action.\n\n`kind` is the authoritative answer to what `value` means, and the reason a\nclient needs no list of type strings. Reading `type` and inferring cash or\nratio from a hardcoded list works until a type the client has never seen\narrives, at which point it renders as whichever the list defaults to —\nconfidently, and wrongly.",
         "properties": {
           "ex_date": {
             "description": "Ex-date, ISO 8601.",
             "title": "Ex Date",
             "type": "string"
           },
+          "kind": {
+            "description": "What `value` means. 'cash' is an amount per share and adds up; 'ratio' is a share-count multiplier and compounds; 'structural' (rights issue, spin-off, merger) carries no directly aggregable value and should not be rendered as a quantity in either column.",
+            "enum": [
+              "cash",
+              "ratio",
+              "structural"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "pay_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Payment date, ISO 8601, where the source knows it. Null means unknown — omit the field in the UI rather than dashing it, since a dash reads as 'there is none'.",
+            "title": "Pay Date"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "announced",
+                  "paid",
+                  "cancelled"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lifecycle state, where the source knows it. Null means unknown, not 'not yet announced'.",
+            "title": "Status"
+          },
           "type": {
-            "description": "Action type, e.g. DIVIDEND or SPLIT.",
+            "description": "Action type, e.g. DIVIDEND or SPLIT. A closed set the engine validates on load, but branch on `kind` rather than on this: new types are added, and a client that matches type strings breaks silently when one is.",
             "title": "Type",
             "type": "string"
           },
           "value": {
-            "description": "Cash amount per share for cash actions; a share-count multiplier for ratio actions. What it means depends on the type, so the two are never summed together.",
+            "description": "Cash amount per share for cash actions; a share-count multiplier for ratio actions. What it means depends on `kind`, so the two are never summed together.",
             "title": "Value",
             "type": "number"
           }
@@ -589,6 +830,7 @@
         "required": [
           "ex_date",
           "type",
+          "kind",
           "value"
         ],
         "title": "CorporateAction",
@@ -642,12 +884,30 @@
       "CoverageResponse": {
         "description": "Response of `GET /data/coverage`.",
         "properties": {
+          "cache_size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Total bytes on disk for the whole store. Null when no store backs this process.",
+            "title": "Cache Size Bytes"
+          },
           "datasets": {
             "items": {
               "$ref": "#/components/schemas/DatasetCoverage"
             },
             "title": "Datasets",
             "type": "array"
+          },
+          "identifiers_union": {
+            "default": 0,
+            "description": "Distinct identifiers across every dataset. Not the sum of the per-dataset counts: a name present in both market and reference data would otherwise be counted twice, and 'assets covered' would exceed the universe.",
+            "title": "Identifiers Union",
+            "type": "integer"
           }
         },
         "required": [
@@ -692,6 +952,18 @@
             "description": "Seconds since this dataset was last loaded or synced. Null when the dataset is not loaded at all, which is a different statement from 'loaded and never refreshed'.",
             "title": "Cache Age"
           },
+          "cache_size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bytes the backing store occupies on disk. Null when the data did not come from a store, in which case it has no size to report rather than a size of zero.",
+            "title": "Cache Size Bytes"
+          },
           "configured": {
             "description": "Whether this dataset is loaded.",
             "title": "Configured",
@@ -714,6 +986,18 @@
             "description": "Latest date held, ISO 8601.",
             "title": "End"
           },
+          "field_count": {
+            "default": 0,
+            "description": "Data columns this dataset holds, excluding the identifier and date keys.",
+            "title": "Field Count",
+            "type": "integer"
+          },
+          "frequency": {
+            "default": "static",
+            "description": "How often this dataset is expected to change: 'daily', 'static' or 'event'. The engine's definition of what stale means, so a client renders staleness from this rather than from thresholds of its own.",
+            "title": "Frequency",
+            "type": "string"
+          },
           "identifiers": {
             "description": "Distinct identifiers present.",
             "title": "Identifiers",
@@ -730,6 +1014,30 @@
             ],
             "description": "When this dataset was last loaded or synced, ISO 8601. Carried alongside the age because an age is only meaningful at the instant it was read, and a client holding a response for a minute needs the timestamp.",
             "title": "Last Refreshed"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where the data was loaded from, e.g. 'synthetic', 'yfinance', 'local'. Null when a fetcher was assembled in-process and nothing recorded a provenance.",
+            "title": "Source"
+          },
+          "stale_after_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Age beyond which this dataset should read as stale. Published so the mapping from frequency to a duration lives in one place; null means the question does not apply, as for static data.",
+            "title": "Stale After Seconds"
           },
           "start": {
             "anyOf": [
@@ -1370,6 +1678,18 @@
             "title": "Base Value",
             "type": "number"
           },
+          "calendar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exchange MIC backing trading-day arithmetic, e.g. 'XNYS'. Null means Monday to Friday, which is what every index defined before this field used. Naming one requires the `calendars` extra — an index that declares a calendar must never quietly compute against a different one.",
+            "title": "Calendar"
+          },
           "currency": {
             "description": "Index currency.",
             "maxLength": 3,
@@ -1388,6 +1708,13 @@
             ],
             "title": "Description"
           },
+          "effective_lag_sessions": {
+            "default": 0,
+            "description": "Sessions between a rebalance being announced and its weights taking effect. Stored now, honoured by the calculator in BN-126; until then it is declared and not applied, and 0 is the behaviour in force.",
+            "minimum": 0.0,
+            "title": "Effective Lag Sessions",
+            "type": "integer"
+          },
           "id": {
             "description": "Stable identifier, used in the URL.",
             "maxLength": 64,
@@ -1404,13 +1731,50 @@
           "pipeline": {
             "$ref": "#/components/schemas/PipelineSpec"
           },
+          "publication_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the level is published, e.g. '18:00 America/New_York'. Display metadata: it says when a figure is released and changes no figure, so nothing in the calculation reads it.",
+            "title": "Publication Time"
+          },
+          "rebalance_day_rule": {
+            "default": "FIRST_BUSINESS_DAY",
+            "description": "Which day of a scheduled month the rebalance falls on: FIRST_BUSINESS_DAY, LAST_BUSINESS_DAY or THIRD_FRIDAY. A date landing on a holiday rolls back to the previous session.",
+            "title": "Rebalance Day Rule",
+            "type": "string"
+          },
           "rebalancing_frequency": {
-            "description": "MONTHLY, QUARTERLY, SEMI-ANNUAL or ANNUAL.",
+            "description": "MONTHLY, QUARTERLY, SEMI-ANNUAL or ANNUAL. The cadence; `rebalance_day_rule` decides which day of the month.",
             "title": "Rebalancing Frequency",
+            "type": "string"
+          },
+          "return_type": {
+            "default": "PRICE",
+            "description": "How returns accumulate. PRICE ignores distributions; TOTAL_RETURN reinvests them across the index by shrinking the divisor; NET_TOTAL_RETURN does the same after withholding tax. PRICE is the default, so an index defined before this existed is unchanged.",
+            "enum": [
+              "PRICE",
+              "TOTAL_RETURN",
+              "NET_TOTAL_RETURN"
+            ],
+            "title": "Return Type",
             "type": "string"
           },
           "universe": {
             "$ref": "#/components/schemas/UniverseRef"
+          },
+          "withholding_tax_rate": {
+            "default": 0.0,
+            "description": "Fraction of each distribution withheld, for a net index. A flat index-level rate rather than a per-country table: a table is only as good as the country field behind it, and an unpopulated one produces a number that looks precise and is not. Ignored unless `return_type` is NET_TOTAL_RETURN.",
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "Withholding Tax Rate",
+            "type": "number"
           }
         },
         "required": [
@@ -1616,6 +1980,76 @@
         "title": "OverviewView",
         "type": "object"
       },
+      "ParameterSpec": {
+        "description": "One parameter of a configurable type, described well enough to render.\n\nNames, types, defaults and whether a parameter is required are read from\nthe constructor, so they cannot drift from what the code accepts. Labels,\nordering and choices are declared on the class, because a signature cannot\ncarry them.",
+        "properties": {
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The accepted values, when this is a closed set. Null means any value of `type` is allowed.",
+            "title": "Choices"
+          },
+          "default": {
+            "description": "Value used when omitted. Null both for 'no default' and for a default of None; `required` distinguishes them.",
+            "title": "Default"
+          },
+          "help": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "One line of guidance for the field.",
+            "title": "Help"
+          },
+          "label": {
+            "description": "Human-readable field name.",
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "description": "Parameter name, as it must appear in `params`.",
+            "title": "Name",
+            "type": "string"
+          },
+          "order": {
+            "description": "Position in the form, ascending.",
+            "title": "Order",
+            "type": "integer"
+          },
+          "required": {
+            "description": "Whether the constructor rejects the call without it.",
+            "title": "Required",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Display type: number, integer, boolean, string or json. What control to render, not the Python annotation.",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "required",
+          "label",
+          "order"
+        ],
+        "title": "ParameterSpec",
+        "type": "object"
+      },
       "PipelineSpec": {
         "description": "The grouped rule pipeline: Selection, Weighting, Treatment.",
         "properties": {
@@ -1713,8 +2147,34 @@
         "title": "PreviewAsset",
         "type": "object"
       },
+      "PreviewDocumentRequest": {
+        "description": "Body of `POST /indices/preview`, which previews a document as supplied.\n\nThe route for a draft. The by-id route reads what is stored, so while an\neditor holds unsaved changes its figures describe the old definition — with\nnothing on screen to say they are stale. This one previews exactly what was\nsent, so editing a rule updates the resolved figures without saving.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Date to evaluate the pipeline at, YYYY-MM-DD. Defaults to the document's base date.",
+            "title": "As Of"
+          },
+          "document": {
+            "$ref": "#/components/schemas/IndexDocument",
+            "description": "The definition to derive, saved or not."
+          }
+        },
+        "required": [
+          "document"
+        ],
+        "title": "PreviewDocumentRequest",
+        "type": "object"
+      },
       "PreviewRequest": {
-        "description": "Body of `POST /indices/{id}/preview`.",
+        "description": "Body of `POST /indices/{id}/preview`, which previews the *saved* index.",
         "properties": {
           "as_of": {
             "anyOf": [
@@ -1876,6 +2336,32 @@
           "prices"
         ],
         "title": "PricesResponse",
+        "type": "object"
+      },
+      "ReferenceEntry": {
+        "description": "One identifier's row in a batch reference response.",
+        "properties": {
+          "fields": {
+            "additionalProperties": true,
+            "description": "Requested reference columns and derived fields. A column the dataset holds but this identifier has no value for is present and null, which is a different statement from the identifier being absent.",
+            "title": "Fields",
+            "type": "object"
+          },
+          "found": {
+            "description": "Whether the reference dataset holds this identifier. False leaves `fields` empty rather than failing the batch, so one unknown name does not lose the other 511.",
+            "title": "Found",
+            "type": "boolean"
+          },
+          "identifier": {
+            "title": "Identifier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "found"
+        ],
+        "title": "ReferenceEntry",
         "type": "object"
       },
       "ReferenceResponse": {
@@ -2296,6 +2782,59 @@
         "title": "RiskModelView",
         "type": "object"
       },
+      "RiskPayload": {
+        "description": "How the index's volatility divides among its holdings.\n\nContributions sum to `volatility` exactly rather than approximately — the\ndecomposition is an identity, so a client can show the parts and the whole\nwithout them disagreeing.",
+        "properties": {
+          "covered_weight": {
+            "description": "Fraction of the index the figure speaks for. Below 1.0 when the model has no estimate for some constituent; the covered names keep their real weights rather than being renormalised, which would restate the portfolio.",
+            "title": "Covered Weight",
+            "type": "number"
+          },
+          "uncovered": {
+            "description": "Constituents with no estimate, usually for want of history. Listed rather than only counted, so a reader sees which names are missing.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Uncovered",
+            "type": "array"
+          },
+          "volatility": {
+            "description": "Annualised volatility of the covered holdings, at the weights they are actually held.",
+            "title": "Volatility",
+            "type": "number"
+          },
+          "window_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last date of the estimation window.",
+            "title": "Window End"
+          },
+          "window_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First date of the estimation window.",
+            "title": "Window Start"
+          }
+        },
+        "required": [
+          "volatility",
+          "covered_weight"
+        ],
+        "title": "RiskPayload",
+        "type": "object"
+      },
       "RollResponse": {
         "description": "Response of `GET /derivatives/{index_id}/roll`.\n\nBoth legs are priced theoretically off the same spot and curve, so this is\nthe *carry* roll rather than a market one.",
         "properties": {
@@ -2381,6 +2920,33 @@
         "title": "RuleSpec",
         "type": "object"
       },
+      "RuleTypes": {
+        "description": "Response of `GET /indices/rule-types`.\n\nEverything a methodology editor needs to render a real form: which rules\nand schemes exist, what each takes, and how to label and order the fields.\nWithout it `RuleSpec.type` is a free-text box and `params` a list of\nkey/value pairs, so a misspelled parameter is only discovered on submit.",
+        "properties": {
+          "selection": {
+            "description": "Eligibility rules available for the selection stage.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Selection",
+            "type": "array"
+          },
+          "weighting": {
+            "description": "Weighting schemes available for the weighting stage.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Weighting",
+            "type": "array"
+          }
+        },
+        "required": [
+          "selection",
+          "weighting"
+        ],
+        "title": "RuleTypes",
+        "type": "object"
+      },
       "SavedConstraintSet": {
         "description": "Response of a successful save: the set plus any warnings.",
         "properties": {
@@ -2421,6 +2987,88 @@
           "index"
         ],
         "title": "SavedIndex",
+        "type": "object"
+      },
+      "ScheduleView": {
+        "description": "Response of `GET /indices/{index_id}/schedule`.\n\nDerived, not stored: the next rebalance is a function of the schedule, the\ncalendar and today, and storing it would leave a date that silently expires.",
+        "properties": {
+          "as_of": {
+            "description": "Date the answer was computed from.",
+            "title": "As Of",
+            "type": "string"
+          },
+          "calendar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null means business days.",
+            "title": "Calendar"
+          },
+          "days_until": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Calendar days from `as_of` to `next_rebalance`. Calendar days rather than sessions, because it is displayed as 'in 57 days' and a reader counts those on a wall calendar.",
+            "title": "Days Until"
+          },
+          "index_id": {
+            "title": "Index Id",
+            "type": "string"
+          },
+          "next_rebalance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Next rebalance date, ISO 8601. Null when none falls within the lookahead — which happens only for a schedule this server cannot project, not for a normal index.",
+            "title": "Next Rebalance"
+          },
+          "rebalance_day_rule": {
+            "title": "Rebalance Day Rule",
+            "type": "string"
+          },
+          "rebalancing_frequency": {
+            "title": "Rebalancing Frequency",
+            "type": "string"
+          },
+          "recent": {
+            "description": "Rebalances already passed, most recent last.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Recent",
+            "type": "array"
+          },
+          "upcoming": {
+            "description": "Scheduled rebalances after `as_of`, soonest first.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Upcoming",
+            "type": "array"
+          }
+        },
+        "required": [
+          "index_id",
+          "rebalancing_frequency",
+          "rebalance_day_rule",
+          "as_of"
+        ],
+        "title": "ScheduleView",
         "type": "object"
       },
       "SeriesPayload": {
@@ -2877,6 +3525,40 @@
         "title": "TrsPriceResponse",
         "type": "object"
       },
+      "TypeSpec": {
+        "description": "One configurable type a client can offer.",
+        "properties": {
+          "label": {
+            "description": "Human-readable name for the type.",
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "description": "Class name, as it must appear in `type`.",
+            "title": "Name",
+            "type": "string"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/ParameterSpec"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "summary": {
+            "default": "",
+            "description": "One line describing what it does.",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label"
+        ],
+        "title": "TypeSpec",
+        "type": "object"
+      },
       "Universe": {
         "description": "A named set of instrument identifiers.",
         "properties": {
@@ -3136,6 +3818,29 @@
       "WeightsView": {
         "description": "Response of `GET /beacon/{index_id}/weights`.",
         "properties": {
+          "active_risk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActiveRiskPayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The tracking-error decomposition, when a `benchmark` index was named alongside `risk=true`."
+          },
+          "announced_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When that composition was published, if earlier than `rebalance_date`. Null when the index has no lag.",
+            "title": "Announced Date"
+          },
           "as_of": {
             "description": "Date asked about.",
             "title": "As Of",
@@ -3186,6 +3891,25 @@
             "description": "Rebalance in force on that date. An index holds the weights set at its last rebalance until the next one, so this is usually earlier than `as_of`.",
             "title": "Rebalance Date",
             "type": "string"
+          },
+          "risk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskPayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The volatility decomposition, when `risk=true` was requested. Null otherwise: estimating a covariance over every constituent is the pane's whole cost, and nobody should pay it without asking."
+          },
+          "rows": {
+            "description": "Per-constituent detail, heaviest first. Carries the same applied weights as `weights`, which is kept because charts and concentration maths want a mapping while a table wants ordered rows.",
+            "items": {
+              "$ref": "#/components/schemas/ConstituentRow"
+            },
+            "title": "Rows",
+            "type": "array"
           },
           "weights": {
             "additionalProperties": {
@@ -3770,6 +4494,36 @@
               "description": "Date to report at, YYYY-MM-DD. Defaults to the latest rebalance.",
               "title": "Asof"
             }
+          },
+          {
+            "description": "Decompose the index's volatility across its constituents. Off by default: estimating a covariance over every name is the pane's whole cost.",
+            "in": "query",
+            "name": "risk",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Decompose the index's volatility across its constituents. Off by default: estimating a covariance over every name is the pane's whole cost.",
+              "title": "Risk",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Index id to measure tracking error against. Requires risk=true.",
+            "in": "query",
+            "name": "benchmark",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Index id to measure tracking error against. Requires risk=true.",
+              "title": "Benchmark"
+            }
           }
         ],
         "responses": {
@@ -4345,6 +5099,149 @@
           }
         },
         "summary": "Prices",
+        "tags": [
+          "data"
+        ]
+      }
+    },
+    "/data/reference": {
+      "get": {
+        "operationId": "reference_batch_data_reference_get",
+        "parameters": [
+          {
+            "description": "Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call.",
+            "in": "query",
+            "name": "identifiers",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call.",
+              "title": "Identifiers"
+            }
+          },
+          {
+            "description": "Point-in-time date, YYYY-MM-DD. Returns only rows valid then.",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Point-in-time date, YYYY-MM-DD. Returns only rows valid then.",
+              "title": "Date"
+            }
+          },
+          {
+            "description": "Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default.",
+            "in": "query",
+            "name": "fields",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default.",
+              "title": "Fields"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchReferenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Reference Batch",
         "tags": [
           "data"
         ]
@@ -5550,6 +6447,178 @@
         ]
       }
     },
+    "/indices/preview": {
+      "post": {
+        "operationId": "preview_document_indices_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewDocumentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReport"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Preview Document",
+        "tags": [
+          "indices"
+        ]
+      }
+    },
+    "/indices/rule-types": {
+      "get": {
+        "operationId": "rule_types_indices_rule_types_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleTypes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Rule Types",
+        "tags": [
+          "indices"
+        ]
+      }
+    },
     "/indices/validate": {
       "post": {
         "operationId": "validate_indices_validate_post",
@@ -5937,6 +7006,116 @@
           }
         },
         "summary": "Preview",
+        "tags": [
+          "indices"
+        ]
+      }
+    },
+    "/indices/{index_id}/schedule": {
+      "get": {
+        "operationId": "schedule_indices__index_id__schedule_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "index_id",
+            "required": true,
+            "schema": {
+              "title": "Index Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Date to answer from, YYYY-MM-DD. Defaults to today.",
+            "in": "query",
+            "name": "asof",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Date to answer from, YYYY-MM-DD. Defaults to today.",
+              "title": "Asof"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Schedule",
         "tags": [
           "indices"
         ]

@@ -14,10 +14,27 @@ import {
   type CorporateAction
 } from './actions'
 
-const DIVIDEND: CorporateAction = { ex_date: '2026-05-09', type: 'DIVIDEND', value: 0.26 }
-const SPLIT: CorporateAction = { ex_date: '2020-08-31', type: 'SPLIT', value: 4 }
-const REVERSE: CorporateAction = { ex_date: '2023-01-04', type: 'REVERSE_SPLIT', value: 0.1 }
-const UPCOMING: CorporateAction = { ex_date: '2026-08-11', type: 'DIVIDEND', value: 0.27 }
+// `kind` is required since BN-118 — the engine states what `value` means
+// rather than leaving the client to infer it from the type string.
+const DIVIDEND: CorporateAction = {
+  ex_date: '2026-05-09',
+  type: 'DIVIDEND',
+  kind: 'cash',
+  value: 0.26
+}
+const SPLIT: CorporateAction = { ex_date: '2020-08-31', type: 'SPLIT', kind: 'ratio', value: 4 }
+const REVERSE: CorporateAction = {
+  ex_date: '2023-01-04',
+  type: 'REVERSE_SPLIT',
+  kind: 'ratio',
+  value: 0.1
+}
+const UPCOMING: CorporateAction = {
+  ex_date: '2026-08-11',
+  type: 'DIVIDEND',
+  kind: 'cash',
+  value: 0.27
+}
 
 describe('isRatio', () => {
   it('classifies by what the type says, since the API does not say', () => {
@@ -105,7 +122,12 @@ describe('typesIn and filterByType', () => {
 
 describe('nextExDate', () => {
   it('picks the soonest action still ahead of today', () => {
-    const later: CorporateAction = { ex_date: '2026-11-10', type: 'DIVIDEND', value: 0.27 }
+    const later: CorporateAction = {
+      ex_date: '2026-11-10',
+      type: 'DIVIDEND',
+      kind: 'cash',
+      value: 0.27
+    }
     expect(nextExDate([DIVIDEND, UPCOMING, later], '2026-07-28')).toBe(UPCOMING)
   })
 

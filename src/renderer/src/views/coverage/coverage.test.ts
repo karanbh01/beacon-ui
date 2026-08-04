@@ -16,6 +16,10 @@ function row(overrides: Partial<DatasetCoverage> = {}): DatasetCoverage {
     dataset: 'market',
     configured: true,
     identifiers: 12_847,
+    // BN-119 added these; the engine publishes its own frequency now, so the
+    // client no longer has to hold a staleness threshold on its behalf.
+    frequency: 'Daily',
+    field_count: 6,
     start: '1962-01-02',
     end: '2026-07-28',
     cache_age: 7_200,
