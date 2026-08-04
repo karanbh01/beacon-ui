@@ -3,7 +3,6 @@ import { app, BrowserWindow } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import type { EngineState, UpdateState } from '@shared/ipc'
 import { registerAppScheme, serveRenderer } from './appProtocol'
-import { installEngineCors } from './engineCors'
 import { Engine } from './engine/engine'
 import { forwardEngineChanges, forwardUpdateChanges, registerIpcHandlers } from './ipc'
 import { Updater } from './updater'
@@ -67,9 +66,6 @@ void app.whenReady().then(() => {
   // over http by vite and already has a real origin.
   if (process.env.ELECTRON_RENDERER_URL === undefined) {
     serveRenderer(join(__dirname, '..', 'renderer'))
-    // Only needed alongside the app scheme: in dev the renderer's origin is
-    // one py-beacon already allows.
-    installEngineCors()
   }
 
   registerIpcHandlers(engine, updater)
