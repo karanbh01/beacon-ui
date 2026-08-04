@@ -5,7 +5,10 @@ import {
   filterByType,
   formatDate,
   isRatio,
+  isStructural,
   nextExDate,
+  payDateLabel,
+  statusLabel,
   percent,
   ratioLabel,
   sortNewestFirst,
@@ -37,18 +40,60 @@ const UPCOMING: CorporateAction = {
 }
 
 describe('isRatio', () => {
-  it('classifies by what the type says, since the API does not say', () => {
-    expect(isRatio('SPLIT')).toBe(true)
-    expect(isRatio('REVERSE_SPLIT')).toBe(true)
-    expect(isRatio('BONUS_ISSUE')).toBe(true)
-    expect(isRatio('DIVIDEND')).toBe(false)
+  it('reads the engine rather than the type string', () => {
+    expect(isRatio(SPLIT)).toBe(true)
+    expect(isRatio(DIVIDEND)).toBe(false)
   })
 
-  it('treats an unrecognised type as cash', () => {
-    // `value` means cash for everything except ratio actions, and cash is by
-    // far the common case — guessing "ratio" would render a dividend as a
-    // share multiplier, which is a wrong number rather than a plain one.
-    expect(isRatio('SPECIAL_DISTRIBUTION')).toBe(false)
+  it('believes `kind` even when the type name suggests otherwise', () => {
+    // The old guess matched the word "split" and would have called this a
+    // ratio. That is the failure BN-118 removes: a wrong number rather than
+    // a missing one, with nothing to flag it.
+    const oddity: CorporateAction = {
+      ex_date: '2026-01-05',
+      type: 'SPLIT_OFF',
+      kind: 'structural',
+      value: 1
+    }
+
+    expect(isRatio(oddity)).toBe(false)
+    expect(isStructural(oddity)).toBe(true)
+  })
+})
+
+describe('structural actions', () => {
+  const SPINOFF: CorporateAction = {
+    ex_date: '2026-03-02',
+    type: 'SPIN_OFF',
+    kind: 'structural',
+    value: 1
+  }
+
+  it('shows no quantity, because `value` is not one in either column', () => {
+    expect(amountLabel(SPINOFF)).toBe('—')
+    expect(describeAction(SPINOFF)).toBe('Spin off')
+  })
+})
+
+describe('payDateLabel and statusLabel', () => {
+  it('render what BN-118 added', () => {
+    const paid: CorporateAction = {
+      ex_date: '2026-05-09',
+      pay_date: '2026-05-23',
+      status: 'paid',
+      type: 'DIVIDEND',
+      kind: 'cash',
+      value: 0.26
+    }
+
+    expect(payDateLabel(paid)).toBe('23 May 2026')
+    expect(statusLabel(paid)).toBe('Paid')
+  })
+
+  it('say nothing when the action has not settled', () => {
+    // Absent is a real state for an announced action, not a missing field.
+    expect(payDateLabel(DIVIDEND)).toBe('—')
+    expect(statusLabel(DIVIDEND)).toBe('—')
   })
 })
 

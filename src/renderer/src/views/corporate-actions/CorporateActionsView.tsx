@@ -10,6 +10,8 @@ import { useCorporateActions } from '../shared/queries'
 import {
   amountLabel,
   describeAction,
+  payDateLabel,
+  statusLabel,
   filterByType,
   formatDate,
   nextExDate,
@@ -38,20 +40,29 @@ const COLUMNS: readonly Column<CorporateAction>[] = [
     emphasis: true,
     render: (action) => formatDate(action.ex_date)
   },
+  {
+    key: 'pay_date',
+    header: 'Pay Date',
+    width: 110,
+    render: payDateLabel
+  },
   { key: 'type', header: 'Type', width: 120, render: (action) => typeLabel(action.type) },
-  { key: 'details', header: 'Details', width: 260, render: describeAction },
+  { key: 'details', header: 'Details', width: 240, render: describeAction },
+  { key: 'status', header: 'Status', width: 100, render: statusLabel },
   { key: 'amount', header: 'Amount', width: 100, align: 'right', render: amountLabel }
 ]
 
 /**
  * Data Explorer → Corporate Actions. Figma 234:4958.
  *
- * Figma's table also carries Pay Date and Status columns, and its summary line
- * a payout ratio. py-beacon's `CorporateAction` is `{ex_date, type, value}`
- * and its response carries no earnings figure, so none of the three can be
- * served. They are left out rather than rendered as columns of dashes, which
- * would read as "this instrument has no pay dates" instead of "this engine
- * does not publish them". Tracked for py-beacon; see the worklog.
+ * Pay Date and Status are live since BN-118, along with `kind` — which is
+ * what `value` means, stated rather than inferred from the type string.
+ *
+ * The summary line's payout ratio is still absent: it needs trailing EPS or
+ * net income and there is no earnings figure anywhere in the spec. It stays
+ * out rather than being rendered as a dash, which would read as "this
+ * instrument has no payout ratio" instead of "this engine does not publish
+ * one". Tracked on #60 as a py-beacon ask rather than a client gap.
  */
 export function CorporateActionsView({ subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''

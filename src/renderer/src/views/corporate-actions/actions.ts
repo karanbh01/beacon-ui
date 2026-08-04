@@ -4,19 +4,24 @@ export type CorporateAction = components['schemas']['CorporateAction']
 export type CorporateActionsResponse = components['schemas']['CorporateActionsResponse']
 
 /**
- * Action types whose `value` is a share-count multiplier rather than cash.
+ * What `value` means, straight from the engine (BN-118).
  *
- * py-beacon documents `value` as "cash amount per share for cash actions; a
- * share-count multiplier for ratio actions", and does not say which types are
- * which. Guessing from the type string is the only option available, so the
- * match is deliberately loose and anything unrecognised is treated as cash —
- * the common case by a wide margin.
+ * This used to be inferred from the type string against a list of words —
+ * split, reverse, bonus, consolidation, subdivision — because py-beacon
+ * documented the two meanings and said nothing about which types had which. A
+ * ratio action whose type was not in that list rendered as a cash amount:
+ * confidently wrong, with nothing to flag it. `kind` states it.
+ *
+ * It also carries a third value the guess could not express. `structural` —
+ * a rights issue, a spin-off, a merger — has no directly aggregable value and
+ * must not be drawn as a quantity in either column.
  */
-const RATIO_TYPES = ['split', 'reverse', 'bonus', 'consolidation', 'subdivision']
+export function isRatio(action: CorporateAction): boolean {
+  return action.kind === 'ratio'
+}
 
-export function isRatio(type: string): boolean {
-  const lower = type.toLowerCase()
-  return RATIO_TYPES.some((word) => lower.includes(word))
+export function isStructural(action: CorporateAction): boolean {
+  return action.kind === 'structural'
 }
 
 /** "DIVIDEND" → "Dividend", "REVERSE_SPLIT" → "Reverse split". */
@@ -45,14 +50,33 @@ export function ratioLabel(value: number): string {
 
 /** The "Details" column: what the action did, in words. */
 export function describeAction(action: CorporateAction): string {
-  if (isRatio(action.type)) return `${ratioLabel(action.value)} ${typeLabel(action.type)}`
+  if (isStructural(action)) return typeLabel(action.type)
+  if (isRatio(action)) return `${ratioLabel(action.value)} ${typeLabel(action.type)}`
   return `${typeLabel(action.type)}, ${action.value.toFixed(4).replace(/0+$/, '')} per share`
 }
 
-/** The "Amount" column: cash to two decimals, ratios as ×n. */
+/**
+ * The "Amount" column: cash to two decimals, ratios as ×n, structural blank.
+ *
+ * A structural action's `value` is not a quantity in either column's units.
+ * Printing it would put a number under a heading that does not describe it.
+ */
 export function amountLabel(action: CorporateAction): string {
-  if (isRatio(action.type)) return `×${trim(action.value, 4)}`
+  if (isStructural(action)) return '—'
+  if (isRatio(action)) return `×${trim(action.value, 4)}`
   return action.value.toFixed(2)
+}
+
+/** Figma 234:4958's Pay Date column. Absent until the action settles. */
+export function payDateLabel(action: CorporateAction): string {
+  return action.pay_date === null || action.pay_date === undefined
+    ? '—'
+    : formatDate(action.pay_date)
+}
+
+/** announced | paid | cancelled, title-cased. */
+export function statusLabel(action: CorporateAction): string {
+  return action.status === null || action.status === undefined ? '—' : typeLabel(action.status)
 }
 
 export function formatDate(iso: string): string {
