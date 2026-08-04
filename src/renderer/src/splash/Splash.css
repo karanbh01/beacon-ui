@@ -36,13 +36,28 @@
   -webkit-app-region: no-drag;
 }
 
+/*
+ * 349x160 at 112,148 (10:2). Two exports rather than one recoloured — the
+ * wordmark is black in the light asset and white in the dark one, and the
+ * cube faces differ too, so a filter could not produce one from the other.
+ *
+ * Swapped in CSS rather than by picking a src in React: `data-theme` is on
+ * the root before the first paint, so the correct one is the only one ever
+ * rendered.
+ */
 .splash-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 349px;
   height: 160px;
   margin-top: 106px;
-  color: var(--text-primary);
+  flex: none;
+  background-image: url('../assets/logo/beacon-light.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+[data-theme='dark'] .splash-logo {
+  background-image: url('../assets/logo/beacon-dark.png');
 }
 
 /* 320x6 at y=523, "Loading…" 11px italic muted beneath it (38:145). */

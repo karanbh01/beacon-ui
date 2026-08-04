@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import { GithubIcon, LogoBetaIcon } from '../icons/generated'
+import { GithubIcon } from '../icons/generated'
 import { useEngine } from '../state/engine'
 import { useTheme } from '../state/theme'
 import { useUpdate } from '../state/update'
@@ -68,9 +68,9 @@ export function Splash({ version }: SplashProps): ReactElement {
         <WindowControls />
       </header>
 
-      <div className="splash-logo">
-        <LogoBetaIcon size={160} aria-label="Beacon" />
-      </div>
+      {/* The wordmark, not the beta mark: a background-image so the light and
+          dark exports swap on `data-theme` without a flash of the wrong one. */}
+      <div className="splash-logo" role="img" aria-label="Beacon" />
 
       <div
         className="splash-progress"

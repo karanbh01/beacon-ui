@@ -1,0 +1,18 @@
+Beacon wordmark.
+
+Exported from Figma `beacon ui` (0GMEqKcFlQRBUgSpTpjAYN), Start page 0:1:
+
+  beacon-light.png   node 10:2  "logo 1"       drawn at 349x160
+  beacon-dark.png    node 10:3  "logo_dark 1"  drawn at 338x155
+
+PNG rather than SVG because that is what they are in the file — both nodes
+are rounded rectangles with a raster image fill, not vector artwork. There is
+no SVG to export.
+
+Source resolution is 571x262 for both, so at the frame's 349px they carry
+about 1.6x. That is short of 2x for a HiDPI display; if the wordmark ever
+looks soft, the fix is a higher-resolution export or a vector, not a change
+here.
+
+The two are NOT one image recoloured: the wordmark is black in the light
+version and white in the dark one, and the cube faces differ as well.
