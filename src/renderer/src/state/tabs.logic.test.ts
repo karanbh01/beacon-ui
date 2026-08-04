@@ -6,6 +6,7 @@ import {
   emptyWorkspace,
   findTab,
   linkTab,
+  moveTab,
   openOrRetarget,
   openTab,
   pinTab,
@@ -16,6 +17,8 @@ import {
   setSubject,
   severLink,
   tabsForPage,
+  tabsForPane,
+  visiblePane,
   type OpenTabInput
 } from './tabs.logic'
 import type { WorkspaceState } from './tabs.types'
@@ -376,5 +379,143 @@ describe('openOrRetarget (cross-view jump)', () => {
 
     expect(findTab(state, 'other')?.subject).toBe('AAPL')
     expect(tabsForPage(state, 'data-explorer')).toHaveLength(1)
+  })
+})
+
+describe('panes (BU-55)', () => {
+  const FOUR = 4
+
+  it('opens into the pane the + was clicked in', () => {
+    const state = openTab(emptyWorkspace(), { ...PRICES, pane: 2 })
+
+    expect(findTab(state, 'prices')?.pane).toBe(2)
+    expect(activeTab(state, 'data-explorer', 2, FOUR)?.id).toBe('prices')
+    expect(activeTab(state, 'data-explorer', 0, FOUR)).toBeUndefined()
+  })
+
+  it('keeps each pane its own strip', () => {
+    const state = workspace({ ...PRICES, pane: 0 }, { ...CHARTING, pane: 1 })
+
+    expect(tabsForPane(state, 'data-explorer', 0, FOUR).map((t) => t.id)).toEqual(['prices'])
+    expect(tabsForPane(state, 'data-explorer', 1, FOUR).map((t) => t.id)).toEqual(['charting'])
+    // The + menu still gates on the page, so a linked view can follow a
+    // source in the pane next door.
+    expect(tabsForPage(state, 'data-explorer')).toHaveLength(2)
+  })
+
+  it('folds stray panes into the last visible one rather than losing them', () => {
+    const state = workspace({ ...PRICES, pane: 0 }, { ...CHARTING, pane: 3 })
+
+    expect(visiblePane(findTab(state, 'charting')!, 1)).toBe(0)
+    expect(tabsForPane(state, 'data-explorer', 0, 1).map((t) => t.id)).toEqual([
+      'prices',
+      'charting'
+    ])
+  })
+
+  it('remembers the arrangement across a collapse and a re-split', () => {
+    // The reason `pane` is stored rather than clamped: peeking at one pane
+    // full-screen must not flatten a workspace someone arranged.
+    const state = workspace({ ...PRICES, pane: 0 }, { ...CHARTING, pane: 3 })
+
+    expect(tabsForPane(state, 'data-explorer', 0, 1)).toHaveLength(2)
+    expect(tabsForPane(state, 'data-explorer', 3, FOUR).map((t) => t.id)).toEqual(['charting'])
+  })
+
+  it('shows a folded-in tab rather than an empty pane', () => {
+    // Nothing was ever active in pane 0, but it now holds a tab.
+    const state = workspace({ ...CHARTING, pane: 3 })
+    expect(activeTab(state, 'data-explorer', 0, 1)?.id).toBe('charting')
+  })
+})
+
+describe('moveTab (drag between panes)', () => {
+  const FOUR = 4
+
+  it('moves rather than copies', () => {
+    let state = workspace({ ...PRICES, pane: 0 }, { ...CHARTING, pane: 0 })
+    state = moveTab(state, 'charting', 1, 0, FOUR)
+
+    expect(tabsForPane(state, 'data-explorer', 0, FOUR).map((t) => t.id)).toEqual(['prices'])
+    expect(tabsForPane(state, 'data-explorer', 1, FOUR).map((t) => t.id)).toEqual(['charting'])
+    expect(tabsForPage(state, 'data-explorer')).toHaveLength(2)
+  })
+
+  it('activates the tab in the pane that received it', () => {
+    let state = workspace({ ...PRICES, pane: 0 }, { ...CHARTING, pane: 0 })
+    state = moveTab(state, 'charting', 2, 0, FOUR)
+
+    expect(activeTab(state, 'data-explorer', 2, FOUR)?.id).toBe('charting')
+    // And the pane it left falls back to what is still there.
+    expect(activeTab(state, 'data-explorer', 0, FOUR)?.id).toBe('prices')
+  })
+
+  it('drops at the requested position within the destination strip', () => {
+    const third: OpenTabInput = { ...DOC, id: 'third', page: 'data-explorer', pane: 1 }
+    let state = workspace({ ...PRICES, pane: 1 }, third, { ...CHARTING, pane: 0 })
+    state = moveTab(state, 'charting', 1, 1, FOUR)
+
+    expect(tabsForPane(state, 'data-explorer', 1, FOUR).map((t) => t.id)).toEqual([
+      'prices',
+      'charting',
+      'third'
+    ])
+  })
+
+  it('drops at the end when the index is past the last tab', () => {
+    let state = workspace({ ...PRICES, pane: 1 }, { ...CHARTING, pane: 0 })
+    state = moveTab(state, 'charting', 1, 9, FOUR)
+
+    expect(tabsForPane(state, 'data-explorer', 1, FOUR).map((t) => t.id)).toEqual([
+      'prices',
+      'charting'
+    ])
+  })
+
+  it('does NOT sever a link, because a link is by id and not by proximity', () => {
+    // The case worth pinning: dragging a follower away from its source looks
+    // like it should break the link and must not. Taxonomy §1.
+    let state = workspace({ ...PRICES, pane: 0 }, { ...CHARTING, pane: 0 })
+    state = moveTab(state, 'charting', 3, 0, FOUR)
+
+    const charting = findTab(state, 'charting')!
+    expect(charting.archetype).toBe('linked')
+    expect(charting.linkSourceId).toBe('prices')
+    expect(resolveSubject(state, charting)).toBe('AAPL')
+  })
+
+  it('follows the source when it is the SOURCE that was dragged away', () => {
+    let state = workspace({ ...PRICES, pane: 0 }, { ...CHARTING, pane: 1 })
+    state = moveTab(state, 'prices', 3, 0, FOUR)
+    state = setSubject(state, 'prices', 'MSFT')
+
+    expect(resolveSubject(state, findTab(state, 'charting')!)).toBe('MSFT')
+  })
+
+  it('ignores a drop carrying an id that no longer exists', () => {
+    const state = workspace(PRICES)
+    expect(moveTab(state, 'ghost', 1, 0, FOUR)).toBe(state)
+  })
+})
+
+describe('closing within a pane', () => {
+  const FOUR = 4
+
+  it('falls back to a neighbour in the same pane, not another one', () => {
+    const second: OpenTabInput = { ...DOC, id: 'second', page: 'data-explorer', pane: 0 }
+    let state = workspace({ ...PRICES, pane: 0 }, second, { ...CHARTING, pane: 1 })
+    state = closeTab(state, 'prices', 0, FOUR)
+
+    expect(activeTab(state, 'data-explorer', 0, FOUR)?.id).toBe('second')
+    // Pane 1 was not touched.
+    expect(activeTab(state, 'data-explorer', 1, FOUR)?.id).toBe('charting')
+  })
+
+  it('leaves the pane empty rather than collapsing the layout', () => {
+    let state = workspace({ ...PRICES, pane: 1 })
+    state = closeTab(state, 'prices', 1, FOUR)
+
+    expect(activeTab(state, 'data-explorer', 1, FOUR)).toBeUndefined()
+    expect(tabsForPane(state, 'data-explorer', 1, FOUR)).toEqual([])
   })
 })

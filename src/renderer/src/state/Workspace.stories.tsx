@@ -58,7 +58,7 @@ export const LinkFollowAndSever: Story = {
     }, [])
 
     const tabs = tabsForPage(store, PAGE)
-    const activeId = store.activeByPage[PAGE]
+    const activeId = store.activeByPane[PAGE]
     const active = tabs.find((tab) => tab.id === activeId)
 
     return (

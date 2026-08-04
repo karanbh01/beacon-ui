@@ -143,6 +143,7 @@ describe('chipFor', () => {
   const base: Tab = {
     id: 't',
     page: 'p',
+    pane: 0,
     viewKind: 'v',
     archetype: 'query',
     title: 'T',

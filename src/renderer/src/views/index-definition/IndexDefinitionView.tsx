@@ -25,7 +25,7 @@ import './IndexDefinitionView.css'
  * The first document view in the app: it holds a draft, tracks dirty on the
  * tab, and has Validate / Revert / Save rather than a query bar.
  */
-export function IndexDefinitionView({ tab }: ViewProps): ReactElement {
+export function IndexDefinitionView({ tab, pane }: ViewProps): ReactElement {
   const indexId = tab.title
   const { draft, saved, dirty, loading, error, edit, revert, commit } = useIndexDraft(
     tab.id,
@@ -129,6 +129,7 @@ export function IndexDefinitionView({ tab }: ViewProps): ReactElement {
             onClick={() => {
               openOrRetarget({
                 page: tab.page,
+                pane,
                 viewKind: 'universe-set',
                 title: 'Universe Set',
                 subject: draft.universe.universe_id ?? ''
@@ -176,6 +177,7 @@ export function IndexDefinitionView({ tab }: ViewProps): ReactElement {
         onClick={() => {
           openOrRetarget({
             page: tab.page,
+            pane,
             viewKind: 'constituent-preview',
             title: 'Constituent Preview',
             subject: draft.id

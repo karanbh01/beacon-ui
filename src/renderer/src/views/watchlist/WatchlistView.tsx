@@ -72,7 +72,7 @@ const COLUMNS: readonly Column<WatchRow>[] = [
  * beside a symbol is derived from the same prices and reference calls the
  * other views make, so the cache is shared and opening a row is instant.
  */
-export function WatchlistView({ tab }: ViewProps): ReactElement {
+export function WatchlistView({ tab, pane }: ViewProps): ReactElement {
   const lists = useWatchlists()
   const save = useSaveWatchlist()
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
@@ -164,6 +164,7 @@ export function WatchlistView({ tab }: ViewProps): ReactElement {
                 // Charting tab — follows the click too.
                 openOrRetarget({
                   page: tab.page,
+                  pane,
                   viewKind: 'prices',
                   title: 'Prices',
                   subject: row.ticker

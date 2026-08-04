@@ -14,7 +14,15 @@ import { ReferenceView } from './reference/ReferenceView'
 import { WatchlistView } from './watchlist/WatchlistView'
 
 function tab(viewKind: string): Tab {
-  return { id: 't', page: 'data-explorer', viewKind, archetype: 'query', title: 'T', dirty: false }
+  return {
+    id: 't',
+    page: 'data-explorer',
+    pane: 0,
+    viewKind,
+    archetype: 'query',
+    title: 'T',
+    dirty: false
+  }
 }
 
 /** A response, or a function of the identifier the view asked for. */

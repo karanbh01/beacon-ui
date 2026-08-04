@@ -80,7 +80,7 @@ function buildColumns(preview: PreviewResponse): Column<PreviewAsset>[] {
  * call per constituent (#45), and its summary line a next-rebalance date,
  * which needs a schedule the document does not model (#44).
  */
-export function ConstituentPreviewView({ tab, subject }: ViewProps): ReactElement {
+export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): ReactElement {
   const indexId = subject ?? ''
   const [asOf, setAsOf] = useState('')
   const [compareTo, setCompareTo] = useState('')
@@ -120,6 +120,7 @@ export function ConstituentPreviewView({ tab, subject }: ViewProps): ReactElemen
               onClick={() => {
                 openOrRetarget({
                   page: tab.page,
+                  pane,
                   viewKind: 'index-definition',
                   title: indexId,
                   subject: indexId

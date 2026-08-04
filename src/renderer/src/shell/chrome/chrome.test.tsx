@@ -14,6 +14,7 @@ const TABS: Tab[] = [
   {
     id: 't1',
     page: 'data-explorer',
+    pane: 0,
     viewKind: 'prices',
     archetype: 'query',
     title: 'Prices',
@@ -23,6 +24,7 @@ const TABS: Tab[] = [
   {
     id: 't2',
     page: 'strategy-builder',
+    pane: 0,
     viewKind: 'weights',
     archetype: 'pinned',
     title: 'Weights',
@@ -118,7 +120,7 @@ describe('LayoutMenu', () => {
 describe('chrome popovers in the bar', () => {
   beforeEach(() => {
     useChrome.setState({ layout: 'single' })
-    useWorkspace.setState({ tabs: TABS, activeByPage: {}, closed: [] })
+    useWorkspace.setState({ tabs: TABS, activeByPane: {}, closed: [] })
   })
 
   it('opens the data sources panel and closes it on Escape', async () => {
@@ -167,7 +169,7 @@ describe('chrome popovers in the bar', () => {
 
 describe('chrome search', () => {
   beforeEach(() => {
-    useWorkspace.setState({ tabs: TABS, activeByPage: {}, closed: [] })
+    useWorkspace.setState({ tabs: TABS, activeByPane: {}, closed: [] })
   })
 
   it('opens on the first character, not on submit', async () => {

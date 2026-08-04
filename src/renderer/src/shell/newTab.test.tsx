@@ -20,7 +20,7 @@ function withQueries(ui: React.ReactElement): React.ReactElement {
 }
 
 function tab(over: Partial<Tab> & { id: string; archetype: Tab['archetype'] }): Tab {
-  return { page: 'p', viewKind: 'v', title: 'T', dirty: false, ...over }
+  return { page: 'p', pane: 0, viewKind: 'v', title: 'T', dirty: false, ...over }
 }
 
 const VIEWS = [
@@ -92,7 +92,7 @@ describe('PaneHost with nothing open (BU-59)', () => {
   beforeEach(() => {
     clearViews()
     registerPlaceholderViews()
-    useWorkspace.setState({ tabs: [], activeByPage: {}, closed: [] })
+    useWorkspace.setState({ tabs: [], activeByPane: {}, closed: [] })
   })
 
   it('shows no tabs and names the page', () => {
@@ -155,20 +155,19 @@ describe('the workspace no longer seeds', () => {
   })
 
   it('drops tabs a previous version seeded', async () => {
-    const { dropSeededTabs } = await import('../state/tabs.store')
-    const state = {
+    const { migrateWorkspace } = await import('../state/tabs.store')
+
+    const migrated = migrateWorkspace({
       tabs: [
         tab({ id: 'seed-prices', archetype: 'query' }),
         tab({ id: 'tab-prices', archetype: 'query' })
       ],
       activeByPage: { 'data-explorer': 'seed-prices' },
       closed: []
-    }
+    })
 
-    const migrated = dropSeededTabs(state)
-
-    expect(migrated.tabs.map((t) => t.id)).toEqual(['tab-prices'])
-    // And the page must not point at a tab that no longer exists.
-    expect(migrated.activeByPage['data-explorer']).toBeUndefined()
+    expect(migrated.tabs.map((entry) => entry.id)).toEqual(['tab-prices'])
+    // And the pane must not point at a tab that no longer exists.
+    expect(migrated.activeByPane['data-explorer#0']).toBeUndefined()
   })
 })

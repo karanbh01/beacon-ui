@@ -77,7 +77,7 @@ const HISTORY_COLUMNS: readonly Column<HistoryRow>[] = [
  * true for every rebalance in the history — `WeightsView.capped` only ever
  * described the current one.
  */
-export function DrilldownView({ tab, subject }: ViewProps): ReactElement {
+export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   // A drilldown is always into some index; the pin says which.
   const indexId = tab.pinnedDoc ?? 'TECH10'
@@ -136,6 +136,7 @@ export function DrilldownView({ tab, subject }: ViewProps): ReactElement {
               onClick={() => {
                 openOrRetarget({
                   page: 'data-explorer',
+                  pane,
                   viewKind: 'prices',
                   title: 'Prices',
                   subject: identifier

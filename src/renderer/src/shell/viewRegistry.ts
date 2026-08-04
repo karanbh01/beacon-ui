@@ -5,6 +5,14 @@ export interface ViewProps {
   tab: Tab
   /** Resolved live — a linked tab reads its source (BU-16). */
   subject: string | undefined
+  /**
+   * Pane this view is drawn in (BU-55). Views that jump to another view pass
+   * it on, so a cross-view jump opens beside the thing that asked for it
+   * rather than in the first pane.
+   *
+   * The VISIBLE pane, which under a collapsed layout is not `tab.pane`.
+   */
+  pane?: number | undefined
 }
 
 export type ViewComponent = ComponentType<ViewProps>

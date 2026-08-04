@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react'
+import type { DragEvent, ReactElement } from 'react'
 import { ChainIcon } from '../../icons/generated'
+import { TAB_MIME } from './dragTab'
 import './Tab.css'
 
 /**
@@ -19,6 +20,9 @@ export interface TabProps {
   onSelect?: () => void
   /** Omit to make the tab unclosable, e.g. a pinned global tool. */
   onClose?: () => void
+  /** Workspace id, carried by a drag so another strip can claim it (BU-55). */
+  dragId?: string
+  onDragStateChange?: (dragging: boolean) => void
   className?: string
 }
 
@@ -53,12 +57,29 @@ export function Tab({
   chip,
   onSelect,
   onClose,
+  dragId,
+  onDragStateChange,
   className
 }: TabProps): ReactElement {
   const classes = ['tab', active && 'tab-active', className].filter(Boolean).join(' ')
 
+  const handleDragStart = (event: DragEvent<HTMLDivElement>): void => {
+    if (dragId === undefined) return
+    event.dataTransfer.setData(TAB_MIME, dragId)
+    event.dataTransfer.effectAllowed = 'move'
+    onDragStateChange?.(true)
+  }
+
   return (
-    <div className={classes} data-active={active}>
+    <div
+      className={classes}
+      data-active={active}
+      draggable={dragId !== undefined}
+      onDragStart={handleDragStart}
+      onDragEnd={() => {
+        onDragStateChange?.(false)
+      }}
+    >
       <button type="button" className="tab-select" onClick={onSelect} aria-current={active}>
         <span className="tab-label">{label}</span>
         {/* Muted, not accent — the pane header states dirtiness loudly, the

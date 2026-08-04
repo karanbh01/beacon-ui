@@ -45,7 +45,7 @@ const COLUMNS: readonly Column<WeightRow>[] = [
  * event feed reports progress. The solved weights are read back from the
  * run's frontier, whose tangency point IS the max-Sharpe portfolio.
  */
-export function OptimisationRunView({ tab, subject }: ViewProps): ReactElement {
+export function OptimisationRunView({ tab, subject, pane }: ViewProps): ReactElement {
   const [indexId, setIndexId] = useState(subject ?? tab.pinnedDoc ?? '')
   const [constraintSetId, setConstraintSetId] = useState('')
   const [rate, setRate] = useState('0.04')
@@ -76,6 +76,7 @@ export function OptimisationRunView({ tab, subject }: ViewProps): ReactElement {
               onClick={() => {
                 openOrRetarget({
                   page: tab.page,
+                  pane,
                   viewKind: 'frontier',
                   title: 'Frontier',
                   subject: runId

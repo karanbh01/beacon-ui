@@ -109,6 +109,28 @@ test('the chrome popovers open and dismiss', async ({ window }) => {
   await expect(window.getByRole('listbox', { name: 'Search results' })).toBeVisible()
 })
 
+test('closing a chart tab does not take the renderer down', async ({ window }) => {
+  // React runs effect cleanups in declaration order, so the effect that
+  // disposes the lightweight-charts instance ran before the one detaching its
+  // series, and `removeSeries` on a disposed chart throws all the way out.
+  // Unmounting the chart at all was enough — closing the tab, or moving it to
+  // another pane. Found while building BU-55; the app went blank.
+  const crashes: string[] = []
+  window.on('pageerror', (error) => crashes.push(error.message))
+
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Prices')
+  await window.getByRole('textbox').first().fill('CMP000')
+  await window.keyboard.press('Enter')
+  await openView(window, 'Charting')
+  await window.locator('.level-chart').waitFor()
+
+  await window.getByRole('button', { name: 'Close Charting' }).click()
+
+  await expect(window.locator('.app-shell')).toBeVisible()
+  expect(crashes, crashes.join('\n')).toEqual([])
+})
+
 test('nothing logs an error while any of that happens', async ({ window }) => {
   const errors: string[] = []
   window.on('console', (message) => {

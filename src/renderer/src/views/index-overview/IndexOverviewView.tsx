@@ -33,7 +33,7 @@ import './IndexOverviewView.css'
  * response carried. A second round trip for numbers already implied by data
  * in hand would be slower and could disagree with the chart beneath them.
  */
-export function IndexOverviewView({ tab, subject }: ViewProps): ReactElement {
+export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactElement {
   const indexId = subject ?? tab.pinnedDoc ?? ''
   const mode = useThemeMode()
   const overview = useOverview(indexId)
@@ -63,6 +63,7 @@ export function IndexOverviewView({ tab, subject }: ViewProps): ReactElement {
               onClick={() => {
                 openOrRetarget({
                   page: 'strategy-builder',
+                  pane,
                   viewKind: 'index-definition',
                   title: indexId,
                   subject: indexId

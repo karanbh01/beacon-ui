@@ -25,6 +25,15 @@ export interface Tab {
   id: string
   /** Sidebar page this tab belongs to. Tabs are per-page (BU-17). */
   page: string
+  /**
+   * Pane within the page (BU-55). 0 is the first pane.
+   *
+   * Stored, not derived, and deliberately NOT clamped to the current layout:
+   * a tab put in pane 3 keeps saying so after a collapse to one pane, so
+   * splitting again puts it back where it was. `visiblePane` does the
+   * clamping at read time.
+   */
+  pane: number
   /** Which view component renders in the pane. */
   viewKind: string
   archetype: Archetype
@@ -47,8 +56,16 @@ export interface ClosedTab {
 
 export interface WorkspaceState {
   tabs: Tab[]
-  /** Active tab id per page, so switching pages restores where you were. */
-  activeByPage: Record<string, string | undefined>
+  /**
+   * Active tab id per pane, keyed by `paneKey(page, pane)` — so switching
+   * pages restores where you were in each pane.
+   *
+   * Keyed by the pane a tab is VISIBLE in rather than the one it is stored
+   * in. Selection has to be authoritative: when a collapse folds panes 0 and
+   * 3 into one strip, clicking a tab from either has to win, and it cannot if
+   * two stored panes each keep their own answer.
+   */
+  activeByPane: Record<string, string | undefined>
   /** Most-recently-closed first. */
   closed: ClosedTab[]
 }

@@ -43,7 +43,7 @@ const COLUMNS: readonly Column<UniverseRow>[] = [
  * field, returned only when named in `fields`. The endpoint's default is
  * stored columns, so asking for everything would still not have produced it.
  */
-export function UniverseView({ tab, subject }: ViewProps): ReactElement {
+export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
   const universes = useUniverses()
   const setSubject = useWorkspace((state) => state.setSubject)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
@@ -102,6 +102,7 @@ export function UniverseView({ tab, subject }: ViewProps): ReactElement {
             onSelectRow={(row) => {
               openOrRetarget({
                 page: 'data-explorer',
+                pane,
                 viewKind: 'reference-data',
                 title: 'Reference Data',
                 subject: row.ticker

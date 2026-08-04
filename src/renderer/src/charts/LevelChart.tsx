@@ -90,6 +90,16 @@ export function LevelChart({
     created.timeScale().fitContent()
 
     return () => {
+      /*
+       * Nothing to detach from a chart that is already gone.
+       *
+       * On unmount React runs cleanups in declaration order, so the effect
+       * above has already called `created.remove()` and lightweight-charts
+       * throws "Value is undefined" out of `removeSeries`. `chart.current` is
+       * null exactly when that has happened, and non-null on the ordinary
+       * path where this effect is re-running because the data changed.
+       */
+      if (chart.current === null) return
       for (const api of drawn) created.removeSeries(api)
       if (panel !== undefined) created.removeSeries(panel)
     }

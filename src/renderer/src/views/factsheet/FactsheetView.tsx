@@ -28,7 +28,7 @@ const ALL = FACTSHEET_SECTIONS.map((section) => section.id)
  * authenticated — opening py-beacon's URL in a browser would arrive with no
  * bearer token.
  */
-export function FactsheetView({ tab, subject }: ViewProps): ReactElement {
+export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
   const indexId = subject ?? tab.pinnedDoc ?? ''
   const [templateId, setTemplateId] = useState('FACTSHEET-A4')
   const [selected, setSelected] = useState<readonly string[]>(ALL)
@@ -97,6 +97,7 @@ export function FactsheetView({ tab, subject }: ViewProps): ReactElement {
               onClick={() => {
                 openOrRetarget({
                   page: tab.page,
+                  pane,
                   viewKind: 'template-editor',
                   title: 'Template Editor',
                   subject: templateId

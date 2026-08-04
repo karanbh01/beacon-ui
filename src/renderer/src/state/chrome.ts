@@ -20,8 +20,15 @@ export interface LayoutOption {
   panes: readonly LayoutPane[]
 }
 
+/** Named, so the pane host has a total fallback for an unknown layout id. */
+export const SINGLE_PANE: LayoutOption = {
+  id: 'single',
+  label: 'Single pane',
+  panes: [{ x: 0, y: 0, w: 24, h: 24 }]
+}
+
 export const LAYOUT_OPTIONS: readonly LayoutOption[] = [
-  { id: 'single', label: 'Single pane', panes: [{ x: 0, y: 0, w: 24, h: 24 }] },
+  SINGLE_PANE,
   {
     id: 'columns',
     label: 'Two columns',
@@ -68,16 +75,14 @@ interface ChromeState {
 /**
  * Chrome preferences that outlive a session.
  *
- * NOTE: choosing a layout records and reflects the choice, and does not yet
- * split the pane — PaneHost renders one pane per page, and multi-pane layout
- * is a substantial piece of work in its own right (#55). The control is
- * honest about what it is: a stored preference the pane host will read when
- * it can honour it.
+ * `PaneHost` reads `layout` and renders that many panes, each with its own
+ * tab strip (BU-55). The rectangles above are what it lays out, via
+ * `shell/paneGrid`.
  */
 export const useChrome = create<ChromeState>()(
   persist(
     (set) => ({
-      layout: LAYOUT_OPTIONS[0]?.id ?? 'single',
+      layout: SINGLE_PANE.id,
       setLayout: (id) => {
         set({ layout: id })
       }

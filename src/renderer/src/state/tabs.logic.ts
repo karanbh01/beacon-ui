@@ -11,20 +11,65 @@ import type { Archetype, ClosedTab, Tab, WorkspaceState } from './tabs.types'
 export const MAX_REOPEN = 10
 
 export function emptyWorkspace(): WorkspaceState {
-  return { tabs: [], activeByPage: {}, closed: [] }
+  return { tabs: [], activeByPane: {}, closed: [] }
+}
+
+export function paneKey(page: string, pane: number): string {
+  return `${page}#${String(pane)}`
+}
+
+/**
+ * The pane a tab is drawn in, which is not always the pane it belongs to.
+ *
+ * A layout change must not destroy an arrangement, so collapsing four panes
+ * to one folds the strays into the last visible pane rather than rewriting
+ * them. Splitting again puts every tab back where its owner left it.
+ */
+export function visiblePane(tab: Tab, paneCount: number): number {
+  return Math.min(tab.pane, Math.max(paneCount - 1, 0))
 }
 
 export function findTab(state: WorkspaceState, id: string): Tab | undefined {
   return state.tabs.find((tab) => tab.id === id)
 }
 
+/**
+ * Every tab on a page, across all its panes.
+ *
+ * Still page-wide, and that is the point: the new-tab menu gates a linked
+ * view on there being a query tab to follow, and a source in the pane next
+ * door is exactly the arrangement a split is for.
+ */
 export function tabsForPage(state: WorkspaceState, page: string): Tab[] {
   return state.tabs.filter((tab) => tab.page === page)
 }
 
-export function activeTab(state: WorkspaceState, page: string): Tab | undefined {
-  const id = state.activeByPage[page]
-  return id === undefined ? undefined : findTab(state, id)
+export function tabsForPane(
+  state: WorkspaceState,
+  page: string,
+  pane: number,
+  paneCount: number
+): Tab[] {
+  return tabsForPage(state, page).filter((tab) => visiblePane(tab, paneCount) === pane)
+}
+
+/**
+ * The tab a pane is showing.
+ *
+ * Falls back to the first tab in the pane when the stored id is not among
+ * them — which is what happens the first time a collapse folds someone else's
+ * tabs into this strip. A pane with tabs in it must never draw the empty
+ * state.
+ */
+export function activeTab(
+  state: WorkspaceState,
+  page: string,
+  pane = 0,
+  paneCount = 1
+): Tab | undefined {
+  const visible = tabsForPane(state, page, pane, paneCount)
+  const id = state.activeByPane[paneKey(page, pane)]
+  return visible.find((tab) => tab.id === id) ?? visible[0]
 }
 
 /**
@@ -60,24 +105,76 @@ export interface OpenTabInput {
   viewKind: string
   archetype: Archetype
   title: string
+  /** Pane to open into. Defaults to the first — the `+` that was clicked. */
+  pane?: number | undefined
   subject?: string
   pinnedDoc?: string
   linkSourceId?: string
 }
 
 export function openTab(state: WorkspaceState, input: OpenTabInput): WorkspaceState {
-  const tab: Tab = { ...input, dirty: false }
+  const pane = input.pane ?? 0
+  const tab: Tab = { ...input, pane, dirty: false }
   return {
     ...state,
     tabs: [...state.tabs, tab],
-    activeByPage: { ...state.activeByPage, [input.page]: input.id }
+    activeByPane: { ...state.activeByPane, [paneKey(input.page, pane)]: input.id }
   }
 }
 
-export function selectTab(state: WorkspaceState, id: string): WorkspaceState {
+/**
+ * `pane` is the pane the tab was clicked in, which under a collapsed layout
+ * is not the pane it is stored in. Omitting it selects in its own pane, which
+ * is right for every caller that is not a tab strip.
+ */
+export function selectTab(state: WorkspaceState, id: string, pane?: number): WorkspaceState {
   const tab = findTab(state, id)
   if (tab === undefined) return state
-  return { ...state, activeByPage: { ...state.activeByPage, [tab.page]: id } }
+  return {
+    ...state,
+    activeByPane: { ...state.activeByPane, [paneKey(tab.page, pane ?? tab.pane)]: id }
+  }
+}
+
+/**
+ * Move a tab into `pane` at `index` among that pane's tabs.
+ *
+ * The drag-and-drop transition (BU-55). Two things it deliberately does not
+ * do: it does not touch `linkSourceId`, because a link is by id and not by
+ * proximity — dragging a Charting tab away from its Prices source leaves it
+ * following that source across the split, which is the arrangement the
+ * linked archetype exists for. And it does not copy: the tab leaves the pane
+ * it came from.
+ */
+export function moveTab(
+  state: WorkspaceState,
+  id: string,
+  pane: number,
+  index: number,
+  paneCount: number
+): WorkspaceState {
+  const tab = findTab(state, id)
+  if (tab === undefined) return state
+
+  const moved: Tab = { ...tab, pane }
+  const others = state.tabs.filter((candidate) => candidate.id !== id)
+
+  // `index` counts within the destination pane; splice needs a position in
+  // the flat list, so it is resolved against the tab already at that slot.
+  const destination = others.filter(
+    (candidate) => candidate.page === tab.page && visiblePane(candidate, paneCount) === pane
+  )
+  const before = destination[index]
+  const at = before === undefined ? others.length : others.indexOf(before)
+
+  const tabs = [...others]
+  tabs.splice(at, 0, moved)
+
+  return {
+    ...state,
+    tabs,
+    activeByPane: { ...state.activeByPane, [paneKey(tab.page, pane)]: id }
+  }
 }
 
 /**
@@ -87,10 +184,17 @@ export function selectTab(state: WorkspaceState, id: string): WorkspaceState {
  * shows nothing. Severing on close preserves the last subject it was
  * showing, which is what the user was looking at a moment ago.
  */
-export function closeTab(state: WorkspaceState, id: string): WorkspaceState {
+export function closeTab(
+  state: WorkspaceState,
+  id: string,
+  pane?: number,
+  paneCount = 1
+): WorkspaceState {
   const tab = findTab(state, id)
   if (tab === undefined) return state
 
+  const from = pane ?? tab.pane
+  const key = paneKey(tab.page, from)
   const index = state.tabs.findIndex((candidate) => candidate.id === id)
   const followers = dependants(state, id)
 
@@ -100,20 +204,24 @@ export function closeTab(state: WorkspaceState, id: string): WorkspaceState {
   }
 
   const remaining = next.tabs.filter((candidate) => candidate.id !== id)
-  const siblings = remaining.filter((candidate) => candidate.page === tab.page)
 
-  // Activate the neighbour that slid into this slot, else the last tab.
-  const wasActive = next.activeByPage[tab.page] === id
-  const fallback = siblings[Math.min(index, siblings.length - 1)]?.id
+  // The fallback comes from this PANE, not the page: the neighbour that slid
+  // into the slot is the one in the same strip, and activating a tab in a
+  // different pane would move the selection somewhere the user is not
+  // looking.
+  const siblings = remaining.filter(
+    (candidate) =>
+      candidate.page === tab.page && visiblePane(candidate, Math.max(paneCount, from + 1)) === from
+  )
+  const position = siblings.findIndex((candidate) => state.tabs.indexOf(candidate) > index)
+  const fallback = (position === -1 ? siblings[siblings.length - 1] : siblings[position])?.id
 
+  const wasActive = next.activeByPane[key] === id
   const closed: ClosedTab[] = [{ tab, index }, ...next.closed].slice(0, MAX_REOPEN)
 
   return {
     tabs: remaining,
-    activeByPage: {
-      ...next.activeByPage,
-      [tab.page]: wasActive ? fallback : next.activeByPage[tab.page]
-    },
+    activeByPane: { ...next.activeByPane, [key]: wasActive ? fallback : next.activeByPane[key] },
     closed
   }
 }
@@ -127,7 +235,10 @@ export function reopenTab(state: WorkspaceState): WorkspaceState {
 
   return {
     tabs,
-    activeByPage: { ...state.activeByPage, [entry.tab.page]: entry.tab.id },
+    activeByPane: {
+      ...state.activeByPane,
+      [paneKey(entry.tab.page, entry.tab.pane)]: entry.tab.id
+    },
     closed: rest
   }
 }
@@ -208,7 +319,13 @@ export function setDirty(state: WorkspaceState, id: string, dirty: boolean): Wor
  */
 export function openOrRetarget(
   state: WorkspaceState,
-  request: { page: string; viewKind: string; title: string; subject: string }
+  request: {
+    page: string
+    viewKind: string
+    title: string
+    subject: string
+    pane?: number | undefined
+  }
 ): WorkspaceState {
   const existing = state.tabs.find(
     (tab) =>
@@ -225,6 +342,7 @@ export function openOrRetarget(
     viewKind: request.viewKind,
     archetype: 'query',
     title: request.title,
+    pane: request.pane ?? 0,
     subject: request.subject
   })
 }

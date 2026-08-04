@@ -6,6 +6,7 @@
 }
 
 .tab-bar-strip {
+  position: relative;
   display: flex;
   align-items: center;
   min-width: 0;
@@ -13,6 +14,21 @@
   overflow-y: hidden;
   /* The strip owns the bottom rule via .tab-bar, so tabs sit flush on it. */
   margin-bottom: -1px;
+}
+
+/*
+ * Where a dragged tab would land (BU-55). Accent rather than a gap, because
+ * opening a gap moves every tab after it and the target keeps sliding out
+ * from under the cursor.
+ */
+.tab-bar-drop {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  pointer-events: none;
+  background: var(--accent);
+  border-radius: 1px;
 }
 
 /* 34x34 (122:4), sitting immediately after the last tab. */
