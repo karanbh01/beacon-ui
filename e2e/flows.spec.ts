@@ -131,6 +131,23 @@ test('closing a chart tab does not take the renderer down', async ({ window }) =
   expect(crashes, crashes.join('\n')).toEqual([])
 })
 
+test('the footer toggle themes the app, and the choice sticks', async ({ window }) => {
+  const root = window.locator('html')
+  const toggle = window.getByRole('switch', { name: 'Dark mode' })
+
+  // BU-39: `system` is the default and tracks the OS live. The toggle is the
+  // manual override, so touching it writes an explicit preference.
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+  await toggle.click()
+  await expect(root).toHaveAttribute('data-theme', 'dark')
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  expect(await window.evaluate(() => localStorage.getItem('beacon.theme'))).toBe('dark')
+
+  await toggle.click()
+  await expect(root).toHaveAttribute('data-theme', 'light')
+})
+
 test('nothing logs an error while any of that happens', async ({ window }) => {
   const errors: string[] = []
   window.on('console', (message) => {

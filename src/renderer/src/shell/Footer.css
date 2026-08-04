@@ -89,6 +89,12 @@ button.footer-update:hover {
   color: var(--text-muted);
 }
 
+/* Sits left of the version cluster, with the same 8px the rest of the row
+   uses. A little extra on the right so it does not crowd the italic. */
+.footer-theme {
+  margin-right: 4px;
+}
+
 .footer-icon {
   display: flex;
   align-items: center;

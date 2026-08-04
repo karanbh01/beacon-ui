@@ -71,11 +71,10 @@ function AppBody(): ReactElement {
     selectTab('seed-coverage')
   }
 
-  // No visible control yet — the theme picker belongs in the footer and the
-  // mockup for it does not exist. Called anyway so the app keeps following
-  // the OS live: initTheme() applies the stored preference at boot, and this
-  // subscribes to prefers-color-scheme changes while `system` is selected.
-  useTheme()
+  // The footer toggle is the manual override (BU-39). Until someone touches
+  // it the preference stays `system`, so a fresh install follows the OS live;
+  // flipping it writes an explicit light or dark and stops tracking.
+  const theme = useTheme()
 
   useEffect(() => {
     // Never let a bridge failure escape this effect. An uncaught throw here
@@ -130,7 +129,9 @@ function AppBody(): ReactElement {
         // electron-updater, live from main. Nothing downloads unasked, so
         // this is also the control surface — see ADR-0004.
         update,
-        onUpdateAction: runUpdateAction
+        onUpdateAction: runUpdateAction,
+        themeMode: theme.mode,
+        onThemeChange: theme.setPreference
       }}
       {...(assistantOpen
         ? {

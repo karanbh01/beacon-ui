@@ -2,6 +2,8 @@ import type { ReactElement } from 'react'
 import type { UpdateState } from '@shared/ipc'
 import type { UpdateAction } from '../state/update'
 import { GithubIcon } from '../icons/generated'
+import { ThemeToggle } from '../components/ThemeToggle/ThemeToggle'
+import type { ThemeMode } from '../tokens/tokens'
 import { updateNotice, type UpdateNotice } from './updateNotice'
 import './Footer.css'
 
@@ -21,6 +23,9 @@ export interface FooterProps {
    */
   onUpdateAction?: (action: UpdateAction) => void
   onOpenRepo?: () => void
+  /** The mode on screen. Omit both to hide the theme toggle (BU-39). */
+  themeMode?: ThemeMode
+  onThemeChange?: (mode: ThemeMode) => void
   className?: string
 }
 
@@ -90,6 +95,8 @@ export function Footer({
   update,
   onUpdateAction,
   onOpenRepo,
+  themeMode,
+  onThemeChange,
   className
 }: FooterProps): ReactElement {
   const notice = updateNotice(update)
@@ -109,6 +116,9 @@ export function Footer({
       )}
 
       <span className="footer-right">
+        {themeMode !== undefined && onThemeChange !== undefined && (
+          <ThemeToggle mode={themeMode} onChange={onThemeChange} className="footer-theme" />
+        )}
         {version !== undefined && (
           <button
             type="button"
