@@ -5,6 +5,9 @@ import {
   describeAge,
   describeSpan,
   filterByDataset,
+  describeBytes,
+  frequencyLabel,
+  sourceLabel,
   statusLabel,
   statusOf,
   summarise,
@@ -20,6 +23,8 @@ function row(overrides: Partial<DatasetCoverage> = {}): DatasetCoverage {
     // client no longer has to hold a staleness threshold on its behalf.
     frequency: 'Daily',
     field_count: 6,
+    source: 'yfinance',
+    stale_after_seconds: 24 * 3600,
     start: '1962-01-02',
     end: '2026-07-28',
     cache_age: 7_200,
@@ -36,18 +41,21 @@ describe('statusOf', () => {
     expect(statusOf(row({ cache_age: null }))).toBe('never')
   })
 
-  it('calls a dataset stale past its own refresh interval, not a global one', () => {
+  it('uses the interval the ENGINE publishes, not one held here', () => {
+    // This is the BN-119 change: the thresholds used to be a table in
+    // coverage.ts keyed by dataset name, which was a guess about how often
+    // each source refreshes. The engine knows.
     const twoDays = 2 * 24 * 3600
-    expect(statusOf(row({ dataset: 'market', cache_age: twoDays }))).toBe('stale')
-    // Reference data is static; two days old is not stale for it.
-    expect(statusOf(row({ dataset: 'reference', cache_age: twoDays }))).toBe('ok')
+    expect(statusOf(row({ cache_age: twoDays, stale_after_seconds: 24 * 3600 }))).toBe('stale')
+    expect(statusOf(row({ cache_age: twoDays, stale_after_seconds: 7 * 24 * 3600 }))).toBe('ok')
   })
 
-  it('gives an unknown dataset the daily threshold', () => {
+  it('falls back to a day when the engine sends no interval', () => {
     // Calling something stale a day early is a nudge; calling it fresh for a
     // week is a lie.
-    expect(statusOf(row({ dataset: 'mystery', cache_age: 2 * 24 * 3600 }))).toBe('stale')
-    expect(statusOf(row({ dataset: 'mystery', cache_age: 3600 }))).toBe('ok')
+    const noInterval = { stale_after_seconds: null }
+    expect(statusOf(row({ ...noInterval, cache_age: 2 * 24 * 3600 }))).toBe('stale')
+    expect(statusOf(row({ ...noInterval, cache_age: 3600 }))).toBe('ok')
   })
 
   it('names each state in words', () => {
@@ -94,10 +102,29 @@ describe('summarise', () => {
     row({ dataset: 'fundamentals', configured: false, identifiers: 0, cache_age: null })
   ]
 
-  it('reports the largest dataset, never a sum', () => {
-    // Summing would double-count every instrument that has both prices and
-    // reference data, which is most of them.
-    expect(summarise(rows).largest).toBe(12_847)
+  it('takes the union the engine publishes, never a sum', () => {
+    // Summing would double-count every instrument holding both prices and
+    // reference data, which is most of them. BN-119 publishes the distinct
+    // count; this is what ASSETS COVERED always meant.
+    expect(summarise(rows, { identifiers_union: 13_002 }).assets).toBe(13_002)
+  })
+
+  it('falls back to the largest dataset when no union is sent', () => {
+    // Still wrong, but wrong in the safe direction: an undercount rather than
+    // a number bigger than the universe.
+    expect(summarise(rows).assets).toBe(12_847)
+  })
+
+  it('counts distinct sources and sums the field counts', () => {
+    const withSources = [
+      row({ dataset: 'market', source: 'yfinance', field_count: 6 }),
+      row({ dataset: 'reference', source: 'yfinance', field_count: 11 }),
+      row({ dataset: 'rates', source: 'ECB', field_count: 2 })
+    ]
+    const summary = summarise(withSources)
+
+    expect(summary.sources).toBe(2)
+    expect(summary.fields).toBe(19)
   })
 
   it('counts what is configured against what exists', () => {
@@ -120,10 +147,37 @@ describe('summarise', () => {
     expect(summarise([])).toEqual({
       datasets: 0,
       configured: 0,
-      largest: 0,
+      assets: 0,
       stale: 0,
-      newestAge: undefined
+      newestAge: undefined,
+      sources: 0,
+      fields: 0,
+      cacheBytes: undefined
     })
+  })
+})
+
+describe('describeBytes', () => {
+  it('reads at a glance rather than to the byte', () => {
+    expect(describeBytes(0)).toBe('0 B')
+    expect(describeBytes(2048)).toBe('2.0 KB')
+    expect(describeBytes(1_500_000_000)).toBe('1.4 GB')
+  })
+
+  it('says nothing when the engine reports no size', () => {
+    expect(describeBytes(null)).toBe('—')
+  })
+})
+
+describe('sourceLabel and frequencyLabel', () => {
+  it('render what BN-119 added', () => {
+    expect(sourceLabel('yfinance')).toBe('yfinance')
+    expect(frequencyLabel('daily')).toBe('Daily')
+  })
+
+  it('say nothing rather than inventing a source', () => {
+    expect(sourceLabel(null)).toBe('—')
+    expect(frequencyLabel(undefined)).toBe('—')
   })
 })
 

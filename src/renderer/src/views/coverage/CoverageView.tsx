@@ -16,6 +16,9 @@ import {
   statusLabel,
   statusOf,
   summarise,
+  describeBytes,
+  frequencyLabel,
+  sourceLabel,
   type CoverageStatus,
   type DatasetCoverage
 } from './coverage'
@@ -31,11 +34,15 @@ const PILL: Record<CoverageStatus, 'done' | 'running' | 'failed' | 'info'> = {
 /**
  * Data Explorer → Data Coverage. Figma 234:5792.
  *
- * Figma's table also carries Source and Frequency columns, and its stat strip
- * FIELDS, SOURCES and CACHE SIZE. `DatasetCoverage` is
- * `{dataset, configured, identifiers, start, end, cache_age, last_refreshed}`
- * and publishes none of those five, so they are left out rather than filled
- * with dashes or invented. Tracked in #42.
+ * Every element of the frame is live since BN-119: Source and Frequency as
+ * columns, FIELDS, SOURCES and CACHE SIZE in the strip, and ASSETS COVERED
+ * from `identifiers_union` — the distinct count across datasets, rather than
+ * a sum that double-counts every instrument holding both prices and
+ * reference data.
+ *
+ * Staleness is the engine's call now too. This file used to hold a threshold
+ * per dataset because the response carried no frequency; `stale_after_seconds`
+ * replaced that guess.
  */
 export function CoverageView(): ReactElement {
   const [dataset, setDataset] = useState('')
@@ -46,7 +53,7 @@ export function CoverageView(): ReactElement {
   // make every downstream useMemo recompute for nothing.
   const datasets = query.data?.datasets
   const rows = useMemo(() => datasets ?? [], [datasets])
-  const summary = useMemo(() => summarise(rows), [rows])
+  const summary = useMemo(() => summarise(rows, query.data), [rows, query.data])
   const shown = useMemo(() => filterByDataset(rows, dataset), [rows, dataset])
 
   const columns = useMemo(() => buildColumns(sync.mutate, sync.isPending), [sync])
@@ -93,7 +100,10 @@ export function CoverageView(): ReactElement {
               label="CONFIGURED"
               value={`${String(summary.configured)} / ${String(summary.datasets)}`}
             />
-            <Stat label="LARGEST DATASET" value={summary.largest.toLocaleString('en-US')} />
+            <Stat label="ASSETS COVERED" value={summary.assets.toLocaleString('en-US')} />
+            <Stat label="SOURCES" value={String(summary.sources)} />
+            <Stat label="FIELDS" value={String(summary.fields)} />
+            <Stat label="CACHE SIZE" value={describeBytes(summary.cacheBytes)} />
             <Stat label="FRESHEST" value={describeAge(summary.newestAge)} />
             <Stat
               label="STALE DATASETS"
@@ -109,9 +119,9 @@ export function CoverageView(): ReactElement {
           )}
 
           <p className="coverage-footnote type-11">
-            Coverage refreshes on sync · stale = older than this dataset&rsquo;s expected refresh
-            interval, which beacon-ui holds because the engine does not publish one · sync runs as a
-            job; watch the tray
+            Coverage refreshes on sync · stale = older than this dataset&rsquo;s own refresh
+            interval, which the engine publishes · assets covered counts each identifier once
+            across datasets · sync runs as a job; watch the tray
           </p>
         </>
       )}
@@ -130,6 +140,13 @@ function buildColumns(
       width: 190,
       emphasis: true,
       render: (row) => datasetLabel(row.dataset)
+    },
+    { key: 'source', header: 'Source', width: 130, render: (row) => sourceLabel(row.source) },
+    {
+      key: 'frequency',
+      header: 'Frequency',
+      width: 100,
+      render: (row) => frequencyLabel(row.frequency)
     },
     {
       key: 'identifiers',

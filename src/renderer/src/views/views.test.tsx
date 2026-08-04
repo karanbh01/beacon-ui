@@ -191,11 +191,19 @@ describe('CorporateActionsView', () => {
 
 describe('CoverageView', () => {
   const COVERAGE = {
+    // `identifiers_union` is the point: 12,847 + 12,000 would be 24,847, and
+    // nearly every instrument is in both.
+    identifiers_union: 13_002,
+    cache_size_bytes: 1_500_000_000,
     datasets: [
       {
         dataset: 'market',
         configured: true,
         identifiers: 12_847,
+        source: 'yfinance',
+        frequency: 'daily',
+        field_count: 6,
+        stale_after_seconds: 24 * 3600,
         start: '1962-01-02',
         end: '2026-07-28',
         cache_age: 7_200,
@@ -204,7 +212,11 @@ describe('CoverageView', () => {
       {
         dataset: 'reference',
         configured: false,
-        identifiers: 0,
+        identifiers: 12_000,
+        source: null,
+        frequency: 'static',
+        field_count: 11,
+        stale_after_seconds: null,
         start: null,
         end: null,
         cache_age: null,
@@ -221,7 +233,17 @@ describe('CoverageView', () => {
       [...row.children].map((cell) => cell.textContent)
     )
 
-    expect(cells[0]).toEqual(['Market', '12,847', '1962 → 2026', '2h ago', 'OK', 'Sync'])
+    // Source and Frequency joined the row in BU-61, from BN-119.
+    expect(cells[0]).toEqual([
+      'Market',
+      'yfinance',
+      'Daily',
+      '12,847',
+      '1962 → 2026',
+      '2h ago',
+      'OK',
+      'Sync'
+    ])
   })
 
   it('distinguishes a dataset that is not loaded from one that is merely old', async () => {
@@ -231,13 +253,14 @@ describe('CoverageView', () => {
     expect(screen.getByText('Not loaded')).toBeInTheDocument()
   })
 
-  it('reports the largest dataset rather than a misleading total', async () => {
+  it('counts each asset once, from the union the engine publishes', async () => {
     const container = mount(<CoverageView />, { coverage: COVERAGE })
 
-    // Summing the two would read 12,847 — the union is unknowable from
-    // per-dataset counts, so the strip says which number it is showing.
-    const stat = (await screen.findByText('LARGEST DATASET')).closest('.stat')
-    expect(stat?.querySelector('.stat-value')?.textContent).toBe('12,847')
+    // Summing per-dataset counts would double-count every instrument holding
+    // both prices and reference data. BN-119 sends the distinct count, which
+    // is what ASSETS COVERED always meant.
+    const stat = (await screen.findByText('ASSETS COVERED')).closest('.stat')
+    expect(stat?.querySelector('.stat-value')?.textContent).toBe('13,002')
     expect(container.querySelector('.stat-strip')).not.toBeNull()
   })
 
