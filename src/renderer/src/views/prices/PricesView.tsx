@@ -6,6 +6,7 @@ import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { Stat, StatStrip } from '../../components/Stat/Stat'
 import { Table, type Column } from '../../components/Table/Table'
+import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useReference } from '../shared/queries'
@@ -78,6 +79,7 @@ function formatDate(value: unknown): string {
 export function PricesView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   const [range, setRange] = useState<Range>('1Y')
+  const setSubject = useWorkspace((state) => state.setSubject)
 
   const start = useMemo(() => rangeStart(range), [range])
   const prices = usePrices(identifier, { start })
@@ -94,10 +96,10 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
         kind="query"
         subject={identifier}
         {...(meta === undefined ? {} : { meta })}
-        onQuery={() => {
-          // Subject changes flow through the workspace store (BU-16), which
-          // re-renders this view with a new `subject`. Wiring it here would
-          // fork the source of truth.
+        onQuery={(next) => {
+          // The store owns the subject (BU-16); writing it here re-renders
+          // this view with a new `subject` and keeps followers in step.
+          setSubject(tab.id, next)
         }}
         controls={
           <>

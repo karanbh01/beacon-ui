@@ -1,0 +1,32 @@
+{
+  "include": ["playwright.config.ts", "e2e/**/*"],
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    /*
+     * DOM as well as Node, and this is the whole reason e2e has its own
+     * project rather than living in tsconfig.node.json. A spec file runs in
+     * Node, but the callback inside `page.evaluate()` runs in the renderer —
+     * so both sets of globals are legitimately in scope here.
+     *
+     * Putting `dom` into the node project instead would have let main-process
+     * code reference `document` and typecheck cleanly, which is exactly the
+     * mistake the split prevents.
+     */
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noEmit": true
+  }
+}

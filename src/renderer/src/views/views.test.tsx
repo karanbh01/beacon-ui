@@ -113,6 +113,25 @@ describe('ReferenceView', () => {
 
     expect(await screen.findByText(/engine is not reachable/)).toBeInTheDocument()
   })
+
+  it('commits a typed identifier to the store on Enter', async () => {
+    // BU-35 found this: the query views rendered a working ticker field over
+    // an empty `onQuery`, so Enter did nothing at all. Every unit test passed
+    // — they were all rendered with a subject already in hand.
+    useWorkspace.getState().openTab({
+      id: 't',
+      page: 'data-explorer',
+      viewKind: 'reference-data',
+      archetype: 'query',
+      title: 'Reference Data'
+    })
+
+    mount(<ReferenceView tab={tab('reference-data')} subject={undefined} />, { reference: {} })
+
+    await userEvent.type(screen.getByRole('textbox'), 'MSFT{Enter}')
+
+    expect(useWorkspace.getState().tabs[0]?.subject).toBe('MSFT')
+  })
 })
 
 describe('CorporateActionsView', () => {

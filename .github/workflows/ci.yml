@@ -63,6 +63,43 @@ jobs:
       - name: Build Storybook
         run: pnpm run build:storybook
 
+  e2e:
+    name: E2E (Playwright + Electron)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` here on purpose — the action reads `packageManager` from
+      # package.json, and specifying both is a hard error.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # No `playwright install` — these tests drive the Electron binary that
+      # is already a dependency, not a downloaded browser.
+      #
+      # xvfb because Electron has no headless mode that still paints; the
+      # parity tests measure real layout, so there has to be a display.
+      - name: E2E
+        run: xvfb-run -a pnpm run e2e
+
+      - name: Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   package:
     name: electron-builder dry run
     # Packaging is slow and only meaningful for what actually lands, so it

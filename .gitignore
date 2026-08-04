@@ -17,3 +17,7 @@ storybook-static/
 
 # Bundled python payload — fetched at build time (ADR-0003).
 resources/python/
+
+# Playwright output (BU-35).
+test-results/
+playwright-report/

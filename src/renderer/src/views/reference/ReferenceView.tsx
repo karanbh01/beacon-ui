@@ -3,6 +3,7 @@ import { Button } from '../../components/Button/Button'
 import { Card } from '../../components/Card/Card'
 import { KV, KVList } from '../../components/KV/KV'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
+import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useReference } from '../shared/queries'
@@ -16,9 +17,10 @@ import './ReferenceView.css'
  * and nothing is cached beyond the query — the engine is the only authority
  * on what an instrument is.
  */
-export function ReferenceView({ subject }: ViewProps): ReactElement {
+export function ReferenceView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   const query = useReference(identifier)
+  const setSubject = useWorkspace((state) => state.setSubject)
 
   const fields = query.data?.fields
   const index = useMemo(() => indexFields(fields), [fields])
@@ -31,8 +33,9 @@ export function ReferenceView({ subject }: ViewProps): ReactElement {
         kind="query"
         subject={identifier}
         {...(name === '—' ? {} : { meta: name })}
-        onQuery={() => {
-          // Subject changes flow through the workspace store (BU-16).
+        onQuery={(next) => {
+          // The store owns the subject (BU-16).
+          setSubject(tab.id, next)
         }}
         controls={<Button chevron>Export</Button>}
       />

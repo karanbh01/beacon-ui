@@ -4,6 +4,7 @@ import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
+import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useCorporateActions } from '../shared/queries'
@@ -64,9 +65,10 @@ const COLUMNS: readonly Column<CorporateAction>[] = [
  * instrument has no payout ratio" instead of "this engine does not publish
  * one". Tracked on #60 as a py-beacon ask rather than a client gap.
  */
-export function CorporateActionsView({ subject }: ViewProps): ReactElement {
+export function CorporateActionsView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   const [type, setType] = useState<string>(ALL)
+  const setSubject = useWorkspace((state) => state.setSubject)
 
   const start = useMemo(() => historyStart(new Date()), [])
   const query = useCorporateActions(identifier, { start })
@@ -99,8 +101,9 @@ export function CorporateActionsView({ subject }: ViewProps): ReactElement {
         kind="query"
         subject={identifier}
         meta="Corporate actions"
-        onQuery={() => {
-          // Subject changes flow through the workspace store (BU-16).
+        onQuery={(next) => {
+          // The store owns the subject (BU-16).
+          setSubject(tab.id, next)
         }}
         controls={<Button chevron>Export</Button>}
       />
