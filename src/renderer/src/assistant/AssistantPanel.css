@@ -52,20 +52,6 @@
   min-height: 0;
   padding: 14px 14px 0;
   overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-.assistant-conversation::-webkit-scrollbar {
-  width: 4px;
-}
-
-.assistant-conversation::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.assistant-conversation::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-muted) 35%, transparent);
-  border-radius: 2px;
 }
 
 .assistant-input {

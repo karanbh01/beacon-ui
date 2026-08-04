@@ -13,21 +13,6 @@
   overflow-y: hidden;
   /* The strip owns the bottom rule via .tab-bar, so tabs sit flush on it. */
   margin-bottom: -1px;
-  scrollbar-width: thin;
-}
-
-/* 4px thumb at 45% muted (taxonomy 9). */
-.tab-bar-strip::-webkit-scrollbar {
-  height: 4px;
-}
-
-.tab-bar-strip::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tab-bar-strip::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-muted) 45%, transparent);
-  border-radius: 2px;
 }
 
 /* 34x34 (122:4), sitting immediately after the last tab. */

@@ -18,6 +18,49 @@
   box-sizing: border-box;
 }
 
+/*
+ * One scrollbar for the whole app.
+ *
+ * Three components used to style their own — Table, TabBar and
+ * AssistantPanel — and everything else got Chromium's default grey against a
+ * cream or near-black canvas. They also disagreed: two used a 45% thumb and
+ * one 35%. Styling it here means a scroll container is themed by existing.
+ *
+ * `--scrollbar-thumb` holds the colour rather than repeating the `color-mix`.
+ * It resolves `--text-muted` where it is used, so it follows the theme.
+ *
+ * `scrollbar-width` and `scrollbar-color` are deliberately NOT set. They are
+ * the standard properties and would be the better choice anywhere else, but
+ * since Chromium 121 setting either one makes the browser ignore the
+ * `::-webkit-` pseudo-elements entirely — and `scrollbar-width: thin` picks
+ * its own width, which is not the taxonomy's 4px. Adding them here to be
+ * standards-friendly would silently lose the size this exists to control.
+ * Measured at 4px on a plain overflow container after the change.
+ */
+:root {
+  --scrollbar-size: 4px;
+  --scrollbar-thumb: color-mix(in srgb, var(--text-muted) 45%, transparent);
+}
+
+::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 2px;
+}
+
+/* Chromium hides the corner square rather than painting it default grey. */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 body {
   margin: 0;
   /* The stack lives in one place now that the faces are bundled. */
