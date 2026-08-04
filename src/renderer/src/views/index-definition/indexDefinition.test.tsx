@@ -33,7 +33,8 @@ const SAVED: IndexDocument = {
 interface Calls {
   saved: IndexDocument[]
   validated: IndexDocument[]
-  previewed: string[]
+  /** The DRAFT documents preview was asked to resolve, since BN-120. */
+  previewed: IndexDocument[]
 }
 
 function mount(overrides: { validate?: unknown; save?: unknown } = {}): Calls {
@@ -59,10 +60,10 @@ function mount(overrides: { validate?: unknown; save?: unknown } = {}): Calls {
         calls.validated.push(document)
         return Promise.resolve(overrides.validate ?? { valid: true, findings: [] })
       },
-      preview: (id: string) => {
-        calls.previewed.push(id)
+      previewDocument: ({ document }: { document: IndexDocument }) => {
+        calls.previewed.push(document)
         return Promise.resolve({
-          index_id: id,
+          index_id: document.id,
           as_of: '2026-07-22',
           assets: [
             { identifier: 'AAPL', included: true, capped: true, weight: 0.2 },
@@ -231,7 +232,7 @@ describe('the methodology pipeline', () => {
 })
 
 describe('validation', () => {
-  it('validates the draft body and previews the saved id', async () => {
+  it('validates AND previews the draft, not the saved index', async () => {
     const calls = mount()
     await userEvent.type(await screen.findByLabelText('Name'), '!')
     await userEvent.click(screen.getByRole('button', { name: 'Validate' }))
@@ -239,10 +240,10 @@ describe('validation', () => {
     await waitFor(() => {
       expect(calls.validated).toHaveLength(1)
     })
-    // Validate takes a body, preview takes an id — so one sees the edit and
-    // the other cannot.
+    // Both take a body since BN-120. Preview used to take an id and could
+    // only ever describe what was stored.
     expect(calls.validated[0]?.name).toBe(`${SAVED.name}!`)
-    expect(calls.previewed).toEqual(['TECH10'])
+    expect(calls.previewed[0]?.name).toBe(`${SAVED.name}!`)
   })
 
   it('attaches preview counts to the rule that produced them', async () => {
@@ -252,14 +253,16 @@ describe('validation', () => {
     expect(await screen.findByText('87 pass')).toBeInTheDocument()
   })
 
-  it('warns that the resolved figures describe the saved index once the draft moves on', async () => {
+  it('says the figures are out of date once the draft moves past them', async () => {
+    // Narrower than it used to be: preview can see the draft now, so this
+    // only means it has not been re-run — not that it cannot see it at all.
     mount()
     await userEvent.click(await screen.findByRole('button', { name: 'Validate' }))
     await screen.findByText('87 pass')
 
     await userEvent.type(screen.getByLabelText('Name'), '!')
 
-    expect(screen.getByText(/will not follow the draft/)).toBeInTheDocument()
+    expect(screen.getByText(/draft has changed since these were resolved/)).toBeInTheDocument()
   })
 
   it('shows blocking findings apart from advisory ones', async () => {

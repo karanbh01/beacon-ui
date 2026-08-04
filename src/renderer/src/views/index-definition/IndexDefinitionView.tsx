@@ -6,7 +6,7 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import {
-  usePreviewIndex,
+  usePreviewDocument,
   useSaveIndex,
   useUniverseMembers,
   useUniverses,
@@ -38,7 +38,7 @@ export function IndexDefinitionView({ tab }: ViewProps): ReactElement {
   const universes = useUniverses()
   const members = useUniverseMembers(draft?.universe.universe_id ?? '')
   const validate = useValidateIndex()
-  const preview = usePreviewIndex()
+  const preview = usePreviewDocument()
   const save = useSaveIndex()
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
@@ -50,7 +50,7 @@ export function IndexDefinitionView({ tab }: ViewProps): ReactElement {
 
   const run = (document: IndexDocument): void => {
     validate.mutate(document)
-    preview.mutate({ indexId: document.id })
+    preview.mutate({ document })
     setPreviewedFor(JSON.stringify(document))
   }
 

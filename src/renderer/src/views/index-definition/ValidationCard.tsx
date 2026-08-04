@@ -9,23 +9,21 @@ export interface ValidationCardProps {
   report?: { valid: boolean; findings: Finding[] } | undefined
   preview?: PreviewResponse | undefined
   dirty: boolean
-  /** True while the preview describes a document the draft has moved past. */
+  /** True while the draft has changed since preview was last run. */
   stale: boolean
 }
 
 /**
  * Figma 322:1641.
  *
- * Two different things share this card, and the difference matters. The
- * FINDINGS come from `/indices/validate`, which takes the draft body and says
- * whether it could be saved. The RESOLVED figures come from
- * `/indices/{id}/preview`, which takes an id and therefore describes what is
- * STORED — so once the draft diverges the card says so rather than letting
- * last preview's numbers pass for the draft's.
+ * Two things share this card and both now describe the DRAFT. The findings
+ * come from `/indices/validate`, which has always taken a body; the resolved
+ * figures come from `/indices/preview`, which takes one since BN-120. Before
+ * that it took an id and could only describe what was saved, so the card had
+ * to caption its own numbers as belonging to the last save.
  *
- * Figma also shows "Next rebalance · in 57 days". `IndexDocument` carries a
- * frequency but no schedule or calendar, so the date cannot be computed. Left
- * out; tracked in #44.
+ * `stale` therefore means something narrower now: the draft has moved since
+ * the last preview was RUN, not that preview cannot see the draft at all.
  */
 export function ValidationCard({
   report,
@@ -70,8 +68,7 @@ export function ValidationCard({
 
       {stale && (
         <p className="validation-note type-11">
-          The figures above describe the <em>saved</em> index. Preview takes an id, not a body, so
-          they will not follow the draft until it is saved.
+          The draft has changed since these were resolved. Preview again to refresh them.
         </p>
       )}
 

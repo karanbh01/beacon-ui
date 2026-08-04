@@ -92,6 +92,12 @@ export function useValidateIndex() {
  * a body, so what comes back describes what is stored. The view says so
  * rather than letting the counts look like they follow the draft.
  */
+/**
+ * Preview a SAVED index by id.
+ *
+ * Right for a pane reading an index that exists — Constituent Preview opens
+ * against a stored document and has no draft to resolve.
+ */
 export function usePreviewIndex() {
   const client = useBeacon()
 
@@ -99,6 +105,27 @@ export function usePreviewIndex() {
     mutationFn: ({ indexId, asOf }: { indexId: string; asOf?: string }) => {
       if (client === null) throw new Error('No engine')
       return client.indices.preview(indexId, asOf === undefined ? {} : { as_of: asOf })
+    }
+  })
+}
+
+/**
+ * Preview a DRAFT document (BN-120).
+ *
+ * The editor's version. Before `/indices/preview` took a body, it could only
+ * describe what was saved, so the validation card had to caption its own
+ * figures as belonging to the last save while the draft said something else.
+ */
+export function usePreviewDocument() {
+  const client = useBeacon()
+
+  return useMutation({
+    mutationFn: ({ document, asOf }: { document: IndexDocument; asOf?: string }) => {
+      if (client === null) throw new Error('No engine')
+      return client.indices.previewDocument({
+        document,
+        ...(asOf === undefined ? {} : { as_of: asOf })
+      })
     }
   })
 }
