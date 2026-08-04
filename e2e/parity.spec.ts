@@ -178,6 +178,23 @@ test.describe('frame parity', () => {
     expect(computed?.family).toContain('Inter')
   })
 
+  test('the theme toggle knob sits centred in its track', async ({ window }) => {
+    // It sat 2.5px from the top and 0.5px from the bottom: a 0.5px BORDER
+    // rounds up to a whole device pixel and shrinks the padding box the knob
+    // is absolutely positioned inside, so the inset stopped meaning what it
+    // said. Measured, because 2px is exactly the kind of wrong that is
+    // obvious on screen and invisible to every other check.
+    const gaps = await window.evaluate(() => {
+      const track = document.querySelector('.theme-toggle')?.getBoundingClientRect()
+      const knob = document.querySelector('.theme-toggle-knob')?.getBoundingClientRect()
+      if (track === undefined || knob === undefined) return null
+      return { top: knob.top - track.top, bottom: track.bottom - knob.bottom }
+    })
+
+    expect(gaps, 'no theme toggle on screen to measure').not.toBeNull()
+    expect(gaps?.top).toBeCloseTo(gaps?.bottom ?? -1, 1)
+  })
+
   test('the bundled faces are the ones painting, not system fallbacks', async ({ window }) => {
     // BU-52: Roboto resolved off the developer's machine and fell back to
     // Inter — 5% wider — everywhere it was not installed. Three machines,
