@@ -73,6 +73,23 @@ test('a tab drags from one pane to another', async ({ window }) => {
   await expect(window.locator('[data-pane="1"] .reference-view')).toBeVisible()
 })
 
+test('a tab drops onto the body of a pane, not just its strip', async ({ window }) => {
+  // BU-70: the strip is 16px tall at the top of the pane. Ending a drag over
+  // the view used to snap the tab back, which reads as a failed drag rather
+  // than a missed target.
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Two columns')
+  await openIn(window, 0, 'Prices')
+  await openIn(window, 0, 'Reference Data')
+
+  await strip(window, 0)
+    .locator('.tab', { hasText: 'Reference Data' })
+    .dragTo(window.locator('[data-pane="1"] .pane-body'))
+
+  await expect(strip(window, 1).getByText('Reference Data')).toBeVisible()
+  await expect(window.locator('[data-pane="1"] .reference-view')).toBeVisible()
+})
+
 test('a link survives being dragged away from its source', async ({ window }) => {
   // Taxonomy §1: a linked tab follows another tab BY ID. Moving it to the
   // other side of a split is exactly the arrangement links exist for, and

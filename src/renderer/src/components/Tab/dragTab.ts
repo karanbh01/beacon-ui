@@ -40,3 +40,34 @@ export function dropMarkerX(rects: readonly DOMRect[], index: number): number {
   if (target !== undefined) return target.left
   return rects[rects.length - 1]?.right ?? 0
 }
+
+export interface DropTarget {
+  /** Position among the destination pane's tabs. */
+  index: number
+  /**
+   * Viewport x for the strip marker, or absent when the pointer is over the
+   * pane body — there is no gap between two tabs to point at down there.
+   */
+  markerX?: number
+}
+
+/**
+ * Where a drop at (x, y) inside a pane would land (BU-70).
+ *
+ * The whole pane accepts a tab, not just its 16px strip: a drag that ends
+ * over the view reads as a failed drop rather than a missed target. Over the
+ * strip the position is meaningful and is measured; over the body there is
+ * nothing to be between, so it appends.
+ */
+export function paneDropTarget(
+  bar: DOMRect | undefined,
+  tabs: readonly DOMRect[],
+  x: number,
+  y: number
+): DropTarget {
+  const overStrip = bar !== undefined && y >= bar.top && y <= bar.bottom
+  if (!overStrip) return { index: tabs.length }
+
+  const index = dropIndexAt(tabs, x)
+  return { index, markerX: dropMarkerX(tabs, index) }
+}

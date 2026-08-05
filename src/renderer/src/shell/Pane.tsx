@@ -1,6 +1,7 @@
-import { useState, type CSSProperties, type ReactElement } from 'react'
+import { useRef, useState, type CSSProperties, type DragEvent, type ReactElement } from 'react'
 import { Tab } from '../components/Tab/Tab'
 import { TabBar } from '../components/Tab/TabBar'
+import { carriesTab, paneDropTarget, TAB_MIME, type DropTarget } from '../components/Tab/dragTab'
 import { activeTab, resolveSubject, tabsForPage, tabsForPane } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { chipFor } from './chips'
@@ -36,22 +37,93 @@ function pageLabel(page: string): string {
 export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement {
   const state = useWorkspace()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [drop, setDrop] = useState<DropTarget | undefined>(undefined)
+  const host = useRef<HTMLDivElement>(null)
+  /**
+   * How deep into this pane's subtree the drag currently is.
+   *
+   * `dragleave` also fires on the way INTO a child, which is the classic way
+   * a drop affordance ends up flickering. Counting enter against leave is the
+   * fix that does not depend on `relatedTarget` — which Chromium supplies and
+   * jsdom does not, so a guard built on it would be untestable here.
+   */
+  const depth = useRef(0)
 
   const tabs = tabsForPane(state, page, index, paneCount)
   const active = activeTab(state, page, index, paneCount)
   const View = active === undefined ? undefined : (getView(active.viewKind) ?? MissingView)
   const options = newTabOptions(viewsForPage(page), tabsForPage(state, page))
 
+  /** Measured live: tabs move, the strip scrolls, and a drag is not a render. */
+  const targetAt = (x: number, y: number): DropTarget => {
+    const strip = host.current?.querySelector('.tab-bar-strip')
+    const bar = host.current?.querySelector('.tab-bar')?.getBoundingClientRect()
+    const rects = [...(strip?.querySelectorAll('.tab') ?? [])].map((node) =>
+      node.getBoundingClientRect()
+    )
+
+    const target = paneDropTarget(bar, rects, x, y)
+    if (target.markerX === undefined || strip === null || strip === undefined) return target
+    // The marker is drawn inside the strip, which scrolls.
+    return {
+      index: target.index,
+      markerX: target.markerX - strip.getBoundingClientRect().left + strip.scrollLeft
+    }
+  }
+
+  const onDragOver = (event: DragEvent<HTMLDivElement>): void => {
+    if (!carriesTab([...event.dataTransfer.types])) return
+    // Without this the browser refuses the drop and falls back to its default
+    // handling, which for a drag it does not recognise is to do nothing.
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDrop(targetAt(event.clientX, event.clientY))
+  }
+
+  const clear = (): void => {
+    depth.current = 0
+    setDrop(undefined)
+  }
+
+  const onDrop = (event: DragEvent<HTMLDivElement>): void => {
+    const id = event.dataTransfer.getData(TAB_MIME)
+    clear()
+    if (id === '') return
+    event.preventDefault()
+
+    const target = targetAt(event.clientX, event.clientY)
+    // Landing on the body of the pane a tab already lives in means nothing —
+    // there is no position being expressed, so moving it to the end would be
+    // the app inventing an instruction. On the strip a reorder IS meaningful.
+    const here = tabs.some((tab) => tab.id === id)
+    if (here && target.markerX === undefined) return
+
+    state.moveTab(id, index, target.index, paneCount)
+  }
+
   return (
-    <div className="pane" style={style} data-pane={index}>
+    <div
+      className="pane"
+      ref={host}
+      style={style}
+      data-pane={index}
+      data-dropping={drop !== undefined}
+      onDragEnter={(event) => {
+        if (carriesTab([...event.dataTransfer.types])) depth.current += 1
+      }}
+      onDragOver={onDragOver}
+      onDragLeave={() => {
+        depth.current -= 1
+        if (depth.current <= 0) clear()
+      }}
+      onDrop={onDrop}
+    >
       <TabBar
         activeIndex={tabs.findIndex((tab) => tab.id === active?.id)}
         onNewTab={() => {
           setMenuOpen((open) => !open)
         }}
-        onDropTab={(id, at) => {
-          state.moveTab(id, index, at, paneCount)
-        }}
+        {...(drop?.markerX === undefined ? {} : { dropMarkerX: drop.markerX })}
         newTabMenu={
           <NewTabMenu
             open={menuOpen}
