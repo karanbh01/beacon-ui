@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { WithQueries } from '../../../../test/queries'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LAYOUT_OPTIONS, useChrome } from '../../state/chrome'
@@ -126,7 +127,11 @@ describe('chrome popovers in the bar', () => {
 
   it('opens the data sources panel and closes it on Escape', async () => {
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" />
+      </WithQueries>
+    )
 
     await user.click(screen.getByRole('button', { name: 'Data sources' }))
     expect(screen.getByRole('dialog', { name: 'Data sources' })).toBeInTheDocument()
@@ -137,7 +142,11 @@ describe('chrome popovers in the bar', () => {
 
   it('keeps only one panel open at a time', async () => {
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" />
+      </WithQueries>
+    )
 
     await user.click(screen.getByRole('button', { name: 'Data sources' }))
     await user.click(screen.getByRole('button', { name: 'Layout' }))
@@ -148,7 +157,11 @@ describe('chrome popovers in the bar', () => {
 
   it('closes a panel by clicking its own trigger again', async () => {
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" />
+      </WithQueries>
+    )
     const trigger = screen.getByRole('button', { name: 'Layout' })
 
     await user.click(trigger)
@@ -159,7 +172,11 @@ describe('chrome popovers in the bar', () => {
 
   it('persists the layout choice through the store', async () => {
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" />
+      </WithQueries>
+    )
 
     await user.click(screen.getByRole('button', { name: 'Layout' }))
     await user.click(screen.getByRole('radio', { name: 'Two columns' }))
@@ -175,7 +192,11 @@ describe('chrome search', () => {
 
   it('opens on the first character, not on submit', async () => {
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" />
+      </WithQueries>
+    )
 
     expect(screen.queryByRole('listbox')).toBeNull()
     await user.type(screen.getByRole('combobox', { name: 'Search' }), 'p')
@@ -185,7 +206,11 @@ describe('chrome search', () => {
 
   it('closes on Escape and reopens when typing continues', async () => {
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" />
+      </WithQueries>
+    )
     const input = screen.getByRole('combobox', { name: 'Search' })
 
     await user.type(input, 'pr')
@@ -199,7 +224,11 @@ describe('chrome search', () => {
   it('walks the rows with the arrow keys and opens one on Enter', async () => {
     const onSelectTab = vi.fn()
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" onSelectTab={onSelectTab} />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" onSelectTab={onSelectTab} />
+      </WithQueries>
+    )
 
     await user.type(screen.getByRole('combobox', { name: 'Search' }), 'prices')
     await user.keyboard('{ArrowDown}')
@@ -212,7 +241,11 @@ describe('chrome search', () => {
   it('treats Enter with nothing highlighted as a plain submit', async () => {
     const onSearch = vi.fn()
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" onSearch={onSearch} />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" onSearch={onSearch} />
+      </WithQueries>
+    )
 
     await user.type(screen.getByRole('combobox', { name: 'Search' }), 'anything{Enter}')
 
@@ -221,7 +254,11 @@ describe('chrome search', () => {
 
   it('clears the query once a row is taken', async () => {
     const user = userEvent.setup()
-    render(<MenuBar engine="connected" onSelectTab={vi.fn()} />)
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" onSelectTab={vi.fn()} />
+      </WithQueries>
+    )
     const input = screen.getByRole('combobox', { name: 'Search' })
 
     await user.type(input, 'prices')
@@ -271,5 +308,53 @@ describe('leftEdge', () => {
     expect(leftEdge('start', 'below', anchor, 220)).toBe(100)
     expect(leftEdge('end', 'beside', anchor, 220)).toBe(-120)
     expect(leftEdge('end', 'below', anchor, 220)).toBe(-86)
+  })
+})
+
+describe('searchRows with identifiers (BU-72)', () => {
+  const FOUND = [
+    { identifier: 'CMP020', name: 'CMP020 Corporation' },
+    { identifier: 'CMP021', name: 'CMP021 Corporation' }
+  ]
+
+  it('offers identifiers under their own heading', () => {
+    const groups = groupRows(searchRows('cmp02', TABS, FOUND))
+    expect(groups.map((g) => g.group)).toEqual(['ASSETS', 'ACTIONS'])
+  })
+
+  it('puts open tabs above identifiers — what you have beats what you could open', () => {
+    const groups = groupRows(searchRows('aapl', TABS, FOUND))
+    expect(groups[0]?.group).toBe('OPEN TABS')
+  })
+
+  it('keeps the order the engine ranked them in', () => {
+    const backwards = [{ identifier: 'ZZZ' }, { identifier: 'AAA' }]
+    const rows = searchRows('z', TABS, backwards).filter((row) => row.kind === 'identifier')
+    expect(rows.map((row) => row.label)).toEqual(['ZZZ', 'AAA'])
+  })
+
+  it('does not repeat a symbol that is already an open tab', () => {
+    // TABS has a Prices tab on AAPL. The same symbol under two headings reads
+    // as a bug, not as two routes to it.
+    const rows = searchRows('aapl', TABS, [{ identifier: 'AAPL', name: 'Apple Inc.' }])
+    expect(rows.filter((row) => row.kind === 'identifier')).toHaveLength(0)
+  })
+
+  it('caps identifiers on their own count, not against the whole panel', () => {
+    // With nothing matching in OPEN TABS a shared budget let the whole limit
+    // through as assets, and the dropdown became a page.
+    const many = Array.from({ length: 12 }, (_, i) => ({ identifier: `SYM${String(i)}` }))
+    const rows = searchRows('sym', TABS, many).filter((row) => row.kind === 'identifier')
+    expect(rows).toHaveLength(5)
+  })
+
+  it('carries the subject to open on the row', () => {
+    const row = searchRows('cmp02', TABS, FOUND).find((entry) => entry.kind === 'identifier')
+    expect(row?.subject).toBe('CMP020')
+  })
+
+  it('still works with no engine, offering tabs and the action alone', () => {
+    const groups = groupRows(searchRows('cmp02', TABS))
+    expect(groups.map((g) => g.group)).toEqual(['ACTIONS'])
   })
 })

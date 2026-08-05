@@ -1648,6 +1648,97 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "IdentifierMatch": {
+        "description": "One identifier a search or enumeration returned.",
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Denomination, when reference data has one.",
+            "title": "Currency"
+          },
+          "datasets": {
+            "description": "Which datasets actually cover this identifier: 'market', 'reference', 'corporate_actions'. This is what lets a client offer a reference-only name in a reference view and mark it unavailable for prices, rather than suggesting something the engine cannot then serve.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "exchange": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Listing venue, when reference data has one.",
+            "title": "Exchange"
+          },
+          "identifier": {
+            "description": "The symbol itself.",
+            "title": "Identifier",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Display name, or null when reference data carries none. A row without a name is still a useful suggestion, so it is returned rather than dropped.",
+            "title": "Name"
+          }
+        },
+        "required": [
+          "identifier"
+        ],
+        "title": "IdentifierMatch",
+        "type": "object"
+      },
+      "IdentifierSearchResponse": {
+        "description": "Response of `GET /data/identifiers`.\n\nSearch when `q` is given, enumeration when it is not.\n\nRanking is decided server-side and is part of the contract: exact\nidentifier, identifier prefix, name prefix, identifier substring, name\nsubstring, alphabetical within each. Once `limit` is applied a client\ncannot re-rank what it was not sent.",
+        "properties": {
+          "identifiers": {
+            "items": {
+              "$ref": "#/components/schemas/IdentifierMatch"
+            },
+            "title": "Identifiers",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "description": "Matches *before* `limit`, so a client can say 'showing 20 of 340'.",
+            "title": "Total",
+            "type": "integer"
+          },
+          "truncated": {
+            "default": false,
+            "description": "Whether the limit hid anything. Derivable from `total`, but explicit beats arithmetic at a call site.",
+            "title": "Truncated",
+            "type": "boolean"
+          },
+          "version": {
+            "default": "",
+            "description": "Fingerprint of the data this was built from, also served as the ETag. Changes only when a dataset syncs, so a client can cache an enumeration and revalidate cheaply.",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "IdentifierSearchResponse",
+        "type": "object"
+      },
       "IndexCollection": {
         "description": "Response of `GET /indices`.",
         "properties": {
@@ -4940,6 +5031,155 @@
         "summary": "Sync",
         "tags": [
           "coverage"
+        ]
+      }
+    },
+    "/data/identifiers": {
+      "get": {
+        "operationId": "identifiers_data_identifiers_get",
+        "parameters": [
+          {
+            "description": "Fragment to match against identifier and name. Absent or empty enumerates instead of searching.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Fragment to match against identifier and name. Absent or empty enumerates instead of searching.",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "Maximum rows, at most 1000.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Maximum rows, at most 1000.",
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Rows to skip, for walking an enumeration.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Rows to skip, for walking an enumeration.",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only return identifiers covered by all of these, e.g. 'market'. Comma-separated or repeated.",
+            "in": "query",
+            "name": "datasets",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only return identifiers covered by all of these, e.g. 'market'. Comma-separated or repeated.",
+              "title": "Datasets"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentifierSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Identifiers",
+        "tags": [
+          "data"
         ]
       }
     },

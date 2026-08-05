@@ -14,10 +14,11 @@ import type { Suggestion } from '../../components/TickerField/suggestions'
  * covers but no universe contains will not be suggested. Typing it still
  * works, which is why Enter with nothing highlighted stays a plain submit.
  *
- * Lives in a context rather than a hook each view calls: it is one index for
- * the whole app, and five views each running the fan-out would be five copies
- * of the same request set. It also keeps `TickerField` renderable in a test
- * with no query client.
+ * Lives in a context rather than a hook each view calls: it is one list for
+ * the whole app, and the field reads it without five views having to pass it
+ * down. Search itself is a query (`useIdentifierSearch`), so `TickerField`
+ * does need a QueryClient — it degrades to this list alone when there is no
+ * engine to ask.
  */
 
 export const IdentifierIndexContext = createContext<readonly Suggestion[]>([])

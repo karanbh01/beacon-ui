@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import { WithQueries } from '../../../test/queries'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { WindowControls } from './WindowControls'
@@ -117,16 +118,28 @@ describe('WindowControls', () => {
 
 describe('MenuBar as title bar', () => {
   it('leaves room for macOS traffic lights only on darwin', () => {
-    const { container, rerender } = render(<MenuBar platform="win32" />)
+    const { container, rerender } = render(
+      <WithQueries>
+        <MenuBar platform="win32" />
+      </WithQueries>
+    )
     expect(container.querySelector('.menu-bar')).not.toHaveClass('menu-bar-mac')
 
-    rerender(<MenuBar platform="darwin" />)
+    rerender(
+      <WithQueries>
+        <MenuBar platform="darwin" />
+      </WithQueries>
+    )
     expect(container.querySelector('.menu-bar')).toHaveClass('menu-bar-mac')
   })
 
   it('still renders its own controls alongside the window controls', () => {
     stubWindowApi()
-    render(<MenuBar platform="win32" />)
+    render(
+      <WithQueries>
+        <MenuBar platform="win32" />
+      </WithQueries>
+    )
 
     expect(screen.getByRole('button', { name: 'AI assistant' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Search' })).toBeInTheDocument()

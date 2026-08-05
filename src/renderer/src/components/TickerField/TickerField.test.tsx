@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactElement } from 'react'
@@ -8,16 +9,31 @@ import type { Suggestion } from './suggestions'
 
 const noop = (): void => undefined
 
+/**
+ * A query client, but no `ClientContext` — so `useBeacon()` is null, the
+ * search query never runs, and the field falls back to the local index. That
+ * is exactly what happens while py-beacon is restarting, so every test in
+ * this file exercises the no-engine path for free.
+ */
+function withIndex(ui: ReactElement, index: Suggestion[] = []): ReturnType<typeof render> {
+  const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queries}>
+      <IdentifierIndexContext.Provider value={index}>{ui}</IdentifierIndexContext.Provider>
+    </QueryClientProvider>
+  )
+}
+
 describe('TickerField', () => {
   it('shows the query hint when unlinked, with no chain', () => {
-    const { container } = render(<TickerField subject="AAPL" onQuery={noop} />)
+    const { container } = withIndex(<TickerField subject="AAPL" onQuery={noop} />)
 
     expect(screen.getByText('⏎ query')).toBeInTheDocument()
     expect(container.querySelector('.ticker-chain')).toBeNull()
   })
 
   it('shows the chain and the sever instruction when linked', () => {
-    const { container } = render(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} />)
+    const { container } = withIndex(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} />)
 
     expect(container.querySelector('.ticker-chain')).not.toBeNull()
     expect(screen.getByText('linked to Prices · type to break ⏎')).toBeInTheDocument()
@@ -25,7 +41,7 @@ describe('TickerField', () => {
 
   it('emits the query on Enter', async () => {
     const onQuery = vi.fn()
-    render(<TickerField subject="AAPL" onQuery={onQuery} />)
+    withIndex(<TickerField subject="AAPL" onQuery={onQuery} />)
 
     const input = screen.getByRole('combobox')
     await userEvent.clear(input)
@@ -36,7 +52,7 @@ describe('TickerField', () => {
 
   it('ignores Enter on an empty or whitespace-only value', async () => {
     const onQuery = vi.fn()
-    render(<TickerField subject="AAPL" onQuery={onQuery} />)
+    withIndex(<TickerField subject="AAPL" onQuery={onQuery} />)
 
     const input = screen.getByRole('combobox')
     await userEvent.clear(input)
@@ -49,7 +65,7 @@ describe('TickerField', () => {
 describe('severing (BU-9 acceptance)', () => {
   it('emits sever when typing in a linked field', async () => {
     const onSever = vi.fn()
-    render(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} onSever={onSever} />)
+    withIndex(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} onSever={onSever} />)
 
     await userEvent.type(screen.getByRole('combobox'), 'N')
 
@@ -58,7 +74,7 @@ describe('severing (BU-9 acceptance)', () => {
 
   it('severs on Backspace too, which is how you clear a subject', async () => {
     const onSever = vi.fn()
-    render(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} onSever={onSever} />)
+    withIndex(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} onSever={onSever} />)
 
     await userEvent.type(screen.getByRole('combobox'), '{Backspace}')
 
@@ -67,7 +83,7 @@ describe('severing (BU-9 acceptance)', () => {
 
   it('does not sever on navigation or shortcut keys', async () => {
     const onSever = vi.fn()
-    render(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} onSever={onSever} />)
+    withIndex(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} onSever={onSever} />)
 
     const input = screen.getByRole('combobox')
     await userEvent.type(input, '{ArrowLeft}{ArrowRight}{Tab}')
@@ -78,7 +94,7 @@ describe('severing (BU-9 acceptance)', () => {
 
   it('never severs a field that is not linked', async () => {
     const onSever = vi.fn()
-    render(<TickerField subject="AAPL" onQuery={noop} onSever={onSever} />)
+    withIndex(<TickerField subject="AAPL" onQuery={noop} onSever={onSever} />)
 
     await userEvent.type(screen.getByRole('combobox'), 'X')
 
@@ -88,24 +104,16 @@ describe('severing (BU-9 acceptance)', () => {
 
 describe('following a linked source', () => {
   it('re-renders when the upstream subject changes', () => {
-    const { rerender } = render(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} />)
+    // Rendered twice rather than rerendered: `rerender` replaces the whole
+    // tree, so a bare element would drop the providers the wrapper supplies.
+    const view = withIndex(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} />)
     expect(screen.getByRole('combobox')).toHaveValue('AAPL')
 
-    rerender(<TickerField subject="NVDA" linkedTo="Prices" onQuery={noop} />)
+    view.unmount()
+    withIndex(<TickerField subject="NVDA" linkedTo="Prices" onQuery={noop} />)
     expect(screen.getByRole('combobox')).toHaveValue('NVDA')
   })
 })
-
-/**
- * The index arrives through context, so these wrap the field in a provider
- * rather than reaching for a query client — which is the point of putting it
- * in context (BU-68).
- */
-function withIndex(ui: ReactElement, index: Suggestion[]): ReturnType<typeof render> {
-  return render(
-    <IdentifierIndexContext.Provider value={index}>{ui}</IdentifierIndexContext.Provider>
-  )
-}
 
 const INDEX: Suggestion[] = [
   { identifier: 'CMP000', name: 'CMP000 Corporation' },

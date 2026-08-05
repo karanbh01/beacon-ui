@@ -27,6 +27,10 @@ export const keys = {
       ['data', 'reference-batch', identifiers.join(','), fields.join(',')] as const,
     corporateActions: (identifier: string, params?: Record<string, unknown>) =>
       ['data', 'corporate-actions', identifier, params ?? {}] as const,
+    // Keyed by the fragment, so typing on reuses nothing and typing BACK to
+    // a prefix is a cache hit.
+    identifiers: (query: string, params?: Record<string, unknown>) =>
+      ['data', 'identifiers', query, params ?? {}] as const,
     coverage: () => ['data', 'coverage'] as const,
     watchlists: () => ['data', 'watchlists'] as const
   },

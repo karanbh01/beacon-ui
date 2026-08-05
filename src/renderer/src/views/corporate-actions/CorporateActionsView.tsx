@@ -99,6 +99,7 @@ export function CorporateActionsView({ tab, subject }: ViewProps): ReactElement 
     <div className="corporate-actions-view">
       <PaneHeader
         kind="query"
+        requires="corporate_actions"
         subject={identifier}
         meta="Corporate actions"
         onQuery={(next) => {

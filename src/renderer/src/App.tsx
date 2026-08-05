@@ -54,6 +54,7 @@ function AppBody(): ReactElement {
   const update = useUpdate()
   const dataAge = useDataAge()
   const selectTab = useWorkspace((state) => state.selectTab)
+  const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
   const jobs = useJobs((state) => state.jobs)
 
   // Fixed at mount rather than recomputed each render, so Home's date and its
@@ -69,6 +70,23 @@ function AppBody(): ReactElement {
   const openCoverage = (): void => {
     setPage('data-explorer')
     selectTab('seed-coverage')
+  }
+
+  /**
+   * An identifier picked from the app-wide search (BU-72).
+   *
+   * Retargets the Prices tab already open rather than stacking another —
+   * `openOrRetarget` is the same route a watchlist row takes, so anything
+   * linked to that tab follows along, which is the point of a link.
+   */
+  const openIdentifier = (subject: string): void => {
+    setPage('data-explorer')
+    openOrRetarget({
+      page: 'data-explorer',
+      viewKind: 'prices',
+      title: 'Prices',
+      subject
+    })
   }
 
   // The footer toggle is the manual override (BU-39). Until someone touches
@@ -109,6 +127,7 @@ function AppBody(): ReactElement {
         engine: engine.status,
         onManageSources: openCoverage,
         onSelectTab: selectTab,
+        onOpenIdentifier: openIdentifier,
         onGoHome: () => {
           setPage(HOME_PAGE)
         },

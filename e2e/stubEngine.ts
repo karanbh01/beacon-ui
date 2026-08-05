@@ -46,6 +46,66 @@ const PRICES = {
 
 const IDENTIFIERS = Array.from({ length: 120 }, (_, i) => `CMP${String(i).padStart(3, '0')}`)
 
+/**
+ * One identifier the reference dataset carries and the market one does not,
+ * so the `datasets` marking has something real to mark (BN-127).
+ */
+const REFERENCE_ONLY = 'REFONLY'
+
+/** Everything the stub will admit to knowing. Anything else 404s. */
+const KNOWN = new Set([...IDENTIFIERS, REFERENCE_ONLY])
+
+function datasetsFor(identifier: string): string[] {
+  return identifier === REFERENCE_ONLY
+    ? ['reference']
+    : ['market', 'reference', 'corporate_actions']
+}
+
+/**
+ * Ranking is the SERVER's job in the real engine, so the stub has to do it
+ * too — a client that re-ranked would pass here and fail against py-beacon.
+ */
+function rankOf(needle: string, identifier: string, name: string): number {
+  const id = identifier.toLowerCase()
+  const label = name.toLowerCase()
+  if (id === needle) return 0
+  if (id.startsWith(needle)) return 1
+  if (label.startsWith(needle)) return 2
+  if (id.includes(needle)) return 3
+  if (label.includes(needle)) return 4
+  return Number.POSITIVE_INFINITY
+}
+
+function searchIdentifiers(url: URL): unknown {
+  const needle = (url.searchParams.get('q') ?? '').trim().toLowerCase()
+  const limit = Number(url.searchParams.get('limit') ?? '20')
+  const wanted = url.searchParams.get('datasets')
+
+  const all = [...KNOWN].map((identifier) => ({
+    identifier,
+    name: `${identifier} Corporation`,
+    datasets: datasetsFor(identifier)
+  }))
+
+  const covered = wanted === null ? all : all.filter((row) => row.datasets.includes(wanted))
+
+  const matched =
+    needle === ''
+      ? covered
+      : covered
+          .map((row) => ({ row, score: rankOf(needle, row.identifier, row.name) }))
+          .filter((entry) => Number.isFinite(entry.score))
+          .sort((a, b) => a.score - b.score || a.row.identifier.localeCompare(b.row.identifier))
+          .map((entry) => entry.row)
+
+  return {
+    identifiers: matched.slice(0, limit),
+    total: matched.length,
+    truncated: matched.length > limit,
+    version: 'stub-1'
+  }
+}
+
 function referenceEntry(identifier: string, index: number): Record<string, unknown> {
   return {
     identifier,
@@ -104,8 +164,15 @@ function body(url: URL): unknown {
 
   if (Object.hasOwn(ROUTES, path)) return ROUTES[path]
 
+  if (path === '/data/identifiers') return searchIdentifiers(url)
+
   if (path.startsWith('/data/prices/')) {
-    return { identifier: path.split('/').pop(), interval: 'native', prices: PRICES }
+    // Unknown identifiers 404 rather than serving bars for anything asked
+    // for. Without this no test could tell a real ticker from a typo, which
+    // is the whole point of the not-found path.
+    const identifier = path.split('/').pop() ?? ''
+    if (!KNOWN.has(identifier) || identifier === REFERENCE_ONLY) return undefined
+    return { identifier, interval: 'native', prices: PRICES }
   }
 
   if (path === '/data/reference') {
@@ -213,7 +280,16 @@ export function startStubEngine(): Promise<StubEngine> {
       return
     }
     if (payload === undefined) {
-      response.writeHead(404).end(JSON.stringify({ detail: `no stub for ${url.pathname}` }))
+      // py-beacon's envelope, not a bare detail — the client branches on
+      // `code` and renders `message`.
+      response.writeHead(404).end(
+        JSON.stringify({
+          error: {
+            code: 'NOT_FOUND',
+            message: `no data for ${url.pathname.split('/').pop() ?? ''}`
+          }
+        })
+      )
       return
     }
     response.writeHead(200).end(JSON.stringify(payload))

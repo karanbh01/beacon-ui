@@ -17,6 +17,8 @@ export interface MenuBarProps {
   /** Opens the pane that reports coverage, from `Manage sources…`. */
   onManageSources?: () => void
   onSelectTab?: (id: string) => void
+  /** An identifier picked from search: open it on Prices. */
+  onOpenIdentifier?: (subject: string) => void
   onCreateIndex?: (name: string) => void
   /** The logo is how Home is reached — see HomeView. */
   onGoHome?: () => void
@@ -44,6 +46,7 @@ export function MenuBar({
   engine = 'starting',
   onManageSources,
   onSelectTab,
+  onOpenIdentifier,
   onCreateIndex,
   onGoHome,
   platform,
@@ -89,6 +92,7 @@ export function MenuBar({
       <ChromeSearch
         {...(onSearch === undefined ? {} : { onSubmit: onSearch })}
         {...(onSelectTab === undefined ? {} : { onSelectTab })}
+        {...(onOpenIdentifier === undefined ? {} : { onOpenIdentifier })}
         {...(onCreateIndex === undefined ? {} : { onCreateIndex })}
       />
 

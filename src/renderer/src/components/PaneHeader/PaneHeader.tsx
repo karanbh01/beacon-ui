@@ -20,6 +20,8 @@ export interface QueryHeaderProps extends CommonProps {
   meta?: ReactNode
   onQuery: (subject: string) => void
   onSever?: () => void
+  /** Dataset this view needs, so a suggestion it cannot serve is marked. */
+  requires?: string
 }
 
 export interface DocumentHeaderProps extends CommonProps {
@@ -52,7 +54,7 @@ export function PaneHeader(props: PaneHeaderProps): ReactElement {
   const classes = ['pane-header', props.className].filter(Boolean).join(' ')
 
   if (props.kind === 'query') {
-    const { subject, linkedTo, meta, onQuery, onSever, controls } = props
+    const { subject, linkedTo, meta, onQuery, onSever, requires, controls } = props
     return (
       <header className={classes}>
         <Left align="center">
@@ -61,6 +63,7 @@ export function PaneHeader(props: PaneHeaderProps): ReactElement {
             {...(linkedTo === undefined ? {} : { linkedTo })}
             onQuery={onQuery}
             {...(onSever === undefined ? {} : { onSever })}
+            {...(requires === undefined ? {} : { requires })}
           />
           {meta !== undefined && <span className="pane-header-meta">{meta}</span>}
         </Left>

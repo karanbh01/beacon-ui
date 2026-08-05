@@ -55,6 +55,7 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
     <div className="charting-view">
       <PaneHeader
         kind="query"
+        requires="market"
         subject={identifier}
         {...(sourceTitle === undefined ? {} : { linkedTo: sourceTitle })}
         {...(meta === undefined ? {} : { meta })}

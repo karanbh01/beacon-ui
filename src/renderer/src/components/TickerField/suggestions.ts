@@ -12,6 +12,25 @@ export interface Suggestion {
   identifier: string
   /** Long name, when reference data had one. */
   name?: string
+  /**
+   * Datasets that actually cover this identifier — 'market', 'reference',
+   * 'corporate_actions' (BN-127). Absent for a locally-sourced row, which is
+   * why `unavailableFor` treats absence as "no claim made" rather than "no".
+   */
+  datasets?: readonly string[]
+}
+
+/**
+ * True when this row is known NOT to serve what the view needs.
+ *
+ * Absence of `datasets` is not evidence: a suggestion taken from an open tab
+ * carries no coverage claim, and marking it unavailable would be inventing
+ * one. Only a row that came back from the engine WITH a dataset list, missing
+ * the one required, is genuinely unavailable.
+ */
+export function unavailableFor(suggestion: Suggestion, dataset?: string): boolean {
+  if (dataset === undefined || suggestion.datasets === undefined) return false
+  return !suggestion.datasets.includes(dataset)
 }
 
 /** Rows offered at once. More than this and the panel becomes a page. */
@@ -51,6 +70,26 @@ export function matchSuggestions(
     )
     .slice(0, limit)
     .map((row) => row.suggestion)
+}
+
+/**
+ * Server rows first, in the order they arrived, then anything local that
+ * matches and was not already offered.
+ *
+ * The server's order IS the ranking (BN-127) — once `limit` is applied the
+ * client cannot re-rank what it was not sent, so re-sorting the merged list
+ * would throw away the only complete judgement available and replace it with
+ * one made on a subset.
+ */
+export function mergeSuggestions(
+  ranked: readonly Suggestion[],
+  local: readonly Suggestion[],
+  query: string,
+  limit = MAX_SUGGESTIONS
+): Suggestion[] {
+  const offered = new Set(ranked.map((row) => row.identifier))
+  const extra = matchSuggestions(query, local, limit).filter((row) => !offered.has(row.identifier))
+  return [...ranked, ...extra].slice(0, limit)
 }
 
 /**

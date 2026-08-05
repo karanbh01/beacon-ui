@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { WithQueries } from '../../../test/queries'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ASSISTANT_WIDTH, AssistantPanel } from './AssistantPanel'
@@ -47,10 +48,21 @@ describe('AssistantPanel', () => {
 
 describe('pane reflow (BU-18 acceptance)', () => {
   it('adds the rail only when the assistant is open', () => {
-    const { container, rerender } = render(<AppShell>pane</AppShell>)
+    // The shell renders the menu bar, whose search runs an identifier query
+    // since BU-72 — hence the provider. No engine behind it, so the query
+    // stays disabled.
+    const { container, rerender } = render(
+      <WithQueries>
+        <AppShell>pane</AppShell>
+      </WithQueries>
+    )
     expect(container.querySelector('.app-shell-assistant')).toBeNull()
 
-    rerender(<AppShell assistant={<AssistantPanel>t</AssistantPanel>}>pane</AppShell>)
+    rerender(
+      <WithQueries>
+        <AppShell assistant={<AssistantPanel>t</AssistantPanel>}>pane</AppShell>
+      </WithQueries>
+    )
     expect(container.querySelector('.app-shell-assistant')).not.toBeNull()
   })
 

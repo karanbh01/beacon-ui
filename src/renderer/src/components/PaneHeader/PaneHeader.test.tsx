@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { WithQueries } from '../../../../test/queries'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Button } from '../Button/Button'
@@ -9,7 +10,11 @@ const noop = (): void => undefined
 
 describe('query kind', () => {
   it('renders the subject and meta', () => {
-    render(<PaneHeader kind="query" subject="AAPL" meta="Apple Inc. · NASDAQ" onQuery={noop} />)
+    render(
+      <WithQueries>
+        <PaneHeader kind="query" subject="AAPL" meta="Apple Inc. · NASDAQ" onQuery={noop} />
+      </WithQueries>
+    )
 
     expect(screen.getByRole('combobox')).toHaveValue('AAPL')
     expect(screen.getByText('Apple Inc. · NASDAQ')).toBeInTheDocument()
@@ -17,7 +22,9 @@ describe('query kind', () => {
 
   it('covers linked query without a separate kind (taxonomy 4)', () => {
     const { container } = render(
-      <PaneHeader kind="query" subject="AAPL" linkedTo="Prices" onQuery={noop} />
+      <WithQueries>
+        <PaneHeader kind="query" subject="AAPL" linkedTo="Prices" onQuery={noop} />
+      </WithQueries>
     )
 
     // Linked is a property of the nested TickerField, not a header variant.
@@ -28,7 +35,15 @@ describe('query kind', () => {
   it('passes the sever event through from the ticker field', async () => {
     const onSever = vi.fn()
     render(
-      <PaneHeader kind="query" subject="AAPL" linkedTo="Prices" onQuery={noop} onSever={onSever} />
+      <WithQueries>
+        <PaneHeader
+          kind="query"
+          subject="AAPL"
+          linkedTo="Prices"
+          onQuery={noop}
+          onSever={onSever}
+        />
+      </WithQueries>
     )
 
     await userEvent.type(screen.getByRole('combobox'), 'N')
@@ -52,7 +67,11 @@ describe('document kind', () => {
   })
 
   it('omits the status entirely when clean', () => {
-    const { container } = render(<PaneHeader kind="document" title="TECH10" />)
+    const { container } = render(
+      <WithQueries>
+        <PaneHeader kind="document" title="TECH10" />
+      </WithQueries>
+    )
     expect(container.querySelector('.pane-header-status')).toBeNull()
   })
 

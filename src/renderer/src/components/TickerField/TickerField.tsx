@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import type { KeyboardEvent, ReactElement } from 'react'
 import { ChainIcon } from '../../icons/generated'
 import { useIdentifierIndex } from '../../views/shared/identifierIndex'
+import { useIdentifierSearch } from '../../views/shared/useIdentifierSearch'
 import { useTypeahead } from '../Typeahead/useTypeahead'
-import { matchSuggestions } from './suggestions'
+import { mergeSuggestions, unavailableFor } from './suggestions'
 import './TickerField.css'
 
 export interface TickerFieldProps {
@@ -21,6 +22,13 @@ export interface TickerFieldProps {
    * store consumes this. Fires once per link, on the first keystroke.
    */
   onSever?: () => void
+  /**
+   * Dataset this view needs, e.g. `market` for prices. A suggestion the
+   * engine says it does not cover is shown and marked rather than hidden —
+   * the identifier is real, and silently dropping it would look like the
+   * search failing.
+   */
+  requires?: string
   label?: string
   className?: string
 }
@@ -48,12 +56,13 @@ export function TickerField({
   linkedTo,
   onQuery,
   onSever,
+  requires,
   label,
   className
 }: TickerFieldProps): ReactElement {
   const linked = linkedTo !== undefined
   const [draft, setDraft] = useState(subject)
-  const index = useIdentifierIndex()
+  const local = useIdentifierIndex()
 
   // A linked field mirrors its source, so an upstream change must show here
   // even while this input is mounted and untouched.
@@ -63,7 +72,9 @@ export function TickerField({
 
   // Never suggest the thing already on screen — the whole list would be one
   // row repeating what the field says.
-  const suggestions = draft.trim() === subject ? [] : matchSuggestions(draft, index)
+  const wanted = draft.trim() === subject ? '' : draft
+  const search = useIdentifierSearch(wanted)
+  const suggestions = mergeSuggestions(search.suggestions, local, wanted)
 
   const commit = (next: string): void => {
     const value = next.trim()
@@ -131,7 +142,7 @@ export function TickerField({
                   aria-selected={position === typeahead.active}
                   className={`popover-row ticker-suggestion${
                     position === typeahead.active ? ' ticker-suggestion-active' : ''
-                  }`}
+                  }${unavailableFor(suggestion, requires) ? ' ticker-suggestion-thin' : ''}`}
                   // Mouse down would blur the input and close the panel before
                   // the click ever landed.
                   onMouseDown={(event) => {
@@ -146,7 +157,11 @@ export function TickerField({
                   }}
                 >
                   <span className="ticker-suggestion-id">{suggestion.identifier}</span>
-                  <span className="popover-row-meta">{suggestion.name ?? ''}</span>
+                  <span className="popover-row-meta">
+                    {unavailableFor(suggestion, requires)
+                      ? `no ${String(requires)} data`
+                      : (suggestion.name ?? '')}
+                  </span>
                 </button>
               ))}
             </div>

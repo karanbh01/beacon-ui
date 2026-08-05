@@ -167,6 +167,17 @@ export interface BeaconClient {
       query?: QueryOf<'/data/corporate-actions/{identifier}'>,
       signal?: AbortSignal
     ) => Promise<ResponseOf<'/data/corporate-actions/{identifier}'>>
+    /**
+     * Search, or enumerate when `q` is absent (BN-127).
+     *
+     * Ranking is the SERVER's: once `limit` is applied a client cannot
+     * re-rank what it was not sent, so these come back in the order they are
+     * to be shown.
+     */
+    identifiers: (
+      query?: QueryOf<'/data/identifiers'>,
+      signal?: AbortSignal
+    ) => Promise<ResponseOf<'/data/identifiers'>>
     coverage: (signal?: AbortSignal) => Promise<ResponseOf<'/data/coverage'>>
     watchlists: (signal?: AbortSignal) => Promise<ResponseOf<'/data/watchlists'>>
     putWatchlist: (
@@ -355,6 +366,11 @@ export function createClient(options: ClientOptions): BeaconClient {
             identifiers: [...identifiers],
             ...(fields === undefined ? {} : { fields: [...fields] })
           },
+          ...(signal === undefined ? {} : { signal })
+        }),
+      identifiers: (query, signal) =>
+        get('/data/identifiers', {
+          ...(query === undefined ? {} : { query }),
           ...(signal === undefined ? {} : { signal })
         }),
       corporateActions: (identifier, query, signal) =>

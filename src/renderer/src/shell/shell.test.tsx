@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { WithQueries } from '../../../test/queries'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AppShell } from './AppShell'
@@ -56,14 +57,22 @@ describe('Sidebar', () => {
 
 describe('MenuBar', () => {
   it('renders all nine menus', () => {
-    render(<MenuBar />)
+    render(
+      <WithQueries>
+        <MenuBar />
+      </WithQueries>
+    )
     for (const menu of MENUS) {
       expect(screen.getByRole('button', { name: menu })).toBeInTheDocument()
     }
   })
 
   it('omits window controls, which belong to the OS frame (see #37)', () => {
-    render(<MenuBar />)
+    render(
+      <WithQueries>
+        <MenuBar />
+      </WithQueries>
+    )
 
     for (const name of [/minimi[sz]e/i, /maximi[sz]e/i, /^close$/i]) {
       expect(screen.queryByRole('button', { name })).toBeNull()
@@ -72,7 +81,11 @@ describe('MenuBar', () => {
 
   it('emits the search query on Enter only', async () => {
     const onSearch = vi.fn()
-    render(<MenuBar onSearch={onSearch} />)
+    render(
+      <WithQueries>
+        <MenuBar onSearch={onSearch} />
+      </WithQueries>
+    )
 
     // A combobox rather than a searchbox since BU-53: it owns a typeahead
     // panel now, and that is the role that says so.
@@ -86,7 +99,11 @@ describe('MenuBar', () => {
 
   it('wires the assistant toggle', async () => {
     const onToggleAssistant = vi.fn()
-    render(<MenuBar onToggleAssistant={onToggleAssistant} />)
+    render(
+      <WithQueries>
+        <MenuBar onToggleAssistant={onToggleAssistant} />
+      </WithQueries>
+    )
 
     await userEvent.click(screen.getByRole('button', { name: 'AI assistant' }))
 
@@ -178,7 +195,11 @@ describe('Footer', () => {
 
 describe('AppShell', () => {
   it('stacks menu bar, middle band and footer', () => {
-    const { container } = render(<AppShell>pane</AppShell>)
+    const { container } = render(
+      <WithQueries>
+        <AppShell>pane</AppShell>
+      </WithQueries>
+    )
 
     expect(container.querySelector('.menu-bar')).not.toBeNull()
     expect(container.querySelector('.sidebar')).not.toBeNull()
@@ -187,15 +208,27 @@ describe('AppShell', () => {
   })
 
   it('omits the assistant rail until it is opened', () => {
-    const { container, rerender } = render(<AppShell>pane</AppShell>)
+    const { container, rerender } = render(
+      <WithQueries>
+        <AppShell>pane</AppShell>
+      </WithQueries>
+    )
     expect(container.querySelector('.app-shell-assistant')).toBeNull()
 
-    rerender(<AppShell assistant={<div>transcript</div>}>pane</AppShell>)
+    rerender(
+      <WithQueries>
+        <AppShell assistant={<div>transcript</div>}>pane</AppShell>
+      </WithQueries>
+    )
     expect(container.querySelector('.app-shell-assistant')).not.toBeNull()
   })
 
   it('exposes the pane as the main landmark', () => {
-    render(<AppShell>pane</AppShell>)
+    render(
+      <WithQueries>
+        <AppShell>pane</AppShell>
+      </WithQueries>
+    )
     expect(screen.getByRole('main')).toHaveTextContent('pane')
   })
 })

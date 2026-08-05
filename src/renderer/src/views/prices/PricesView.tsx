@@ -94,6 +94,7 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
     <div className="prices-view">
       <PaneHeader
         kind="query"
+        requires="market"
         subject={identifier}
         {...(meta === undefined ? {} : { meta })}
         onQuery={(next) => {

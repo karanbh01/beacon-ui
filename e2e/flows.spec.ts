@@ -110,8 +110,8 @@ test('the chrome popovers open and dismiss', async ({ window }) => {
 })
 
 test('the query bar suggests identifiers as you type', async ({ window }) => {
-  // BU-68. The index is built from the universes the engine publishes, named
-  // by one reference batch — the stub serves 120 CMPxxx names.
+  // BU-72: ranked by the engine's own search (BN-127), not by a client-side
+  // index of whatever happened to be in a universe.
   await openPage(window, 'Data Explorer')
   await openView(window, 'Prices')
 
@@ -132,9 +132,9 @@ test('the query bar suggests identifiers as you type', async ({ window }) => {
   await expect(list).toHaveCount(0)
 })
 
-test('a ticker the index has never heard of still submits', async ({ window }) => {
-  // py-beacon cannot enumerate what it covers (#71), so the index is bounded
-  // in a way the user cannot see. Typing past it has to keep working.
+test('a ticker the engine does not have submits, and says so', async ({ window }) => {
+  // The suggestions are the engine's now (BN-127), but typing past them still
+  // has to work — and the pane has to be honest about what came back.
   await openPage(window, 'Data Explorer')
   await openView(window, 'Prices')
 
@@ -142,6 +142,40 @@ test('a ticker the index has never heard of still submits', async ({ window }) =
   await window.keyboard.press('Enter')
 
   await expect(window.locator('.tab-chip-label')).toContainText('CMP999')
+  await expect(window.getByText('Not found.')).toBeVisible()
+})
+
+test('a suggestion the view cannot serve is marked, not hidden', async ({ window }) => {
+  // BN-127's `datasets`. REFONLY is in the reference dataset and not the
+  // market one, so Prices says so rather than offering it identically and
+  // failing when it is picked.
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Prices')
+
+  await window.getByRole('combobox', { name: 'Subject' }).fill('refonly')
+
+  const row = window.getByRole('option', { name: /REFONLY/ })
+  await expect(row).toBeVisible()
+  await expect(row).toContainText('no market data')
+})
+
+test('the app-wide search offers identifiers, not just open tabs', async ({ window }) => {
+  // BU-72. Before this the menu bar found a symbol only if a tab already had
+  // it as a subject, which made "go to anything" mean "go to what is open".
+  await window.locator('.menu-bar-search input').fill('cmp02')
+
+  const results = window.getByRole('listbox', { name: 'Search results' })
+  await expect(results.getByText('ASSETS')).toBeVisible()
+  await expect(results.getByRole('option', { name: /CMP020/ })).toBeVisible()
+
+  await results
+    .getByRole('option', { name: /CMP020/ })
+    .first()
+    .click()
+
+  // Opens it on Prices, in Data Explorer.
+  await expect(window.locator('.tab-chip-label')).toContainText('CMP020')
+  await expect(window.locator('.prices-view')).toBeVisible()
 })
 
 test('closing a chart tab does not take the renderer down', async ({ window }) => {

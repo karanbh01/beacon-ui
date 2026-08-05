@@ -31,6 +31,7 @@ export function ReferenceView({ tab, subject }: ViewProps): ReactElement {
     <div className="reference-view">
       <PaneHeader
         kind="query"
+        requires="reference"
         subject={identifier}
         {...(name === '—' ? {} : { meta: name })}
         onQuery={(next) => {

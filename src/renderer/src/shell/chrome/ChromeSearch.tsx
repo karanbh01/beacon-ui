@@ -2,6 +2,7 @@ import { useRef, useState, type ReactElement } from 'react'
 import { ChevronIcon } from '../../icons/generated'
 import { useTypeahead } from '../../components/Typeahead/useTypeahead'
 import { useWorkspace } from '../../state/tabs.store'
+import { useIdentifierSearch } from '../../views/shared/useIdentifierSearch'
 import { SearchDropdown } from './SearchDropdown'
 import { searchRows, type SearchRow } from './searchResults'
 
@@ -9,6 +10,8 @@ export interface ChromeSearchProps {
   onSubmit?: (query: string) => void
   /** Given a row the user picked. */
   onSelectTab?: (id: string) => void
+  /** An identifier row: open it somewhere sensible. */
+  onOpenIdentifier?: (subject: string) => void
   onCreateIndex?: (name: string) => void
 }
 
@@ -22,20 +25,23 @@ export interface ChromeSearchProps {
 export function ChromeSearch({
   onSubmit,
   onSelectTab,
+  onOpenIdentifier,
   onCreateIndex
 }: ChromeSearchProps): ReactElement {
   const [query, setQuery] = useState('')
   const input = useRef<HTMLInputElement>(null)
 
   const tabs = useWorkspace((state) => state.tabs)
-  const rows = searchRows(query, tabs)
+  // Identifiers arrive already ranked (BN-127); searchRows keeps that order.
+  const found = useIdentifierSearch(query)
+  const rows = searchRows(query, tabs, found.suggestions)
 
   const activate = (row: SearchRow): void => {
-    if (row.kind === 'tab') {
-      onSelectTab?.(row.id)
-    } else {
-      onCreateIndex?.(query.trim())
-    }
+    if (row.kind === 'tab') onSelectTab?.(row.id)
+    else if (row.kind === 'identifier' && row.subject !== undefined) {
+      onOpenIdentifier?.(row.subject)
+    } else onCreateIndex?.(query.trim())
+
     setQuery('')
     input.current?.blur()
   }

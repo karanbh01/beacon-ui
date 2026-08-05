@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { matchSuggestions, mergeIndex, type Suggestion } from './suggestions'
+import {
+  matchSuggestions,
+  mergeIndex,
+  mergeSuggestions,
+  unavailableFor,
+  type Suggestion
+} from './suggestions'
 
 const INDEX: Suggestion[] = [
   { identifier: 'AAPL', name: 'Apple Inc.' },
@@ -66,5 +72,65 @@ describe('mergeIndex', () => {
     const named = { identifier: 'AAPL', name: 'Apple Inc.' }
     expect(mergeIndex([named], [{ identifier: 'AAPL' }])[0]).toEqual(named)
     expect(mergeIndex([{ identifier: 'AAPL' }], [named])[0]).toEqual(named)
+  })
+})
+
+describe('mergeSuggestions', () => {
+  const RANKED: Suggestion[] = [
+    { identifier: 'CMP010', name: 'CMP010 Corporation' },
+    { identifier: 'CMP011', name: 'CMP011 Corporation' }
+  ]
+
+  it('keeps the server order rather than re-sorting it', () => {
+    // BN-127 ranks server-side, and once `limit` is applied the client cannot
+    // re-rank what it was not sent. Re-sorting would replace a complete
+    // judgement with one made on a subset.
+    const backwards: Suggestion[] = [{ identifier: 'ZZZ' }, { identifier: 'AAA' }]
+    expect(mergeSuggestions(backwards, [], 'a').map((r) => r.identifier)).toEqual(['ZZZ', 'AAA'])
+  })
+
+  it('appends local matches the engine did not offer', () => {
+    const local: Suggestion[] = [{ identifier: 'CMP999' }]
+    const merged = mergeSuggestions(RANKED, local, 'cmp')
+
+    expect(merged.map((r) => r.identifier)).toEqual(['CMP010', 'CMP011', 'CMP999'])
+  })
+
+  it('does not offer the same identifier twice', () => {
+    const local: Suggestion[] = [{ identifier: 'CMP010' }]
+    expect(mergeSuggestions(RANKED, local, 'cmp')).toHaveLength(2)
+  })
+
+  it('ignores a local row that does not match', () => {
+    const local: Suggestion[] = [{ identifier: 'MSFT' }]
+    expect(mergeSuggestions(RANKED, local, 'cmp').map((r) => r.identifier)).toEqual([
+      'CMP010',
+      'CMP011'
+    ])
+  })
+
+  it('is the local index alone when there is no engine to ask', () => {
+    const local: Suggestion[] = [{ identifier: 'CMP000' }, { identifier: 'MSFT' }]
+    expect(mergeSuggestions([], local, 'cmp').map((r) => r.identifier)).toEqual(['CMP000'])
+  })
+})
+
+describe('unavailableFor', () => {
+  it('marks a row the engine says lacks the dataset', () => {
+    expect(unavailableFor({ identifier: 'X', datasets: ['reference'] }, 'market')).toBe(true)
+  })
+
+  it('leaves a covered row alone', () => {
+    expect(unavailableFor({ identifier: 'X', datasets: ['market'] }, 'market')).toBe(false)
+  })
+
+  it('treats a missing dataset list as no claim, not as a denial', () => {
+    // A suggestion taken from an open tab carries no coverage claim. Marking
+    // it unavailable would be inventing one.
+    expect(unavailableFor({ identifier: 'X' }, 'market')).toBe(false)
+  })
+
+  it('marks nothing when the view has no requirement', () => {
+    expect(unavailableFor({ identifier: 'X', datasets: [] }, undefined)).toBe(false)
   })
 })

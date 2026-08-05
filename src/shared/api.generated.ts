@@ -157,6 +157,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data/identifiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Identifiers */
+        get: operations["identifiers_data_identifiers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/data/prices/{identifier}": {
         parameters: {
             query?: never;
@@ -1742,6 +1759,70 @@ export interface components {
             /**
              * Version
              * @description Installed py-beacon version.
+             */
+            version: string;
+        };
+        /**
+         * IdentifierMatch
+         * @description One identifier a search or enumeration returned.
+         */
+        IdentifierMatch: {
+            /**
+             * Currency
+             * @description Denomination, when reference data has one.
+             */
+            currency?: string | null;
+            /**
+             * Datasets
+             * @description Which datasets actually cover this identifier: 'market', 'reference', 'corporate_actions'. This is what lets a client offer a reference-only name in a reference view and mark it unavailable for prices, rather than suggesting something the engine cannot then serve.
+             */
+            datasets?: string[];
+            /**
+             * Exchange
+             * @description Listing venue, when reference data has one.
+             */
+            exchange?: string | null;
+            /**
+             * Identifier
+             * @description The symbol itself.
+             */
+            identifier: string;
+            /**
+             * Name
+             * @description Display name, or null when reference data carries none. A row without a name is still a useful suggestion, so it is returned rather than dropped.
+             */
+            name?: string | null;
+        };
+        /**
+         * IdentifierSearchResponse
+         * @description Response of `GET /data/identifiers`.
+         *
+         *     Search when `q` is given, enumeration when it is not.
+         *
+         *     Ranking is decided server-side and is part of the contract: exact
+         *     identifier, identifier prefix, name prefix, identifier substring, name
+         *     substring, alphabetical within each. Once `limit` is applied a client
+         *     cannot re-rank what it was not sent.
+         */
+        IdentifierSearchResponse: {
+            /** Identifiers */
+            identifiers?: components["schemas"]["IdentifierMatch"][];
+            /**
+             * Total
+             * @description Matches *before* `limit`, so a client can say 'showing 20 of 340'.
+             * @default 0
+             */
+            total: number;
+            /**
+             * Truncated
+             * @description Whether the limit hid anything. Derivable from `total`, but explicit beats arithmetic at a call site.
+             * @default false
+             */
+            truncated: boolean;
+            /**
+             * Version
+             * @description Fingerprint of the data this was built from, also served as the ETag. Changes only when a dataset syncs, so a client can cache an enumeration and revalidate cheaply.
+             * @default
              */
             version: string;
         };
@@ -3762,6 +3843,89 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    identifiers_data_identifiers_get: {
+        parameters: {
+            query?: {
+                /** @description Fragment to match against identifier and name. Absent or empty enumerates instead of searching. */
+                q?: string | null;
+                /** @description Maximum rows, at most 1000. */
+                limit?: number;
+                /** @description Rows to skip, for walking an enumeration. */
+                offset?: number;
+                /** @description Only return identifiers covered by all of these, e.g. 'market'. Comma-separated or repeated. */
+                datasets?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentifierSearchResponse"];
                 };
             };
             /** @description Missing or invalid bearer token. */
