@@ -1,15 +1,37 @@
 /* Figma 388:11440. 32px tall, 12px horizontal padding, 5px radius. */
 
 .ticker-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  position: relative;
   width: 440px;
   height: 32px;
-  padding: 0 12px;
+}
+
+/*
+ * ONE rounded rectangle that grows, not a field with a panel glued under it —
+ * the same decision as the menu bar search (BU-53, Figma 147:13). Absolute so
+ * the open list overlays the view rather than pushing the pane down.
+ */
+.ticker-surface {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 5;
   background: var(--chrome-search-bg);
   border: 1px solid var(--chrome-search-stroke);
   border-radius: 5px;
+}
+
+.ticker-surface-open {
+  background: var(--glass);
+  backdrop-filter: blur(3px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.ticker-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
 }
 
 /* Accent, matching the exported glyph — a link is an active relationship. */
@@ -43,6 +65,37 @@
 }
 
 /* Focus lands on the box, not the bare input, so the whole control reads. */
-.ticker-field:focus-within {
+.ticker-field:focus-within .ticker-surface {
   border-color: var(--accent);
+}
+
+/* Full-bleed, like the search's — it separates two parts of one container. */
+.ticker-rule {
+  display: block;
+  height: 1px;
+  background: var(--chrome-search-stroke);
+  opacity: 0.5;
+}
+
+.ticker-suggestions {
+  padding: 4px 0 8px;
+}
+
+.ticker-suggestion {
+  padding-left: 12px;
+  padding-right: 12px;
+  overflow: hidden;
+}
+
+.ticker-suggestion-id {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/*
+ * The highlight follows the keyboard, so it cannot be :hover — the pointer may
+ * be resting anywhere on screen while arrow keys move the selection.
+ */
+.ticker-suggestion-active {
+  background: var(--sidebar-active-bg);
 }

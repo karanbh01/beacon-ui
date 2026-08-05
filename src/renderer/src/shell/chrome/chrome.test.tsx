@@ -7,7 +7,8 @@ import { sourceRows } from './dataSources'
 import { LayoutMenu } from './LayoutMenu'
 import { fittingAlign, leftEdge } from './popoverAlign'
 import { MenuBar } from '../MenuBar'
-import { groupRows, nextIndex, searchRows } from './searchResults'
+import { nextIndex } from '../../components/Typeahead/useTypeahead'
+import { groupRows, searchRows } from './searchResults'
 import type { Tab } from '../../state/tabs.types'
 
 const TABS: Tab[] = [

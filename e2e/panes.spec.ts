@@ -99,7 +99,7 @@ test('a link survives being dragged away from its source', async ({ window }) =>
   await chooseLayout(window, 'Two columns')
 
   await openIn(window, 0, 'Prices')
-  await window.locator('[data-pane="0"]').getByRole('textbox').first().fill('CMP000')
+  await window.locator('[data-pane="0"]').getByRole('combobox', { name: 'Subject' }).fill('CMP000')
   await window.keyboard.press('Enter')
   await openIn(window, 0, 'Charting')
 

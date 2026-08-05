@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { Popover } from './chrome/Popover'
-import { nextIndex } from './chrome/searchResults'
+import { nextIndex } from '../components/Typeahead/useTypeahead'
 import type { NewTabOption } from './newTabOptions'
 import './NewTabMenu.css'
 

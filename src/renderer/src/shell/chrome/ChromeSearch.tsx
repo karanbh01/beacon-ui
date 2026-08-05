@@ -1,8 +1,9 @@
 import { useRef, useState, type ReactElement } from 'react'
 import { ChevronIcon } from '../../icons/generated'
+import { useTypeahead } from '../../components/Typeahead/useTypeahead'
 import { useWorkspace } from '../../state/tabs.store'
 import { SearchDropdown } from './SearchDropdown'
-import { nextIndex, searchRows, type SearchRow } from './searchResults'
+import { searchRows, type SearchRow } from './searchResults'
 
 export interface ChromeSearchProps {
   onSubmit?: (query: string) => void
@@ -24,13 +25,10 @@ export function ChromeSearch({
   onCreateIndex
 }: ChromeSearchProps): ReactElement {
   const [query, setQuery] = useState('')
-  const [active, setActive] = useState(-1)
-  const [dismissed, setDismissed] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
   const tabs = useWorkspace((state) => state.tabs)
   const rows = searchRows(query, tabs)
-  const open = rows.length > 0 && !dismissed
 
   const activate = (row: SearchRow): void => {
     if (row.kind === 'tab') {
@@ -39,35 +37,23 @@ export function ChromeSearch({
       onCreateIndex?.(query.trim())
     }
     setQuery('')
-    setActive(-1)
     input.current?.blur()
   }
 
-  const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (event.key === 'Escape') {
-      // Stop, or the pane behind may also take it as a dismissal.
-      event.stopPropagation()
-      setDismissed(true)
-      setActive(-1)
-      return
+  // The keyboard model is shared with the query bar's typeahead (BU-68) —
+  // open on type, ↑/↓, Enter takes the highlight or falls through to submit.
+  const typeahead = useTypeahead({
+    count: rows.length,
+    onActivate: (index) => {
+      const row = rows[index]
+      if (row !== undefined) activate(row)
+    },
+    onSubmit: () => {
+      onSubmit?.(query)
     }
+  })
 
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      if (!open) return
-      event.preventDefault()
-      setActive((current) => nextIndex(current, event.key === 'ArrowDown' ? 1 : -1, rows.length))
-      return
-    }
-
-    if (event.key !== 'Enter') return
-    const row = rows[active]
-    // With nothing highlighted, Enter is still a plain submit.
-    if (open && row !== undefined) {
-      activate(row)
-      return
-    }
-    onSubmit?.(event.currentTarget.value)
-  }
+  const open = typeahead.open
 
   return (
     <div className="menu-bar-search">
@@ -91,10 +77,9 @@ export function ChromeSearch({
             value={query}
             onChange={(event) => {
               setQuery(event.target.value)
-              setDismissed(false)
-              setActive(-1)
+              typeahead.onInput()
             }}
-            onKeyDown={onKeyDown}
+            onKeyDown={typeahead.onKeyDown}
           />
 
           {/* The chevron section on the field's right edge — 81:69 when
@@ -107,7 +92,8 @@ export function ChromeSearch({
             aria-label="Search options"
             aria-expanded={open}
             onClick={() => {
-              setDismissed((was) => !was)
+              if (open) typeahead.close()
+              else typeahead.onInput()
               input.current?.focus()
             }}
           >
@@ -120,9 +106,9 @@ export function ChromeSearch({
             <span className="menu-bar-search-rule" aria-hidden="true" />
             <SearchDropdown
               rows={rows}
-              activeIndex={active}
+              activeIndex={typeahead.active}
               onActivate={activate}
-              onHover={setActive}
+              onHover={typeahead.setActive}
             />
           </>
         )}

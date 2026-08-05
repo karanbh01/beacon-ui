@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import type { EngineState } from '@shared/ipc'
+import { IdentifierIndexProvider } from '../views/shared/IdentifierIndexProvider'
 import { createClient } from './client'
 import { eventsUrl, parseEvent } from './events'
 import { useJobs } from './jobs'
@@ -104,7 +105,11 @@ export function BeaconProvider({
 
   return (
     <QueryClientProvider client={queries}>
-      <ClientContext.Provider value={client}>{children}</ClientContext.Provider>
+      <ClientContext.Provider value={client}>
+        {/* One identifier index for the whole app (BU-68), rather than each
+            query view running the same fan-out. */}
+        <IdentifierIndexProvider>{children}</IdentifierIndexProvider>
+      </ClientContext.Provider>
     </QueryClientProvider>
   )
 }

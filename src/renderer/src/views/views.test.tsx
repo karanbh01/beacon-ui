@@ -136,7 +136,7 @@ describe('ReferenceView', () => {
 
     mount(<ReferenceView tab={tab('reference-data')} subject={undefined} />, { reference: {} })
 
-    await userEvent.type(screen.getByRole('textbox'), 'MSFT{Enter}')
+    await userEvent.type(screen.getByRole('combobox'), 'MSFT{Enter}')
 
     expect(useWorkspace.getState().tabs[0]?.subject).toBe('MSFT')
   })

@@ -76,9 +76,3 @@ export function groupRows(rows: readonly SearchRow[]): { group: string; rows: Se
   }
   return groups
 }
-
-/** Wraps at both ends, so Up from the first row lands on the last. */
-export function nextIndex(current: number, delta: number, length: number): number {
-  if (length === 0) return -1
-  return (current + delta + length) % length
-}

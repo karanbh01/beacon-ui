@@ -11,7 +11,7 @@ describe('query kind', () => {
   it('renders the subject and meta', () => {
     render(<PaneHeader kind="query" subject="AAPL" meta="Apple Inc. · NASDAQ" onQuery={noop} />)
 
-    expect(screen.getByRole('textbox')).toHaveValue('AAPL')
+    expect(screen.getByRole('combobox')).toHaveValue('AAPL')
     expect(screen.getByText('Apple Inc. · NASDAQ')).toBeInTheDocument()
   })
 
@@ -31,7 +31,7 @@ describe('query kind', () => {
       <PaneHeader kind="query" subject="AAPL" linkedTo="Prices" onQuery={noop} onSever={onSever} />
     )
 
-    await userEvent.type(screen.getByRole('textbox'), 'N')
+    await userEvent.type(screen.getByRole('combobox'), 'N')
     expect(onSever).toHaveBeenCalled()
   })
 })

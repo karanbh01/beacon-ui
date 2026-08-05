@@ -27,7 +27,7 @@ const TABLE_RENDER_BUDGET_MS = 1_500
 async function openPrices(window: import('@playwright/test').Page): Promise<void> {
   await openPage(window, 'Data Explorer')
   await openView(window, 'Prices')
-  await window.getByRole('textbox').first().fill('CMP000')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP000')
   await window.keyboard.press('Enter')
   await window.locator('.tbl-row').first().waitFor()
 }
@@ -49,7 +49,7 @@ test('opening a large table stays within budget', async ({ window }) => {
   await openView(window, 'Prices')
 
   const started = Date.now()
-  await window.getByRole('textbox').first().fill('CMP000')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP000')
   await window.keyboard.press('Enter')
   await window.locator('.tbl-row').first().waitFor()
   const elapsed = Date.now() - started

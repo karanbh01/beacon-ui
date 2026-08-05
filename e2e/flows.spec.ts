@@ -26,7 +26,7 @@ test('Data Explorer → Prices renders bars for a typed ticker', async ({ window
 
   // A query view opens with no subject and waits, which is the whole point of
   // dropping the seeds.
-  await window.getByRole('textbox').first().fill('CMP000')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP000')
   await window.keyboard.press('Enter')
 
   await expect(window.getByText('LAST CLOSE')).toBeVisible()
@@ -52,7 +52,7 @@ test('Data Explorer → Corporate Actions states kind rather than guessing it', 
 }) => {
   await openPage(window, 'Data Explorer')
   await openView(window, 'Corporate Actions')
-  await window.getByRole('textbox').first().fill('CMP000')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP000')
   await window.keyboard.press('Enter')
 
   // BU-60: pay date and status are columns, and a structural action shows no
@@ -109,6 +109,41 @@ test('the chrome popovers open and dismiss', async ({ window }) => {
   await expect(window.getByRole('listbox', { name: 'Search results' })).toBeVisible()
 })
 
+test('the query bar suggests identifiers as you type', async ({ window }) => {
+  // BU-68. The index is built from the universes the engine publishes, named
+  // by one reference batch — the stub serves 120 CMPxxx names.
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Prices')
+
+  const field = window.getByRole('combobox', { name: 'Subject' })
+  await field.fill('cmp01')
+
+  const list = window.getByRole('listbox', { name: 'Identifier suggestions' })
+  await expect(list).toBeVisible()
+  await expect(list.getByRole('option').first()).toContainText('CMP010')
+  // Named from reference data, not just the bare ticker.
+  await expect(list.getByRole('option').first()).toContainText('Corporation')
+
+  await window.keyboard.press('ArrowDown')
+  await window.keyboard.press('Enter')
+
+  await expect(field).toHaveValue('CMP010')
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
+  await expect(list).toHaveCount(0)
+})
+
+test('a ticker the index has never heard of still submits', async ({ window }) => {
+  // py-beacon cannot enumerate what it covers (#71), so the index is bounded
+  // in a way the user cannot see. Typing past it has to keep working.
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Prices')
+
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP999')
+  await window.keyboard.press('Enter')
+
+  await expect(window.locator('.tab-chip-label')).toContainText('CMP999')
+})
+
 test('closing a chart tab does not take the renderer down', async ({ window }) => {
   // React runs effect cleanups in declaration order, so the effect that
   // disposes the lightweight-charts instance ran before the one detaching its
@@ -120,7 +155,7 @@ test('closing a chart tab does not take the renderer down', async ({ window }) =
 
   await openPage(window, 'Data Explorer')
   await openView(window, 'Prices')
-  await window.getByRole('textbox').first().fill('CMP000')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP000')
   await window.keyboard.press('Enter')
   await openView(window, 'Charting')
   await window.locator('.level-chart').waitFor()
