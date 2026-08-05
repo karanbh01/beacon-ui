@@ -8,12 +8,49 @@
  */
 .pane-host {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  /* The tracks are inline, from the stored split (BU-69). */
   gap: 1px;
   height: 100%;
   min-height: 0;
   background: var(--chrome-border);
+}
+
+/*
+ * The handle sits ON the 1px gap: a grid item in the first track, pushed onto
+ * the boundary by half its own width plus half the gap. 9px to the pointer, a
+ * hairline to the eye — the gap itself is what you see.
+ */
+.pane-divider {
+  z-index: 3;
+  background: transparent;
+}
+
+/*
+ * In a four-pane grid the two handles cross, and something has to own the 9px
+ * square where they overlap — a pointer there is genuinely ambiguous. The
+ * column handle takes it, which is arbitrary but deterministic. Leaving it to
+ * DOM order made the CENTRE of the column handle resize rows instead, which
+ * is the one place a user is most likely to aim.
+ */
+.pane-divider-x {
+  z-index: 4;
+  justify-self: end;
+  width: 9px;
+  margin-right: -5px;
+  cursor: col-resize;
+}
+
+.pane-divider-y {
+  align-self: end;
+  height: 9px;
+  margin-bottom: -5px;
+  cursor: row-resize;
+}
+
+.pane-divider:hover,
+.pane-divider:focus-visible {
+  background: var(--accent);
+  outline: none;
 }
 
 .pane {

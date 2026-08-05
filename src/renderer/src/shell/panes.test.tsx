@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { TAB_MIME } from '../components/Tab/dragTab'
-import { useChrome } from '../state/chrome'
+import { MIN_SPLIT, useChrome } from '../state/chrome'
 import { useWorkspace } from '../state/tabs.store'
 import { PaneHost } from './PaneHost'
 import { clearViews, registerView, type ViewProps } from './viewRegistry'
@@ -19,7 +19,9 @@ function ChartingView({ subject }: ViewProps): ReactElement {
 beforeEach(() => {
   localStorage.clear()
   useWorkspace.getState().reset()
-  useChrome.setState({ layout: 'columns' })
+  // `splits` too: it is module state, and a test that drags a divider would
+  // otherwise hand its 70/30 to the next one.
+  useChrome.setState({ layout: 'columns', splits: {} })
   clearViews()
   registerView('prices', PricesView, { page: 'data-explorer', title: 'Prices', archetype: 'query' })
   registerView('charting', ChartingView, {
@@ -249,5 +251,97 @@ describe('dragging a tab between panes', () => {
 
     expect(target).toHaveAttribute('data-dropping', 'false')
     expect(useWorkspace.getState().tabs[0]?.pane).toBe(0)
+  })
+})
+
+describe('resizing panes (BU-69)', () => {
+  const divider = (axis: 'x' | 'y'): HTMLElement => {
+    const node = document.querySelector(`.pane-divider-${axis}`)
+    if (node === null) throw new Error(`no ${axis} divider`)
+    return node as HTMLElement
+  }
+
+  it('offers a divider only where a layout is actually split', () => {
+    const view = render(<PaneHost page="data-explorer" />)
+    // Two columns: one vertical handle, no horizontal one.
+    expect(document.querySelectorAll('.pane-divider')).toHaveLength(1)
+    expect(document.querySelector('.pane-divider-y')).toBeNull()
+
+    act(() => {
+      useChrome.setState({ layout: 'single' })
+    })
+    view.rerender(<PaneHost page="data-explorer" />)
+    expect(document.querySelectorAll('.pane-divider')).toHaveLength(0)
+
+    act(() => {
+      useChrome.setState({ layout: 'grid' })
+    })
+    view.rerender(<PaneHost page="data-explorer" />)
+    expect(document.querySelectorAll('.pane-divider')).toHaveLength(2)
+  })
+
+  it('sizes the grid from the stored split', () => {
+    act(() => {
+      useChrome.setState({ splits: { columns: { x: 0.7, y: 0.5 } } })
+    })
+    render(<PaneHost page="data-explorer" />)
+
+    const host = document.querySelector('.pane-host')
+    expect((host as HTMLElement).style.gridTemplateColumns).toBe(
+      'minmax(0, 0.7fr) minmax(0, 0.30000000000000004fr)'
+    )
+  })
+
+  it('moves on the arrow keys, so it is not mouse-only', () => {
+    render(<PaneHost page="data-explorer" />)
+
+    fireEvent.keyDown(divider('x'), { key: 'ArrowRight' })
+    expect(useChrome.getState().splits.columns?.x).toBeCloseTo(0.52, 5)
+
+    fireEvent.keyDown(divider('x'), { key: 'ArrowLeft' })
+    expect(useChrome.getState().splits.columns?.x).toBeCloseTo(0.5, 5)
+  })
+
+  it('will not let a pane be nudged away to nothing', () => {
+    render(<PaneHost page="data-explorer" />)
+    for (let press = 0; press < 60; press += 1) {
+      fireEvent.keyDown(divider('x'), { key: 'ArrowLeft' })
+    }
+    expect(useChrome.getState().splits.columns?.x).toBe(MIN_SPLIT)
+  })
+
+  it('resets to even on a double click', () => {
+    act(() => {
+      useChrome.setState({ splits: { columns: { x: 0.8, y: 0.5 } } })
+    })
+    render(<PaneHost page="data-explorer" />)
+
+    fireEvent.doubleClick(divider('x'))
+    expect(useChrome.getState().splits.columns?.x).toBe(0.5)
+  })
+
+  it('keeps a split per layout, because 70/30 in one is not 70/30 in another', () => {
+    act(() => {
+      useChrome.setState({ splits: { columns: { x: 0.8, y: 0.5 } } })
+    })
+    const view = render(<PaneHost page="data-explorer" />)
+
+    act(() => {
+      useChrome.setState({ layout: 'grid' })
+    })
+    view.rerender(<PaneHost page="data-explorer" />)
+
+    const host = document.querySelector<HTMLElement>('.pane-host')
+    expect(host?.style.gridTemplateColumns).toBe('minmax(0, 0.5fr) minmax(0, 0.5fr)')
+    // And the columns split is still there when you go back.
+    expect(useChrome.getState().splits.columns?.x).toBe(0.8)
+  })
+
+  it('reports its position to assistive technology', () => {
+    render(<PaneHost page="data-explorer" />)
+    const separator = screen.getByRole('separator', { name: 'Resize columns' })
+
+    expect(separator).toHaveAttribute('aria-orientation', 'vertical')
+    expect(separator).toHaveAttribute('aria-valuenow', '50')
   })
 })

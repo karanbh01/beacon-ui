@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { LAYOUT_OPTIONS } from '../state/chrome'
-import { gridAreaFor, layoutById, panesFor } from './paneGrid'
+import { clampSplit, LAYOUT_OPTIONS, MIN_SPLIT } from '../state/chrome'
+import { dividersFor, gridAreaFor, layoutById, panesFor } from './paneGrid'
 
 /**
  * The glyph rectangles and the real layout come from one table, so these
@@ -51,5 +51,55 @@ describe('layoutById', () => {
   it('falls back to a single pane rather than taking the shell down', () => {
     // A layout id stored by a newer version has to survive a downgrade.
     expect(layoutById('hexagonal').id).toBe('single')
+  })
+})
+
+describe('dividersFor', () => {
+  const dividers = (id: string): string[] =>
+    dividersFor(panesFor(id)).map((d) => `${d.axis} col=${d.gridColumn} row=${d.gridRow}`)
+
+  it('gives a single pane nothing to drag', () => {
+    expect(dividers('single')).toEqual([])
+  })
+
+  it('gives two columns one full-height divider and no horizontal one', () => {
+    expect(dividers('columns')).toEqual(['x col=1 row=1 / 3'])
+  })
+
+  it('gives the grid both, each spanning everything', () => {
+    expect(dividers('grid')).toEqual(['x col=1 row=1 / 3', 'y col=1 / 3 row=1'])
+  })
+
+  it('stops the horizontal divider at the column that is actually stacked', () => {
+    // main-stack splits only its right column, so a full-width handle would
+    // sit across the main pane dividing nothing.
+    expect(dividers('main-stack')).toEqual(['x col=1 row=1 / 3', 'y col=2 / 3 row=1'])
+  })
+
+  it('stops the vertical divider at the row that is actually split', () => {
+    // banner's top pane is full width; only the bottom row has two panes.
+    expect(dividers('banner')).toEqual(['x col=1 row=2 / 3', 'y col=1 / 3 row=1'])
+  })
+
+  it('never offers a divider a layout has no use for', () => {
+    for (const option of LAYOUT_OPTIONS) {
+      const axes = dividersFor(option.panes).map((d) => d.axis)
+      expect(new Set(axes).size, option.id).toBe(axes.length)
+      expect(axes.length, option.id).toBeLessThanOrEqual(2)
+    }
+  })
+})
+
+describe('clampSplit', () => {
+  it('leaves a sane split alone', () => {
+    expect(clampSplit(0.7)).toBe(0.7)
+  })
+
+  it('will not let a pane be dragged away to nothing', () => {
+    // A pane resized to zero is a pane you cannot get back — its divider ends
+    // up under the window edge with no handle left to grab.
+    expect(clampSplit(0)).toBe(MIN_SPLIT)
+    expect(clampSplit(1)).toBe(1 - MIN_SPLIT)
+    expect(clampSplit(-4)).toBe(MIN_SPLIT)
   })
 })

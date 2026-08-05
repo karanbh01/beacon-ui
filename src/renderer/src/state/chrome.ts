@@ -67,26 +67,83 @@ export const LAYOUT_OPTIONS: readonly LayoutOption[] = [
   }
 ]
 
+export type SplitAxis = 'x' | 'y'
+
+/** Where each divider sits, as the first track's share of the grid. */
+export interface Split {
+  x: number
+  y: number
+}
+
+export const EVEN_SPLIT: Split = { x: 0.5, y: 0.5 }
+
+/**
+ * A pane cannot be dragged smaller than this.
+ *
+ * A pane resized to nothing is a pane you cannot get back — its divider ends
+ * up under the window edge with no handle left to grab.
+ */
+export const MIN_SPLIT = 0.15
+
+export function clampSplit(value: number): number {
+  return Math.min(Math.max(value, MIN_SPLIT), 1 - MIN_SPLIT)
+}
+
 interface ChromeState {
   layout: string
+  /**
+   * Divider positions PER LAYOUT (BU-69). A 70/30 that made sense for
+   * main-stack is not what you want back when you return to grid, so they do
+   * not share a number.
+   */
+  splits: Record<string, Split | undefined>
   setLayout: (id: string) => void
+  setSplit: (layout: string, axis: SplitAxis, value: number) => void
+  resetSplit: (layout: string, axis: SplitAxis) => void
+}
+
+export function splitFor(splits: Record<string, Split | undefined>, layout: string): Split {
+  return splits[layout] ?? EVEN_SPLIT
 }
 
 /**
  * Chrome preferences that outlive a session.
  *
  * `PaneHost` reads `layout` and renders that many panes, each with its own
- * tab strip (BU-55). The rectangles above are what it lays out, via
- * `shell/paneGrid`.
+ * tab strip (BU-55), sized by `splits` (BU-69). The rectangles above are what
+ * it lays out, via `shell/paneGrid`.
  */
 export const useChrome = create<ChromeState>()(
   persist(
     (set) => ({
       layout: SINGLE_PANE.id,
+      splits: {},
       setLayout: (id) => {
         set({ layout: id })
+      },
+      setSplit: (layout, axis, value) => {
+        set((state) => ({
+          splits: {
+            ...state.splits,
+            [layout]: { ...splitFor(state.splits, layout), [axis]: clampSplit(value) }
+          }
+        }))
+      },
+      resetSplit: (layout, axis) => {
+        set((state) => ({
+          splits: {
+            ...state.splits,
+            [layout]: { ...splitFor(state.splits, layout), [axis]: EVEN_SPLIT[axis] }
+          }
+        }))
       }
     }),
-    { name: 'beacon.chrome', version: 1 }
+    {
+      name: 'beacon.chrome',
+      version: 2,
+      // Version 1 stored a layout and nothing else; an even split is what it
+      // was rendering, so there is nothing to reconstruct.
+      migrate: (persisted) => ({ ...(persisted as ChromeState), splits: {} })
+    }
   )
 )

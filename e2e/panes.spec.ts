@@ -127,6 +127,84 @@ test('collapsing folds the panes together and splitting puts them back', async (
   await expect(strip(window, 1).getByText('Reference Data')).toBeVisible()
 })
 
+test('the divider resizes both panes, and the size sticks', async ({ window }) => {
+  await window.setViewportSize({ width: 1440, height: 900 })
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Two columns')
+
+  const left = window.locator('[data-pane="0"]')
+  const before = (await left.boundingBox())?.width ?? 0
+
+  // Real pointer, because pointer capture is the whole mechanism: without it
+  // the drag dies as soon as the cursor leaves the 9px handle.
+  const handle = window.getByRole('separator', { name: 'Resize columns' })
+  const box = await handle.boundingBox()
+  await window.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2)
+  await window.mouse.down()
+  await window.mouse.move(1000, 500, { steps: 12 })
+  await window.mouse.up()
+
+  const after = (await left.boundingBox())?.width ?? 0
+  expect(after).toBeGreaterThan(before + 100)
+  await expect(handle).toHaveAttribute('aria-valuenow', /^(6|7)\d$/)
+
+  // Double-click puts it back.
+  await handle.dblclick()
+  expect((await left.boundingBox())?.width ?? 0).toBeCloseTo(before, 0)
+})
+
+test('a divider will not squeeze a pane out of existence', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Two columns')
+
+  const handle = window.getByRole('separator', { name: 'Resize columns' })
+  const box = await handle.boundingBox()
+  await window.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2)
+  await window.mouse.down()
+  await window.mouse.move(-500, 500, { steps: 8 })
+  await window.mouse.up()
+
+  // A pane dragged to nothing is a pane you cannot get back.
+  expect((await window.locator('[data-pane="0"]').boundingBox())?.width ?? 0).toBeGreaterThan(80)
+})
+
+test('the two dividers in a grid do not steal from each other', async ({ window }) => {
+  // They cross, and both handles are centred on the crossing. Left to DOM
+  // order the row handle covered the middle of the column handle, so grabbing
+  // the most obvious spot on it resized the wrong axis.
+  await window.setViewportSize({ width: 1440, height: 900 })
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Four panes')
+
+  const topLeft = window.locator('[data-pane="0"]')
+  const before = await topLeft.boundingBox()
+
+  const columns = window.getByRole('separator', { name: 'Resize columns' })
+  const box = await columns.boundingBox()
+  await window.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2)
+  await window.mouse.down()
+  await window.mouse.move(1000, box!.y + box!.height / 2, { steps: 10 })
+  await window.mouse.up()
+
+  const after = await topLeft.boundingBox()
+  expect(after!.width).toBeGreaterThan(before!.width + 100)
+  // The row split must not have moved.
+  expect(after!.height).toBeCloseTo(before!.height, 0)
+})
+
+test('only the layouts that are split get a divider', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+
+  await chooseLayout(window, 'Single pane')
+  await expect(window.locator('.pane-divider')).toHaveCount(0)
+
+  await chooseLayout(window, 'Two columns')
+  await expect(window.locator('.pane-divider')).toHaveCount(1)
+
+  await chooseLayout(window, 'Four panes')
+  await expect(window.locator('.pane-divider')).toHaveCount(2)
+})
+
 test('a pane that loses its last tab stays, showing the empty state', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await chooseLayout(window, 'Two columns')
