@@ -59,7 +59,10 @@ mac:
   gatekeeperAssess: false
 
 win:
-  icon: build/icon.png
+  # The real multi-size .ico, not the png — electron-builder would derive one,
+  # but it picks its own sizes and we want 16 and 24 in there for the taskbar
+  # and title bar (scripts/build-app-icon.mjs).
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]

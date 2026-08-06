@@ -1,71 +1,95 @@
-// Generate the app icon from the β glyph (BU-33).
+// Generate the app icon from the beta-cube artwork (BU-73).
 //
-// electron-builder wants build/icon.png (>= 512px) and derives .ico and
-// .icns from it. Rendering happens in Electron rather than through an image
-// library, because Electron is already a dependency and is the same renderer
-// that draws the glyph in the app — so the icon cannot drift from the UI.
+// The master is build/icon-source.png — Karan's artwork, used as-is. This
+// only resizes it into the shapes each platform wants: a 1024px png for
+// electron-builder to derive .icns from, and a real multi-size .ico for
+// Windows.
 //
 //   pnpm run icon:build
+//
+// Resizing happens through Electron's nativeImage rather than an image
+// library, because Electron is already a dependency and adding sharp would
+// put a native build step in CI to resize one file.
 
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, nativeImage } from 'electron'
+import { app, nativeImage } from 'electron'
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..')
-const SIZE = 1024
+const SOURCE = join(ROOT, 'build', 'icon-source.png')
+const OUT = join(ROOT, 'build')
 
-/** The same path data the app renders, from icons/svg/logo-beta.svg. */
-const GLYPH =
-  'M14.4344 33.6673C12.4646 33.1878 10.6078 31.6051 9.60677 29.5269C8.7349 27.7204 8.20208 26.0418 5.69948 17.4252C4.40781 12.981 2.95469 7.9932 2.47031 6.31463C1.92135 4.47619 1.27552 2.63776 0.791146 1.6466L0 0H1.35625H2.72865L3.11615 0.767347C3.64896 1.80646 4.8599 5.17959 5.39271 7.11395C5.65104 7.9932 5.89323 8.77653 5.97396 8.85646C6.03854 8.92041 6.4099 8.76054 6.81354 8.48878C9.26771 6.82619 13.3526 7.36973 15.9844 9.71973C17.0661 10.6789 18.2609 12.5014 18.7292 13.9242C19.2943 15.6507 19.2781 17.9367 18.6969 19.1837C18.2448 20.1429 17.2276 21.2139 16.3557 21.6776C16.049 21.8374 15.8068 22.0133 15.8068 22.0612C15.8068 22.1252 16.2589 22.381 16.8078 22.6367C18.2286 23.2922 19.5203 24.2833 20.2307 25.2425C21.3609 26.7612 21.7484 28.8874 21.2156 30.6619C20.4891 33.0759 17.4859 34.4027 14.4344 33.6673ZM17.5828 32.5643C18.4708 31.9888 18.7937 31.2854 18.7776 29.9745C18.7453 27.4806 17.1469 24.2034 15.3708 23.0364C14.6927 22.5888 14.6604 22.5888 13.9984 22.8126C12.4807 23.3241 11.4474 23.0364 11.6734 22.1412C11.8187 21.5656 12.3677 21.4058 13.4979 21.5816C14.6766 21.7735 15.0318 21.5497 15.726 20.2228C16.1781 19.3595 16.2104 19.1517 16.2104 17.681C16.1943 15.7306 15.9359 14.8194 14.7573 12.3895C14.2083 11.2544 13.6432 10.3752 13.1911 9.92755C11.738 8.4568 9.8974 8.07313 8.23438 8.88844C7.37865 9.32007 6.39375 10.3912 6.52292 10.7588C6.5875 10.9507 6.74896 11.4622 8.94479 19.0238C11.7057 28.4718 12.4646 30.518 13.6594 31.717C14.8542 32.932 16.5172 33.2837 17.5828 32.5643Z'
+/** electron-builder's floor for deriving .icns. */
+const MASTER = 1024
 
 /**
- * Ink on the app's own canvas colour.
+ * The sizes a .ico carries.
  *
- * The icon is a fixed artefact, not a themed surface, so it takes the LIGHT
- * palette's canvas and primary text and stays that way — a dock icon that
- * inverted with the OS theme would be a different mark.
+ * 16 and 32 are the taskbar and title bar, 48 the alt-tab switcher, 256 the
+ * large view in Explorer. Anything above 256 is not addressable in the ICO
+ * format at all, which is why the master png exists separately.
  */
-const PAGE = `<!doctype html>
-<html><head><meta charset="utf-8"><style>
-  html, body { margin: 0; width: ${SIZE}px; height: ${SIZE}px; background: transparent; }
-  .plate {
-    width: ${SIZE}px; height: ${SIZE}px;
-    display: flex; align-items: center; justify-content: center;
-    background: #ffedd8;
-    border-radius: ${SIZE * 0.22}px;
-  }
-  svg { width: ${SIZE * 0.44}px; }
-</style></head>
-<body><div class="plate">
-  <svg viewBox="0 0 21.4515 33.8699" xmlns="http://www.w3.org/2000/svg">
-    <path d="${GLYPH}" fill="#2a2419" />
-  </svg>
-</div></body></html>`
+const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
+
+/**
+ * A minimal ICO container over PNG-compressed frames.
+ *
+ * Written by hand because `nativeImage` has no .ico encoder and the format is
+ * a 6-byte header plus a 16-byte directory entry per frame. PNG frames rather
+ * than BMP: every Windows since Vista reads them, they are a third of the
+ * size, and they carry alpha without the AND-mask dance BMP frames need.
+ */
+function encodeIco(frames) {
+  const header = Buffer.alloc(6)
+  header.writeUInt16LE(0, 0) // reserved
+  header.writeUInt16LE(1, 2) // 1 = icon
+  header.writeUInt16LE(frames.length, 4)
+
+  const directory = Buffer.alloc(16 * frames.length)
+  let offset = header.length + directory.length
+
+  frames.forEach(({ size, png }, index) => {
+    const at = index * 16
+    // 256 is stored as 0 — the field is one byte and 256 does not fit.
+    directory.writeUInt8(size >= 256 ? 0 : size, at)
+    directory.writeUInt8(size >= 256 ? 0 : size, at + 1)
+    directory.writeUInt8(0, at + 2) // palette size: 0 for truecolour
+    directory.writeUInt8(0, at + 3) // reserved
+    directory.writeUInt16LE(1, at + 4) // colour planes
+    directory.writeUInt16LE(32, at + 6) // bits per pixel
+    directory.writeUInt32LE(png.length, at + 8)
+    directory.writeUInt32LE(offset, at + 12)
+    offset += png.length
+  })
+
+  return Buffer.concat([header, directory, ...frames.map((frame) => frame.png)])
+}
 
 app.disableHardwareAcceleration()
 
 app.whenReady().then(async () => {
-  const window = new BrowserWindow({
-    width: SIZE,
-    height: SIZE,
-    show: false,
-    transparent: true,
-    frame: false
-  })
+  const source = nativeImage.createFromBuffer(await readFile(SOURCE))
+  const { width, height } = source.getSize()
+  if (width === 0) throw new Error(`could not read ${SOURCE}`)
 
-  await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(PAGE)}`)
-  const image = await window.webContents.capturePage()
+  await mkdir(OUT, { recursive: true })
 
-  const out = join(ROOT, 'build')
-  await mkdir(out, { recursive: true })
-  await writeFile(join(out, 'icon.png'), image.toPNG())
+  // `quality: 'best'` is Lanczos rather than nearest — it matters most on the
+  // downscales, where the cube's 4.5px edges have to survive reaching 16px.
+  const at = (size) => source.resize({ width: size, height: size, quality: 'best' })
 
-  // electron-builder derives .ico and .icns from icon.png, but a Windows
-  // build is happier with a real .ico, and nativeImage can make one.
-  const ico = nativeImage.createFromBuffer(image.toPNG())
-  await writeFile(join(out, 'icon@256.png'), ico.resize({ width: 256 }).toPNG())
+  await writeFile(join(OUT, 'icon.png'), at(MASTER).toPNG())
+  await writeFile(join(OUT, 'icon@256.png'), at(256).toPNG())
 
-  console.log(`[icon] wrote ${join(out, 'icon.png')} at ${String(SIZE)}px`)
+  const frames = ICO_SIZES.map((size) => ({ size, png: at(size).toPNG() }))
+  await writeFile(join(OUT, 'icon.ico'), encodeIco(frames))
+
+  console.log(`[icon] source ${String(width)}x${String(height)}`)
+  console.log(`[icon] wrote icon.png at ${String(MASTER)}px, icon@256.png`)
+  console.log(`[icon] wrote icon.ico with ${ICO_SIZES.join(', ')}`)
+  if (width < MASTER) {
+    console.log(`[icon] NOTE: 1024 is upscaled from ${String(width)} — see #73`)
+  }
   app.exit(0)
 })

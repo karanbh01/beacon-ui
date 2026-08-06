@@ -37,6 +37,12 @@ jobs:
       - name: Icon drift
         run: pnpm run icons:check
 
+      # The app icon, derived from build/icon-source.png. Under xvfb because
+      # it runs Electron — nativeImage does the resizing and no window is
+      # opened, but app.whenReady() still wants a display on Linux.
+      - name: App icon drift
+        run: xvfb-run -a pnpm run icon:check
+
       # The committed woff2 files against the installed @fontsource packages.
       # A version bump that changes the binaries has to land as a diff.
       - name: Font drift

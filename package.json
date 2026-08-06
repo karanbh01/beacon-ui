@@ -41,6 +41,7 @@
     "python:fetch": "node scripts/fetch-python.mjs",
     "prepack:dry": "node scripts/fetch-python.mjs",
     "icon:build": "electron scripts/build-app-icon.mjs",
+    "icon:check": "electron scripts/build-app-icon.mjs && git diff --exit-code -- build",
     "pree2e": "pnpm run build",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui"

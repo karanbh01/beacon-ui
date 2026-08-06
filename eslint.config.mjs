@@ -73,8 +73,14 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       parserOptions: { project: null },
-      // `fetch` is global from Node 18; the packaging script downloads with it.
-      globals: { console: 'readonly', process: 'readonly', fetch: 'readonly' }
+      // `fetch` is global from Node 18; the packaging script downloads with
+      // it. `Buffer` is how the icon script assembles the .ico container.
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        fetch: 'readonly',
+        Buffer: 'readonly'
+      }
     }
   },
 
