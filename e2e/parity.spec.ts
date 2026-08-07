@@ -195,6 +195,50 @@ test.describe('frame parity', () => {
     expect(gaps?.top).toBeCloseTo(gaps?.bottom ?? -1, 1)
   })
 
+  test('platform-drawn controls follow the theme, and the 4px scrollbar survives', async ({
+    window
+  }) => {
+    /*
+     * BU-74. `Select` wraps a real `<select>`, so its option list is drawn by
+     * the platform and takes its palette from `color-scheme` — which was
+     * never declared, so every dropdown opened white in dark mode. The popup
+     * is a widget outside the page and no screenshot can reach it; the
+     * computed scheme is the mechanism, and it IS observable.
+     *
+     * The scrollbar is measured in the same test on purpose. `app.css` warns
+     * that `scrollbar-color` makes Chromium 121+ drop the `::-webkit-` rules
+     * and take the 4px with them; `color-scheme` is a different property and
+     * does not, but that is exactly the kind of thing to assert rather than
+     * believe.
+     */
+    await openPage(window, 'Data Explorer')
+    await openView(window, 'Prices')
+    await window.getByRole('combobox', { name: 'Subject' }).fill('CMP000')
+    await window.keyboard.press('Enter')
+    await window.locator('.tbl-row').first().waitFor()
+
+    const read = async (): Promise<{ scheme: string; scrollbar: number }> =>
+      window.evaluate(() => {
+        const body = document.querySelector('.tbl-body')
+        return {
+          scheme: getComputedStyle(document.documentElement).colorScheme,
+          scrollbar:
+            body === null
+              ? -1
+              : body.clientWidth === 0
+                ? -1
+                : (body as HTMLElement).offsetWidth - body.clientWidth
+        }
+      })
+
+    expect(await read()).toEqual({ scheme: 'light', scrollbar: 4 })
+
+    await window.getByRole('switch', { name: 'Dark mode' }).click()
+    await expect(window.locator('html')).toHaveAttribute('data-theme', 'dark')
+
+    expect(await read()).toEqual({ scheme: 'dark', scrollbar: 4 })
+  })
+
   test('the bundled faces are the ones painting, not system fallbacks', async ({ window }) => {
     // BU-52: Roboto resolved off the developer's machine and fell back to
     // Inter — 5% wider — everywhere it was not installed. Three machines,

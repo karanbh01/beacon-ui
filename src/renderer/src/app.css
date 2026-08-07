@@ -40,6 +40,30 @@
 :root {
   --scrollbar-size: 4px;
   --scrollbar-thumb: color-mix(in srgb, var(--text-muted) 45%, transparent);
+
+  /*
+   * The one thing the app's CSS cannot reach any other way (BU-74).
+   *
+   * `Select` wraps a real `<select>`, so its option list is drawn by the
+   * platform and not by us — and Chromium picks that popup's palette from
+   * `color-scheme`, not from our tokens. Unset means `normal`, which it
+   * treats as light, so every dropdown opened white in dark mode however the
+   * `.select` box itself was styled.
+   *
+   * Also settles the caret, the selection highlight and native focus rings,
+   * which had the same problem for the same reason and were being read as
+   * "that is just how it looks".
+   *
+   * NOT `scrollbar-color`: that one makes Chromium 121+ ignore the
+   * `::-webkit-` rules above and take the 4px with it. `color-scheme` is a
+   * different property and leaves them standing — measured, not assumed,
+   * because that distinction is exactly the trap this file already documents.
+   */
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 ::-webkit-scrollbar {
