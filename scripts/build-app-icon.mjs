@@ -1,20 +1,19 @@
 // Generate the app icon from the beta-cube artwork (BU-73).
 //
 // The master is build/icon-source.png — Karan's artwork, used as-is. This
-// only resizes it into the shapes each platform wants: a 1024px png for
+// only reshapes it into what each platform wants: a square 1024px png for
 // electron-builder to derive .icns from, and a real multi-size .ico for
 // Windows.
 //
 //   pnpm run icon:build
 //
-// Resizing happens through Electron's nativeImage rather than an image
-// library, because Electron is already a dependency and adding sharp would
+// No image library: Electron is already a dependency, and adding sharp would
 // put a native build step in CI to resize one file.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, nativeImage } from 'electron'
+import { app, BrowserWindow, nativeImage } from 'electron'
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..')
 const SOURCE = join(ROOT, 'build', 'icon-source.png')
@@ -31,6 +30,97 @@ const MASTER = 1024
  * format at all, which is why the master png exists separately.
  */
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
+
+/**
+ * The artwork's own bounds, ignoring transparent surround.
+ *
+ * `toBitmap` hands back raw BGRA, so finding this needs no PNG decoder. It
+ * matters because the supplied art is not square and does not sit centred on
+ * its canvas — cropping to the ink first is what lets the square be built
+ * around the CUBE rather than around whatever margin the export happened to
+ * leave.
+ */
+function inkBounds(image) {
+  const { width, height } = image.getSize()
+  const pixels = image.toBitmap()
+
+  let minX = width
+  let minY = height
+  let maxX = -1
+  let maxY = -1
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      // BGRA: alpha is the fourth byte of each pixel.
+      if (pixels[(y * width + x) * 4 + 3] <= 8) continue
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+  }
+
+  if (maxX < 0) throw new Error('the artwork is entirely transparent')
+  return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
+}
+
+/**
+ * Centre the artwork in a square, letterboxed.
+ *
+ * `nativeImage.resize` to a square would STRETCH a 605x623 cube by 3% — small
+ * enough to pass review and wrong. Compositing in a page is how the aspect
+ * survives: `object-fit: contain` fits the long edge and centres the rest,
+ * and the surround stays transparent.
+ */
+async function square(image, size) {
+  const window = new BrowserWindow({
+    width: size,
+    height: size,
+    show: false,
+    transparent: true,
+    frame: false,
+    webPreferences: { offscreen: true }
+  })
+
+  /*
+   * `display: block` and `overflow: hidden` are both load-bearing.
+   *
+   * An `img` is inline, so it sits on a text baseline and the line box is a
+   * few px taller than the image — which overflows a viewport sized to match
+   * and makes Chromium paint SCROLLBARS, straight into the capture. That came
+   * out as an opaque grey L along the bottom and right of the icon, on an
+   * image that was otherwise correctly transparent.
+   */
+  const page = `<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  html, body {
+    margin: 0; width: ${size}px; height: ${size}px;
+    background: transparent; overflow: hidden;
+  }
+  img { display: block; width: ${size}px; height: ${size}px; object-fit: contain; }
+</style></head>
+<body><img src="${image.toDataURL()}" /></body></html>`
+
+  await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page)}`)
+
+  /*
+   * `loadURL` resolves on the DOCUMENT, not on the image inside it — so
+   * capturing straight after it races the decode. That is not a theoretical
+   * race: two runs produced two different PNGs and `icon:check` failed on its
+   * own output. A lost race would be worse still, capturing a blank frame.
+   *
+   * `decode()` settles when the bitmap is ready to paint; one more frame after
+   * it guarantees the paint has actually happened.
+   */
+  await window.webContents.executeJavaScript(
+    `document.querySelector('img').decode().then(() =>
+       new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))))`
+  )
+
+  const shot = await window.webContents.capturePage()
+  window.destroy()
+  return shot
+}
 
 /**
  * A minimal ICO container over PNG-compressed frames.
@@ -68,28 +158,62 @@ function encodeIco(frames) {
 
 app.disableHardwareAcceleration()
 
-app.whenReady().then(async () => {
+/*
+ * The compositing window is destroyed as soon as it has been captured, and
+ * Electron's DEFAULT reaction to the last window closing is to quit. That
+ * killed the run between writing icon.png and icon@256.png — silently, with
+ * exit code 0, so it looked like the script had simply not run.
+ */
+app.on('window-all-closed', () => undefined)
+
+/**
+ * Without this the whole build is silent on failure: a rejection inside
+ * `whenReady().then` is unhandled, Electron exits 0, and the only symptom is
+ * that some of the files did not change. Cost half an hour once.
+ */
+async function main() {
   const source = nativeImage.createFromBuffer(await readFile(SOURCE))
   const { width, height } = source.getSize()
   if (width === 0) throw new Error(`could not read ${SOURCE}`)
 
+  const ink = inkBounds(source)
+  const master = await square(source.crop(ink), MASTER)
+
   await mkdir(OUT, { recursive: true })
 
-  // `quality: 'best'` is Lanczos rather than nearest — it matters most on the
-  // downscales, where the cube's 4.5px edges have to survive reaching 16px.
-  const at = (size) => source.resize({ width: size, height: size, quality: 'best' })
+  // Everything below comes off the SQUARE master, so each is square-to-square
+  // and nothing is stretched twice. `quality: 'best'` is Lanczos rather than
+  // nearest — it matters most on the downscales, where the cube's edges have
+  // to survive reaching 16px.
+  const at = (size) => master.resize({ width: size, height: size, quality: 'best' })
 
-  await writeFile(join(OUT, 'icon.png'), at(MASTER).toPNG())
+  await writeFile(join(OUT, 'icon.png'), master.toPNG())
   await writeFile(join(OUT, 'icon@256.png'), at(256).toPNG())
-
-  const frames = ICO_SIZES.map((size) => ({ size, png: at(size).toPNG() }))
-  await writeFile(join(OUT, 'icon.ico'), encodeIco(frames))
+  await writeFile(
+    join(OUT, 'icon.ico'),
+    encodeIco(ICO_SIZES.map((s) => ({ size: s, png: at(s).toPNG() })))
+  )
 
   console.log(`[icon] source ${String(width)}x${String(height)}`)
+  console.log(
+    `[icon] ink ${String(ink.width)}x${String(ink.height)} at ${String(ink.x)},${String(ink.y)}`
+  )
   console.log(`[icon] wrote icon.png at ${String(MASTER)}px, icon@256.png`)
   console.log(`[icon] wrote icon.ico with ${ICO_SIZES.join(', ')}`)
-  if (width < MASTER) {
-    console.log(`[icon] NOTE: 1024 is upscaled from ${String(width)} — see #73`)
+
+  const longest = Math.max(ink.width, ink.height)
+  if (longest < MASTER) {
+    console.log(`[icon] NOTE: ${String(MASTER)} is upscaled from ${String(longest)} — see #73`)
   }
-  app.exit(0)
-})
+}
+
+app.whenReady().then(
+  async () => {
+    await main()
+    app.exit(0)
+  },
+  (error) => {
+    console.error('[icon] failed:', error)
+    app.exit(1)
+  }
+)
