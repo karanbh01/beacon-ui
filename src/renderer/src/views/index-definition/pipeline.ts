@@ -7,21 +7,41 @@ export type PreviewStep = components['schemas']['PreviewStep']
 export type Finding = components['schemas']['Finding']
 
 /**
- * The three groups Figma draws (322:1553), and what each can actually hold.
+ * The three groups Figma draws (322:1553), each with its own add slot.
  *
- * Only SELECTION is a list. py-beacon models weighting as ONE `WeightingSpec`
- * whose cap is a field (`max_weight`), not a second rule, and treatment as
- * one `TreatmentSpec` with a single supported value. Figma draws all three as
- * addable rule lists, which would offer an "+ Add rule…" the server has
- * nowhere to put — so the slot appears under Selection only.
+ * The frame puts an "+ Add rule…" under all three (325:1617, 325:1614,
+ * 325:1611) and the pane now draws all three, but they cannot all mean the
+ * same thing — py-beacon does not model them the same way:
+ *
+ *   selection  a real list of RuleSpec; append one
+ *   weighting  ONE WeightingSpec whose cap is a nullable FIELD, so the only
+ *              thing to add is the cap, and only while there is not one
+ *   treatment  ONE TreatmentSpec with one supported value, so there is
+ *              genuinely nothing to add
+ *
+ * The slot is therefore rendered in all three places and inert where the
+ * document has nowhere to put anything, saying why. Drawing an enabled
+ * button that silently does nothing would match the frame more exactly and
+ * be worse.
  */
 export type GroupId = 'selection' | 'weighting' | 'treatment'
 
-export const GROUPS: readonly { id: GroupId; label: string; addable: boolean }[] = [
-  { id: 'selection', label: 'Selection', addable: true },
-  { id: 'weighting', label: 'Weighting & caps', addable: false },
-  { id: 'treatment', label: 'Treatment', addable: false }
+export const GROUPS: readonly { id: GroupId; label: string; addLabel: string }[] = [
+  { id: 'selection', label: 'Selection', addLabel: 'Add rule…' },
+  { id: 'weighting', label: 'Weighting & caps', addLabel: 'Add cap…' },
+  { id: 'treatment', label: 'Treatment', addLabel: 'Add rule…' }
 ]
+
+/** Why this group's add slot is inert, or undefined when it works. */
+export function addBlockedReason(group: GroupId, document: IndexDocument): string | undefined {
+  if (group === 'selection') return undefined
+  if (group === 'weighting') {
+    return document.pipeline.weighting.max_weight == null
+      ? undefined
+      : 'Already capped — edit the cap rule rather than adding a second'
+  }
+  return 'py-beacon supports one treatment, ADJUST_DIVISOR — nothing to add'
+}
 
 /** A row in the methodology list, whatever group it came from. */
 export interface PipelineRow {
@@ -175,6 +195,17 @@ export function nextRuleId(document: IndexDocument): string {
 export function addRule(document: IndexDocument, type = 'FilterRule'): IndexDocument {
   const rule: RuleSpec = { id: nextRuleId(document), type, params: {} }
   return withSelection(document, [...(document.pipeline.selection ?? []), rule])
+}
+
+/**
+ * Cap the index, which is what "add" means in the weighting group.
+ *
+ * 20% matches the frame and is a real default rather than a placeholder: an
+ * uncapped index that someone has just decided to cap wants a number they can
+ * see and edit, not an empty field that fails validation.
+ */
+export function addCap(document: IndexDocument, max = 0.2): IndexDocument {
+  return setWeighting(document, { ...document.pipeline.weighting, max_weight: max })
 }
 
 export function removeRule(document: IndexDocument, id: string): IndexDocument {

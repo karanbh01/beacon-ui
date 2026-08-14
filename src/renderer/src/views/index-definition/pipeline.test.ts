@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   GROUPS,
+  addBlockedReason,
+  addCap,
   addRule,
   asPercent,
   blankIndex,
@@ -45,10 +47,52 @@ function doc(overrides: Partial<IndexDocument> = {}): IndexDocument {
 }
 
 describe('GROUPS', () => {
-  it('offers an add slot only where py-beacon can hold another rule', () => {
-    // Figma draws all three groups as addable lists, but weighting is ONE
-    // WeightingSpec whose cap is a field, and treatment is one TreatmentSpec.
-    expect(GROUPS.filter((group) => group.addable).map((group) => group.id)).toEqual(['selection'])
+  it('draws an add slot under every group, as Figma does', () => {
+    expect(GROUPS.map((group) => group.id)).toEqual(['selection', 'weighting', 'treatment'])
+  })
+
+  it('lets selection take another rule', () => {
+    expect(addBlockedReason('selection', doc())).toBeUndefined()
+  })
+
+  it('lets an uncapped index be capped, and a capped one not', () => {
+    // Weighting is ONE WeightingSpec whose cap is a nullable FIELD, so the
+    // only thing "add" can mean here is the cap, once.
+    const uncapped = doc()
+    uncapped.pipeline.weighting.max_weight = null
+    expect(addBlockedReason('weighting', uncapped)).toBeUndefined()
+
+    expect(addBlockedReason('weighting', doc())).toContain('Already capped')
+  })
+
+  it('never lets treatment take anything, because py-beacon supports one', () => {
+    expect(addBlockedReason('treatment', doc())).toContain('ADJUST_DIVISOR')
+  })
+})
+
+describe('addCap', () => {
+  it('caps an uncapped index at the frame default', () => {
+    const uncapped = doc()
+    uncapped.pipeline.weighting.max_weight = null
+
+    expect(addCap(uncapped).pipeline.weighting.max_weight).toBe(0.2)
+  })
+
+  it('leaves the scheme and its params alone', () => {
+    const uncapped = doc()
+    uncapped.pipeline.weighting.max_weight = null
+    const capped = addCap(uncapped)
+
+    expect(capped.pipeline.weighting.scheme).toBe('MarketCapWeighted')
+    expect(capped.pipeline.selection).toEqual(uncapped.pipeline.selection)
+  })
+
+  it('adds a cap ROW to the methodology, which is the visible point of it', () => {
+    const uncapped = doc()
+    uncapped.pipeline.weighting.max_weight = null
+
+    expect(pipelineRows(uncapped).filter((row) => row.type === 'Cap')).toHaveLength(0)
+    expect(pipelineRows(addCap(uncapped)).filter((row) => row.type === 'Cap')).toHaveLength(1)
   })
 })
 

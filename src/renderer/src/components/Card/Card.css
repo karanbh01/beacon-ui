@@ -5,12 +5,23 @@
   overflow: hidden;
 }
 
+/*
+ * 34px tall with the title centred in it — Figma 322:1554 puts a 12px label
+ * at y=11, so 11 above and 11 below.
+ *
+ * The padding used to be `12px 16px 0`. With no bottom padding the header was
+ * only as tall as its text plus the top inset, so `align-items: center` had
+ * nothing to centre within and every card title in the app sat flush against
+ * the body below it. `min-height` rather than a fixed height so a card with a
+ * taller `card-aside` grows instead of clipping.
+ */
 .card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px 0;
+  min-height: 34px;
+  padding: 11px 16px;
 }
 
 .card-title {

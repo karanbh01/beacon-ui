@@ -191,7 +191,8 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
   it('defines: an edit is saved to the engine and clears the tab’s dirty flag', async () => {
     mount(<IndexDefinitionView tab={tabFor('def')} subject={undefined} />)
 
-    await userEvent.click(await screen.findByRole('button', { name: /Add rule/ }))
+    // Three slots since the frame's shape was matched — Selection's is first.
+    await userEvent.click((await screen.findAllByRole('button', { name: /^\+ Add rule/ }))[0]!)
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {

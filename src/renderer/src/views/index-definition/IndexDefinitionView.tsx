@@ -16,7 +16,7 @@ import { IndexDetailsForm } from './IndexDetailsForm'
 import { Methodology } from './Methodology'
 import { ValidationCard } from './ValidationCard'
 import { useIndexDraft } from './useIndexDraft'
-import { addRule, moveRule, removeRule, replaceRule, type IndexDocument } from './pipeline'
+import { addCap, addRule, moveRule, removeRule, replaceRule, type IndexDocument } from './pipeline'
 import './IndexDefinitionView.css'
 
 /**
@@ -147,8 +147,10 @@ export function IndexDefinitionView({ tab, pane }: ViewProps): ReactElement {
           steps={preview.data?.steps ?? []}
           editingId={editingId}
           onSelect={setEditingId}
-          onAdd={() => {
-            edit(addRule)
+          onAdd={(group) => {
+            // Each group adds a different thing, and treatment adds nothing —
+            // its slot is inert, so this is never reached for it.
+            edit(group === 'weighting' ? addCap : addRule)
           }}
           onApply={(rule) => {
             edit((current) => replaceRule(current, rule))

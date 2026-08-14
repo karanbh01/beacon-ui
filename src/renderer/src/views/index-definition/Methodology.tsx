@@ -4,9 +4,11 @@ import { Badge } from '../../components/Badge/Badge'
 import { Card } from '../../components/Card/Card'
 import { RuleEditor } from './RuleEditor'
 import {
+  addBlockedReason,
   GROUPS,
   pipelineRows,
   type IndexDocument,
+  type GroupId,
   type PipelineRow,
   type PreviewStep,
   type RuleSpec
@@ -19,7 +21,8 @@ export interface MethodologyProps {
   /** Rule whose editor is open, if any. */
   editingId: string | undefined
   onSelect: (id: string | undefined) => void
-  onAdd: () => void
+  /** Which group's slot was used — they do not all add the same thing. */
+  onAdd: (group: GroupId) => void
   onApply: (rule: RuleSpec) => void
   onRemove: (id: string) => void
   onMove: (id: string, delta: -1 | 1) => void
@@ -38,42 +41,52 @@ export function Methodology(props: MethodologyProps): ReactElement {
 
   return (
     <Card title="Methodology" flush className="methodology">
-      {GROUPS.map((group) => (
-        <Fragment key={group.id}>
-          <h4 className="methodology-group">{group.label}</h4>
-          {rows
-            .filter((row) => row.group === group.id)
-            .map((row) => (
-              <Fragment key={row.id}>
-                <MethodologyRow
-                  row={row}
-                  position={rows.indexOf(row) + 1}
-                  selected={row.id === props.editingId}
-                  onSelect={() => {
-                    props.onSelect(row.fixed || row.id === props.editingId ? undefined : row.id)
-                  }}
-                  onRemove={() => {
-                    props.onRemove(row.id)
-                  }}
-                  onMove={(delta) => {
-                    props.onMove(row.id, delta)
-                  }}
-                />
-                {row.id === props.editingId && (
-                  <RuleEditorFor
-                    rules={selection}
-                    id={row.id}
-                    onApply={props.onApply}
-                    onCancel={() => {
-                      props.onSelect(undefined)
+      {GROUPS.map((group) => {
+        const blocked = addBlockedReason(group.id, props.document)
+        return (
+          <Fragment key={group.id}>
+            <h4 className="methodology-group">{group.label}</h4>
+            {rows
+              .filter((row) => row.group === group.id)
+              .map((row) => (
+                <Fragment key={row.id}>
+                  <MethodologyRow
+                    row={row}
+                    position={rows.indexOf(row) + 1}
+                    selected={row.id === props.editingId}
+                    onSelect={() => {
+                      props.onSelect(row.fixed || row.id === props.editingId ? undefined : row.id)
+                    }}
+                    onRemove={() => {
+                      props.onRemove(row.id)
+                    }}
+                    onMove={(delta) => {
+                      props.onMove(row.id, delta)
                     }}
                   />
-                )}
-              </Fragment>
-            ))}
-          {group.addable && <AddSlot label="Add rule…" indent={44} onClick={props.onAdd} />}
-        </Fragment>
-      ))}
+                  {row.id === props.editingId && (
+                    <RuleEditorFor
+                      rules={selection}
+                      id={row.id}
+                      onApply={props.onApply}
+                      onCancel={() => {
+                        props.onSelect(undefined)
+                      }}
+                    />
+                  )}
+                </Fragment>
+              ))}
+            <AddSlot
+              label={group.addLabel}
+              indent={44}
+              {...(blocked === undefined ? {} : { blocked })}
+              onClick={() => {
+                props.onAdd(group.id)
+              }}
+            />
+          </Fragment>
+        )
+      })}
     </Card>
   )
 }

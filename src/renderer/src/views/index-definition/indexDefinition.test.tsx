@@ -175,11 +175,37 @@ describe('the methodology pipeline', () => {
     expect(screen.getByText('03')).toBeInTheDocument()
   })
 
-  it('offers an add slot under Selection only', async () => {
+  it('draws an add slot under every group, as the frame does', async () => {
     mount()
     await screen.findByText('Selection')
 
-    expect(screen.getAllByRole('button', { name: /Add rule/ })).toHaveLength(1)
+    // Figma 322:1553 puts one under each of the three groups.
+    expect(screen.getAllByRole('button', { name: /^\+ Add/ })).toHaveLength(3)
+  })
+
+  it('makes the slot inert where the document has nowhere to put anything', async () => {
+    mount()
+    await screen.findByText('Treatment')
+
+    // Selection is a list, so its slot works. Treatment is ONE spec with one
+    // supported value — the slot is drawn so the group does not look
+    // unfinished, and says why it cannot do anything.
+    const slots = screen.getAllByRole('button', { name: /^\+ Add rule/ })
+    expect(slots[0]).toBeEnabled()
+
+    const treatment = slots.at(-1)
+    expect(treatment).toBeDisabled()
+    expect(treatment).toHaveAttribute('title', expect.stringContaining('ADJUST_DIVISOR'))
+  })
+
+  it('caps an index from the weighting slot, and refuses a second cap', async () => {
+    mount()
+    await screen.findByText('Weighting & caps')
+
+    // The fixture is already capped at 20%, so there is nothing to add.
+    const cap = screen.getByRole('button', { name: /^\+ Add cap/ })
+    expect(cap).toBeDisabled()
+    expect(cap).toHaveAttribute('title', expect.stringContaining('Already capped'))
   })
 
   it('will not let a weighting or treatment row be removed', async () => {
@@ -194,7 +220,7 @@ describe('the methodology pipeline', () => {
 
   it('adds a rule and opens nothing until it is clicked', async () => {
     mount()
-    await userEvent.click(await screen.findByRole('button', { name: /Add rule/ }))
+    await userEvent.click((await screen.findAllByRole('button', { name: /^\+ Add rule/ }))[0]!)
 
     expect(screen.getByText('03')).toBeInTheDocument()
     expect(screen.queryByLabelText('Rule type')).not.toBeInTheDocument()

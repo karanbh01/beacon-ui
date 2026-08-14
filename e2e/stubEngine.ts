@@ -120,6 +120,46 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
   }
 }
 
+/**
+ * The document Figma 234:6070 draws, served for ANY index id.
+ *
+ * Without it every index 404s into a blank draft and the methodology renders
+ * one weighting row and nothing else — which tests nothing about how a
+ * pipeline actually looks. The 404-is-a-new-index path is covered by a unit
+ * test, so the stub does not need to reproduce it.
+ */
+function indexDocument(id: string): unknown {
+  return {
+    id,
+    name: 'Beacon US Technology Top 10',
+    description: '',
+    currency: 'USD',
+    base_date: '2019-12-31',
+    base_value: 100,
+    rebalancing_frequency: 'QUARTERLY',
+    return_type: 'NET_TOTAL_RETURN',
+    rebalance_day_rule: 'THIRD_FRIDAY',
+    effective_lag_sessions: 0,
+    withholding_tax_rate: 0,
+    universe: { universe_id: 'US-LARGECAP' },
+    pipeline: {
+      selection: [
+        { id: 'rule-1', type: 'FilterRule', params: { gics_sector: 'Information Technology' } },
+        { id: 'rule-2', type: 'FilterRule', params: { min_free_float_market_cap: 50_000_000_000 } },
+        { id: 'rule-3', type: 'RankRule', params: { by: 'free_float_market_cap', order: 'desc' } },
+        { id: 'rule-4', type: 'SelectionRule', params: { top: 10 } }
+      ],
+      weighting: {
+        id: 'weighting',
+        scheme: 'FreeFloatMarketCapWeighted',
+        params: {},
+        max_weight: 0.2
+      },
+      treatment: { corporate_actions: 'ADJUST_DIVISOR' }
+    }
+  }
+}
+
 const ROUTES: Record<string, unknown> = {
   '/health': { status: 'ok', version: '0.0.2', cache_age: 120 },
   '/data/coverage': {
@@ -165,6 +205,11 @@ function body(url: URL): unknown {
   if (Object.hasOwn(ROUTES, path)) return ROUTES[path]
 
   if (path === '/data/identifiers') return searchIdentifiers(url)
+
+  if (path.startsWith('/indices/')) {
+    const id = path.slice('/indices/'.length)
+    return id === '' || id.includes('/') ? undefined : indexDocument(decodeURIComponent(id))
+  }
 
   if (path.startsWith('/data/prices/')) {
     // Unknown identifiers 404 rather than serving bars for anything asked

@@ -239,6 +239,37 @@ test.describe('frame parity', () => {
     expect(await read()).toEqual({ scheme: 'dark', scrollbar: 4 })
   })
 
+  test('a card title is centred in its header, not sitting on the body', async ({ window }) => {
+    // `.card-head` had `padding: 12px 16px 0` — no bottom padding, so the
+    // header was only as tall as its text plus the top inset and
+    // `align-items: center` had nothing to centre within. Every card title in
+    // the app sat flush against the body below it. Figma 322:1554 is 34px
+    // with a 12px label at y=11, so 11 above and 11 below.
+    await openPage(window, 'Strategy Builder')
+    await openView(window, 'Index Definition')
+    await window.locator('.methodology').waitFor()
+
+    const head = await window.evaluate(() => {
+      const box = document.querySelector('.methodology .card-head')
+      const title = box?.querySelector('.card-title')
+      if (box == null || title == null) return null
+
+      const outer = box.getBoundingClientRect()
+      const range = document.createRange()
+      range.selectNodeContents(title)
+      const text = range.getBoundingClientRect()
+      return {
+        height: outer.height,
+        above: text.top - outer.top,
+        below: outer.bottom - text.bottom
+      }
+    })
+
+    expect(head, 'no methodology card on screen to measure').not.toBeNull()
+    expect(head?.height).toBe(34)
+    expect(head?.above).toBeCloseTo(head?.below ?? -1, 1)
+  })
+
   test('the bundled faces are the ones painting, not system fallbacks', async ({ window }) => {
     // BU-52: Roboto resolved off the developer's machine and fell back to
     // Inter — 5% wider — everywhere it was not installed. Three machines,

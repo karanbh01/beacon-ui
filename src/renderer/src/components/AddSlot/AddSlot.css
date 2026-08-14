@@ -23,9 +23,20 @@
   cursor: pointer;
 }
 
-.add-slot:hover {
+.add-slot:hover:not(:disabled) {
   color: var(--text-primary);
   border-color: var(--accent);
+}
+
+/*
+ * A slot the document has nowhere to put anything into. It stays on screen
+ * because a group missing its slot reads as unfinished rather than as a
+ * limit, but it must not look like it would work — a disabled control that
+ * looks enabled is worse than no control. The `title` says why.
+ */
+.add-slot:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .add-slot:focus-visible {
