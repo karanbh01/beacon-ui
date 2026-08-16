@@ -121,7 +121,7 @@ describe('LayoutMenu', () => {
 
 describe('chrome popovers in the bar', () => {
   beforeEach(() => {
-    useChrome.setState({ layout: 'single' })
+    useChrome.setState({ layoutByPage: { 'data-explorer': 'single' } })
     useWorkspace.setState({ tabs: TABS, activeByPane: {}, closed: [] })
   })
 
@@ -174,14 +174,15 @@ describe('chrome popovers in the bar', () => {
     const user = userEvent.setup()
     render(
       <WithQueries>
-        <MenuBar engine="connected" />
+        <MenuBar engine="connected" page="data-explorer" />
       </WithQueries>
     )
 
     await user.click(screen.getByRole('button', { name: 'Layout' }))
     await user.click(screen.getByRole('radio', { name: 'Two columns' }))
 
-    expect(useChrome.getState().layout).toBe('columns')
+    // The bar writes the layout for the page it was given (BU-75).
+    expect(useChrome.getState().layoutByPage['data-explorer']).toBe('columns')
   })
 })
 

@@ -205,6 +205,55 @@ test('only the layouts that are split get a divider', async ({ window }) => {
   await expect(window.locator('.pane-divider')).toHaveCount(2)
 })
 
+test('each page keeps its own layout and its own splits', async ({ window }) => {
+  // BU-75. One global layout meant choosing two columns anywhere chose it
+  // everywhere; the page is the smallest unit that can own an arrangement.
+  await window.setViewportSize({ width: 1440, height: 900 })
+
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Two columns')
+  await expect(window.locator('.pane')).toHaveCount(2)
+
+  await openPage(window, 'Beacon View')
+  await expect(window.locator('.pane')).toHaveCount(1)
+
+  await chooseLayout(window, 'Four panes')
+  await expect(window.locator('.pane')).toHaveCount(4)
+
+  // Back to the first page: still two columns, untouched by the second.
+  await openPage(window, 'Data Explorer')
+  await expect(window.locator('.pane')).toHaveCount(2)
+})
+
+test('a divider dragged on one page does not move the other', async ({ window }) => {
+  await window.setViewportSize({ width: 1440, height: 900 })
+
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Two columns')
+
+  const handle = window.getByRole('separator', { name: 'Resize columns' })
+  const box = await handle.boundingBox()
+  await window.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2)
+  await window.mouse.down()
+  await window.mouse.move(1000, 500, { steps: 10 })
+  await window.mouse.up()
+
+  const dragged = (await window.locator('[data-pane="0"]').boundingBox())?.width ?? 0
+
+  await openPage(window, 'Beacon View')
+  await chooseLayout(window, 'Two columns')
+
+  // Same layout, different page — an even split, not Data Explorer's.
+  const fresh = (await window.locator('[data-pane="0"]').boundingBox())?.width ?? 0
+  expect(fresh).toBeLessThan(dragged - 100)
+
+  await openPage(window, 'Data Explorer')
+  expect((await window.locator('[data-pane="0"]').boundingBox())?.width ?? 0).toBeCloseTo(
+    dragged,
+    0
+  )
+})
+
 test('a pane that loses its last tab stays, showing the empty state', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await chooseLayout(window, 'Two columns')

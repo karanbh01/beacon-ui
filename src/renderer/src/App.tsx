@@ -128,6 +128,9 @@ function AppBody(): ReactElement {
         onManageSources: openCoverage,
         onSelectTab: selectTab,
         onOpenIdentifier: openIdentifier,
+        // Layout is per page (BU-75), so the bar's layout menu needs to know
+        // which one it is acting on.
+        page,
         onGoHome: () => {
           setPage(HOME_PAGE)
         },

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { HOME_PAGE_ID, SIDEBAR_PAGES } from '../shell/pages'
 
 /**
  * The five arrangements in Figma's Layout Menu (119:2), drawn as 1.5px
@@ -89,61 +90,125 @@ export function clampSplit(value: number): number {
   return Math.min(Math.max(value, MIN_SPLIT), 1 - MIN_SPLIT)
 }
 
+/**
+ * Chrome state, keyed by SIDEBAR PAGE (BU-75).
+ *
+ * A layout is the container that holds tab strips, so per-tab layout is
+ * structurally incoherent — the page is the smallest unit that can own one.
+ * Before this, one global `layout` meant choosing two columns anywhere chose
+ * it everywhere.
+ *
+ * `splits` is keyed by page AND layout. Per-layout alone (BU-69) was already
+ * right about one thing — a 70/30 that suits main-stack is not what you want
+ * back in grid — and wrong about another: Data Explorer's main-stack and
+ * Beacon View's main-stack are different arrangements of different work.
+ */
 interface ChromeState {
-  layout: string
-  /**
-   * Divider positions PER LAYOUT (BU-69). A 70/30 that made sense for
-   * main-stack is not what you want back when you return to grid, so they do
-   * not share a number.
-   */
+  layoutByPage: Record<string, string | undefined>
   splits: Record<string, Split | undefined>
-  setLayout: (id: string) => void
-  setSplit: (layout: string, axis: SplitAxis, value: number) => void
-  resetSplit: (layout: string, axis: SplitAxis) => void
+  setLayout: (page: string, id: string) => void
+  setSplit: (page: string, layout: string, axis: SplitAxis, value: number) => void
+  resetSplit: (page: string, layout: string, axis: SplitAxis) => void
 }
 
-export function splitFor(splits: Record<string, Split | undefined>, layout: string): Split {
-  return splits[layout] ?? EVEN_SPLIT
+/** Unknown page → single pane. A page nobody has arranged has no arrangement. */
+export function layoutFor(layoutByPage: Record<string, string | undefined>, page: string): string {
+  return layoutByPage[page] ?? SINGLE_PANE.id
+}
+
+/** Splits are per page AND layout, so the key carries both. */
+export function splitKey(page: string, layout: string): string {
+  return `${page}#${layout}`
+}
+
+export function splitFor(
+  splits: Record<string, Split | undefined>,
+  page: string,
+  layout: string
+): Split {
+  return splits[splitKey(page, layout)] ?? EVEN_SPLIT
+}
+
+/** The shape stored before version 3, when a layout was global. */
+interface GlobalChrome {
+  layout?: string
+  layoutByPage?: Record<string, string | undefined>
+  splits?: Record<string, Split | undefined>
 }
 
 /**
- * Chrome preferences that outlive a session.
+ * Bring a stored arrangement up to the per-page shape (BU-75).
  *
- * `PaneHost` reads `layout` and renders that many panes, each with its own
- * tab strip (BU-55), sized by `splits` (BU-69). The rectangles above are what
- * it lays out, via `shell/paneGrid`.
+ * Every known page is SEEDED from the old global value rather than reset to
+ * single. Someone who had chosen two columns had chosen it for the app, and
+ * the honest reading of that on upgrade is "two columns everywhere" — which
+ * is exactly what they were looking at. Resetting would silently discard a
+ * preference on the one launch nobody is expecting a change.
+ *
+ * The old `splits` were keyed by layout id alone; those become that layout's
+ * split on every page, for the same reason.
  */
+export function migrateChrome(
+  persisted: unknown
+): Omit<ChromeState, 'setLayout' | 'setSplit' | 'resetSplit'> {
+  const stored = persisted as GlobalChrome
+
+  // Already per-page: a v3 store rehydrating, nothing to reshape.
+  if (stored.layoutByPage !== undefined) {
+    return { layoutByPage: stored.layoutByPage, splits: stored.splits ?? {} }
+  }
+
+  const previous = stored.layout ?? SINGLE_PANE.id
+  const pages = [...SIDEBAR_PAGES.map((page) => page.id), HOME_PAGE_ID]
+
+  const layoutByPage: Record<string, string> = {}
+  const splits: Record<string, Split> = {}
+
+  for (const page of pages) {
+    layoutByPage[page] = previous
+    for (const [layout, split] of Object.entries(stored.splits ?? {})) {
+      if (split !== undefined) splits[splitKey(page, layout)] = split
+    }
+  }
+
+  return { layoutByPage, splits }
+}
+
 export const useChrome = create<ChromeState>()(
   persist(
     (set) => ({
-      layout: SINGLE_PANE.id,
+      layoutByPage: {},
       splits: {},
-      setLayout: (id) => {
-        set({ layout: id })
+      setLayout: (page, id) => {
+        set((state) => ({ layoutByPage: { ...state.layoutByPage, [page]: id } }))
       },
-      setSplit: (layout, axis, value) => {
+      setSplit: (page, layout, axis, value) => {
         set((state) => ({
           splits: {
             ...state.splits,
-            [layout]: { ...splitFor(state.splits, layout), [axis]: clampSplit(value) }
+            [splitKey(page, layout)]: {
+              ...splitFor(state.splits, page, layout),
+              [axis]: clampSplit(value)
+            }
           }
         }))
       },
-      resetSplit: (layout, axis) => {
+      resetSplit: (page, layout, axis) => {
         set((state) => ({
           splits: {
             ...state.splits,
-            [layout]: { ...splitFor(state.splits, layout), [axis]: EVEN_SPLIT[axis] }
+            [splitKey(page, layout)]: {
+              ...splitFor(state.splits, page, layout),
+              [axis]: EVEN_SPLIT[axis]
+            }
           }
         }))
       }
     }),
     {
       name: 'beacon.chrome',
-      version: 2,
-      // Version 1 stored a layout and nothing else; an even split is what it
-      // was rendering, so there is nothing to reconstruct.
-      migrate: (persisted) => ({ ...(persisted as ChromeState), splits: {} })
+      version: 3,
+      migrate: (persisted) => migrateChrome(persisted)
     }
   )
 )

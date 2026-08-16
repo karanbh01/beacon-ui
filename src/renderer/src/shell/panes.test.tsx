@@ -21,7 +21,7 @@ beforeEach(() => {
   useWorkspace.getState().reset()
   // `splits` too: it is module state, and a test that drags a divider would
   // otherwise hand its 70/30 to the next one.
-  useChrome.setState({ layout: 'columns', splits: {} })
+  useChrome.setState({ layoutByPage: { 'data-explorer': 'columns' }, splits: {} })
   clearViews()
   registerView('prices', PricesView, { page: 'data-explorer', title: 'Prices', archetype: 'query' })
   registerView('charting', ChartingView, {
@@ -127,13 +127,13 @@ describe('a pane per layout slot', () => {
     render(<PaneHost page="data-explorer" />)
 
     act(() => {
-      useChrome.setState({ layout: 'single' })
+      useChrome.setState({ layoutByPage: { 'data-explorer': 'single' } })
     })
     expect(screen.getAllByRole('tablist')).toHaveLength(1)
     expect(screen.getByRole('button', { name: /^Charting/ })).toBeInTheDocument()
 
     act(() => {
-      useChrome.setState({ layout: 'columns' })
+      useChrome.setState({ layoutByPage: { 'data-explorer': 'columns' } })
     })
     expect(within(pane(1)).getByRole('button', { name: /^Charting/ })).toBeInTheDocument()
   })
@@ -268,13 +268,13 @@ describe('resizing panes (BU-69)', () => {
     expect(document.querySelector('.pane-divider-y')).toBeNull()
 
     act(() => {
-      useChrome.setState({ layout: 'single' })
+      useChrome.setState({ layoutByPage: { 'data-explorer': 'single' } })
     })
     view.rerender(<PaneHost page="data-explorer" />)
     expect(document.querySelectorAll('.pane-divider')).toHaveLength(0)
 
     act(() => {
-      useChrome.setState({ layout: 'grid' })
+      useChrome.setState({ layoutByPage: { 'data-explorer': 'grid' } })
     })
     view.rerender(<PaneHost page="data-explorer" />)
     expect(document.querySelectorAll('.pane-divider')).toHaveLength(2)
@@ -282,7 +282,7 @@ describe('resizing panes (BU-69)', () => {
 
   it('sizes the grid from the stored split', () => {
     act(() => {
-      useChrome.setState({ splits: { columns: { x: 0.7, y: 0.5 } } })
+      useChrome.setState({ splits: { 'data-explorer#columns': { x: 0.7, y: 0.5 } } })
     })
     render(<PaneHost page="data-explorer" />)
 
@@ -296,10 +296,10 @@ describe('resizing panes (BU-69)', () => {
     render(<PaneHost page="data-explorer" />)
 
     fireEvent.keyDown(divider('x'), { key: 'ArrowRight' })
-    expect(useChrome.getState().splits.columns?.x).toBeCloseTo(0.52, 5)
+    expect(useChrome.getState().splits['data-explorer#columns']?.x).toBeCloseTo(0.52, 5)
 
     fireEvent.keyDown(divider('x'), { key: 'ArrowLeft' })
-    expect(useChrome.getState().splits.columns?.x).toBeCloseTo(0.5, 5)
+    expect(useChrome.getState().splits['data-explorer#columns']?.x).toBeCloseTo(0.5, 5)
   })
 
   it('will not let a pane be nudged away to nothing', () => {
@@ -307,34 +307,34 @@ describe('resizing panes (BU-69)', () => {
     for (let press = 0; press < 60; press += 1) {
       fireEvent.keyDown(divider('x'), { key: 'ArrowLeft' })
     }
-    expect(useChrome.getState().splits.columns?.x).toBe(MIN_SPLIT)
+    expect(useChrome.getState().splits['data-explorer#columns']?.x).toBe(MIN_SPLIT)
   })
 
   it('resets to even on a double click', () => {
     act(() => {
-      useChrome.setState({ splits: { columns: { x: 0.8, y: 0.5 } } })
+      useChrome.setState({ splits: { 'data-explorer#columns': { x: 0.8, y: 0.5 } } })
     })
     render(<PaneHost page="data-explorer" />)
 
     fireEvent.doubleClick(divider('x'))
-    expect(useChrome.getState().splits.columns?.x).toBe(0.5)
+    expect(useChrome.getState().splits['data-explorer#columns']?.x).toBe(0.5)
   })
 
   it('keeps a split per layout, because 70/30 in one is not 70/30 in another', () => {
     act(() => {
-      useChrome.setState({ splits: { columns: { x: 0.8, y: 0.5 } } })
+      useChrome.setState({ splits: { 'data-explorer#columns': { x: 0.8, y: 0.5 } } })
     })
     const view = render(<PaneHost page="data-explorer" />)
 
     act(() => {
-      useChrome.setState({ layout: 'grid' })
+      useChrome.setState({ layoutByPage: { 'data-explorer': 'grid' } })
     })
     view.rerender(<PaneHost page="data-explorer" />)
 
     const host = document.querySelector<HTMLElement>('.pane-host')
     expect(host?.style.gridTemplateColumns).toBe('minmax(0, 0.5fr) minmax(0, 0.5fr)')
     // And the columns split is still there when you go back.
-    expect(useChrome.getState().splits.columns?.x).toBe(0.8)
+    expect(useChrome.getState().splits['data-explorer#columns']?.x).toBe(0.8)
   })
 
   it('reports its position to assistive technology', () => {

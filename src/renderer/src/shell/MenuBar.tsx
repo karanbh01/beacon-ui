@@ -1,11 +1,11 @@
 import { useState, type ReactElement } from 'react'
 import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
-import { useChrome } from '../state/chrome'
+import { layoutFor, useChrome } from '../state/chrome'
 import { ChromeSearch } from './chrome/ChromeSearch'
 import { DataSourcesPanel } from './chrome/DataSourcesPanel'
 import { LayoutMenu } from './chrome/LayoutMenu'
-import { MENUS } from './pages'
+import { HOME_PAGE_ID, MENUS } from './pages'
 import { WindowControls } from './WindowControls'
 import './MenuBar.css'
 
@@ -22,6 +22,12 @@ export interface MenuBarProps {
   onCreateIndex?: (name: string) => void
   /** The logo is how Home is reached — see HomeView. */
   onGoHome?: () => void
+  /**
+   * Sidebar page the layout menu acts on (BU-75). Layout is per page, so the
+   * bar has to know which one is showing or its menu would edit the wrong
+   * arrangement and reflect a state nobody is looking at.
+   */
+  page?: string
   /** process.platform, so macOS can leave room for its traffic lights. */
   platform?: string
   className?: string
@@ -49,11 +55,12 @@ export function MenuBar({
   onOpenIdentifier,
   onCreateIndex,
   onGoHome,
+  page = HOME_PAGE_ID,
   platform,
   className
 }: MenuBarProps): ReactElement {
   const [panel, setPanel] = useState<OpenPanel>('none')
-  const layout = useChrome((state) => state.layout)
+  const layout = useChrome((state) => layoutFor(state.layoutByPage, page))
   const setLayout = useChrome((state) => state.setLayout)
 
   const classes = ['menu-bar', platform === 'darwin' && 'menu-bar-mac', className]
@@ -141,7 +148,9 @@ export function MenuBar({
             open={panel === 'layout'}
             onClose={close}
             value={layout}
-            onSelect={setLayout}
+            onSelect={(id) => {
+              setLayout(page, id)
+            }}
           />
         </span>
 

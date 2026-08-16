@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactElement } from 'react'
-import { splitFor, useChrome, type SplitAxis } from '../state/chrome'
+import { layoutFor, splitFor, useChrome, type SplitAxis } from '../state/chrome'
 import { Pane } from './Pane'
 import { PaneDivider } from './PaneDivider'
 import { dividersFor, gridAreaFor, panesFor } from './paneGrid'
@@ -27,8 +27,12 @@ function tracks(first: number): string {
  * one back. `visiblePane` is where that folding happens.
  */
 export function PaneHost({ page }: PaneHostProps): ReactElement {
-  const layout = useChrome((state) => state.layout)
-  const split = useChrome((state) => splitFor(state.splits, state.layout))
+  // Per page (BU-75): choosing two columns on Data Explorer used to choose
+  // it for Beacon View too.
+  const layout = useChrome((state) => layoutFor(state.layoutByPage, page))
+  const split = useChrome((state) =>
+    splitFor(state.splits, page, layoutFor(state.layoutByPage, page))
+  )
   const setSplit = useChrome((state) => state.setSplit)
   const resetSplit = useChrome((state) => state.resetSplit)
 
@@ -57,10 +61,10 @@ export function PaneHost({ page }: PaneHostProps): ReactElement {
           value={split[axis]}
           style={area}
           onChange={(value) => {
-            setSplit(layout, axis satisfies SplitAxis, value)
+            setSplit(page, layout, axis satisfies SplitAxis, value)
           }}
           onReset={() => {
-            resetSplit(layout, axis)
+            resetSplit(page, layout, axis)
           }}
         />
       ))}
