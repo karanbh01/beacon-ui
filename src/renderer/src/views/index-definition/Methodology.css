@@ -1,8 +1,19 @@
 /* Figma 322:1553. 34px rows, 24px group labels, full-row selection wash. */
 
+/*
+ * 800px is the frame's width (322:1553), a CEILING rather than a fixed size.
+ *
+ * It used to be `width: 800px`, and `max-width: 100%` did not save it: this
+ * is a flex item, and a flex item's default `min-width: auto` refuses to
+ * shrink below its content. In any split layout the pane is ~690px, the card
+ * stayed 800, and the row actions — ↑ ↓ × — were pushed clean off the right
+ * edge of the pane. That is why rules "could not be removed": not a reveal
+ * condition, a layout overflow. `min-width: 0` is what lets it shrink.
+ */
 .methodology {
-  width: 800px;
-  max-width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 800px;
 }
 
 /* 9px Medium at 6% tracking, muted — inside the card, above its rules. */
@@ -75,10 +86,37 @@
   color: var(--text-muted);
 }
 
+/*
+ * Revealed on hover and while selected, not permanent.
+ *
+ * The frame's row (324:1570) has a drag handle, number, badge, summary and an
+ * outcome — no action cluster at all. Four rules each carrying a permanent
+ * "↑ ↓ ×" is noise the frame does not have, and it competes with the outcome
+ * column for the same edge.
+ *
+ * `opacity` rather than `display: none`: the buttons stay in the tab order,
+ * and `:focus-within` brings them into view when a keyboard reaches them —
+ * which `display: none` would make unreachable entirely.
+ */
 .methodology-actions {
   display: flex;
   gap: 2px;
   padding-right: 12px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.methodology-row:hover .methodology-actions,
+.methodology-row:focus-within .methodology-actions,
+.methodology-selected .methodology-actions {
+  opacity: 1;
+}
+
+/* Someone who has asked their OS not to animate gets the end states. */
+@media (prefers-reduced-motion: reduce) {
+  .methodology-actions {
+    transition-duration: 1ms;
+  }
 }
 
 .methodology-action {

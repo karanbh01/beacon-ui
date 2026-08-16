@@ -255,6 +255,30 @@ describe('the methodology pipeline', () => {
 
     expect(screen.queryByText('Sector Information Technology')).not.toBeInTheDocument()
   })
+
+  it('closes the inline editor when the row being edited is removed', async () => {
+    // BU-77: otherwise the editor stays open over a rule that no longer
+    // exists, and Apply writes back a rule the pipeline has dropped.
+    mount()
+    await userEvent.click(await screen.findByText('Sector Information Technology'))
+    expect(screen.getByLabelText('Rule type')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove r1' }))
+
+    expect(screen.queryByLabelText('Rule type')).not.toBeInTheDocument()
+  })
+
+  it('keeps the row actions in the tab order so a keyboard can reach them', async () => {
+    // They are revealed on hover and selection (BU-77), via opacity rather
+    // than `display: none` — which would take them out of the tab order and
+    // make removal mouse-only.
+    mount()
+    const remove = await screen.findByRole('button', { name: 'Remove r1' })
+
+    expect(remove).toBeVisible()
+    remove.focus()
+    expect(remove).toHaveFocus()
+  })
 })
 
 describe('validation', () => {

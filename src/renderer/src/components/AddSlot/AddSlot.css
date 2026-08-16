@@ -1,9 +1,18 @@
 /* Figma 325:1611/1612. */
 
+/*
+ * 24px tall with the slot centred — Figma 325:1617 puts an 18px slot at y=3,
+ * so 3 above and 3 below.
+ *
+ * There was no bottom padding at all, so in every card that ends with a slot
+ * the dashed border sat directly on the card's own border. Shared by the
+ * methodology, the constraint list and the template blocks, so all three had
+ * it.
+ */
 .add-slot-row {
   display: flex;
   align-items: center;
-  padding-right: 16px;
+  padding: 3px 16px 3px 0;
 }
 
 .add-slot {
