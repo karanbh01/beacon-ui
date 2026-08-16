@@ -217,6 +217,38 @@ test('the footer toggle themes the app, and the choice sticks', async ({ window 
   await expect(root).toHaveAttribute('data-theme', 'light')
 })
 
+test('the menu bar opens real dropdowns, and View drives the theme', async ({ window }) => {
+  // BU-76. The nine labels were buttons with no behaviour since BU-15.
+  const file = window.getByRole('button', { name: 'File' })
+  await file.click()
+  await expect(window.getByRole('menu', { name: 'File' })).toBeVisible()
+  await expect(file).toHaveAttribute('aria-expanded', 'true')
+
+  // Hovering a sibling switches menus — standard menu-bar traversal.
+  await window.getByRole('button', { name: 'Edit', exact: true }).hover()
+  await expect(window.getByRole('menu', { name: 'Edit' })).toBeVisible()
+  await expect(window.getByRole('menu', { name: 'File' })).toHaveCount(0)
+
+  // The one live menu: theme, from the keyboard alone.
+  await window.getByRole('button', { name: 'View', exact: true }).hover()
+  await window.keyboard.press('ArrowDown')
+  await window.keyboard.press('ArrowDown')
+  await window.keyboard.press('Enter')
+
+  await expect(window.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await expect(window.getByRole('menu')).toHaveCount(0)
+})
+
+test('a placeholder menu item is present and inert', async ({ window }) => {
+  // Rendered rather than omitted: a File menu with nothing in it reads as
+  // broken, one visibly not yet wired reads as unfinished.
+  await window.getByRole('button', { name: 'File' }).click()
+
+  const item = window.getByRole('menuitem', { name: /New index/ })
+  await expect(item).toBeVisible()
+  await expect(item).toBeDisabled()
+})
+
 test('nothing logs an error while any of that happens', async ({ window }) => {
   const errors: string[] = []
   window.on('console', (message) => {

@@ -1,0 +1,78 @@
+@import './surface.css';
+
+/*
+ * A menu-bar dropdown (BU-76). The surface comes from `.chrome-surface`, so
+ * the border and radius are the search dropdown's own — see surface.css.
+ */
+.menu-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 200px;
+  padding: 4px 0;
+  /* The bar is the window drag region; a menu inside it must not be. */
+  -webkit-app-region: no-drag;
+}
+
+.menu-dropdown-slot {
+  display: contents;
+}
+
+.menu-dropdown-rule {
+  display: block;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--divider);
+}
+
+.menu-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 12px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.menu-dropdown-item:hover:not(:disabled),
+.menu-dropdown-item:focus-visible {
+  background: var(--sidebar-active-bg);
+  outline: none;
+}
+
+/*
+ * Placeholders are present and visibly inert. Muted rather than removed: a
+ * File menu with one item reads as broken, and one whose items are plainly
+ * not wired yet reads as unfinished — which is the truth.
+ */
+.menu-dropdown-item:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* Fixed column so labels line up whether or not a row is ticked. */
+.menu-dropdown-tick {
+  flex: none;
+  width: 10px;
+  font-size: 10px;
+  color: var(--accent);
+}
+
+.menu-dropdown-label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.menu-dropdown-hint {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}

@@ -129,6 +129,23 @@
 }
 
 /*
+ * The open menu keeps its wash while the pointer is inside the dropdown,
+ * which hover alone does not do — the panel is not a child of the button, so
+ * moving into it drops :hover and the bar would forget which menu is showing.
+ * Matches the icon cluster's own open state (BU-53).
+ */
+.menu-bar-menu-open,
+.menu-bar-menu-open:hover {
+  color: var(--text-primary);
+  background: var(--sidebar-active-bg);
+}
+
+.menu-bar-menu:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/*
  * Only the slot in the bar. The visible box is .menu-bar-search-surface,
  * which is absolutely positioned inside this so it can grow downwards over
  * the pane without stretching a 62px bar.
@@ -173,8 +190,9 @@
   right: 0;
   left: 0;
   z-index: 40;
-  border: 1px solid var(--chrome-search-stroke);
-  border-radius: 5px;
+  /* Shared with the menu dropdowns — see chrome/surface.css. */
+  border: 1px solid var(--chrome-surface-stroke);
+  border-radius: var(--chrome-surface-radius);
   overflow: hidden;
   -webkit-app-region: no-drag;
 }
@@ -182,7 +200,7 @@
 /* Glass only once open; closed, the field row's own fill is the whole box. */
 .menu-bar-search-surface-open {
   background: var(--glass);
-  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+  box-shadow: var(--chrome-surface-shadow);
 }
 
 @supports (backdrop-filter: blur(3px)) {

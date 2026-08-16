@@ -1,0 +1,29 @@
+/*
+ * The chrome's dropdown surface, defined once (BU-76).
+ *
+ * The search dropdown's container drew its own border and radius, and the
+ * menu dropdowns are specified to match it exactly. Restating `1px solid
+ * var(--chrome-search-stroke)` in a second file is how two surfaces that are
+ * meant to be identical drift — so the values live here and both consume
+ * them.
+ *
+ * The background is the app background token rather than the `--glass` fill
+ * the popovers use. That is Karan's call for these menus: a File menu is a
+ * dense list of words and reads better on an opaque ground than through one.
+ * The existing glass popovers (data sources, layout) are NOT changed — that
+ * fill was measured off the frames in BU-53 and corrected twice, and this
+ * issue does not ask for it to move.
+ */
+:root {
+  --chrome-surface-bg: var(--canvas);
+  --chrome-surface-stroke: var(--chrome-search-stroke);
+  --chrome-surface-radius: 5px;
+  --chrome-surface-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+}
+
+.chrome-surface {
+  background: var(--chrome-surface-bg);
+  border: 1px solid var(--chrome-surface-stroke);
+  border-radius: var(--chrome-surface-radius);
+  box-shadow: var(--chrome-surface-shadow);
+}

@@ -1,11 +1,14 @@
-import { useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
 import { layoutFor, useChrome } from '../state/chrome'
+import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
 import { DataSourcesPanel } from './chrome/DataSourcesPanel'
 import { LayoutMenu } from './chrome/LayoutMenu'
-import { HOME_PAGE_ID, MENUS } from './pages'
+import { MenuDropdown } from './chrome/MenuDropdown'
+import { buildMenus, type MenuAction } from './chrome/menuModel'
+import { HOME_PAGE_ID } from './pages'
 import { WindowControls } from './WindowControls'
 import './MenuBar.css'
 
@@ -60,6 +63,10 @@ export function MenuBar({
   className
 }: MenuBarProps): ReactElement {
   const [panel, setPanel] = useState<OpenPanel>('none')
+  /** Which top-level menu is open, by label. Only one at a time (BU-76). */
+  const [menu, setMenu] = useState<string | undefined>(undefined)
+  const bar = useRef<HTMLElement>(null)
+  const theme = useTheme()
   const layout = useChrome((state) => layoutFor(state.layoutByPage, page))
   const setLayout = useChrome((state) => state.setLayout)
 
@@ -76,8 +83,46 @@ export function MenuBar({
     setPanel('none')
   }
 
+  const menus = buildMenus({ theme: theme.preference, layout })
+
+  /*
+   * Dismissal is owned by the bar, not by each menu.
+   *
+   * Hovering from one open menu to a sibling has to SWITCH rather than
+   * close-and-reopen, so the open menu is one piece of state up here and a
+   * dropdown never listens for its own outside click.
+   */
+  useEffect(() => {
+    if (menu === undefined) return undefined
+
+    const onPointerDown = (event: PointerEvent): void => {
+      if (!(event.target instanceof Node)) return
+      if (bar.current?.contains(event.target) === true) return
+      setMenu(undefined)
+    }
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      event.stopPropagation()
+      setMenu(undefined)
+    }
+
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menu])
+
+  const runMenu = (action: MenuAction): void => {
+    if (action === 'theme-light') theme.setPreference('light')
+    else if (action === 'theme-dark') theme.setPreference('dark')
+    else if (action === 'theme-system') theme.setPreference('system')
+    else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
+  }
+
   return (
-    <header className={classes}>
+    <header className={classes} ref={bar}>
       {/*
         The logo goes Home. Measured rather than assumed: the Home frame's
         sidebar (89:558) highlights no slot, where every workspace page's
@@ -89,10 +134,33 @@ export function MenuBar({
       </button>
 
       <nav className="menu-bar-menus" aria-label="Application menu">
-        {MENUS.map((menu) => (
-          <button key={menu} type="button" className="menu-bar-menu">
-            {menu}
-          </button>
+        {menus.map((entry) => (
+          <span key={entry.label} className="menu-bar-anchor">
+            <button
+              type="button"
+              className={`menu-bar-menu${menu === entry.label ? ' menu-bar-menu-open' : ''}`}
+              aria-haspopup="menu"
+              aria-expanded={menu === entry.label}
+              onClick={() => {
+                setMenu((current) => (current === entry.label ? undefined : entry.label))
+              }}
+              // Standard menu-bar traversal: once one is open, moving across
+              // the bar switches menus without a second click.
+              onMouseEnter={() => {
+                setMenu((current) => (current === undefined ? current : entry.label))
+              }}
+            >
+              {entry.label}
+            </button>
+            <MenuDropdown
+              menu={entry}
+              open={menu === entry.label}
+              onClose={() => {
+                setMenu(undefined)
+              }}
+              onActivate={runMenu}
+            />
+          </span>
         ))}
       </nav>
 
