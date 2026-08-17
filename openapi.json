@@ -790,6 +790,8 @@
           "pay_date": {
             "anyOf": [
               {
+                "description": "Calendar date, YYYY-MM-DD.",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
                 "type": "string"
               },
               {
@@ -1520,6 +1522,8 @@
           "valuation_date": {
             "anyOf": [
               {
+                "description": "Calendar date, YYYY-MM-DD.",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
                 "type": "string"
               },
               {
@@ -2467,6 +2471,14 @@
           "identifier": {
             "title": "Identifier",
             "type": "string"
+          },
+          "universes": {
+            "description": "Universes containing this instrument, so a client can answer 'where is this used?' without reading every universe and searching it.",
+            "items": {
+              "$ref": "#/components/schemas/UniverseMembership"
+            },
+            "title": "Universes",
+            "type": "array"
           }
         },
         "required": [
@@ -2532,7 +2544,7 @@
         "description": "A stored report template, as JSON.\n\nBlocks are kept as free-form mappings rather than a discriminated union so\nthe wire shape stays exactly what `beacon.report.blocks` reads and writes.\nA second definition of the same thing here is a second definition to keep\nin step, and the block model already validates its own rows on the way in.",
         "properties": {
           "blocks": {
-            "description": "Content, drawn top to bottom. Each carries a `kind`.",
+            "description": "Content, drawn top to bottom. Each carries a `kind`, one of: bar_chart, chart, header, stat_grid, table, text.",
             "items": {
               "additionalProperties": true,
               "type": "object"
@@ -3415,6 +3427,8 @@
             "type": "number"
           },
           "end_date": {
+            "description": "Calendar date, YYYY-MM-DD.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
             "title": "End Date",
             "type": "string"
           },
@@ -3442,6 +3456,8 @@
           "last_reset_date": {
             "anyOf": [
               {
+                "description": "Calendar date, YYYY-MM-DD.",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
                 "type": "string"
               },
               {
@@ -3491,6 +3507,8 @@
             "type": "number"
           },
           "start_date": {
+            "description": "Calendar date, YYYY-MM-DD.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
             "title": "Start Date",
             "type": "string"
           },
@@ -3518,6 +3536,8 @@
             "type": "string"
           },
           "valuation_date": {
+            "description": "Calendar date, YYYY-MM-DD.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
             "title": "Valuation Date",
             "type": "string"
           }
@@ -3598,6 +3618,8 @@
             "type": "string"
           },
           "valuation_date": {
+            "description": "Calendar date, YYYY-MM-DD.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
             "title": "Valuation Date",
             "type": "string"
           }
@@ -3653,6 +3675,18 @@
       "Universe": {
         "description": "A named set of instrument identifiers.",
         "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional free text.",
+            "title": "Description"
+          },
           "id": {
             "description": "Stable identifier.",
             "maxLength": 64,
@@ -3671,6 +3705,12 @@
             "description": "Display name.",
             "minLength": 1,
             "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "default": "user",
+            "description": "'user' for one somebody created, 'seeded' for one the generator wrote. A seeded universe cannot be edited or deleted.",
+            "title": "Source",
             "type": "string"
           }
         },
@@ -3698,6 +3738,43 @@
         "title": "UniverseCollection",
         "type": "object"
       },
+      "UniverseCreate": {
+        "description": "Body of `POST /universes`.\n\nNo id: the server derives one from the name, so a client cannot create two\nuniverses whose ids differ only in punctuation and expect them to be\ndistinct documents.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "identifiers": {
+            "description": "Members. Must be non-empty, and every one must exist in the loaded reference data.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Identifiers",
+            "type": "array"
+          },
+          "name": {
+            "description": "Display name.",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "identifiers"
+        ],
+        "title": "UniverseCreate",
+        "type": "object"
+      },
       "UniverseMembers": {
         "description": "Response of `GET /universes/{id}/members`.",
         "properties": {
@@ -3718,6 +3795,33 @@
           "identifiers"
         ],
         "title": "UniverseMembers",
+        "type": "object"
+      },
+      "UniverseMembership": {
+        "description": "One universe an instrument belongs to.",
+        "properties": {
+          "id": {
+            "description": "Universe identifier, as used in the URL.",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name.",
+            "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "description": "'seeded' for one the server wrote from the dataset, 'user' for one somebody made.",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "source"
+        ],
+        "title": "UniverseMembership",
         "type": "object"
       },
       "UniverseRef": {
@@ -3750,6 +3854,17 @@
       "UniverseUpsert": {
         "description": "Body of `PUT /universes/{id}`.",
         "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
           "identifiers": {
             "items": {
               "type": "string"
@@ -3923,6 +4038,8 @@
           "announced_date": {
             "anyOf": [
               {
+                "description": "Calendar date, YYYY-MM-DD.",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
                 "type": "string"
               },
               {
@@ -4058,6 +4175,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4077,6 +4204,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -4134,6 +4271,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -4159,6 +4298,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4178,6 +4327,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -4235,6 +4394,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -4287,6 +4448,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4306,6 +4477,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -4363,6 +4544,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -4396,6 +4579,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4415,6 +4608,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -4472,6 +4675,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -4487,6 +4692,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -4507,6 +4722,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -4564,6 +4789,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -4628,6 +4855,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4647,6 +4884,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -4777,6 +5024,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4796,6 +5053,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -4858,6 +5125,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4877,6 +5154,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -4967,6 +5254,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4986,6 +5283,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5116,6 +5423,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5135,6 +5452,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5277,6 +5604,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5296,6 +5633,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5420,6 +5767,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5439,6 +5796,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5530,6 +5897,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5549,6 +5926,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5611,6 +5998,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5630,6 +6027,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5687,6 +6094,8 @@
             "name": "watchlist_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Watchlist Id",
               "type": "string"
             }
@@ -5695,6 +6104,16 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -5715,6 +6134,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5770,6 +6199,8 @@
             "name": "watchlist_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Watchlist Id",
               "type": "string"
             }
@@ -5785,6 +6216,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -5805,6 +6246,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5860,6 +6311,8 @@
             "name": "watchlist_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Watchlist Id",
               "type": "string"
             }
@@ -5886,6 +6339,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5905,6 +6368,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -5977,6 +6450,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5996,6 +6479,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6068,6 +6561,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6087,6 +6590,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6144,6 +6657,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -6224,6 +6739,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6243,6 +6768,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6300,6 +6835,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -6372,6 +6909,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6391,6 +6938,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6453,6 +7010,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6472,6 +7039,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6531,6 +7108,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6550,6 +7137,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6620,6 +7217,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6639,6 +7246,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6711,6 +7328,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6730,6 +7357,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6792,6 +7429,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6811,6 +7458,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6883,6 +7540,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6902,6 +7569,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -6959,6 +7636,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -6974,6 +7653,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -6994,6 +7683,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7049,6 +7748,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -7075,6 +7776,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -7094,6 +7805,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7151,6 +7872,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -7184,6 +7907,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -7203,6 +7936,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7260,6 +8003,8 @@
             "name": "index_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Index Id",
               "type": "string"
             }
@@ -7294,6 +8039,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -7313,6 +8068,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7375,6 +8140,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -7394,6 +8169,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7451,6 +8236,8 @@
             "name": "job_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Job Id",
               "type": "string"
             }
@@ -7466,6 +8253,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -7486,6 +8283,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7541,6 +8348,8 @@
             "name": "job_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Job Id",
               "type": "string"
             }
@@ -7556,6 +8365,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -7576,6 +8395,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7638,6 +8467,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -7657,6 +8496,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7729,6 +8578,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -7748,6 +8607,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7805,6 +8674,8 @@
             "name": "set_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Set Id",
               "type": "string"
             }
@@ -7813,6 +8684,16 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -7833,6 +8714,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7888,6 +8779,8 @@
             "name": "set_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Set Id",
               "type": "string"
             }
@@ -7903,6 +8796,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -7923,6 +8826,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -7978,6 +8891,8 @@
             "name": "set_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Set Id",
               "type": "string"
             }
@@ -8004,6 +8919,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -8023,6 +8948,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8085,6 +9020,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -8104,6 +9049,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8176,6 +9131,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -8195,6 +9160,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8252,6 +9227,8 @@
             "name": "run_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Run Id",
               "type": "string"
             }
@@ -8267,6 +9244,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -8287,6 +9274,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8344,6 +9341,8 @@
             "name": "run_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Run Id",
               "type": "string"
             }
@@ -8372,6 +9371,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -8391,6 +9400,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8463,6 +9482,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -8482,6 +9511,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8539,6 +9578,8 @@
             "name": "render_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Render Id",
               "type": "string"
             }
@@ -8552,6 +9593,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -8572,6 +9623,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8634,6 +9695,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -8653,6 +9724,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8710,6 +9791,8 @@
             "name": "template_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Template Id",
               "type": "string"
             }
@@ -8718,6 +9801,16 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -8738,6 +9831,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8793,6 +9896,8 @@
             "name": "template_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Template Id",
               "type": "string"
             }
@@ -8808,6 +9913,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -8828,6 +9943,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8883,6 +10008,8 @@
             "name": "template_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Template Id",
               "type": "string"
             }
@@ -8909,6 +10036,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -8928,6 +10065,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -8990,6 +10137,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -9009,6 +10166,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -9066,6 +10233,8 @@
             "name": "model_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Model Id",
               "type": "string"
             }
@@ -9081,6 +10250,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -9101,6 +10280,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -9158,6 +10347,8 @@
             "name": "model_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Model Id",
               "type": "string"
             }
@@ -9191,6 +10382,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -9210,6 +10411,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -9272,6 +10483,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -9291,6 +10512,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -9337,25 +10568,39 @@
         "tags": [
           "universes"
         ]
-      }
-    },
-    "/universes/{universe_id}": {
-      "delete": {
-        "operationId": "delete_universe_universes__universe_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "universe_id",
-            "required": true,
-            "schema": {
-              "title": "Universe Id",
-              "type": "string"
+      },
+      "post": {
+        "operationId": "create_universe_universes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniverseCreate"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
-          "204": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Universe"
+                }
+              }
+            },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -9376,6 +10621,123 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Create Universe",
+        "tags": [
+          "universes"
+        ]
+      }
+    },
+    "/universes/{universe_id}": {
+      "delete": {
+        "operationId": "delete_universe_universes__universe_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "universe_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Universe Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -9431,6 +10793,8 @@
             "name": "universe_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Universe Id",
               "type": "string"
             }
@@ -9446,6 +10810,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -9466,6 +10840,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -9521,6 +10905,8 @@
             "name": "universe_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Universe Id",
               "type": "string"
             }
@@ -9547,6 +10933,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -9566,6 +10962,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {
@@ -9623,6 +11029,8 @@
             "name": "universe_id",
             "required": true,
             "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
               "title": "Universe Id",
               "type": "string"
             }
@@ -9638,6 +11046,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
           },
           "401": {
             "content": {
@@ -9658,6 +11076,16 @@
               }
             },
             "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
           },
           "422": {
             "content": {

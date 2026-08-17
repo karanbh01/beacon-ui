@@ -754,7 +754,8 @@ export interface paths {
         /** List Universes */
         get: operations["list_universes_universes_get"];
         put?: never;
-        post?: never;
+        /** Create Universe */
+        post: operations["create_universe_universes_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2269,6 +2270,11 @@ export interface components {
             };
             /** Identifier */
             identifier: string;
+            /**
+             * Universes
+             * @description Universes containing this instrument, so a client can answer 'where is this used?' without reading every universe and searching it.
+             */
+            universes?: components["schemas"]["UniverseMembership"][];
         };
         /**
          * RenderRequest
@@ -2311,7 +2317,7 @@ export interface components {
         ReportTemplateDocument: {
             /**
              * Blocks
-             * @description Content, drawn top to bottom. Each carries a `kind`.
+             * @description Content, drawn top to bottom. Each carries a `kind`, one of: bar_chart, chart, header, stat_grid, table, text.
              */
             blocks?: {
                 [key: string]: unknown;
@@ -2833,7 +2839,10 @@ export interface components {
              * @default 0
              */
             dividend_yield: number;
-            /** End Date */
+            /**
+             * End Date
+             * @description Calendar date, YYYY-MM-DD.
+             */
             end_date: string;
             /**
              * Futures Prices
@@ -2885,7 +2894,10 @@ export interface components {
              * @default 0
              */
             spread_bps: number;
-            /** Start Date */
+            /**
+             * Start Date
+             * @description Calendar date, YYYY-MM-DD.
+             */
             start_date: string;
             /**
              * Time To Expiry
@@ -2903,7 +2915,10 @@ export interface components {
              * @default INDEX
              */
             underlying_id: string;
-            /** Valuation Date */
+            /**
+             * Valuation Date
+             * @description Calendar date, YYYY-MM-DD.
+             */
             valuation_date: string;
         };
         /**
@@ -2948,7 +2963,10 @@ export interface components {
             total_return_leg: number;
             /** Trade Id */
             trade_id: string;
-            /** Valuation Date */
+            /**
+             * Valuation Date
+             * @description Calendar date, YYYY-MM-DD.
+             */
             valuation_date: string;
         };
         /**
@@ -2981,6 +2999,11 @@ export interface components {
          */
         Universe: {
             /**
+             * Description
+             * @description Optional free text.
+             */
+            description?: string | null;
+            /**
              * Id
              * @description Stable identifier.
              */
@@ -2992,6 +3015,12 @@ export interface components {
              * @description Display name.
              */
             name: string;
+            /**
+             * Source
+             * @description 'user' for one somebody created, 'seeded' for one the generator wrote. A seeded universe cannot be edited or deleted.
+             * @default user
+             */
+            source: string;
         };
         /**
          * UniverseCollection
@@ -3002,6 +3031,28 @@ export interface components {
             universes: components["schemas"]["Universe"][];
         };
         /**
+         * UniverseCreate
+         * @description Body of `POST /universes`.
+         *
+         *     No id: the server derives one from the name, so a client cannot create two
+         *     universes whose ids differ only in punctuation and expect them to be
+         *     distinct documents.
+         */
+        UniverseCreate: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Identifiers
+             * @description Members. Must be non-empty, and every one must exist in the loaded reference data.
+             */
+            identifiers: string[];
+            /**
+             * Name
+             * @description Display name.
+             */
+            name: string;
+        };
+        /**
          * UniverseMembers
          * @description Response of `GET /universes/{id}/members`.
          */
@@ -3010,6 +3061,27 @@ export interface components {
             identifiers: string[];
             /** Universe Id */
             universe_id: string;
+        };
+        /**
+         * UniverseMembership
+         * @description One universe an instrument belongs to.
+         */
+        UniverseMembership: {
+            /**
+             * Id
+             * @description Universe identifier, as used in the URL.
+             */
+            id: string;
+            /**
+             * Name
+             * @description Display name.
+             */
+            name: string;
+            /**
+             * Source
+             * @description 'seeded' for one the server wrote from the dataset, 'user' for one somebody made.
+             */
+            source: string;
         };
         /**
          * UniverseRef
@@ -3035,6 +3107,8 @@ export interface components {
          * @description Body of `PUT /universes/{id}`.
          */
         UniverseUpsert: {
+            /** Description */
+            description?: string | null;
             /** Identifiers */
             identifiers?: string[];
             /**
@@ -3211,6 +3285,15 @@ export interface operations {
                     "application/json": components["schemas"]["CompareView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3222,6 +3305,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3288,6 +3380,15 @@ export interface operations {
                     "application/json": components["schemas"]["AssetView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3299,6 +3400,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3369,6 +3479,15 @@ export interface operations {
                     "application/json": components["schemas"]["AttributionView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3380,6 +3499,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3449,6 +3577,15 @@ export interface operations {
                     "application/json": components["schemas"]["JobStatus"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3460,6 +3597,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3525,6 +3671,15 @@ export interface operations {
                     "application/json": components["schemas"]["OverviewView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3536,6 +3691,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3608,6 +3772,15 @@ export interface operations {
                     "application/json": components["schemas"]["WeightsView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3619,6 +3792,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3691,6 +3873,15 @@ export interface operations {
                     "application/json": components["schemas"]["CorporateActionsResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3702,6 +3893,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3765,6 +3965,15 @@ export interface operations {
                     "application/json": components["schemas"]["CoverageResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3776,6 +3985,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3845,6 +4063,15 @@ export interface operations {
                     "application/json": components["schemas"]["JobStatus"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3856,6 +4083,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3928,6 +4164,15 @@ export interface operations {
                     "application/json": components["schemas"]["IdentifierSearchResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -3939,6 +4184,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4013,6 +4267,15 @@ export interface operations {
                     "application/json": components["schemas"]["PricesResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4024,6 +4287,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4094,6 +4366,15 @@ export interface operations {
                     "application/json": components["schemas"]["BatchReferenceResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4105,6 +4386,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4173,6 +4463,15 @@ export interface operations {
                     "application/json": components["schemas"]["ReferenceResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4184,6 +4483,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4247,6 +4555,15 @@ export interface operations {
                     "application/json": components["schemas"]["WatchlistCollection"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4258,6 +4575,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4323,6 +4649,15 @@ export interface operations {
                     "application/json": components["schemas"]["Watchlist"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4334,6 +4669,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4403,6 +4747,15 @@ export interface operations {
                     "application/json": components["schemas"]["Watchlist"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4414,6 +4767,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4477,6 +4839,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4488,6 +4859,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4555,6 +4935,15 @@ export interface operations {
                     "application/json": components["schemas"]["FuturesPriceResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4566,6 +4955,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4633,6 +5031,15 @@ export interface operations {
                     "application/json": components["schemas"]["TrsPriceResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4644,6 +5051,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4720,6 +5136,15 @@ export interface operations {
                     "application/json": components["schemas"]["RollResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4731,6 +5156,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4805,6 +5239,15 @@ export interface operations {
                     "application/json": components["schemas"]["TermStructureResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4816,6 +5259,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4879,6 +5331,15 @@ export interface operations {
                     "application/json": components["schemas"]["HealthResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4890,6 +5351,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4953,6 +5423,15 @@ export interface operations {
                     "application/json": components["schemas"]["IndexCollection"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -4964,6 +5443,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5031,6 +5519,15 @@ export interface operations {
                     "application/json": components["schemas"]["SavedIndex"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5042,6 +5539,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5109,6 +5615,15 @@ export interface operations {
                     "application/json": components["schemas"]["PreviewResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5120,6 +5635,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5183,6 +5707,15 @@ export interface operations {
                     "application/json": components["schemas"]["RuleTypes"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5194,6 +5727,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5261,6 +5803,15 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationReport"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5272,6 +5823,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5337,6 +5897,15 @@ export interface operations {
                     "application/json": components["schemas"]["IndexDocument"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5348,6 +5917,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5417,6 +5995,15 @@ export interface operations {
                     "application/json": components["schemas"]["SavedIndex"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5428,6 +6015,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5497,6 +6093,15 @@ export interface operations {
                     "application/json": components["schemas"]["PreviewResponse"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5508,6 +6113,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5576,6 +6190,15 @@ export interface operations {
                     "application/json": components["schemas"]["ScheduleView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5587,6 +6210,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5650,6 +6282,15 @@ export interface operations {
                     "application/json": components["schemas"]["JobCollection"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5661,6 +6302,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5726,6 +6376,15 @@ export interface operations {
                     "application/json": components["schemas"]["JobStatus"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5737,6 +6396,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5802,6 +6470,15 @@ export interface operations {
                     "application/json": components["schemas"]["JobStatus"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5813,6 +6490,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5876,6 +6562,15 @@ export interface operations {
                     "application/json": components["schemas"]["ConstraintSetCollection"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5887,6 +6582,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5954,6 +6658,15 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationReport"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -5965,6 +6678,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6030,6 +6752,15 @@ export interface operations {
                     "application/json": components["schemas"]["ConstraintSet"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6041,6 +6772,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6110,6 +6850,15 @@ export interface operations {
                     "application/json": components["schemas"]["SavedConstraintSet"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6121,6 +6870,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6184,6 +6942,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6195,6 +6962,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6258,6 +7034,15 @@ export interface operations {
                     "application/json": components["schemas"]["ConstraintTypes"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6269,6 +7054,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6336,6 +7130,15 @@ export interface operations {
                     "application/json": components["schemas"]["JobStatus"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6347,6 +7150,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6412,6 +7224,15 @@ export interface operations {
                     "application/json": components["schemas"]["ExposuresView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6423,6 +7244,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6491,6 +7321,15 @@ export interface operations {
                     "application/json": components["schemas"]["FrontierView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6502,6 +7341,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6569,6 +7417,15 @@ export interface operations {
                     "application/json": components["schemas"]["JobStatus"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6580,6 +7437,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6645,6 +7511,15 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6656,6 +7531,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6719,6 +7603,15 @@ export interface operations {
                     "application/json": components["schemas"]["ReportTemplateCollection"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6730,6 +7623,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6795,6 +7697,15 @@ export interface operations {
                     "application/json": components["schemas"]["ReportTemplateDocument"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6806,6 +7717,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6875,6 +7795,15 @@ export interface operations {
                     "application/json": components["schemas"]["ReportTemplateDocument"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6886,6 +7815,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6949,6 +7887,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -6960,6 +7907,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7023,6 +7979,15 @@ export interface operations {
                     "application/json": components["schemas"]["RiskModelCollection"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -7034,6 +7999,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7099,6 +8073,15 @@ export interface operations {
                     "application/json": components["schemas"]["RiskModelView"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -7110,6 +8093,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7179,6 +8171,15 @@ export interface operations {
                     "application/json": components["schemas"]["JobStatus"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -7190,6 +8191,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7253,6 +8263,15 @@ export interface operations {
                     "application/json": components["schemas"]["UniverseCollection"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -7264,6 +8283,111 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_universe_universes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UniverseCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Universe"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7329,6 +8453,15 @@ export interface operations {
                     "application/json": components["schemas"]["Universe"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -7340,6 +8473,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7409,6 +8551,15 @@ export interface operations {
                     "application/json": components["schemas"]["Universe"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -7420,6 +8571,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7483,6 +8643,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -7494,6 +8663,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7559,6 +8737,15 @@ export interface operations {
                     "application/json": components["schemas"]["UniverseMembers"];
                 };
             };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing or invalid bearer token. */
             401: {
                 headers: {
@@ -7570,6 +8757,15 @@ export interface operations {
             };
             /** @description Requested data does not exist. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
                 headers: {
                     [name: string]: unknown;
                 };
