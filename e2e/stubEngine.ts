@@ -195,8 +195,47 @@ const ROUTES: Record<string, unknown> = {
     ]
   },
   '/indices': { indices: [{ id: 'TECH10', name: 'Beacon US Technology Top 10' }] },
-  '/universes': { universes: [{ id: 'US-LARGECAP', name: 'US Large Cap' }] },
   '/data/watchlists': { watchlists: [] }
+}
+
+/**
+ * Universes, mutable for the run (BN-132, BU-78).
+ *
+ * A `seeded` one the engine wrote and refuses to change, and whatever the
+ * test creates. Held in a module variable rather than in ROUTES because the
+ * point of BU-78 is that the list GROWS — a frozen catalogue would let a
+ * create "succeed" against a list that never changed and prove nothing.
+ */
+interface StubUniverse {
+  id: string
+  name: string
+  description: string | null
+  identifiers: string[]
+  source: 'user' | 'seeded'
+}
+
+let universes: StubUniverse[] = []
+
+function resetUniverses(): void {
+  universes = [
+    {
+      id: 'GLOBAL',
+      name: 'All loaded assets',
+      description: 'Everything in the loaded dataset.',
+      identifiers: [...IDENTIFIERS],
+      source: 'seeded'
+    }
+  ]
+}
+resetUniverses()
+
+/** The server derives an id from the name, so the client cannot choose one. */
+function deriveId(name: string): string {
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 function body(url: URL): unknown {
@@ -265,8 +304,14 @@ function body(url: URL): unknown {
     }
   }
 
-  if (path === '/universes/US-LARGECAP/members') {
-    return { universe_id: 'US-LARGECAP', identifiers: IDENTIFIERS }
+  if (path === '/universes') return { universes }
+
+  if (path.endsWith('/members') && path.startsWith('/universes/')) {
+    const id = path.slice('/universes/'.length, -'/members'.length)
+    const found = universes.find((universe) => universe.id === id)
+    return found === undefined
+      ? undefined
+      : { universe_id: found.id, identifiers: found.identifiers }
   }
 
   return undefined
@@ -308,10 +353,78 @@ export interface StubEngine {
   close: () => Promise<void>
 }
 
+/**
+ * Writes to the universe collection (BN-132).
+ *
+ * The stub enforces what the engine enforces — a seeded universe refuses
+ * edits, and a member that is not in reference data is a 422. A stub that
+ * accepted anything would let the client's error paths pass untested, which
+ * is the half of BU-78 most likely to be wrong.
+ */
+function writeUniverse(
+  method: string,
+  path: string,
+  parsed: Record<string, unknown>
+): { status: number; payload: unknown } {
+  const name = typeof parsed.name === 'string' ? parsed.name : ''
+  const identifiers = Array.isArray(parsed.identifiers) ? (parsed.identifiers as string[]) : []
+  const description = typeof parsed.description === 'string' ? parsed.description : null
+
+  const unknown = identifiers.filter((identifier) => !KNOWN.has(identifier))
+  if (unknown.length > 0) {
+    return {
+      status: 422,
+      payload: {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `not in reference data: ${unknown.join(', ')}`
+        }
+      }
+    }
+  }
+
+  if (method === 'POST') {
+    if (name.trim() === '' || identifiers.length === 0) {
+      return {
+        status: 422,
+        payload: {
+          error: { code: 'VALIDATION_ERROR', message: 'a universe needs a name and members' }
+        }
+      }
+    }
+    const created: StubUniverse = {
+      id: deriveId(name),
+      name,
+      description,
+      identifiers,
+      source: 'user'
+    }
+    universes = [...universes, created]
+    return { status: 201, payload: created }
+  }
+
+  const id = path.slice('/universes/'.length)
+  const found = universes.find((universe) => universe.id === id)
+  if (found === undefined) {
+    return { status: 404, payload: { error: { code: 'NOT_FOUND', message: `no universe ${id}` } } }
+  }
+  if (found.source === 'seeded') {
+    return {
+      status: 422,
+      payload: {
+        error: { code: 'VALIDATION_ERROR', message: 'a seeded universe cannot be edited' }
+      }
+    }
+  }
+
+  const updated: StubUniverse = { ...found, name, description, identifiers }
+  universes = universes.map((universe) => (universe.id === id ? updated : universe))
+  return { status: 200, payload: updated }
+}
+
 export function startStubEngine(): Promise<StubEngine> {
   const server: Server = createServer((request: IncomingMessage, response: ServerResponse) => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1')
-    const payload = body(url)
 
     // The app's origin is `beacon://app` when packaged and served from the
     // app scheme; allow it so the stub does not reintroduce the problem
@@ -324,6 +437,31 @@ export function startStubEngine(): Promise<StubEngine> {
       response.writeHead(200).end()
       return
     }
+
+    const method = request.method ?? 'GET'
+    const writesUniverse =
+      (method === 'POST' && url.pathname === '/universes') ||
+      (method === 'PUT' && url.pathname.startsWith('/universes/'))
+
+    if (writesUniverse) {
+      let raw = ''
+      request.on('data', (chunk: Buffer) => {
+        raw += chunk.toString('utf-8')
+      })
+      request.on('end', () => {
+        let parsed: Record<string, unknown> = {}
+        try {
+          parsed = JSON.parse(raw === '' ? '{}' : raw) as Record<string, unknown>
+        } catch {
+          parsed = {}
+        }
+        const result = writeUniverse(method, url.pathname, parsed)
+        response.writeHead(result.status).end(JSON.stringify(result.payload))
+      })
+      return
+    }
+
+    const payload = body(url)
     if (payload === undefined) {
       // py-beacon's envelope, not a bare detail — the client branches on
       // `code` and renders `message`.

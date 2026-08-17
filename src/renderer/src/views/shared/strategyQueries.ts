@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { components } from '@shared/api.generated'
+import { ApiError } from '../../api/errors'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
 
@@ -64,6 +65,67 @@ export function useUniverseMembers(universeId: string) {
       return client.universes.members(universeId, signal)
     },
     enabled: client !== null && universeId !== ''
+  })
+}
+
+/**
+ * True when the engine predates BN-132's universe writes.
+ *
+ * The two repos ship independently, so an app can meet a server that has the
+ * views but not the verbs. 404 and 405 are the two shapes that means — the
+ * path is unknown, or it is known and does not take this method — and neither
+ * should reach the user as a raw error.
+ */
+export function isUnsupported(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 404 || error.status === 405)
+}
+
+/**
+ * Create a universe (BN-132).
+ *
+ * No id in the body: the server derives one from the name, so two universes
+ * whose names differ only in punctuation cannot become two documents that
+ * look the same.
+ */
+export function useCreateUniverse() {
+  const client = useBeacon()
+  const queries = useQueryClient()
+
+  return useMutation({
+    mutationFn: (body: { name: string; description?: string | null; identifiers: string[] }) => {
+      if (client === null) throw new Error('No engine')
+      return client.universes.create(body)
+    },
+    onSuccess: () => {
+      void queries.invalidateQueries({ queryKey: keys.strategy.universes() })
+    }
+  })
+}
+
+/** Rename a universe or change its members. Seeded ones refuse server-side. */
+export function useSaveUniverse() {
+  const client = useBeacon()
+  const queries = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string
+      name: string
+      description?: string | null
+      identifiers?: string[]
+    }) => {
+      if (client === null) throw new Error('No engine')
+      return client.universes.update(id, body)
+    },
+    onSuccess: (_result, variables) => {
+      void queries.invalidateQueries({ queryKey: keys.strategy.universes() })
+      void queries.invalidateQueries({
+        queryKey: keys.strategy.universeMembers(variables.id)
+      })
+    }
   })
 }
 

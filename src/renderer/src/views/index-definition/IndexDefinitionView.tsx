@@ -136,7 +136,11 @@ export function IndexDefinitionView({ tab, pane }: ViewProps): ReactElement {
               })
             }}
           >
-            Open Universe Set →
+            {/* With nothing to choose, the link has to be the way OUT of that
+                state rather than a tour of it (BU-78). */}
+            {(universes.data?.universes ?? []).length === 0
+              ? 'Create a universe… →'
+              : 'Open Universe Set →'}
           </button>
         </div>
       </section>

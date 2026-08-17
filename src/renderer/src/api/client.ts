@@ -34,19 +34,23 @@ type BodyOf<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
 /**
  * A write's success body, whichever 2xx it returns.
  *
- * py-beacon answers 200 for an upsert, 202 for a job it accepted and 204 for
- * a delete. Naming only 200 here would have typed `sync` as `never` and made
- * the job id unreachable. A 204 resolves to `undefined`, which is what the
- * caller actually receives — `void` would let a caller pass the result on as
- * if it carried something.
+ * py-beacon answers 200 for an upsert, 201 for something it created, 202 for
+ * a job it accepted and 204 for a delete. Naming only 200 here would have
+ * typed `sync` as `never` and made the job id unreachable — and 201 was
+ * missing for the same reason until BN-132's `POST /universes` came back as
+ * `never`, hiding the id the server had just derived from the name. A 204
+ * resolves to `undefined`, which is what the caller actually receives;
+ * `void` would let a caller pass the result on as if it carried something.
  */
 type WriteResponse<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
   WriteOp<M, P> extends { responses: infer R }
     ? R extends { 200: { content: { 'application/json': infer B } } }
       ? B
-      : R extends { 202: { content: { 'application/json': infer B } } }
+      : R extends { 201: { content: { 'application/json': infer B } } }
         ? B
-        : undefined
+        : R extends { 202: { content: { 'application/json': infer B } } }
+          ? B
+          : undefined
     : undefined
 
 export interface ClientOptions {
@@ -241,6 +245,13 @@ export interface BeaconClient {
       id: string,
       signal?: AbortSignal
     ) => Promise<ResponseOf<'/universes/{universe_id}/members'>>
+    /** BN-132. No id in the body — the server derives one from the name. */
+    create: (body: BodyOf<'post', '/universes'>) => Promise<WriteResponse<'post', '/universes'>>
+    update: (
+      id: string,
+      body: BodyOf<'put', '/universes/{universe_id}'>
+    ) => Promise<WriteResponse<'put', '/universes/{universe_id}'>>
+    remove: (id: string) => Promise<void>
   }
   health: () => Promise<ResponseOf<'/health'>>
 }
@@ -427,6 +438,10 @@ export function createClient(options: ClientOptions): BeaconClient {
     },
     universes: {
       list: (signal) => get('/universes', { ...(signal === undefined ? {} : { signal }) }),
+      create: (body) => write('post', '/universes', { body }),
+      update: (id, body) =>
+        write('put', '/universes/{universe_id}', { params: { universe_id: id }, body }),
+      remove: (id) => write('delete', '/universes/{universe_id}', { params: { universe_id: id } }),
       members: (id, signal) =>
         get('/universes/{universe_id}/members', {
           params: { universe_id: id },
