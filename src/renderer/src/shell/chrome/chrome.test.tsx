@@ -9,7 +9,8 @@ import { LayoutMenu } from './LayoutMenu'
 import { fittingAlign, leftEdge } from './popoverAlign'
 import { MenuBar } from '../MenuBar'
 import { nextIndex } from '../../components/Typeahead/useTypeahead'
-import { groupRows, searchRows } from './searchResults'
+import { groupRows, recentRows, searchRows } from './searchResults'
+import type { ViewOption } from '../viewRegistry'
 import type { Tab } from '../../state/tabs.types'
 
 const TABS: Tab[] = [
@@ -319,25 +320,29 @@ describe('searchRows with identifiers (BU-72)', () => {
   ]
 
   it('offers identifiers under their own heading', () => {
-    const groups = groupRows(searchRows('cmp02', TABS, FOUND))
+    const groups = groupRows(searchRows('cmp02', TABS, { identifiers: FOUND }))
     expect(groups.map((g) => g.group)).toEqual(['ASSETS', 'ACTIONS'])
   })
 
   it('puts open tabs above identifiers — what you have beats what you could open', () => {
-    const groups = groupRows(searchRows('aapl', TABS, FOUND))
+    const groups = groupRows(searchRows('aapl', TABS, { identifiers: FOUND }))
     expect(groups[0]?.group).toBe('OPEN TABS')
   })
 
   it('keeps the order the engine ranked them in', () => {
     const backwards = [{ identifier: 'ZZZ' }, { identifier: 'AAA' }]
-    const rows = searchRows('z', TABS, backwards).filter((row) => row.kind === 'identifier')
+    const rows = searchRows('z', TABS, { identifiers: backwards }).filter(
+      (row) => row.kind === 'identifier'
+    )
     expect(rows.map((row) => row.label)).toEqual(['ZZZ', 'AAA'])
   })
 
   it('does not repeat a symbol that is already an open tab', () => {
     // TABS has a Prices tab on AAPL. The same symbol under two headings reads
     // as a bug, not as two routes to it.
-    const rows = searchRows('aapl', TABS, [{ identifier: 'AAPL', name: 'Apple Inc.' }])
+    const rows = searchRows('aapl', TABS, {
+      identifiers: [{ identifier: 'AAPL', name: 'Apple Inc.' }]
+    })
     expect(rows.filter((row) => row.kind === 'identifier')).toHaveLength(0)
   })
 
@@ -345,17 +350,116 @@ describe('searchRows with identifiers (BU-72)', () => {
     // With nothing matching in OPEN TABS a shared budget let the whole limit
     // through as assets, and the dropdown became a page.
     const many = Array.from({ length: 12 }, (_, i) => ({ identifier: `SYM${String(i)}` }))
-    const rows = searchRows('sym', TABS, many).filter((row) => row.kind === 'identifier')
+    const rows = searchRows('sym', TABS, { identifiers: many }).filter(
+      (row) => row.kind === 'identifier'
+    )
     expect(rows).toHaveLength(5)
   })
 
   it('carries the subject to open on the row', () => {
-    const row = searchRows('cmp02', TABS, FOUND).find((entry) => entry.kind === 'identifier')
+    const row = searchRows('cmp02', TABS, { identifiers: FOUND }).find(
+      (entry) => entry.kind === 'identifier'
+    )
     expect(row?.subject).toBe('CMP020')
   })
 
   it('still works with no engine, offering tabs and the action alone', () => {
     const groups = groupRows(searchRows('cmp02', TABS))
     expect(groups.map((g) => g.group)).toEqual(['ACTIONS'])
+  })
+})
+
+describe('the command palette (BU-79)', () => {
+  const VIEWS: ViewOption[] = [
+    { viewKind: 'frontier', page: 'optimiser', title: 'Frontier', archetype: 'pinned' },
+    { viewKind: 'backtest', page: 'strategy-builder', title: 'Backtest', archetype: 'pinned' },
+    { viewKind: 'coverage', page: 'data-explorer', title: 'Data Coverage', archetype: 'global' }
+  ]
+  const INDICES = [
+    { id: 'TECH10', name: 'Beacon US Technology Top 10' },
+    { id: 'ESG50', name: 'Beacon ESG 50' }
+  ]
+
+  it('offers indices from the engine catalogue', () => {
+    // The group's own comment used to say there was nothing behind it. That
+    // was true of the client: GET /indices existed all along.
+    const rows = searchRows('tech', TABS, { indices: INDICES })
+    const index = rows.find((row) => row.kind === 'index')
+
+    expect(index?.label).toBe('TECH10')
+    expect(index?.subject).toBe('TECH10')
+    expect(index?.group).toBe('INDICES')
+  })
+
+  it('matches an index on its name as well as its id', () => {
+    // "technology" appears only in the name, never in the id.
+    const byName = searchRows('technology', TABS, { indices: INDICES })
+    expect(byName.find((row) => row.kind === 'index')?.subject).toBe('TECH10')
+
+    const byId = searchRows('esg50', TABS, { indices: INDICES })
+    expect(byId.find((row) => row.kind === 'index')?.subject).toBe('ESG50')
+  })
+
+  it('marks an index that is open with unsaved changes', () => {
+    const rows = searchRows('tech', TABS, {
+      indices: [{ id: 'TECH10', name: 'x', dirty: true }]
+    })
+    expect(rows.find((row) => row.kind === 'index')?.label).toContain('•')
+  })
+
+  it('opens a view by name', () => {
+    const rows = searchRows('frontier', TABS, { views: VIEWS })
+    const view = rows.find((row) => row.kind === 'view')
+
+    expect(view?.label).toBe('Frontier')
+    expect(view?.view?.page).toBe('optimiser')
+    expect(view?.subject).toBeUndefined()
+  })
+
+  it('reads an intent in both orders, above the plain groups', () => {
+    const forward = searchRows('backtest TECH10', TABS, { views: VIEWS })
+    const first = forward[0]
+    expect(first?.kind).toBe('view')
+    expect(first?.subject).toBe('TECH10')
+    expect(first?.view?.viewKind).toBe('backtest')
+
+    const reverse = searchRows('TECH10 backtest', TABS, { views: VIEWS })
+    expect(reverse[0]?.subject).toBe('TECH10')
+  })
+
+  it('degrades to the plain groups when no half names a view', () => {
+    // "MSFT" is a fine thing to type; it is just not an intent. Not AAPL —
+    // that is already a tab subject here, so it is deduped out of ASSETS.
+    const rows = searchRows('MSFT', TABS, {
+      views: VIEWS,
+      identifiers: [{ identifier: 'MSFT', name: 'Microsoft' }]
+    })
+
+    expect(rows.every((row) => row.kind !== 'view')).toBe(true)
+    expect(rows.some((row) => row.kind === 'identifier')).toBe(true)
+  })
+
+  it('puts open tabs above everything, because you already have them', () => {
+    const rows = searchRows('prices', TABS, { views: VIEWS, indices: INDICES })
+    expect(rows[0]?.kind).toBe('tab')
+  })
+
+  it('caps each group so the panel stays a panel', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ id: `IDX${String(i)}`, name: 'x' }))
+    const rows = searchRows('idx', TABS, { indices: many })
+
+    expect(rows.filter((row) => row.kind === 'index')).toHaveLength(4)
+  })
+})
+
+describe('recentRows', () => {
+  it('offers the workspace in activation order', () => {
+    const rows = recentRows(TABS)
+    expect(rows.map((row) => row.id)).toEqual(['t1', 't2'])
+    expect(rows.every((row) => row.group === 'RECENT')).toBe(true)
+  })
+
+  it('says nothing about an empty workspace', () => {
+    expect(recentRows([])).toEqual([])
   })
 })

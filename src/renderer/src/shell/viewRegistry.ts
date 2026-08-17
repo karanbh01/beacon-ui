@@ -73,6 +73,23 @@ export function viewsForPage(page: string): ViewOption[] {
   return options
 }
 
+/**
+ * Every openable view, across every page (BU-79).
+ *
+ * The command palette searches by view NAME without knowing which page holds
+ * it — "frontier" is a thing you want to open, not a thing you want to
+ * locate first. Placeholders without meta are excluded, as they are from
+ * `viewsForPage`: a view that cannot be offered from the `+` cannot be
+ * offered from the palette either.
+ */
+export function allViews(): ViewOption[] {
+  const options: ViewOption[] = []
+  for (const [viewKind, entry] of registry) {
+    if (entry.meta !== undefined) options.push({ viewKind, ...entry.meta })
+  }
+  return options
+}
+
 /** Test seam; production code never needs this. */
 export function clearViews(): void {
   registry.clear()

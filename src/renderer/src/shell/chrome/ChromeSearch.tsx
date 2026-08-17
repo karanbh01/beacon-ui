@@ -1,10 +1,13 @@
-import { useRef, useState, type ReactElement } from 'react'
+import { useMemo, useRef, useState, type ReactElement } from 'react'
 import { ChevronIcon } from '../../icons/generated'
 import { useTypeahead } from '../../components/Typeahead/useTypeahead'
+import { recentTabs } from '../../state/tabs.logic'
 import { useWorkspace } from '../../state/tabs.store'
 import { useIdentifierSearch } from '../../views/shared/useIdentifierSearch'
 import { SearchDropdown } from './SearchDropdown'
-import { searchRows, type SearchRow } from './searchResults'
+import { allViews, type ViewOption } from '../viewRegistry'
+import { recentRows, searchRows, type SearchRow } from './searchResults'
+import { usePaletteIndices } from './usePaletteIndices'
 
 export interface ChromeSearchProps {
   onSubmit?: (query: string) => void
@@ -12,6 +15,13 @@ export interface ChromeSearchProps {
   onSelectTab?: (id: string) => void
   /** An identifier row: open it somewhere sensible. */
   onOpenIdentifier?: (subject: string) => void
+  /**
+   * A view row, optionally pinned to a subject (BU-79). `page` comes with it
+   * because opening a view means going to the page that holds it.
+   */
+  onOpenView?: (view: ViewOption, subject?: string) => void
+  /** An index row: open it in its overview. */
+  onOpenIndex?: (id: string) => void
   onCreateIndex?: (name: string) => void
 }
 
@@ -26,20 +36,46 @@ export function ChromeSearch({
   onSubmit,
   onSelectTab,
   onOpenIdentifier,
+  onOpenView,
+  onOpenIndex,
   onCreateIndex
 }: ChromeSearchProps): ReactElement {
   const [query, setQuery] = useState('')
+  /**
+   * Recents show on an empty query, but only while the field is FOCUSED.
+   *
+   * Without this the panel has rows whenever the workspace does, so it hangs
+   * open over the pane permanently — the tests caught it immediately. Focus
+   * is what turns "there is nothing typed" into "somebody is about to type".
+   */
+  const [focused, setFocused] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
   const tabs = useWorkspace((state) => state.tabs)
   // Identifiers arrive already ranked (BN-127); searchRows keeps that order.
   const found = useIdentifierSearch(query)
-  const rows = searchRows(query, tabs, found.suggestions)
+  const indices = usePaletteIndices()
+  // Both selections are stable references; the sort is memoised because it
+  // is not — see recentTabs.
+  const activatedAt = useWorkspace((state) => state.activatedAt)
+  const recent = useMemo(() => recentTabs(tabs, activatedAt), [tabs, activatedAt])
+
+  // The empty query is not nothing: it is "what was I just doing" (BU-79).
+  const rows =
+    query.trim() === ''
+      ? focused
+        ? recentRows(recent)
+        : []
+      : searchRows(query, tabs, { identifiers: found.suggestions, indices, views: allViews() })
 
   const activate = (row: SearchRow): void => {
     if (row.kind === 'tab') onSelectTab?.(row.id)
     else if (row.kind === 'identifier' && row.subject !== undefined) {
       onOpenIdentifier?.(row.subject)
+    } else if (row.kind === 'view' && row.view !== undefined) {
+      onOpenView?.(row.view, row.subject)
+    } else if (row.kind === 'index' && row.subject !== undefined) {
+      onOpenIndex?.(row.subject)
     } else onCreateIndex?.(query.trim())
 
     setQuery('')
@@ -86,6 +122,12 @@ export function ChromeSearch({
               typeahead.onInput()
             }}
             onKeyDown={typeahead.onKeyDown}
+            onFocus={() => {
+              setFocused(true)
+            }}
+            onBlur={() => {
+              setFocused(false)
+            }}
           />
 
           {/* The chevron section on the field's right edge — 81:69 when

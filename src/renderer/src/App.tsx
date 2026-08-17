@@ -16,6 +16,7 @@ import { useTheme } from './state/theme'
 import { runUpdateAction, useUpdate } from './state/update'
 import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
+import type { ViewOption } from './shell/viewRegistry'
 
 type BridgeState = { status: 'pending' } | { status: 'ok'; info: AppInfo } | { status: 'failed' }
 
@@ -89,6 +90,35 @@ function AppBody(): ReactElement {
     })
   }
 
+  /**
+   * A view picked from the palette, optionally pinned to a subject (BU-79).
+   *
+   * Goes to the page that holds the view, because a view is not reachable
+   * from anywhere else — `openOrRetarget` then reuses a tab of that kind if
+   * one is already open, which is what stops "frontier" stacking a new tab
+   * every time it is typed.
+   */
+  const openView = (view: ViewOption, subject?: string): void => {
+    setPage(view.page)
+    openOrRetarget({
+      page: view.page,
+      viewKind: view.viewKind,
+      title: view.title,
+      subject: subject ?? ''
+    })
+  }
+
+  /** An index from the palette: its overview, pinned to the index. */
+  const openIndex = (id: string): void => {
+    setPage('beacon-view')
+    openOrRetarget({
+      page: 'beacon-view',
+      viewKind: 'index-overview',
+      title: 'Index Overview',
+      subject: id
+    })
+  }
+
   // The footer toggle is the manual override (BU-39). Until someone touches
   // it the preference stays `system`, so a fresh install follows the OS live;
   // flipping it writes an explicit light or dark and stops tracking.
@@ -128,6 +158,8 @@ function AppBody(): ReactElement {
         onManageSources: openCoverage,
         onSelectTab: selectTab,
         onOpenIdentifier: openIdentifier,
+        onOpenView: openView,
+        onOpenIndex: openIndex,
         // Layout is per page (BU-75), so the bar's layout menu needs to know
         // which one it is acting on.
         page,

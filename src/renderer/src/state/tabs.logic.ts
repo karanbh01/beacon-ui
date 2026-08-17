@@ -11,7 +11,37 @@ import type { Archetype, ClosedTab, Tab, WorkspaceState } from './tabs.types'
 export const MAX_REOPEN = 10
 
 export function emptyWorkspace(): WorkspaceState {
-  return { tabs: [], activeByPane: {}, closed: [] }
+  return { tabs: [], activeByPane: {}, closed: [], activatedAt: {} }
+}
+
+/**
+ * A counter, not a clock (BU-79).
+ *
+ * All that is asked of these stamps is an ORDER, and `Date.now()` can return
+ * the same millisecond twice in a row for two fast selections — which would
+ * make the order of those two arbitrary. A counter cannot tie.
+ */
+let activations = 0
+
+function stamp(state: WorkspaceState, id: string): Record<string, number | undefined> {
+  activations += 1
+  return { ...state.activatedAt, [id]: activations }
+}
+
+/**
+ * Tabs, most recently activated first. Never-activated ones come last.
+ *
+ * Takes the two pieces rather than the whole state on purpose: it builds a
+ * NEW array, so using it directly as a zustand selector re-renders forever —
+ * every call returns a reference the default equality check has not seen.
+ * Callers select `tabs` and `activatedAt`, which are stable, and memoise
+ * this.
+ */
+export function recentTabs(
+  tabs: readonly Tab[],
+  activatedAt: Record<string, number | undefined>
+): Tab[] {
+  return [...tabs].sort((a, b) => (activatedAt[b.id] ?? 0) - (activatedAt[a.id] ?? 0))
 }
 
 export function paneKey(page: string, pane: number): string {
@@ -118,7 +148,8 @@ export function openTab(state: WorkspaceState, input: OpenTabInput): WorkspaceSt
   return {
     ...state,
     tabs: [...state.tabs, tab],
-    activeByPane: { ...state.activeByPane, [paneKey(input.page, pane)]: input.id }
+    activeByPane: { ...state.activeByPane, [paneKey(input.page, pane)]: input.id },
+    activatedAt: stamp(state, input.id)
   }
 }
 
@@ -132,7 +163,8 @@ export function selectTab(state: WorkspaceState, id: string, pane?: number): Wor
   if (tab === undefined) return state
   return {
     ...state,
-    activeByPane: { ...state.activeByPane, [paneKey(tab.page, pane ?? tab.pane)]: id }
+    activeByPane: { ...state.activeByPane, [paneKey(tab.page, pane ?? tab.pane)]: id },
+    activatedAt: stamp(state, id)
   }
 }
 
@@ -222,7 +254,8 @@ export function closeTab(
   return {
     tabs: remaining,
     activeByPane: { ...next.activeByPane, [key]: wasActive ? fallback : next.activeByPane[key] },
-    closed
+    closed,
+    activatedAt: next.activatedAt
   }
 }
 
@@ -239,7 +272,9 @@ export function reopenTab(state: WorkspaceState): WorkspaceState {
       ...state.activeByPane,
       [paneKey(entry.tab.page, entry.tab.pane)]: entry.tab.id
     },
-    closed: rest
+    closed: rest,
+    // Reopening IS an activation: it is the tab you just asked for.
+    activatedAt: stamp(state, entry.tab.id)
   }
 }
 

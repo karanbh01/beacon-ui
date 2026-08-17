@@ -68,4 +68,13 @@ export interface WorkspaceState {
   activeByPane: Record<string, string | undefined>
   /** Most-recently-closed first. */
   closed: ClosedTab[]
+  /**
+   * Monotonic stamp per tab id, for "what was I just doing" (BU-79).
+   *
+   * Deliberately NOT persisted — `partialize` covers tabs and the active map
+   * only, so this is session-scoped and needs no migration. Recency across a
+   * restart would also be a lie: the tabs are restored all at once, so every
+   * stamp would say the same thing.
+   */
+  activatedAt: Record<string, number | undefined>
 }

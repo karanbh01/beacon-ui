@@ -49,7 +49,7 @@ export function migrateWorkspace(stored: unknown): WorkspaceState {
     ])
   )
 
-  return { tabs, activeByPane, closed: [] }
+  return { tabs, activeByPane, closed: [], activatedAt: {} }
 }
 
 export interface WorkspaceStore extends WorkspaceState {

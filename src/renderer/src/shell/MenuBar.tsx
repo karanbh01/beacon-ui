@@ -9,6 +9,7 @@ import { LayoutMenu } from './chrome/LayoutMenu'
 import { MenuDropdown } from './chrome/MenuDropdown'
 import { buildMenus, type MenuAction } from './chrome/menuModel'
 import { HOME_PAGE_ID } from './pages'
+import type { ViewOption } from './viewRegistry'
 import { WindowControls } from './WindowControls'
 import './MenuBar.css'
 
@@ -22,6 +23,10 @@ export interface MenuBarProps {
   onSelectTab?: (id: string) => void
   /** An identifier picked from search: open it on Prices. */
   onOpenIdentifier?: (subject: string) => void
+  /** A view picked from search, optionally pinned to a subject (BU-79). */
+  onOpenView?: (view: ViewOption, subject?: string) => void
+  /** An index picked from search: open its overview. */
+  onOpenIndex?: (id: string) => void
   onCreateIndex?: (name: string) => void
   /** The logo is how Home is reached — see HomeView. */
   onGoHome?: () => void
@@ -56,6 +61,8 @@ export function MenuBar({
   onManageSources,
   onSelectTab,
   onOpenIdentifier,
+  onOpenView,
+  onOpenIndex,
   onCreateIndex,
   onGoHome,
   page = HOME_PAGE_ID,
@@ -168,6 +175,8 @@ export function MenuBar({
         {...(onSearch === undefined ? {} : { onSubmit: onSearch })}
         {...(onSelectTab === undefined ? {} : { onSelectTab })}
         {...(onOpenIdentifier === undefined ? {} : { onOpenIdentifier })}
+        {...(onOpenView === undefined ? {} : { onOpenView })}
+        {...(onOpenIndex === undefined ? {} : { onOpenIndex })}
         {...(onCreateIndex === undefined ? {} : { onCreateIndex })}
       />
 

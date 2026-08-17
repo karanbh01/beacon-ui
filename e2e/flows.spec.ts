@@ -249,6 +249,55 @@ test('a placeholder menu item is present and inert', async ({ window }) => {
   await expect(item).toBeDisabled()
 })
 
+test('the palette opens a view by name, from the keyboard alone', async ({ window }) => {
+  // BU-79. "frontier" is a thing you want to open, not a thing you want to
+  // locate on a page first.
+  await window.locator('.menu-bar-search input').fill('frontier')
+
+  const results = window.getByRole('listbox', { name: 'Search results' })
+  await expect(results.getByText('VIEWS')).toBeVisible()
+
+  await window.keyboard.press('ArrowDown')
+  await window.keyboard.press('Enter')
+
+  await expect(window.locator('.tab-label', { hasText: 'Frontier' })).toBeVisible()
+})
+
+test('the palette parses an intent in either order', async ({ window }) => {
+  await window.locator('.menu-bar-search input').fill('prices CMP000')
+
+  const results = window.getByRole('listbox', { name: 'Search results' })
+  // The intent is the most specific reading, so it leads.
+  await expect(results.getByRole('option').first()).toContainText('Prices · CMP000')
+
+  await window.keyboard.press('ArrowDown')
+  await window.keyboard.press('Enter')
+
+  await expect(window.locator('.tab-chip-label')).toContainText('CMP000')
+  await expect(window.locator('.prices-view')).toBeVisible()
+})
+
+test('the palette lists the engine’s indices', async ({ window }) => {
+  await window.locator('.menu-bar-search input').fill('tech')
+
+  const results = window.getByRole('listbox', { name: 'Search results' })
+  await expect(results.getByText('INDICES')).toBeVisible()
+  await expect(results.getByRole('option', { name: /TECH10/ })).toBeVisible()
+})
+
+test('an empty query offers what you were just doing', async ({ window }) => {
+  // Not nothing, which is what it used to be.
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Prices')
+
+  const field = window.locator('.menu-bar-search input')
+  await field.click()
+
+  const results = window.getByRole('listbox', { name: 'Search results' })
+  await expect(results.getByText('RECENT')).toBeVisible()
+  await expect(results.getByRole('option', { name: /Prices/ })).toBeVisible()
+})
+
 test('nothing logs an error while any of that happens', async ({ window }) => {
   const errors: string[] = []
   window.on('console', (message) => {
