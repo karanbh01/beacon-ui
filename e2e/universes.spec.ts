@@ -71,3 +71,42 @@ test('a created universe is selectable in an index definition', async ({ window 
 
   await expect(window.getByText('2 eligible assets')).toBeVisible()
 })
+
+test('a universe is built by filtering the dataset, and previewed before it is saved', async ({
+  window
+}) => {
+  // BU-85. The controls are generated from the reference columns the engine
+  // actually returned, so this also proves the batch was not rejected — an
+  // unknown column name is a hard 422 and would leave no filters at all.
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+
+  await window.getByRole('button', { name: 'New universe…' }).click()
+  await window.getByRole('textbox', { name: 'Universe name' }).fill('Health Names')
+  await window.getByRole('checkbox', { name: 'Health Care' }).check()
+
+  // The point of the table: what the filter matched is on screen, with its
+  // detail, before anything is stored.
+  const editor = window.locator('.universe-editor')
+  await expect(editor.getByText('40 members', { exact: false })).toBeVisible()
+  await expect(editor.locator('.tbl-row').first()).toBeVisible()
+
+  await window.getByRole('button', { name: 'Create universe' }).click()
+
+  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveValue('HEALTH-NAMES')
+  await expect(window.getByText('40 assets', { exact: false })).toBeVisible()
+})
+
+test('a symbol the dataset does not carry is called out as it is added', async ({ window }) => {
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+
+  await window.getByRole('button', { name: 'New universe…' }).click()
+  await window.getByRole('textbox', { name: 'Paste identifiers' }).fill('CMP005, NOPE001')
+  await window.getByRole('button', { name: 'Add pasted' }).click()
+
+  // Said here rather than after a failed save — the engine refuses the whole
+  // list for one bad name.
+  await expect(window.getByText(/not in the dataset: NOPE001/)).toBeVisible()
+  await expect(window.getByText(/1 added by hand, found in the dataset/)).toBeVisible()
+})

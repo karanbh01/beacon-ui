@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -177,5 +177,156 @@ describe('UniverseView', () => {
 
     await userEvent.selectOptions(screen.getByLabelText('Universe'), 'US-LARGECAP')
     expect(useWorkspace.getState().tabs[0]?.subject).toBe('US-LARGECAP')
+  })
+})
+
+/**
+ * The builder (BU-85).
+ *
+ * Its pool is the SEEDED universe, which is py-beacon's own copy of the loaded
+ * dataset — deliberately not the one on screen, so these tests would catch the
+ * builder quietly filtering over whatever universe happened to be selected.
+ */
+const POOL = [
+  { identifier: 'AAA', sector: 'Technology', adv: 5_000_000 },
+  { identifier: 'BBB', sector: 'Technology', adv: 1_000_000 },
+  { identifier: 'CCC', sector: 'Energy', adv: 3_000_000 }
+]
+
+interface Created {
+  name: string
+  identifiers: string[]
+}
+
+function mountBuilder(): Created[] {
+  const created: Created[] = []
+  const queries = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+
+  const client = {
+    universes: {
+      list: () =>
+        Promise.resolve({
+          universes: [
+            { id: 'US-LARGECAP', name: 'US Large Cap' },
+            { id: 'GLOBAL', name: 'GLOBAL', source: 'seeded' }
+          ]
+        }),
+      members: (id: string) =>
+        Promise.resolve({
+          universe_id: id,
+          identifiers: id === 'GLOBAL' ? POOL.map((entry) => entry.identifier) : ['ZZZ1', 'ZZZ2']
+        }),
+      create: (body: { name: string; identifiers: string[] }) => {
+        created.push({ name: body.name, identifiers: body.identifiers })
+        return Promise.resolve({ id: 'MINE', name: body.name })
+      }
+    },
+    data: {
+      referenceBatch: (identifiers: readonly string[]) =>
+        Promise.resolve({
+          as_of: '2026-08-04',
+          entries: identifiers.map((id) => {
+            const entry = POOL.find((candidate) => candidate.identifier === id)
+            return {
+              identifier: id,
+              found: true,
+              fields: {
+                NAME: `${id} Corp`,
+                SECTOR: entry?.sector ?? 'Financials',
+                adv_3m: entry?.adv ?? 100
+              }
+            }
+          })
+        })
+    }
+  } as unknown as BeaconClient
+
+  const tab = useWorkspace.getState().tabs[0]
+  render(
+    <QueryClientProvider client={queries}>
+      <ClientContext.Provider value={client}>
+        <UniverseView tab={tab!} subject={undefined} />
+      </ClientContext.Provider>
+    </QueryClientProvider>
+  )
+  return created
+}
+
+async function openBuilder(): Promise<{ editor: HTMLElement; created: Created[] }> {
+  const created = mountBuilder()
+  await userEvent.click(await screen.findByRole('button', { name: 'New universe…' }))
+  await screen.findByText('New universe')
+
+  // Scoped to the card: the view's own table is on screen behind it.
+  const editor = document.querySelector<HTMLElement>('.universe-editor')
+  if (editor === null) throw new Error('the builder did not render')
+  return { editor, created }
+}
+
+describe('the universe builder', () => {
+  it('derives one filter per reference column rather than a hard-coded five', async () => {
+    // Karan asked for region, country, sector, market cap and rank. The
+    // engine's reference frame carries none of the first, second or fourth —
+    // so the controls come from the columns that came back, and the missing
+    // ones appear on their own the day py-beacon publishes them.
+    const { editor } = await openBuilder()
+
+    // By legend: the preview table below carries a Sector column of its own.
+    const legend = { selector: 'legend' }
+    expect(await within(editor).findByText('Sector', legend)).toBeInTheDocument()
+    expect(within(editor).getByText('Adv 3m', legend)).toBeInTheDocument()
+    expect(within(editor).getByText('Rank', legend)).toBeInTheDocument()
+    // NAME is an identity, not a dimension.
+    expect(within(editor).queryByText('Name', { selector: 'legend' })).toBeNull()
+  })
+
+  it('shows what a filter matched as a table of tickers, before anything is saved', async () => {
+    const { editor } = await openBuilder()
+    await userEvent.click(await within(editor).findByLabelText('Technology'))
+
+    expect(within(editor).getByText('AAA Corp')).toBeInTheDocument()
+    expect(within(editor).getByText('BBB Corp')).toBeInTheDocument()
+    expect(within(editor).queryByText('CCC Corp')).toBeNull()
+    expect(within(editor).getByText(/2 members/)).toBeInTheDocument()
+  })
+
+  it('says whether a hand-typed ticker is in the dataset', async () => {
+    // The whole of "I cannot even confirm the ticker I added is validated" —
+    // the engine refuses an unknown member, and finding that out at save time
+    // for one name out of forty is no use.
+    const { editor } = await openBuilder()
+    await within(editor).findByText('Sector', { selector: 'legend' })
+
+    await userEvent.type(within(editor).getByLabelText('Paste identifiers'), 'CCC, NOPE')
+    await userEvent.click(within(editor).getByRole('button', { name: 'Add pasted' }))
+
+    expect(within(editor).getByText(/1 added by hand, found in the dataset/)).toBeInTheDocument()
+    expect(within(editor).getByText(/not in the dataset: NOPE/)).toBeInTheDocument()
+  })
+
+  it('saves the filtered names and the hand-added ones together', async () => {
+    const { editor, created } = await openBuilder()
+
+    await userEvent.click(await within(editor).findByLabelText('Energy'))
+    await userEvent.type(within(editor).getByLabelText('Universe name'), 'Mine')
+    await userEvent.type(within(editor).getByLabelText('Paste identifiers'), 'AAA')
+    await userEvent.click(within(editor).getByRole('button', { name: 'Add pasted' }))
+    await userEvent.click(within(editor).getByRole('button', { name: 'Create universe' }))
+
+    expect(created).toHaveLength(1)
+    expect(created[0]?.identifiers).toEqual(['CCC', 'AAA'])
+  })
+
+  it('ranks last, so "the top one by volume in tech" is not "tech among the top one"', async () => {
+    const { editor } = await openBuilder()
+    await userEvent.click(await within(editor).findByLabelText('Technology'))
+
+    await userEvent.type(within(editor).getByLabelText('Rank count'), '1')
+
+    // CCC is not the answer even though it out-trades BBB: the sector filter
+    // applies first.
+    expect(within(editor).getByText('AAA Corp')).toBeInTheDocument()
+    expect(within(editor).queryByText('BBB Corp')).toBeNull()
+    expect(within(editor).queryByText('CCC Corp')).toBeNull()
   })
 })

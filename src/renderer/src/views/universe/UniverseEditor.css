@@ -26,62 +26,6 @@
   outline: none;
 }
 
-/*
- * Members wrap rather than scroll. A universe of 500 is a long block of
- * chips, and that IS the honest picture of what has been built — hiding it
- * behind a scroller would make a 5-member universe and a 500-member one look
- * the same at a glance.
- */
-.universe-editor-members {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  margin-top: 14px;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.universe-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 4px 2px 8px;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  color: var(--text-primary);
-  background: var(--sidebar-active-bg);
-  border-radius: 3px;
-}
-
-.universe-chip-remove {
-  padding: 0 3px;
-  font-family: var(--font-ui);
-  font-size: 12px;
-  line-height: 1;
-  color: var(--text-muted);
-  background: none;
-  border: 0;
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.universe-chip-remove:hover {
-  color: var(--danger);
-}
-
-.universe-chip-remove:focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.universe-editor-paste {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  margin-top: 14px;
-}
-
 .universe-editor-textarea {
   flex: 1;
   min-width: 0;
@@ -109,4 +53,38 @@
   display: flex;
   gap: 8px;
   margin-top: 14px;
+}
+
+/* The filtered preview, so a universe is visible before it is stored. */
+.universe-editor-preview {
+  margin-top: 14px;
+}
+
+.universe-editor-note {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+}
+
+.universe-editor-manual {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-top: 14px;
+}
+
+/* Whether a typed ticker is real, stated rather than left to the save. */
+.universe-editor-manual-state {
+  margin: 10px 0 0;
+}
+
+.universe-ok {
+  color: var(--success);
+}
+
+.universe-bad {
+  color: var(--danger);
+}
+
+.universe-editor-manual-state .universe-link {
+  margin-left: 6px;
 }

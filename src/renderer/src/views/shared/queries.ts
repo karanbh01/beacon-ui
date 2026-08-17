@@ -37,19 +37,22 @@ export function useReference(identifier: string, options: ReferenceOptions = {})
 }
 
 /**
- * The reference columns a table needs, named rather than taking everything.
+ * The one field a table has to ASK for. Everything else arrives anyway.
  *
- * `adv_3m` is derived and only returned when asked for — the reason ADV 3M
- * could not be shown before was never just the fan-out.
+ * This used to name columns — `name`, `gics_sector`, `market_cap` and so on —
+ * and every one of them was wrong. Reference columns are UPPERCASE and
+ * case-sensitive, an unknown one is a hard 422 rather than a null, and
+ * `market_cap` is not a column on any dataset py-beacon ships. So the whole
+ * batch was rejected and every detail column in the universe table was empty
+ * against a real engine. The stub hid it by fabricating whatever was asked
+ * for.
+ *
+ * Naming ONLY the derived field is both the fix and the more robust request:
+ * omitting the stored columns returns all of them, whatever a given dataset
+ * happens to carry, so no column name is hard-coded in the client at all.
+ * Verified against a running engine.
  */
-export const TABLE_REFERENCE_FIELDS = [
-  'name',
-  'gics_sector',
-  'gics_sub_industry',
-  'free_float_market_cap',
-  'market_cap',
-  'adv_3m'
-] as const
+export const TABLE_REFERENCE_FIELDS = ['adv_3m'] as const
 
 /** py-beacon caps a batch at 1000 identifiers per call. */
 export const REFERENCE_BATCH_LIMIT = 1000

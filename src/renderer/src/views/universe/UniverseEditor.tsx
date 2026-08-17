@@ -1,15 +1,33 @@
-import { useState, type ReactElement } from 'react'
+import { useMemo, useState, type ReactElement } from 'react'
 import { AddValue } from '../../components/AddValue/AddValue'
 import { Button } from '../../components/Button/Button'
 import { Card } from '../../components/Card/Card'
 import { Field } from '../../components/Field/Field'
+import { Table, type Column } from '../../components/Table/Table'
+import {
+  applyFilters,
+  checkManual,
+  combine,
+  emptyFilters,
+  filtersFor,
+  noneChosen,
+  type Candidate,
+  type FilterState
+} from './builder'
 import { addMember, draftProblem, parseMembers, removeMember, type DraftUniverse } from './members'
+import { billions, buildRow, volume, type UniverseRow } from './universe'
+import { UniverseFilters } from './UniverseFilters'
 import './UniverseEditor.css'
 
 export interface UniverseEditorProps {
   draft: DraftUniverse
   onChange: (next: DraftUniverse) => void
-  onSave: () => void
+  /**
+   * Carries the resolved membership — filters plus manual, deduped. The view
+   * cannot recompute it: the filter state lives here, and having two places
+   * derive "what gets saved" is how they come to disagree.
+   */
+  onSave: (members: string[]) => void
   onCancel: () => void
   /** Disabled while the request is in flight. */
   saving?: boolean
@@ -17,20 +35,47 @@ export interface UniverseEditorProps {
   problem?: string | undefined
   /** "Create" vs "Save" — the same form serves both. */
   mode: 'create' | 'edit'
+  /**
+   * Every name in the loaded dataset, with its reference fields. The filters
+   * are derived from these, and manual entries are checked against them.
+   */
+  pool: readonly Candidate[]
+  /** True while the pool is still arriving; filters cannot be built yet. */
+  loading?: boolean
 }
 
+const COLUMNS: readonly Column<UniverseRow>[] = [
+  {
+    key: 'position',
+    header: '#',
+    width: 40,
+    align: 'right',
+    render: (row) => String(row.position)
+  },
+  { key: 'ticker', header: 'Ticker', width: 90, emphasis: true, render: (row) => row.ticker },
+  { key: 'name', header: 'Name', width: 190, render: (row) => row.name ?? '—' },
+  { key: 'sector', header: 'Sector', width: 170, render: (row) => row.sector ?? '—' },
+  {
+    key: 'cap',
+    header: 'FF Mkt Cap ($B)',
+    width: 120,
+    align: 'right',
+    render: (row) => billions(row.marketCap)
+  },
+  { key: 'adv', header: 'ADV 3M', width: 100, align: 'right', render: (row) => volume(row.adv) }
+]
+
 /**
- * Create or edit a universe (BU-78).
+ * Build a universe the way an index is built (BU-85).
  *
- * One form for both, because they differ only in the verb on the button and
- * whether the name starts empty. Members arrive two ways and both end in
- * `members.ts`: one at a time through the same `AddValue` slot the watchlist
- * uses, or pasted in bulk — which is how anyone with a screener output or a
- * spreadsheet column actually builds one.
+ * Filters over the loaded dataset, a table of what they matched, and manual
+ * entry on top — with the members visible before anything is saved. The chip
+ * row this replaced could say a universe had forty names and nothing about
+ * what any of them were.
  *
- * The running count is the point of the header. A universe is a membership
- * list and its size is the single number that says whether you have built
- * what you meant to.
+ * Manual entries are CHECKED against the dataset as they are typed. The
+ * engine refuses a member it does not hold, and discovering that at save
+ * time, for one name out of forty, is no use.
  */
 export function UniverseEditor({
   draft,
@@ -39,10 +84,39 @@ export function UniverseEditor({
   onCancel,
   saving = false,
   problem,
-  mode
+  mode,
+  pool,
+  loading = false
 }: UniverseEditorProps): ReactElement {
   const [paste, setPaste] = useState('')
-  const blocked = draftProblem(draft)
+  const [filters, setFilters] = useState<FilterState>(emptyFilters)
+
+  const specs = useMemo(() => filtersFor(pool), [pool])
+  const rankable = useMemo(
+    () => specs.filter((spec) => spec.kind === 'range').map((spec) => spec.field),
+    [specs]
+  )
+  const known = useMemo(() => new Set(pool.map((candidate) => candidate.identifier)), [pool])
+
+  // Untouched filters contribute nothing rather than everything — see
+  // `noneChosen`. The builder adds to a membership; it does not whittle the
+  // dataset down.
+  const matched = useMemo(
+    () => (noneChosen(filters) ? [] : applyFilters(pool, filters)),
+    [pool, filters]
+  )
+  const manual = useMemo(() => checkManual(draft.members, known), [draft.members, known])
+
+  // What will actually be saved: the filtered set plus anything added by hand.
+  const members = useMemo(() => combine(matched, draft.members), [matched, draft.members])
+
+  const byIdentifier = useMemo(
+    () => new Map(pool.map((candidate) => [candidate.identifier, candidate.fields])),
+    [pool]
+  )
+  const rows = members.map((identifier, index) =>
+    buildRow(identifier, index + 1, byIdentifier.get(identifier), byIdentifier.has(identifier))
+  )
 
   const applyPaste = (): void => {
     const parsed = parseMembers(paste)
@@ -51,14 +125,19 @@ export function UniverseEditor({
     setPaste('')
   }
 
+  // The engine's rule is about the SAVED set, which includes the filtered
+  // names — a draft with no hand-added members is still valid if a filter
+  // matched something.
+  const blocked = draftProblem({ ...draft, members })
+
   return (
     <Card
       title={mode === 'create' ? 'New universe' : 'Edit universe'}
       className="universe-editor"
       aside={
         <span className="universe-editor-count type-11">
-          {draft.members.length.toLocaleString('en-US')} member
-          {draft.members.length === 1 ? '' : 's'}
+          {members.length.toLocaleString('en-US')} member{members.length === 1 ? '' : 's'}
+          {matched.length > 0 && ` · ${matched.length.toLocaleString('en-US')} from filters`}
         </span>
       }
     >
@@ -86,31 +165,27 @@ export function UniverseEditor({
         </Field>
       </div>
 
-      <div className="universe-editor-members">
-        {draft.members.map((member) => (
-          <span key={member} className="universe-chip">
-            <span className="universe-chip-label">{member}</span>
-            <button
-              type="button"
-              className="universe-chip-remove"
-              aria-label={`Remove ${member}`}
-              onClick={() => {
-                onChange({ ...draft, members: removeMember(draft.members, member) })
-              }}
-            >
-              &times;
-            </button>
-          </span>
-        ))}
+      {loading && <p className="universe-editor-note type-11">Loading the dataset to filter on…</p>}
+
+      {/* No seeded universe means no dataset to filter over — BN-132 seeds it
+          at engine startup, so an engine that predates it lands here. */}
+      {!loading && pool.length === 0 && (
+        <p className="universe-editor-note type-11">
+          This engine has no seeded universe to filter over, so members can only be added by hand.
+        </p>
+      )}
+
+      {!loading && pool.length > 0 && (
+        <UniverseFilters specs={specs} state={filters} rankable={rankable} onChange={setFilters} />
+      )}
+
+      <div className="universe-editor-manual">
         <AddValue
           label="Add symbol…"
           onAdd={(value) => {
             onChange({ ...draft, members: addMember(draft.members, value) })
           }}
         />
-      </div>
-
-      <div className="universe-editor-paste">
         <textarea
           className="universe-editor-textarea"
           value={paste}
@@ -126,13 +201,57 @@ export function UniverseEditor({
         </Button>
       </div>
 
+      {/*
+        The answer to "I cannot confirm the ticker is validated". Both halves
+        are stated: what was accepted, and what the dataset does not carry.
+      */}
+      {pool.length > 0 && draft.members.length > 0 && (
+        <p className="universe-editor-manual-state type-11">
+          {manual.found.length > 0 && (
+            <span className="universe-ok">
+              {manual.found.length} added by hand, found in the dataset
+            </span>
+          )}
+          {manual.unknown.length > 0 && (
+            <span className="universe-bad">
+              {manual.found.length > 0 ? ' · ' : ''}
+              not in the dataset: {manual.unknown.join(', ')}
+              <button
+                type="button"
+                className="universe-link"
+                onClick={() => {
+                  onChange({
+                    ...draft,
+                    members: manual.unknown.reduce(removeMember, draft.members)
+                  })
+                }}
+              >
+                remove them
+              </button>
+            </span>
+          )}
+        </p>
+      )}
+
+      {rows.length > 0 && (
+        <div className="universe-editor-preview">
+          <Table columns={COLUMNS} rows={rows} getRowId={(row) => row.ticker} maxBodyHeight={320} />
+        </div>
+      )}
+
       {/* The engine's own words when it refused, ours when it would. */}
       {(problem ?? blocked) !== undefined && (
         <p className="universe-editor-problem type-11">{problem ?? blocked}</p>
       )}
 
       <div className="universe-editor-actions">
-        <Button variant="accent" onClick={onSave} disabled={saving || blocked !== undefined}>
+        <Button
+          variant="accent"
+          onClick={() => {
+            onSave(members)
+          }}
+          disabled={saving || blocked !== undefined}
+        >
           {mode === 'create' ? 'Create universe' : 'Save changes'}
         </Button>
         <Button onClick={onCancel} disabled={saving}>

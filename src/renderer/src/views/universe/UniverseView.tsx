@@ -16,6 +16,7 @@ import {
 import { REFERENCE_BATCH_LIMIT, useReferenceBatch } from '../shared/queries'
 import { billions, buildRow, fieldsByIdentifier, volume, type UniverseRow } from './universe'
 import { blankUniverse, isEditable, type DraftUniverse } from './members'
+import { useCandidatePool } from './pool'
 import { UniverseEditor } from './UniverseEditor'
 import './UniverseView.css'
 
@@ -65,6 +66,9 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
   const create = useCreateUniverse()
   const save = useSaveUniverse()
 
+  // Only while the builder is open: the pool is the whole dataset.
+  const pool = useCandidatePool(draft !== undefined)
+
   const current = catalogue.find((universe) => universe.id === selected)
   const editable = isEditable(current)
   const pending = create.isPending || save.isPending
@@ -96,7 +100,9 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
     })
   }
 
-  const commit = (): void => {
+  // The builder resolves filters and manual entries into the membership, so
+  // the saved list comes back from it rather than being re-derived here.
+  const commit = (resolved: string[]): void => {
     if (draft === undefined) return
 
     const done = (id: string): void => {
@@ -109,7 +115,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         {
           name: draft.name.trim(),
           description: draft.description.trim() === '' ? null : draft.description.trim(),
-          identifiers: draft.members
+          identifiers: resolved
         },
         {
           // 201 carries the created Universe itself, and the server derives
@@ -127,7 +133,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         id: selected,
         name: draft.name.trim(),
         description: draft.description.trim() === '' ? null : draft.description.trim(),
-        identifiers: draft.members
+        identifiers: resolved
       },
       {
         onSuccess: () => {
@@ -182,6 +188,8 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
           draft={draft}
           mode={mode}
           saving={pending}
+          pool={pool.candidates}
+          loading={pool.loading}
           {...(problem === undefined ? {} : { problem })}
           onChange={setDraft}
           onSave={commit}
