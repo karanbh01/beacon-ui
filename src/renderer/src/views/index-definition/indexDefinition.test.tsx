@@ -332,3 +332,69 @@ describe('validation', () => {
     expect(screen.getByText(/wide cap/).closest('ul')).toHaveClass('validation-warnings')
   })
 })
+
+/**
+ * Opening the view from the sidebar, where there is no document (BU-85).
+ *
+ * The tab is titled "Index Definition" and carries no subject. That title was
+ * being sent as the index id, so the engine was asked for a document whose id
+ * contains a space — a 422 once py-beacon enforced the path pattern, and a
+ * 404 before it, which this view reads as "a new index". The blank editor
+ * that everyone took for the create flow was a misread 404.
+ */
+function mountFromSidebar(): { asked: string[] } {
+  const asked: string[] = []
+  const queries = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
+  })
+
+  const client = {
+    indices: {
+      list: () => Promise.resolve({ indices: [{ id: 'TECH10', name: SAVED.name }] }),
+      get: (id: string) => {
+        asked.push(id)
+        return Promise.resolve(SAVED)
+      }
+    },
+    universes: {
+      list: () => Promise.resolve({ universes: [{ id: 'US-LARGECAP', name: 'US Large Cap' }] }),
+      members: () => Promise.resolve({ universe_id: 'US-LARGECAP', identifiers: ['AAPL', 'MSFT'] })
+    },
+    data: { reference: () => Promise.resolve({ identifier: 'x', fields: {} }) }
+  } as unknown as BeaconClient
+
+  useWorkspace.getState().openTab({
+    id: 'sidebar-def',
+    page: 'strategy-builder',
+    viewKind: 'index-definition',
+    archetype: 'document',
+    title: 'Index Definition'
+  })
+  const tab = useWorkspace.getState().tabs.find((candidate) => candidate.id === 'sidebar-def')
+
+  render(
+    <QueryClientProvider client={queries}>
+      <ClientContext.Provider value={client}>
+        <IndexDefinitionView tab={tab!} subject={undefined} />
+      </ClientContext.Provider>
+    </QueryClientProvider>
+  )
+  return { asked }
+}
+
+describe('opened with no document', () => {
+  it('never asks the engine for an index named after the view', async () => {
+    const { asked } = mountFromSidebar()
+    await screen.findByLabelText('Name')
+
+    expect(asked).not.toContain('Index Definition')
+  })
+
+  it('opens on the first stored index instead', async () => {
+    const { asked } = mountFromSidebar()
+    await screen.findByLabelText('Name')
+
+    expect(asked).toEqual(['TECH10'])
+    expect(screen.getByLabelText('Name')).toHaveValue(SAVED.name)
+  })
+})

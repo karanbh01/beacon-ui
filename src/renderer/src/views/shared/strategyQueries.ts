@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { components } from '@shared/api.generated'
 import { ApiError } from '../../api/errors'
+import { isDocumentId } from '../../api/ids'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
 
@@ -38,7 +39,9 @@ export function useIndex(indexId: string) {
       if (client === null) throw new Error('No engine')
       return client.indices.get(indexId, signal)
     },
-    enabled: client !== null && indexId !== ''
+    // Not merely non-empty: py-beacon 422s an id it cannot address, and a
+    // view that passed its own title here would ask for one.
+    enabled: client !== null && isDocumentId(indexId)
   })
 }
 
@@ -64,7 +67,7 @@ export function useUniverseMembers(universeId: string) {
       if (client === null) throw new Error('No engine')
       return client.universes.members(universeId, signal)
     },
-    enabled: client !== null && universeId !== ''
+    enabled: client !== null && isDocumentId(universeId)
   })
 }
 

@@ -3,9 +3,11 @@ import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
 import { useWorkspace } from '../../state/tabs.store'
+import { isDocumentId } from '../../api/ids'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import {
+  useIndices,
   usePreviewDocument,
   useSaveIndex,
   useUniverseMembers,
@@ -25,8 +27,25 @@ import './IndexDefinitionView.css'
  * The first document view in the app: it holds a draft, tracks dirty on the
  * tab, and has Validate / Revert / Save rather than a query bar.
  */
-export function IndexDefinitionView({ tab, pane }: ViewProps): ReactElement {
-  const indexId = tab.title
+export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactElement {
+  const indices = useIndices()
+  const catalogue = indices.data?.indices ?? []
+
+  /*
+   * A document tab carries its id in the title — that is how Index Overview
+   * and the palette open one, and the tab strip draws the id as the label.
+   * The sidebar opens this view with no document at all, and a title of
+   * "Index Definition", which is NOT an id: the engine answers a space with
+   * 422, and it used to answer 404, which this view reads as "a new index".
+   * So the blank editor everyone saw was a 404 being misread.
+   *
+   * Hence the title is used only when it could actually address a document.
+   * Otherwise fall back to the first stored index, as Universe Set does, so
+   * the sidebar entry opens on something real.
+   */
+  const chosen =
+    subject ?? tab.subject ?? tab.pinnedDoc ?? (isDocumentId(tab.title) ? tab.title : undefined)
+  const indexId = chosen ?? catalogue[0]?.id ?? ''
   const { draft, saved, dirty, loading, error, edit, revert, commit } = useIndexDraft(
     tab.id,
     indexId
@@ -42,8 +61,17 @@ export function IndexDefinitionView({ tab, pane }: ViewProps): ReactElement {
   const save = useSaveIndex()
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
+  // Only the fallback needs the catalogue; a tab that names its document
+  // must not wait on a list it will never read.
+  if (chosen === undefined && indices.isPending) return <ViewLoading what="indices" />
   if (loading) return <ViewLoading what={indexId} />
   if (error !== undefined) return <ViewError error={error} />
+
+  // Nothing to open rather than nothing found: an engine with no stored
+  // indices is a different sentence from an id it does not hold.
+  if (catalogue.length === 0 && indexId === '') {
+    return <ViewEmpty>This engine has no stored index definitions.</ViewEmpty>
+  }
   if (draft === undefined) {
     return <ViewEmpty>No index definition named “{indexId}” on this engine.</ViewEmpty>
   }

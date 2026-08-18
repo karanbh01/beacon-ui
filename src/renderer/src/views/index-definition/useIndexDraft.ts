@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError } from '../../api/errors'
+import { isDocumentId } from '../../api/ids'
 import { useWorkspace } from '../../state/tabs.store'
 import { useIndex } from '../shared/strategyQueries'
 import { blankIndex, isDirty, type IndexDocument } from './pipeline'
@@ -79,7 +80,9 @@ export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
     draft,
     saved,
     dirty,
-    loading: query.isPending && indexId !== '',
+    // Matched to the query's own enablement: an id py-beacon cannot address
+    // never fires, so reporting it as loading would spin forever.
+    loading: query.isPending && isDocumentId(indexId),
     error: query.isError && !missing ? query.error : undefined,
     edit,
     revert,
