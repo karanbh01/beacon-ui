@@ -5,12 +5,6 @@ import { spawn } from 'node:child_process'
 export const SYNTHETIC_MODULE = 'beacon.synthetic'
 
 /**
- * Matches the universe size the Figma frames quote, and the size at which the
- * per-name reference fan-out (#45) is visible rather than theoretical.
- */
-export const SYNTHETIC_ASSETS = 512
-
-/**
  * Pinned, so two machines and two runs see identical data.
  *
  * BU-35's screenshot diffs need that, and it removes one more place for
@@ -18,7 +12,17 @@ export const SYNTHETIC_ASSETS = 512
  */
 export const SYNTHETIC_SEED = 42
 
-/** Generation is not instant at 512 assets; well short of hanging, though. */
+/**
+ * Kept at three minutes because the cost is machine-dependent, and lowering it
+ * to match a fast one would turn a slow first launch into a hard failure.
+ *
+ * py-beacon reports the CLI's five thousand names over ten years at about
+ * fifteen seconds. Timed on this machine, cold, it took **109 seconds** — the
+ * same work, seven times the wall clock. Whatever the cause, the app must
+ * survive the slow end of that range: this timeout only ever fires on a
+ * generator that has genuinely wedged, and the price of it firing early is a
+ * first launch with no data at all.
+ */
 const GENERATE_TIMEOUT_MS = 180_000
 
 const PROBE_TIMEOUT_MS = 20_000
@@ -65,26 +69,31 @@ export interface GenerateOptions {
 }
 
 /**
- * Generate a synthetic store where the server auto-loads it.
+ * The command line, kept pure so what it does and does not say is testable.
  *
- * No `--out`: py-beacon's CLI already defaults to the app-data path its own
- * server reads, and naming it here would mean this module deciding something
- * the two of them already agree on.
+ * **Size and date window are the CLI's to choose.** Its defaults are the
+ * client-facing dataset — five thousand names over the ten years ending today
+ * — and are deliberately larger than the library's, which has to stay small
+ * enough for a test to depend on. This module used to pass `--assets 512`,
+ * which silently held the app at the old size after py-beacon widened its
+ * default, and cost the app REGION, COUNTRY and a CURRENCY column with more
+ * than one value: those arrived with BN-128 and only appear in a store
+ * generated after it.
  *
- * The date window is left to the CLI too. It defaults to the five years
- * ending today rather than the library's fixed span, because demo data that
- * stopped eighteen months ago reads as stale in every freshness indicator in
- * the app — a true statement about the data and a misleading one about us.
+ * No `--out` either, and for the same reason: py-beacon's CLI already
+ * defaults to the app-data path its own server reads.
  */
+export function generateArgs(options: GenerateOptions = {}): string[] {
+  const args = ['-m', SYNTHETIC_MODULE, '--seed', String(options.seed ?? SYNTHETIC_SEED)]
+  // Only when a caller genuinely means a different size — the CLI's own
+  // default is the right answer for the app.
+  if (options.assets !== undefined) args.push('--assets', String(options.assets))
+  return args
+}
+
+/** Generate a synthetic store where the server auto-loads it. */
 export function generateSynthetic(python: string, options: GenerateOptions = {}): Promise<void> {
-  const args = [
-    '-m',
-    SYNTHETIC_MODULE,
-    '--assets',
-    String(options.assets ?? SYNTHETIC_ASSETS),
-    '--seed',
-    String(options.seed ?? SYNTHETIC_SEED)
-  ]
+  const args = generateArgs(options)
 
   return new Promise((resolve, reject) => {
     const child = spawn(python, args, {

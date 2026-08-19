@@ -2,7 +2,7 @@
 
 **For:** py-beacon
 **From:** beacon-ui, BU-85
-**Status:** open
+**Status:** region and country delivered (BN-128); market cap outstanding
 
 ## What this is
 
@@ -72,9 +72,10 @@ fields, alongside `adv_3m`, resolved as of the same date the endpoint uses for
 computed from market data, they change daily, and a client should have to name
 them to pay for them.
 
-## What the client will do when these land
+## What the client does when these land
 
-Nothing. `filtersFor` in `src/renderer/src/views/universe/builder.ts` turns
+Nothing — which BN-128 demonstrated. Region, both country columns and a
+seven-valued currency became six new filters with no client change at all. `filtersFor` in `src/renderer/src/views/universe/builder.ts` turns
 every categorical column below 60 distinct values into a checkbox group and
 every numeric one into a range with a rank, sorted categories-first. A
 `REGION` column appears as a Region filter the moment it is returned, and a

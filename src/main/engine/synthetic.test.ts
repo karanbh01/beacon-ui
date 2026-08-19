@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SYNTHETIC_ASSETS, SYNTHETIC_SEED, shouldGenerate } from './synthetic'
+import { SYNTHETIC_SEED, generateArgs, shouldGenerate } from './synthetic'
 
 const NONE: NodeJS.ProcessEnv = {}
 
@@ -44,7 +44,20 @@ describe('generation defaults', () => {
     expect(SYNTHETIC_SEED).toBe(42)
   })
 
-  it('asks for the universe size the frames quote', () => {
-    expect(SYNTHETIC_ASSETS).toBe(512)
+  it('leaves the universe size to py-beacon', () => {
+    // This used to pass `--assets 512`, which pinned the app to the old size
+    // after py-beacon widened its client-facing default to five thousand —
+    // and cost the app the REGION, COUNTRY and multi-valued CURRENCY columns
+    // that only exist in a store generated after BN-128.
+    expect(generateArgs()).not.toContain('--assets')
+  })
+
+  it('still lets a caller ask for a different size on purpose', () => {
+    expect(generateArgs({ assets: 50 })).toContain('--assets')
+    expect(generateArgs({ assets: 50 })).toContain('50')
+  })
+
+  it('names no output path, because the CLI already writes where the server reads', () => {
+    expect(generateArgs()).not.toContain('--out')
   })
 })
