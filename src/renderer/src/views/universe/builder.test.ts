@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
-  applyFilters,
   checkManual,
   combine,
-  emptyFilters,
+  describeRow,
   filtersFor,
+  isComplete,
   labelFor,
-  noneChosen,
-  type Candidate
+  newRow,
+  runRows,
+  type Candidate,
+  type FilterRow
 } from './builder'
 
 /** The shape a real engine returns: uppercase columns, one derived field. */
@@ -78,71 +80,6 @@ describe('labelFor', () => {
   })
 })
 
-describe('applyFilters', () => {
-  it('returns everything when nothing is chosen', () => {
-    expect(applyFilters(POOL, emptyFilters())).toHaveLength(4)
-  })
-
-  it('narrows by a category', () => {
-    const filters = { ...emptyFilters(), categories: { SECTOR: ['Tech'] } }
-    expect(ids(applyFilters(POOL, filters))).toEqual(['A', 'B'])
-  })
-
-  it('treats several chosen values as OR within one filter', () => {
-    const filters = { ...emptyFilters(), categories: { SECTOR: ['Tech', 'Health'] } }
-    expect(ids(applyFilters(POOL, filters))).toEqual(['A', 'B', 'D'])
-  })
-
-  it('treats separate filters as AND', () => {
-    const filters = {
-      ...emptyFilters(),
-      categories: { SECTOR: ['Tech'], EXCHANGE: ['XNAS'] }
-    }
-    expect(ids(applyFilters(POOL, filters))).toEqual(['A'])
-  })
-
-  it('narrows by a numeric range, either end optional', () => {
-    expect(
-      ids(applyFilters(POOL, { ...emptyFilters(), ranges: { adv_3m: { min: 600 } } }))
-    ).toEqual(['A', 'C'])
-    expect(
-      ids(applyFilters(POOL, { ...emptyFilters(), ranges: { adv_3m: { max: 600 } } }))
-    ).toEqual(['B', 'D'])
-  })
-
-  it('ranks LAST, so "top 2 tech" is of the tech names', () => {
-    // The other order asks a different and almost always unintended question.
-    const filters = {
-      ...emptyFilters(),
-      categories: { SECTOR: ['Tech'] },
-      rank: { field: 'adv_3m', count: 2, direction: 'top' as const }
-    }
-    expect(ids(applyFilters(POOL, filters))).toEqual(['A', 'B'])
-  })
-
-  it('ranks top and bottom', () => {
-    const top = {
-      ...emptyFilters(),
-      rank: { field: 'adv_3m', count: 2, direction: 'top' as const }
-    }
-    const bottom = {
-      ...emptyFilters(),
-      rank: { field: 'adv_3m', count: 2, direction: 'bottom' as const }
-    }
-    expect(ids(applyFilters(POOL, top))).toEqual(['A', 'C'])
-    expect(ids(applyFilters(POOL, bottom))).toEqual(['D', 'B'])
-  })
-
-  it('drops names that cannot be ranked rather than guessing a value for them', () => {
-    const ragged = [...POOL, { identifier: 'E', fields: { SECTOR: 'Tech' } }]
-    const filters = {
-      ...emptyFilters(),
-      rank: { field: 'adv_3m', count: 9, direction: 'top' as const }
-    }
-    expect(ids(applyFilters(ragged, filters))).not.toContain('E')
-  })
-})
-
 describe('checkManual', () => {
   it('names what it could not find rather than dropping it', () => {
     // Finding out at save time, for one name out of forty, is no use.
@@ -161,26 +98,92 @@ describe('combine', () => {
   })
 })
 
-describe('noneChosen', () => {
-  it('is true for an untouched state, so the builder starts empty', () => {
+const SPECS = filtersFor(POOL)
+
+/** A complete row, so each test states only the part it is about. */
+function row(over: Partial<FilterRow> = {}): FilterRow {
+  return { ...newRow(over.kind ?? 'filter'), ...over }
+}
+
+describe('runRows', () => {
+  it('matches nothing until a row is complete', () => {
     // The difference between a filter and a builder: opening the form must
-    // not pre-select all 500 names in the dataset.
-    expect(noneChosen(emptyFilters())).toBe(true)
+    // not pre-select the whole dataset, and a half-built row must not either.
+    expect(runRows(POOL, [], SPECS).matched).toEqual([])
+    expect(runRows(POOL, [row()], SPECS).matched).toEqual([])
+    expect(runRows(POOL, [row({ field: 'SECTOR', values: [] })], SPECS).matched).toEqual([])
   })
 
-  it('is false once anything is set, including a rank on its own', () => {
-    expect(noneChosen({ categories: { SECTOR: ['Energy'] }, ranges: {} })).toBe(false)
-    expect(noneChosen({ categories: {}, ranges: { adv_3m: { min: 1 } } })).toBe(false)
-    expect(
-      noneChosen({
-        categories: {},
-        ranges: {},
-        rank: { field: 'adv_3m', count: 100, direction: 'top' }
-      })
-    ).toBe(false)
+  it('reports what survives each row, which is the whole point of the row', () => {
+    const rows = [
+      row({ field: 'EXCHANGE', values: ['XNAS', 'XLON'] }),
+      row({ field: 'SECTOR', values: ['Tech'] })
+    ]
+    const { matched, remaining } = runRows(POOL, rows, SPECS)
+
+    expect(remaining).toEqual([3, 2])
+    expect(ids(matched)).toEqual(['A', 'B'])
   })
 
-  it('ignores a cleared choice, which is not a choice', () => {
-    expect(noneChosen({ categories: { SECTOR: [] }, ranges: { adv_3m: {} } })).toBe(true)
+  it('says nothing rather than zero for a row that did nothing', () => {
+    // `—` on an incomplete row; a 0 would read as "this filter excluded
+    // everything", which is a different and alarming statement.
+    const { remaining } = runRows(POOL, [row(), row({ field: 'SECTOR', values: ['Tech'] })], SPECS)
+    expect(remaining).toEqual([undefined, 2])
+  })
+
+  it('applies rows in the order given, counts included', () => {
+    // Rank before a filter is a different question from rank after it, and
+    // the row order is how the user says which they meant. The panel this
+    // replaced always applied rank last, which quietly overrode them.
+    const rank = row({ kind: 'rank', field: 'adv_3m', count: 2 })
+    const tech = row({ field: 'SECTOR', values: ['Tech'] })
+
+    expect(ids(runRows(POOL, [tech, rank], SPECS).matched)).toEqual(['A', 'B'])
+    // Top two overall are A (900) and C (700); only A is Tech.
+    expect(ids(runRows(POOL, [rank, tech], SPECS).matched)).toEqual(['A'])
+  })
+
+  it('bounds a numeric row at either end', () => {
+    const only = row({ field: 'adv_3m', min: 600 })
+    expect(ids(runRows(POOL, [only], SPECS).matched)).toEqual(['A', 'C'])
+    expect(ids(runRows(POOL, [row({ field: 'adv_3m', max: 500 })], SPECS).matched)).toEqual([
+      'B',
+      'D'
+    ])
+  })
+
+  it('drops a name it cannot rank rather than sorting it to one end', () => {
+    const pool: Candidate[] = [...POOL, { identifier: 'E', fields: { SECTOR: 'Tech' } }]
+    const rank = row({ kind: 'rank', field: 'adv_3m', count: 10 })
+    expect(ids(runRows(pool, [rank], filtersFor(pool)).matched)).not.toContain('E')
+  })
+})
+
+describe('isComplete', () => {
+  it('needs a dimension before anything else', () => {
+    expect(isComplete(row({ values: ['Tech'] }), SPECS)).toBe(false)
+  })
+
+  it('needs a count on a rank row, and a numeric field to rank by', () => {
+    expect(isComplete(row({ kind: 'rank', field: 'adv_3m' }), SPECS)).toBe(false)
+    expect(isComplete(row({ kind: 'rank', field: 'adv_3m', count: 5 }), SPECS)).toBe(true)
+    expect(isComplete(row({ kind: 'rank', field: 'SECTOR', count: 5 }), SPECS)).toBe(false)
+  })
+})
+
+describe('describeRow', () => {
+  it('reads as a sentence, so the row says what it does', () => {
+    expect(describeRow(row({ field: 'SECTOR', values: ['Tech', 'Health'] }), SPECS)).toBe(
+      'Sector is Tech or Health'
+    )
+    expect(describeRow(row({ kind: 'rank', field: 'adv_3m', count: 10 }), SPECS)).toBe(
+      'top 10 by Adv 3m'
+    )
+    expect(describeRow(row({ field: 'adv_3m', min: 600 }), SPECS)).toBe('Adv 3m at least 600')
+  })
+
+  it('asks for what it is missing', () => {
+    expect(describeRow(row(), SPECS)).toBe('Choose a dimension')
   })
 })

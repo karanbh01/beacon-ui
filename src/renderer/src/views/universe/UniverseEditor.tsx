@@ -5,18 +5,16 @@ import { Card } from '../../components/Card/Card'
 import { Field } from '../../components/Field/Field'
 import { Table, type Column } from '../../components/Table/Table'
 import {
-  applyFilters,
   checkManual,
   combine,
-  emptyFilters,
   filtersFor,
-  noneChosen,
+  runRows,
   type Candidate,
-  type FilterState
+  type FilterRow
 } from './builder'
 import { addMember, draftProblem, parseMembers, removeMember, type DraftUniverse } from './members'
 import { billions, buildRow, volume, type UniverseRow } from './universe'
-import { UniverseFilters } from './UniverseFilters'
+import { FilterRows } from './FilterRows'
 import './UniverseEditor.css'
 
 export interface UniverseEditorProps {
@@ -89,22 +87,15 @@ export function UniverseEditor({
   loading = false
 }: UniverseEditorProps): ReactElement {
   const [paste, setPaste] = useState('')
-  const [filters, setFilters] = useState<FilterState>(emptyFilters)
+  const [rows, setRows] = useState<FilterRow[]>([])
 
   const specs = useMemo(() => filtersFor(pool), [pool])
-  const rankable = useMemo(
-    () => specs.filter((spec) => spec.kind === 'range').map((spec) => spec.field),
-    [specs]
-  )
   const known = useMemo(() => new Set(pool.map((candidate) => candidate.identifier)), [pool])
 
-  // Untouched filters contribute nothing rather than everything — see
-  // `noneChosen`. The builder adds to a membership; it does not whittle the
-  // dataset down.
-  const matched = useMemo(
-    () => (noneChosen(filters) ? [] : applyFilters(pool, filters)),
-    [pool, filters]
-  )
+  // No complete row contributes nothing rather than everything: the builder
+  // adds to a membership, it does not whittle the dataset down.
+  const run = useMemo(() => runRows(pool, rows, specs), [pool, rows, specs])
+  const matched = run.matched
   const manual = useMemo(() => checkManual(draft.members, known), [draft.members, known])
 
   // What will actually be saved: the filtered set plus anything added by hand.
@@ -114,7 +105,7 @@ export function UniverseEditor({
     () => new Map(pool.map((candidate) => [candidate.identifier, candidate.fields])),
     [pool]
   )
-  const rows = members.map((identifier, index) =>
+  const tableRows = members.map((identifier, index) =>
     buildRow(identifier, index + 1, byIdentifier.get(identifier), byIdentifier.has(identifier))
   )
 
@@ -176,7 +167,7 @@ export function UniverseEditor({
       )}
 
       {!loading && pool.length > 0 && (
-        <UniverseFilters specs={specs} state={filters} rankable={rankable} onChange={setFilters} />
+        <FilterRows specs={specs} rows={rows} remaining={run.remaining} onChange={setRows} />
       )}
 
       <div className="universe-editor-manual">
@@ -233,9 +224,14 @@ export function UniverseEditor({
         </p>
       )}
 
-      {rows.length > 0 && (
+      {tableRows.length > 0 && (
         <div className="universe-editor-preview">
-          <Table columns={COLUMNS} rows={rows} getRowId={(row) => row.ticker} maxBodyHeight={320} />
+          <Table
+            columns={COLUMNS}
+            rows={tableRows}
+            getRowId={(row) => row.ticker}
+            maxBodyHeight={320}
+          />
         </div>
       )}
 

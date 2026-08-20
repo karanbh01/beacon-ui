@@ -1,0 +1,130 @@
+/*
+ * Filter rows (BU-90), drawn to the same grammar as Methodology.css — index
+ * number, badge, controls, right-aligned outcome, actions on hover.
+ *
+ * Where they differ: a rule row opens an editor beneath it, and a filter row
+ * carries its controls inline. A filter has two fields where a rule has any
+ * number of parameters, and the point of the row is to see the count move as
+ * the values change, which a separate editor panel would put behind a click.
+ */
+
+.filter-rows {
+  margin-top: 14px;
+  border-top: 1px solid var(--divider);
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 4px 8px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+/* Tabular so the column stays straight as rows are added past nine. */
+.filter-row-index {
+  flex: none;
+  width: 18px;
+  padding-left: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.filter-row-input {
+  padding: 3px 6px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--chrome-search-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.filter-row-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.filter-row-narrow {
+  width: 84px;
+}
+
+/*
+ * A multi-select rather than a checkbox group.
+ *
+ * Sub industry has 33 values and country of domicile 15 — as checkboxes that
+ * is the wall of controls this replaced, one row at a time. Three visible
+ * options scroll, keep the row close to the 34px rhythm the methodology rows
+ * use, and stay keyboard-reachable without a custom widget.
+ */
+.filter-row-values {
+  width: 190px;
+  padding: 2px;
+}
+
+.filter-row-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+/* The funnel figure — "1,204 pass" — against the right edge, as rules are. */
+.filter-row-outcome {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+/*
+ * Revealed on hover, as in Methodology: a permanent "↑ ↓ ×" on every row is
+ * noise, and it competes with the outcome for the same edge. `opacity` rather
+ * than `display: none` keeps them in the tab order, and `:focus-within` shows
+ * them when a keyboard arrives.
+ */
+.filter-row-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding-right: 8px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.filter-row:hover .filter-row-actions,
+.filter-row:focus-within .filter-row-actions {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-row-actions {
+    transition-duration: 1ms;
+  }
+}
+
+.filter-row-action {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.filter-row-action:hover {
+  color: var(--text-primary);
+  background: var(--sidebar-active-bg);
+}
+
+.filter-row-action:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}

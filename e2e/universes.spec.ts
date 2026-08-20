@@ -83,11 +83,16 @@ test('a universe is built by filtering the dataset, and previewed before it is s
 
   await window.getByRole('button', { name: 'New universe…' }).click()
   await window.getByRole('textbox', { name: 'Universe name' }).fill('Health Names')
-  await window.getByRole('checkbox', { name: 'Health Care' }).check()
 
-  // The point of the table: what the filter matched is on screen, with its
-  // detail, before anything is stored.
+  // A row at a time, as the index designer is built (BU-90).
+  await window.getByRole('button', { name: /Add filter/ }).click()
+  await window.getByLabel('Row 01 dimension').selectOption('gics_sector')
+  await window.getByLabel('Row 01 values').selectOption(['Health Care'])
+
   const editor = window.locator('.universe-editor')
+  // The count the row itself reports, which is what says whether the filter
+  // did what you meant before you save it.
+  await expect(editor.getByText('40 pass')).toBeVisible()
   await expect(editor.getByText('40 members', { exact: false })).toBeVisible()
   await expect(editor.locator('.tbl-row').first()).toBeVisible()
 

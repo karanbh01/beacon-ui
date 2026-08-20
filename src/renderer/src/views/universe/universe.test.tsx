@@ -188,9 +188,9 @@ describe('UniverseView', () => {
  * builder quietly filtering over whatever universe happened to be selected.
  */
 const POOL = [
-  { identifier: 'AAA', sector: 'Technology', adv: 5_000_000 },
-  { identifier: 'BBB', sector: 'Technology', adv: 1_000_000 },
-  { identifier: 'CCC', sector: 'Energy', adv: 3_000_000 }
+  { identifier: 'AAA', sector: 'Technology', exchange: 'XNAS', adv: 5_000_000 },
+  { identifier: 'BBB', sector: 'Technology', exchange: 'XLON', adv: 1_000_000 },
+  { identifier: 'CCC', sector: 'Energy', exchange: 'XNAS', adv: 3_000_000 }
 ]
 
 interface Created {
@@ -233,6 +233,7 @@ function mountBuilder(): Created[] {
               fields: {
                 NAME: `${id} Corp`,
                 SECTOR: entry?.sector ?? 'Financials',
+                EXCHANGE: entry?.exchange ?? 'XETR',
                 adv_3m: entry?.adv ?? 100
               }
             }
@@ -263,26 +264,82 @@ async function openBuilder(): Promise<{ editor: HTMLElement; created: Created[] 
   return { editor, created }
 }
 
-describe('the universe builder', () => {
-  it('derives one filter per reference column rather than a hard-coded five', async () => {
-    // Karan asked for region, country, sector, market cap and rank. The
-    // engine's reference frame carries none of the first, second or fourth —
-    // so the controls come from the columns that came back, and the missing
-    // ones appear on their own the day py-beacon publishes them.
-    const { editor } = await openBuilder()
+/** Add a filter row and fill it in, as the user would. */
+async function addFilter(editor: HTMLElement, dimension: string, values: string[]): Promise<void> {
+  const before = within(editor).queryAllByLabelText(/^Row \d+ dimension$/).length
+  await userEvent.click(within(editor).getByRole('button', { name: /Add filter/ }))
 
-    // By legend: the preview table below carries a Sector column of its own.
-    const legend = { selector: 'legend' }
-    expect(await within(editor).findByText('Sector', legend)).toBeInTheDocument()
-    expect(within(editor).getByText('Adv 3m', legend)).toBeInTheDocument()
-    expect(within(editor).getByText('Rank', legend)).toBeInTheDocument()
-    // NAME is an identity, not a dimension.
-    expect(within(editor).queryByText('Name', { selector: 'legend' })).toBeNull()
+  const number = String(before + 1).padStart(2, '0')
+  await userEvent.selectOptions(
+    await within(editor).findByLabelText(`Row ${number} dimension`),
+    dimension
+  )
+  await userEvent.selectOptions(within(editor).getByLabelText(`Row ${number} values`), values)
+}
+
+describe('the universe builder', () => {
+  it('opens with no filters at all, just a slot to add one', async () => {
+    // The panel this replaced drew every dimension at once: seven fieldsets
+    // and 67 checkboxes before the user had said anything.
+    const { editor } = await openBuilder()
+    await within(editor).findByRole('button', { name: /Add filter/ })
+
+    expect(within(editor).queryAllByLabelText(/^Row \d+ dimension$/)).toHaveLength(0)
+    expect(within(editor).queryByText(/pass/)).toBeNull()
   })
 
-  it('shows what a filter matched as a table of tickers, before anything is saved', async () => {
+  it('offers a dimension per reference column, not a hard-coded five', async () => {
+    // Region, country and market cap are whatever the engine returns. The
+    // controls are generated, so this also proves the reference batch was not
+    // rejected — an unknown column is a hard 422 and would leave none at all.
     const { editor } = await openBuilder()
-    await userEvent.click(await within(editor).findByLabelText('Technology'))
+    await userEvent.click(await within(editor).findByRole('button', { name: /Add filter/ }))
+
+    const options = within(within(editor).getByLabelText('Row 01 dimension'))
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+
+    expect(options).toContain('Sector')
+    expect(options).toContain('Adv 3m')
+    // An identity, not a dimension.
+    expect(options).not.toContain('Name')
+  })
+
+  it('shows what a row left behind, on the row', async () => {
+    const { editor } = await openBuilder()
+    await addFilter(editor, 'SECTOR', ['Technology'])
+
+    expect(within(editor).getByText('2 pass')).toBeInTheDocument()
+    expect(within(editor).getByText('Sector is Technology')).toBeInTheDocument()
+  })
+
+  it('narrows again on a second row, and says so', async () => {
+    // The whole reason the count is per row rather than one total at the top:
+    // 5,000 narrowed to 12 is either three sensible filters or one mistake.
+    const { editor } = await openBuilder()
+    await addFilter(editor, 'SECTOR', ['Technology'])
+    await addFilter(editor, 'EXCHANGE', ['XNAS'])
+
+    expect(within(editor).getByText('2 pass')).toBeInTheDocument()
+    expect(within(editor).getByText('1 pass')).toBeInTheDocument()
+  })
+
+  it('restores the count beneath a row that is removed', async () => {
+    const { editor } = await openBuilder()
+    await addFilter(editor, 'SECTOR', ['Technology'])
+    await addFilter(editor, 'EXCHANGE', ['XNAS'])
+    await userEvent.click(within(editor).getByRole('button', { name: 'Remove row 01' }))
+
+    // The exchange row now sees the whole pool rather than the sector's half,
+    // so CCC comes back and the count goes UP.
+    expect(within(editor).getByText('Exchange is XNAS')).toBeInTheDocument()
+    expect(within(editor).getByText('2 pass')).toBeInTheDocument()
+    expect(within(editor).queryByText('1 pass')).toBeNull()
+  })
+
+  it('previews the matched names as a table, before anything is saved', async () => {
+    const { editor } = await openBuilder()
+    await addFilter(editor, 'SECTOR', ['Technology'])
 
     expect(within(editor).getByText('AAA Corp')).toBeInTheDocument()
     expect(within(editor).getByText('BBB Corp')).toBeInTheDocument()
@@ -295,7 +352,7 @@ describe('the universe builder', () => {
     // the engine refuses an unknown member, and finding that out at save time
     // for one name out of forty is no use.
     const { editor } = await openBuilder()
-    await within(editor).findByText('Sector', { selector: 'legend' })
+    await within(editor).findByRole('button', { name: /Add filter/ })
 
     await userEvent.type(within(editor).getByLabelText('Paste identifiers'), 'CCC, NOPE')
     await userEvent.click(within(editor).getByRole('button', { name: 'Add pasted' }))
@@ -304,10 +361,10 @@ describe('the universe builder', () => {
     expect(within(editor).getByText(/not in the dataset: NOPE/)).toBeInTheDocument()
   })
 
-  it('saves the filtered names and the hand-added ones together', async () => {
+  it('saves the matched names and the hand-added ones together', async () => {
     const { editor, created } = await openBuilder()
 
-    await userEvent.click(await within(editor).findByLabelText('Energy'))
+    await addFilter(editor, 'SECTOR', ['Energy'])
     await userEvent.type(within(editor).getByLabelText('Universe name'), 'Mine')
     await userEvent.type(within(editor).getByLabelText('Paste identifiers'), 'AAA')
     await userEvent.click(within(editor).getByRole('button', { name: 'Add pasted' }))
@@ -317,14 +374,16 @@ describe('the universe builder', () => {
     expect(created[0]?.identifiers).toEqual(['CCC', 'AAA'])
   })
 
-  it('ranks last, so "the top one by volume in tech" is not "tech among the top one"', async () => {
+  it('applies a rank where the user put it, not always last', async () => {
     const { editor } = await openBuilder()
-    await userEvent.click(await within(editor).findByLabelText('Technology'))
+    await addFilter(editor, 'SECTOR', ['Technology'])
 
-    await userEvent.type(within(editor).getByLabelText('Rank count'), '1')
+    await userEvent.click(within(editor).getByRole('button', { name: /Add rank/ }))
+    await userEvent.selectOptions(within(editor).getByLabelText('Row 02 dimension'), 'adv_3m')
+    await userEvent.type(within(editor).getByLabelText('Row 02 count'), '1')
 
-    // CCC is not the answer even though it out-trades BBB: the sector filter
-    // applies first.
+    // AAA out-trades BBB, and CCC out-trades BBB too — but the sector row ran
+    // first, so CCC was never a candidate.
     expect(within(editor).getByText('AAA Corp')).toBeInTheDocument()
     expect(within(editor).queryByText('BBB Corp')).toBeNull()
     expect(within(editor).queryByText('CCC Corp')).toBeNull()
