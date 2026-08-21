@@ -274,7 +274,14 @@ async function addFilter(editor: HTMLElement, dimension: string, values: string[
     await within(editor).findByLabelText(`Row ${number} dimension`),
     dimension
   )
-  await userEvent.selectOptions(within(editor).getByLabelText(`Row ${number} values`), values)
+
+  // The values control is a checkbox dropdown (BU-91), so open it, tick, and
+  // dismiss — a panel left open would sit over whatever the test looks at next.
+  await userEvent.click(within(editor).getByRole('button', { name: `Row ${number} values` }))
+  for (const value of values) {
+    await userEvent.click(within(editor).getByRole('checkbox', { name: value }))
+  }
+  await userEvent.keyboard('{Escape}')
 }
 
 describe('the universe builder', () => {

@@ -87,7 +87,9 @@ test('a universe is built by filtering the dataset, and previewed before it is s
   // A row at a time, as the index designer is built (BU-90).
   await window.getByRole('button', { name: /Add filter/ }).click()
   await window.getByLabel('Row 01 dimension').selectOption('gics_sector')
-  await window.getByLabel('Row 01 values').selectOption(['Health Care'])
+  await window.getByRole('button', { name: 'Row 01 values' }).click()
+  await window.getByRole('checkbox', { name: 'Health Care' }).check()
+  await window.keyboard.press('Escape')
 
   const editor = window.locator('.universe-editor')
   // The count the row itself reports, which is what says whether the filter

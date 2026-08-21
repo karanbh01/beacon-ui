@@ -18,7 +18,7 @@
   gap: 8px;
   align-items: center;
   min-height: 34px;
-  padding: 8px 4px 8px 0;
+  padding: 4px 4px 4px 0;
   border-bottom: 1px solid var(--divider);
 }
 
@@ -31,12 +31,20 @@
   color: var(--text-muted);
 }
 
+/*
+ * The number boxes only — every dropdown in a row is now `Select` or
+ * `CheckSelect`, which carry the app's own box.
+ *
+ * This used to style raw `<select>` elements with `--chrome-search-bg`, the
+ * title-bar search token. It never matched the view it sat in, and in dark
+ * mode the mismatch was flagrant (BU-91).
+ */
 .filter-row-input {
-  padding: 3px 6px;
+  padding: 4px 8px;
   font-family: var(--font-ui);
   font-size: 11px;
   color: var(--text-primary);
-  background: var(--chrome-search-bg);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 4px;
 }
@@ -50,17 +58,9 @@
   width: 84px;
 }
 
-/*
- * A multi-select rather than a checkbox group.
- *
- * Sub industry has 33 values and country of domicile 15 — as checkboxes that
- * is the wall of controls this replaced, one row at a time. Three visible
- * options scroll, keep the row close to the 34px rhythm the methodology rows
- * use, and stay keyboard-reachable without a custom widget.
- */
-.filter-row-values {
-  width: 190px;
-  padding: 2px;
+/* Wide enough for a sector name without pushing the summary off the row. */
+.filter-row-dimension {
+  min-width: 132px;
 }
 
 .filter-row-summary {

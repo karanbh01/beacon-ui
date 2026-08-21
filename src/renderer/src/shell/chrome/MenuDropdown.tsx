@@ -18,7 +18,7 @@ export interface MenuDropdownProps {
  * a roving highlight, Home/End jump, and the whole bar behaves as one
  * component while any of it is open. Wrapping a dialog to get that would mean
  * fighting its focus handling rather than reusing it. What IS shared is the
- * surface, which lives in chrome/surface.css and is consumed by both.
+ * surface, which lives in tokens/surface.css and is consumed by both.
  *
  * Dismissal is owned by the bar rather than by each menu, because hovering
  * from one open menu to a sibling has to switch rather than close-and-open.
@@ -86,7 +86,7 @@ export function MenuDropdown({
   return (
     <div
       ref={list}
-      className="chrome-surface menu-dropdown"
+      className="dropdown-surface menu-dropdown"
       role="menu"
       aria-label={menu.label}
       tabIndex={-1}

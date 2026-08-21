@@ -1,8 +1,8 @@
-@import './surface.css';
+@import '../../tokens/surface.css';
 
 /*
- * A menu-bar dropdown (BU-76). The surface comes from `.chrome-surface`, so
- * the border and radius are the search dropdown's own — see surface.css.
+ * A menu-bar dropdown (BU-76). The surface comes from `.dropdown-surface`, so
+ * the border and radius are the search dropdown's own — see tokens/surface.css.
  */
 .menu-dropdown {
   position: absolute;

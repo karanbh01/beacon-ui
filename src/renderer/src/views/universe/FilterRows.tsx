@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react'
 import { AddSlot } from '../../components/AddSlot/AddSlot'
 import { Badge } from '../../components/Badge/Badge'
+import { CheckSelect } from '../../components/CheckSelect/CheckSelect'
+import { Select } from '../../components/Select/Select'
 import { describeRow, newRow, type FilterRow, type FilterSpec } from './builder'
 import './FilterRows.css'
 
@@ -113,28 +115,20 @@ function Row({
       <span className="filter-row-index type-11">{number}</span>
       <Badge>{row.kind === 'rank' ? 'Rank' : 'Filter'}</Badge>
 
-      <select
-        className="filter-row-input"
-        aria-label={`Row ${number} dimension`}
+      <Select
+        className="filter-row-dimension"
+        label={`Row ${number} dimension`}
+        placeholder="Choose…"
         value={row.field}
-        onChange={(event) => {
+        options={[
+          { value: '', label: 'Choose…' },
+          ...specs.map((candidate) => ({ value: candidate.field, label: candidate.label }))
+        ]}
+        onChange={(field) => {
           // Values and bounds belong to the old dimension, so they go with it.
-          onChange({
-            ...row,
-            field: event.target.value,
-            values: [],
-            min: undefined,
-            max: undefined
-          })
+          onChange({ ...row, field, values: [], min: undefined, max: undefined })
         }}
-      >
-        <option value="">Choose…</option>
-        {specs.map((candidate) => (
-          <option key={candidate.field} value={candidate.field}>
-            {candidate.label}
-          </option>
-        ))}
-      </select>
+      />
 
       <RowControls row={row} spec={spec} number={number} onChange={onChange} />
 
@@ -178,17 +172,17 @@ function RowControls({ row, spec, number, onChange }: ControlProps): ReactElemen
   if (row.kind === 'rank') {
     return (
       <>
-        <select
-          className="filter-row-input filter-row-narrow"
-          aria-label={`Row ${number} direction`}
+        <Select
+          label={`Row ${number} direction`}
           value={row.direction}
-          onChange={(event) => {
-            onChange({ ...row, direction: event.target.value === 'bottom' ? 'bottom' : 'top' })
+          options={[
+            { value: 'top', label: 'Top' },
+            { value: 'bottom', label: 'Bottom' }
+          ]}
+          onChange={(direction) => {
+            onChange({ ...row, direction: direction === 'bottom' ? 'bottom' : 'top' })
           }}
-        >
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
-        </select>
+        />
         <input
           className="filter-row-input filter-row-narrow"
           inputMode="numeric"
@@ -205,25 +199,14 @@ function RowControls({ row, spec, number, onChange }: ControlProps): ReactElemen
 
   if (spec.kind === 'category') {
     return (
-      <select
-        className="filter-row-input filter-row-values"
-        multiple
-        size={3}
-        aria-label={`Row ${number} values`}
+      <CheckSelect
+        label={`Row ${number} values`}
+        options={spec.values ?? []}
         value={row.values}
-        onChange={(event) => {
-          onChange({
-            ...row,
-            values: [...event.target.selectedOptions].map((option) => option.value)
-          })
+        onChange={(values) => {
+          onChange({ ...row, values })
         }}
-      >
-        {(spec.values ?? []).map((value) => (
-          <option key={value} value={value}>
-            {value}
-          </option>
-        ))}
-      </select>
+      />
     )
   }
 

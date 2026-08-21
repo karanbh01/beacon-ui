@@ -190,9 +190,9 @@
   right: 0;
   left: 0;
   z-index: 40;
-  /* Shared with the menu dropdowns — see chrome/surface.css. */
-  border: 1px solid var(--chrome-surface-stroke);
-  border-radius: var(--chrome-surface-radius);
+  /* Shared with the menu dropdowns — see tokens/surface.css. */
+  border: 1px solid var(--dropdown-surface-stroke);
+  border-radius: var(--dropdown-surface-radius);
   overflow: hidden;
   -webkit-app-region: no-drag;
 }
@@ -200,7 +200,7 @@
 /* Glass only once open; closed, the field row's own fill is the whole box. */
 .menu-bar-search-surface-open {
   background: var(--glass);
-  box-shadow: var(--chrome-surface-shadow);
+  box-shadow: var(--dropdown-surface-shadow);
 }
 
 @supports (backdrop-filter: blur(3px)) {

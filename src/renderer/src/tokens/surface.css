@@ -1,11 +1,16 @@
 /*
- * The chrome's dropdown surface, defined once (BU-76).
+ * The dropdown surface, defined once (BU-76).
  *
  * The search dropdown's container drew its own border and radius, and the
  * menu dropdowns are specified to match it exactly. Restating `1px solid
  * var(--chrome-search-stroke)` in a second file is how two surfaces that are
  * meant to be identical drift — so the values live here and both consume
  * them.
+ *
+ * It lived under `shell/chrome/` while the chrome was the only thing with a
+ * dropdown. BU-91 gave a VIEW one — the filter rows' checkbox list — and a
+ * component reaching into the shell for its styling is the wrong direction,
+ * so it moved here where both layers can read it.
  *
  * The background is the app background token rather than the `--glass` fill
  * the popovers use. That is Karan's call for these menus: a File menu is a
@@ -15,15 +20,15 @@
  * issue does not ask for it to move.
  */
 :root {
-  --chrome-surface-bg: var(--canvas);
-  --chrome-surface-stroke: var(--chrome-search-stroke);
-  --chrome-surface-radius: 5px;
-  --chrome-surface-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+  --dropdown-surface-bg: var(--canvas);
+  --dropdown-surface-stroke: var(--chrome-search-stroke);
+  --dropdown-surface-radius: 5px;
+  --dropdown-surface-shadow: 0 4px 6px rgb(0 0 0 / 15%);
 }
 
-.chrome-surface {
-  background: var(--chrome-surface-bg);
-  border: 1px solid var(--chrome-surface-stroke);
-  border-radius: var(--chrome-surface-radius);
-  box-shadow: var(--chrome-surface-shadow);
+.dropdown-surface {
+  background: var(--dropdown-surface-bg);
+  border: 1px solid var(--dropdown-surface-stroke);
+  border-radius: var(--dropdown-surface-radius);
+  box-shadow: var(--dropdown-surface-shadow);
 }
