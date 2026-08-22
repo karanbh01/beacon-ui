@@ -65,16 +65,23 @@ export const REFERENCE_BATCH_LIMIT = 1000
  */
 export function useReferenceBatch(
   identifiers: readonly string[],
-  fields: readonly string[] = TABLE_REFERENCE_FIELDS
+  fields: readonly string[] = TABLE_REFERENCE_FIELDS,
+  /**
+   * Point-in-time (BU-92). Empty means today. The engine returns only rows
+   * valid on this date, marking the rest `found: false` — the definition of
+   * "valid then" is py-beacon's, and reimplementing it here from DATE_FROM
+   * and DATE_TO would be a second copy to keep in step.
+   */
+  date = ''
 ) {
   const client = useBeacon()
   const wanted = identifiers.slice(0, REFERENCE_BATCH_LIMIT)
 
   return useQuery({
-    queryKey: keys.data.referenceBatch(wanted, fields),
+    queryKey: keys.data.referenceBatch(wanted, fields, date),
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.data.referenceBatch(wanted, fields, signal)
+      return client.data.referenceBatch(wanted, fields, date, signal)
     },
     enabled: client !== null && wanted.length > 0
   })

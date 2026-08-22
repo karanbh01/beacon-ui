@@ -23,8 +23,8 @@ export const keys = {
     // Keyed by the identifiers AND the fields: asking for adv_3m is a
     // different request from asking for names, and caching them as one
     // would serve a hit that is missing the column the caller wanted.
-    referenceBatch: (identifiers: readonly string[], fields: readonly string[]) =>
-      ['data', 'reference-batch', identifiers.join(','), fields.join(',')] as const,
+    referenceBatch: (identifiers: readonly string[], fields: readonly string[], date = '') =>
+      ['data', 'reference-batch', identifiers.join(','), fields.join(','), date] as const,
     corporateActions: (identifier: string, params?: Record<string, unknown>) =>
       ['data', 'corporate-actions', identifier, params ?? {}] as const,
     // Keyed by the fragment, so typing on reuses nothing and typing BACK to

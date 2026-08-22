@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -394,5 +394,105 @@ describe('the universe builder', () => {
     expect(within(editor).getByText('AAA Corp')).toBeInTheDocument()
     expect(within(editor).queryByText('BBB Corp')).toBeNull()
     expect(within(editor).queryByText('CCC Corp')).toBeNull()
+  })
+})
+
+/**
+ * Point in time (BU-92).
+ *
+ * A universe outlives its members. The engine answers `found: false` for a
+ * name whose reference row is not valid on the requested date, and the view
+ * must read that as "not listed then" rather than "no data".
+ */
+const LISTED_LATE = 'BBB'
+
+function mountPointInTime(): { dates: (string | undefined)[] } {
+  const dates: (string | undefined)[] = []
+  const queries = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+
+  const client = {
+    universes: {
+      list: () => Promise.resolve({ universes: [{ id: 'HIST', name: 'Historic' }] }),
+      members: () => Promise.resolve({ universe_id: 'HIST', identifiers: ['AAA', LISTED_LATE] })
+    },
+    data: {
+      referenceBatch: (
+        identifiers: readonly string[],
+        _fields: readonly string[] | undefined,
+        date: string | undefined
+      ) => {
+        dates.push(date)
+        return Promise.resolve({
+          as_of: date ?? '2026-08-04',
+          entries: identifiers.map((id) => {
+            const listed = date === undefined || date === '' || id !== LISTED_LATE
+            return {
+              identifier: id,
+              found: listed,
+              fields: listed ? { NAME: `${id} Corp`, SECTOR: 'Energy' } : null
+            }
+          })
+        })
+      }
+    }
+  } as unknown as BeaconClient
+
+  const tab = useWorkspace.getState().tabs[0]
+  render(
+    <QueryClientProvider client={queries}>
+      <ClientContext.Provider value={client}>
+        <UniverseView tab={tab!} subject={undefined} />
+      </ClientContext.Provider>
+    </QueryClientProvider>
+  )
+  return { dates }
+}
+
+describe('a universe as it stood on a date', () => {
+  it('asks for today until a date is set, so nothing changes by default', async () => {
+    const { dates } = mountPointInTime()
+    await screen.findByText('AAA')
+
+    expect(dates).toEqual([''])
+    expect(screen.getByText(LISTED_LATE)).toBeInTheDocument()
+    expect(screen.getByText('2 assets', { exact: false })).toBeInTheDocument()
+  })
+
+  it('passes the date to the engine rather than filtering here', async () => {
+    // py-beacon owns what "valid then" means; a second implementation off
+    // DATE_FROM and DATE_TO would be one more thing to keep in step.
+    const { dates } = mountPointInTime()
+    await screen.findByText('AAA')
+
+    await userEvent.type(screen.getByLabelText('As of'), '2018-01-02')
+    await waitFor(() => {
+      expect(dates).toContain('2018-01-02')
+    })
+  })
+
+  it('drops a name that was not listed then, rather than drawing it blank', async () => {
+    const { dates } = mountPointInTime()
+    await screen.findByText('AAA')
+    await userEvent.type(screen.getByLabelText('As of'), '2018-01-02')
+
+    await waitFor(() => {
+      expect(dates).toContain('2018-01-02')
+    })
+    await waitFor(() => {
+      expect(screen.queryByText(LISTED_LATE)).toBeNull()
+    })
+    expect(screen.getByText('AAA')).toBeInTheDocument()
+  })
+
+  it('says how many of the stored members were not listed then', async () => {
+    // "512 assets" and "487 assets as of 2021-03-31" are different claims.
+    mountPointInTime()
+    await screen.findByText('AAA')
+    await userEvent.type(screen.getByLabelText('As of'), '2018-01-02')
+
+    await waitFor(() => {
+      expect(screen.getByText(/as of 2018-01-02/)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/1 of the stored 2 were not listed then/)).toBeInTheDocument()
   })
 })

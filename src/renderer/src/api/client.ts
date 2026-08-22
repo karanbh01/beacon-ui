@@ -161,9 +161,11 @@ export interface BeaconClient {
      * reachable at all, since the endpoint returns stored columns by default
      * and derived ones only when asked for.
      */
+    /** `date` is point-in-time: the engine returns only rows valid then. */
     referenceBatch: (
       identifiers: readonly string[],
       fields?: readonly string[],
+      date?: string,
       signal?: AbortSignal
     ) => Promise<ResponseOf<'/data/reference'>>
     corporateActions: (
@@ -371,11 +373,12 @@ export function createClient(options: ClientOptions): BeaconClient {
           params: { identifier },
           ...(signal === undefined ? {} : { signal })
         }),
-      referenceBatch: (identifiers, fields, signal) =>
+      referenceBatch: (identifiers, fields, date, signal) =>
         get('/data/reference', {
           query: {
             identifiers: [...identifiers],
-            ...(fields === undefined ? {} : { fields: [...fields] })
+            ...(fields === undefined ? {} : { fields: [...fields] }),
+            ...(date === undefined || date === '' ? {} : { date })
           },
           ...(signal === undefined ? {} : { signal })
         }),

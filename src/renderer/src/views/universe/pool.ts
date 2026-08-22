@@ -28,8 +28,11 @@ export interface CandidatePool {
  * @param active Fetch only while the builder is open. The pool is 500+ names
  *   and a reference batch, which is not worth pulling for a user who opened
  *   the view to read the table.
+ * @param date Point-in-time, empty for today (BU-92). The pool follows the
+ *   table's as-of date: filtering over today's names underneath a table
+ *   showing March 2021 would be two halves of one pane disagreeing.
  */
-export function useCandidatePool(active: boolean): CandidatePool {
+export function useCandidatePool(active: boolean, date = ''): CandidatePool {
   const universes = useUniverses()
   const seeded = universes.data?.universes.find((universe) => universe.source === 'seeded')
 
@@ -38,15 +41,19 @@ export function useCandidatePool(active: boolean): CandidatePool {
   const poolId = active ? (seeded?.id ?? '') : ''
   const members = useUniverseMembers(poolId)
   const identifiers = useMemo(() => members.data?.identifiers ?? [], [members.data])
-  const reference = useReferenceBatch(identifiers)
+  const reference = useReferenceBatch(identifiers, undefined, date)
 
   const candidates = useMemo(() => {
     const byIdentifier = fieldsByIdentifier(reference.data?.entries ?? [])
-    return identifiers.map((identifier) => ({
-      identifier,
-      fields: byIdentifier.get(identifier) ?? {}
-    }))
-  }, [identifiers, reference.data])
+    return (
+      identifiers
+        .map((identifier) => ({ identifier, fields: byIdentifier.get(identifier) ?? {} }))
+        // A name the engine has no row for cannot be filtered on anything, and
+        // under an as-of date "no row" means "not listed then" — so it is not
+        // a candidate at all.
+        .filter((candidate) => date === '' || Object.keys(candidate.fields).length > 0)
+    )
+  }, [identifiers, reference.data, date])
 
   const loading =
     active &&

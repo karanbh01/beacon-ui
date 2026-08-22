@@ -106,11 +106,24 @@ function searchIdentifiers(url: URL): unknown {
   }
 }
 
+/**
+ * When each synthetic name started trading (BU-92).
+ *
+ * Every fourth one lists late, so a point-in-time request has something to
+ * exclude. The engine expresses this through DATE_FROM/DATE_TO and answers
+ * `found: false` for a row that is not valid on the requested date; the stub
+ * only has to reproduce the ANSWER, since that is all a client reads.
+ */
+function listedFrom(index: number): string {
+  return index % 4 === 0 ? '2020-01-01' : '2015-01-01'
+}
+
 function referenceEntry(identifier: string, index: number): Record<string, unknown> {
   return {
     identifier,
     found: true,
     fields: {
+      date_from: listedFrom(index),
       name: `${identifier} Corporation`,
       gics_sector: ['Information Technology', 'Financials', 'Health Care'][index % 3],
       gics_sub_industry: 'Application Software',
@@ -262,7 +275,18 @@ function body(url: URL): unknown {
   if (path === '/data/reference') {
     const wanted = url.searchParams.getAll('identifiers').flatMap((value) => value.split(','))
     const ids = wanted.length > 0 ? wanted : IDENTIFIERS
-    return { as_of: '2026-08-04', entries: ids.map(referenceEntry) }
+    const date = url.searchParams.get('date') ?? ''
+
+    // "Returns only rows valid then" — the endpoint's own words. A name not
+    // yet listed comes back `found: false` with no fields, exactly as a real
+    // engine answers it, rather than being omitted from the response.
+    const entries = ids.map((identifier, index) => {
+      const entry = referenceEntry(identifier, index)
+      if (date === '' || date >= listedFrom(index)) return entry
+      return { identifier, found: false, fields: null }
+    })
+
+    return { as_of: date === '' ? '2026-08-04' : date, entries }
   }
 
   if (path.startsWith('/data/reference/')) {

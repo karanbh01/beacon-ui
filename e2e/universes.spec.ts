@@ -117,3 +117,19 @@ test('a symbol the dataset does not carry is called out as it is added', async (
   await expect(window.getByText(/not in the dataset: NOPE001/)).toBeVisible()
   await expect(window.getByText(/1 added by hand, found in the dataset/)).toBeVisible()
 })
+
+test('a universe can be read as it stood on a past date', async ({ window }) => {
+  // BU-92. The date goes to the engine, which returns only rows valid then;
+  // a name not listed yet must drop out rather than draw as a blank row.
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+
+  await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
+
+  await window.getByLabel('As of').fill('2018-01-02')
+
+  // Every fourth synthetic name lists in 2020, so a quarter of them are gone.
+  await expect(window.getByText('90 assets', { exact: false })).toBeVisible()
+  await expect(window.getByText(/as of 2018-01-02/)).toBeVisible()
+  await expect(window.getByText(/30 of the stored 120 were not listed then/)).toBeVisible()
+})

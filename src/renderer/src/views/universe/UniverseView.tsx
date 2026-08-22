@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
+import { Field } from '../../components/Field/Field'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
 import { Table, type Column } from '../../components/Table/Table'
@@ -61,13 +62,21 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
   const selected = subject !== undefined && subject !== '' ? subject : (catalogue[0]?.id ?? '')
   const members = useUniverseMembers(selected)
 
+  /**
+   * Point in time, empty for today (BU-92).
+   *
+   * Empty is the default and has to stay so: a date field that starts filled
+   * makes every reader check whether they are looking at live data.
+   */
+  const [asOf, setAsOf] = useState('')
+
   const [draft, setDraft] = useState<DraftUniverse | undefined>(undefined)
   const [mode, setMode] = useState<'create' | 'edit'>('create')
   const create = useCreateUniverse()
   const save = useSaveUniverse()
 
   // Only while the builder is open: the pool is the whole dataset.
-  const pool = useCandidatePool(draft !== undefined)
+  const pool = useCandidatePool(draft !== undefined, asOf)
 
   const current = catalogue.find((universe) => universe.id === selected)
   const editable = isEditable(current)
@@ -143,14 +152,37 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
     )
   }
 
-  const identifiers = useMemo(() => members.data?.identifiers ?? [], [members.data])
+  const stored = useMemo(() => members.data?.identifiers ?? [], [members.data])
 
   // One request for the whole universe, where this was a useQueries fan-out
   // of one call per name that stopped at 60.
-  const reference = useReferenceBatch(identifiers)
+  const reference = useReferenceBatch(stored, undefined, asOf)
   const byIdentifier = useMemo(
     () => fieldsByIdentifier(reference.data?.entries ?? []),
     [reference.data]
+  )
+
+  /*
+   * Under an as-of date the membership is the names LISTED THEN.
+   *
+   * The stored document is a fixed list that outlives its members, and the
+   * engine answers `found: false` for a row that was not valid on the date.
+   * Showing those as blank rows would say "we have no data for this" where
+   * the truth is "this was not a listed instrument yet" — so they come out.
+   *
+   * With no date this must not change anything: `found: false` then means the
+   * engine simply has no reference row, which is a fact worth drawing as a
+   * row of dashes.
+   */
+  const identifiers = useMemo(
+    // By VALUE, not by key: `fieldsByIdentifier` keeps an entry for a name the
+    // engine answered `found: false` for, mapped to undefined. `.has` would be
+    // true for exactly the rows this is meant to drop.
+    () =>
+      asOf === ''
+        ? stored
+        : stored.filter((identifier) => byIdentifier.get(identifier) !== undefined),
+    [asOf, stored, byIdentifier]
   )
 
   const rows = identifiers.map((identifier, index) =>
@@ -181,6 +213,17 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
             setSubject(tab.id, value)
           }}
         />
+        <Field label="As of" width={130}>
+          <input
+            className="universe-input"
+            type="date"
+            aria-label="As of"
+            value={asOf}
+            onChange={(event) => {
+              setAsOf(event.target.value)
+            }}
+          />
+        </Field>
       </PaneHeader>
 
       {draft !== undefined && (
@@ -221,8 +264,16 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         </ViewEmpty>
       )}
 
-      {members.isSuccess && identifiers.length === 0 && (
+      {members.isSuccess && stored.length === 0 && (
         <ViewEmpty>This universe has no members.</ViewEmpty>
+      )}
+
+      {/* Emptied by the date rather than empty — a different sentence. */}
+      {stored.length > 0 && identifiers.length === 0 && reference.isSuccess && (
+        <ViewEmpty>
+          None of this universe’s {stored.length.toLocaleString('en-US')} members were listed on{' '}
+          {asOf}.
+        </ViewEmpty>
       )}
 
       {identifiers.length > 0 && (
@@ -244,6 +295,10 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
           />
           <p className="universe-footnote type-11">
             {identifiers.length.toLocaleString('en-US')} assets
+            {asOf !== '' && ` as of ${asOf}`}
+            {asOf !== '' &&
+              identifiers.length < stored.length &&
+              ` · ${(stored.length - identifiers.length).toLocaleString('en-US')} of the stored ${stored.length.toLocaleString('en-US')} were not listed then`}
             {identifiers.length > REFERENCE_BATCH_LIMIT &&
               ` · detail for the first ${REFERENCE_BATCH_LIMIT.toLocaleString('en-US')}, which is py-beacon's cap per call`}{' '}
             · click a row to open Reference Data
