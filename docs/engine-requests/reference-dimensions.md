@@ -93,3 +93,26 @@ way.
   naming the universes that contain an instrument. Not consumed by the client
   yet; it is the natural source for a "which universes is this in?" line on
   the Reference Data view.
+
+---
+
+## Addendum: a timestamp on a universe document (BU-93)
+
+Universe Set now opens on an overview — one row per universe, with its name
+and constituent count. `GET /universes` already returns each universe's whole
+`identifiers` array alongside its name, so the counts cost nothing extra.
+
+What the overview cannot show is **when a universe was last written**. The
+`Universe` schema carries `id`, `name`, `description`, `source` and
+`identifiers` — no created, no updated. So an "as of" column can only report
+the date the _dataset_ is current to, which is the same value in every row and
+is only truthful for the seeded universe: that one genuinely tracks the data,
+while a user's is whatever they last saved.
+
+**Ask:** `created_at` and `updated_at` on the universe document, ISO 8601, set
+by the store on write. The document is already persisted as a file per
+universe, so the write path is the only place that needs to stamp it.
+
+Small, but it turns a column that is the same everywhere into one that answers
+"is this list stale?" — which is the question anyone scanning a list of
+universes is actually asking.

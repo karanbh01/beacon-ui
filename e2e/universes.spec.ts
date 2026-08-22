@@ -11,6 +11,8 @@ import { expect, openPage, openView, test } from './fixtures'
 test('the seeded universe is read-only, and says why', async ({ window }) => {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
+  // The tab lands on the overview now (BU-93), so pick one first.
+  await window.getByRole('combobox', { name: 'Universe' }).selectOption('GLOBAL')
 
   await expect(window.getByText(/seeded by the engine/)).toBeVisible()
   // No Edit control at all, rather than one the engine would refuse. Scoped
@@ -123,6 +125,7 @@ test('a universe can be read as it stood on a past date', async ({ window }) => 
   // a name not listed yet must drop out rather than draw as a blank row.
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
+  await window.getByRole('combobox', { name: 'Universe' }).selectOption('GLOBAL')
 
   await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
 
@@ -132,4 +135,22 @@ test('a universe can be read as it stood on a past date', async ({ window }) => 
   await expect(window.getByText('90 assets', { exact: false })).toBeVisible()
   await expect(window.getByText(/as of 2018-01-02/)).toBeVisible()
   await expect(window.getByText(/30 of the stored 120 were not listed then/)).toBeVisible()
+})
+
+test('the tab opens on a list of universes rather than inside one', async ({ window }) => {
+  // BU-93. It used to open on `catalogue[0]` — the seeded GLOBAL — so the
+  // first thing anyone saw was 120 rows of a universe they had not chosen.
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+
+  const overview = window.locator('.universe-overview')
+  await expect(overview.getByText('All loaded assets')).toBeVisible()
+  // The count comes from the list call: no members request was needed.
+  await expect(overview.getByText('120', { exact: true })).toBeVisible()
+  // Loosely: the stub's catalogue GROWS across this file, which is the point
+  // of BU-78's mutable universes, so a fixed total would be order-dependent.
+  await expect(window.getByText(/\d+ universes? · /)).toBeVisible()
+
+  await overview.getByText('All loaded assets').click()
+  await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
 })

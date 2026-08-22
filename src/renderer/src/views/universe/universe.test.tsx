@@ -74,13 +74,18 @@ interface Call {
   fields: readonly string[] | undefined
 }
 
-function mount(): Call[] {
+function mount(subject: string | undefined = 'US-LARGECAP'): Call[] {
   const calls: Call[] = []
   const queries = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
 
   const client = {
     universes: {
-      list: () => Promise.resolve({ universes: [{ id: 'US-LARGECAP', name: 'US Large Cap' }] }),
+      // The engine sends each universe's whole membership with the row, which
+      // is what makes the overview's counts free.
+      list: () =>
+        Promise.resolve({
+          universes: [{ id: 'US-LARGECAP', name: 'US Large Cap', identifiers: IDENTIFIERS }]
+        }),
       members: () => Promise.resolve({ universe_id: 'US-LARGECAP', identifiers: IDENTIFIERS })
     },
     data: {
@@ -102,7 +107,7 @@ function mount(): Call[] {
   render(
     <QueryClientProvider client={queries}>
       <ClientContext.Provider value={client}>
-        <UniverseView tab={tab!} subject={undefined} />
+        <UniverseView tab={tab!} subject={subject} />
       </ClientContext.Provider>
     </QueryClientProvider>
   )
@@ -122,6 +127,11 @@ beforeEach(() => {
   })
 })
 
+/*
+ * These open ON a universe. Landing with no subject shows the overview
+ * instead (BU-93), which is its own suite below — the view used to fall back
+ * to `catalogue[0]` and these read as if it still did.
+ */
 describe('UniverseView', () => {
   it('lists every member, not only the ones it has detail for', async () => {
     mount()
@@ -181,6 +191,72 @@ describe('UniverseView', () => {
 })
 
 /**
+ * A tab with no subject. Passed as `''` rather than `undefined`, which would
+ * hit `mount`'s default parameter — the view maps both to the same thing
+ * through `subject ?? ''`.
+ */
+function mountOverview(): Call[] {
+  return mount('')
+}
+
+/** The overview table, since a universe name is also an option in the picker. */
+function overview(): HTMLElement {
+  const found = document.querySelector<HTMLElement>('.universe-overview')
+  if (found === null) throw new Error('the overview did not render')
+  return found
+}
+
+describe('opening with no universe chosen', () => {
+  it('lists the universes rather than picking one', async () => {
+    // It used to open on `catalogue[0]`, which on a real engine is the seeded
+    // GLOBAL — five thousand rows of somebody else's universe, and nothing
+    // anywhere answering "what universes do I have?".
+    mountOverview()
+    await screen.findByText(/1 universe/)
+
+    expect(within(overview()).getByText('US Large Cap')).toBeInTheDocument()
+    // No member table: no universe was selected.
+    expect(screen.queryByText('T000')).toBeNull()
+  })
+
+  it('counts constituents from the list call, with no per-universe fetch', async () => {
+    const calls = mountOverview()
+    await screen.findByText(/1 universe/)
+
+    expect(
+      within(overview()).getByText(IDENTIFIERS.length.toLocaleString('en-US'))
+    ).toBeInTheDocument()
+    // The reference batch belongs to a member table, and there is none.
+    expect(calls).toHaveLength(0)
+  })
+
+  it('opens a universe when its row is clicked', async () => {
+    mountOverview()
+    await screen.findByText(/1 universe/)
+    await userEvent.click(within(overview()).getByText('US Large Cap'))
+
+    expect(useWorkspace.getState().tabs[0]?.subject).toBe('US-LARGECAP')
+  })
+
+  it('offers a way back, since the picker is the only route out of a universe', async () => {
+    mount()
+    await screen.findByText('T000')
+
+    const options = within(screen.getByLabelText('Universe'))
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+    expect(options).toContain('All universes')
+  })
+
+  it('hides the as-of field, which has no membership to date', async () => {
+    mountOverview()
+    await screen.findByText(/1 universe/)
+
+    expect(screen.queryByLabelText('As of')).toBeNull()
+  })
+})
+
+/**
  * The builder (BU-85).
  *
  * Its pool is the SEEDED universe, which is py-beacon's own copy of the loaded
@@ -207,8 +283,13 @@ function mountBuilder(): Created[] {
       list: () =>
         Promise.resolve({
           universes: [
-            { id: 'US-LARGECAP', name: 'US Large Cap' },
-            { id: 'GLOBAL', name: 'GLOBAL', source: 'seeded' }
+            { id: 'US-LARGECAP', name: 'US Large Cap', identifiers: ['ZZZ1', 'ZZZ2'] },
+            {
+              id: 'GLOBAL',
+              name: 'GLOBAL',
+              source: 'seeded',
+              identifiers: POOL.map((entry) => entry.identifier)
+            }
           ]
         }),
       members: (id: string) =>
@@ -412,7 +493,10 @@ function mountPointInTime(): { dates: (string | undefined)[] } {
 
   const client = {
     universes: {
-      list: () => Promise.resolve({ universes: [{ id: 'HIST', name: 'Historic' }] }),
+      list: () =>
+        Promise.resolve({
+          universes: [{ id: 'HIST', name: 'Historic', identifiers: ['AAA', LISTED_LATE] }]
+        }),
       members: () => Promise.resolve({ universe_id: 'HIST', identifiers: ['AAA', LISTED_LATE] })
     },
     data: {
@@ -441,7 +525,7 @@ function mountPointInTime(): { dates: (string | undefined)[] } {
   render(
     <QueryClientProvider client={queries}>
       <ClientContext.Provider value={client}>
-        <UniverseView tab={tab!} subject={undefined} />
+        <UniverseView tab={tab!} subject="HIST" />
       </ClientContext.Provider>
     </QueryClientProvider>
   )

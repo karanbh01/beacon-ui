@@ -14,11 +14,12 @@ import {
   useUniverseMembers,
   useUniverses
 } from '../shared/strategyQueries'
-import { REFERENCE_BATCH_LIMIT, useReferenceBatch } from '../shared/queries'
+import { REFERENCE_BATCH_LIMIT, useCoverage, useReferenceBatch } from '../shared/queries'
 import { billions, buildRow, fieldsByIdentifier, volume, type UniverseRow } from './universe'
 import { blankUniverse, isEditable, type DraftUniverse } from './members'
 import { useCandidatePool } from './pool'
 import { UniverseEditor } from './UniverseEditor'
+import { UniverseOverview, type UniverseSummary } from './UniverseOverview'
 import './UniverseView.css'
 
 const COLUMNS: readonly Column<UniverseRow>[] = [
@@ -59,7 +60,16 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
   const catalogue = universes.data?.universes ?? []
-  const selected = subject !== undefined && subject !== '' ? subject : (catalogue[0]?.id ?? '')
+
+  /*
+   * No subject means the OVERVIEW, not the first universe (BU-93).
+   *
+   * This used to fall back to `catalogue[0]`, which on any real engine is the
+   * seeded GLOBAL — so opening the tab dropped you into five thousand rows of
+   * somebody else's universe, and nothing anywhere answered "what universes
+   * do I have?".
+   */
+  const selected = subject ?? ''
   const members = useUniverseMembers(selected)
 
   /**
@@ -77,6 +87,21 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
 
   // Only while the builder is open: the pool is the whole dataset.
   const pool = useCandidatePool(draft !== undefined, asOf)
+
+  const coverage = useCoverage()
+
+  /** The date the stored counts are current to — the DATA's, not each row's. */
+  const dataAsOf = coverage.data?.datasets
+    .find((set) => set.dataset === 'market')
+    ?.end?.slice(0, 10)
+
+  const summaries: UniverseSummary[] = catalogue.map((universe) => ({
+    id: universe.id,
+    name: universe.name,
+    description: universe.description,
+    constituents: universe.identifiers?.length ?? 0,
+    source: universe.source
+  }))
 
   const current = catalogue.find((universe) => universe.id === selected)
   const editable = isEditable(current)
@@ -204,7 +229,10 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         }
       >
         <Select
-          options={catalogue.map((universe) => ({ value: universe.id, label: universe.name }))}
+          options={[
+            { value: '', label: 'All universes' },
+            ...catalogue.map((universe) => ({ value: universe.id, label: universe.name }))
+          ]}
           value={selected}
           placeholder="No universes"
           label="Universe"
@@ -213,17 +241,22 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
             setSubject(tab.id, value)
           }}
         />
-        <Field label="As of" width={130}>
-          <input
-            className="universe-input"
-            type="date"
-            aria-label="As of"
-            value={asOf}
-            onChange={(event) => {
-              setAsOf(event.target.value)
-            }}
-          />
-        </Field>
+        {/* Point-in-time belongs to a universe's membership; on the overview
+            there is none to date, and a control that does nothing is worse
+            than an absent one. */}
+        {selected !== '' && (
+          <Field label="As of" width={130}>
+            <input
+              className="universe-input"
+              type="date"
+              aria-label="As of"
+              value={asOf}
+              onChange={(event) => {
+                setAsOf(event.target.value)
+              }}
+            />
+          </Field>
+        )}
       </PaneHeader>
 
       {draft !== undefined && (
@@ -249,6 +282,17 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
           {current.name} was seeded by the engine, so it cannot be edited or deleted. Create your
           own to change the membership.
         </p>
+      )}
+
+      {/* No universe chosen: what exists, rather than one picked for you. */}
+      {draft === undefined && selected === '' && catalogue.length > 0 && (
+        <UniverseOverview
+          universes={summaries}
+          asOf={dataAsOf}
+          onOpen={(id) => {
+            setSubject(tab.id, id)
+          }}
+        />
       )}
 
       {universes.isPending && <ViewLoading what="universes" />}

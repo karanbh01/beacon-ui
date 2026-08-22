@@ -1,0 +1,8 @@
+/* The landing table for Universe Set (BU-93). */
+
+.universe-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}

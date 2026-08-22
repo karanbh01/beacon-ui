@@ -65,6 +65,8 @@ test('Data Explorer → Corporate Actions states kind rather than guessing it', 
 test('Strategy Builder → Universe fills every row from one request', async ({ window }) => {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
+  // The tab lands on the overview (BU-93), so open a universe to get a table.
+  await window.getByRole('combobox', { name: 'Universe' }).selectOption('GLOBAL')
 
   // BU-63: the table used to fetch a call per name and stop at 60. The stub
   // serves 120, so a row past that proves the batch is being used.
