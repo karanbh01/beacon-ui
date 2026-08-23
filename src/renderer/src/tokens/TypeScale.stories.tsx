@@ -8,7 +8,7 @@ const SAMPLES = [
   { className: 'type-10', label: '10 Medium · 0.4px', note: 'Stat labels, table headers' },
   { className: 'type-9', label: '9 Medium · 6%', note: 'Pricer section heads' },
   { className: 'type-section-label', label: '16 SemiBold', note: 'Section labels' },
-  { className: 'type-page-title', label: '32 SemiBold', note: 'Page titles' }
+  { className: 'type-page-title', label: '32 Regular', note: 'Page titles' }
 ]
 
 function Row({

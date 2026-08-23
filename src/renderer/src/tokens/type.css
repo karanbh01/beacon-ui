@@ -134,11 +134,17 @@
   line-height: normal;
 }
 
-/* 32px SemiBold — the page title (Home 40:242). Serif italic until BU-98. */
+/*
+ * 32px Regular — the page title (Home 40:242). Serif italic until BU-98.
+ *
+ * Regular, not SemiBold: at 32px the weight is already doing nothing the
+ * size has not done, and the section labels below it are 600 — a page title
+ * heavier than nothing and equal to its own subheads reads as a mistake.
+ */
 .type-page-title {
   font-family: var(--font-ui);
   font-size: 32px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: normal;
 }
 
