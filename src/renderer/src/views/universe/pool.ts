@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
-import { useReferenceBatch } from '../shared/queries'
+import { useReferenceRows } from '../shared/queries'
 import { useUniverseMembers, useUniverses } from '../shared/strategyQueries'
 import type { Candidate } from './builder'
-import { fieldsByIdentifier } from './universe'
 
 /**
  * The names a universe can be built from (BU-85).
@@ -41,25 +40,29 @@ export function useCandidatePool(active: boolean, date = ''): CandidatePool {
   const poolId = active ? (seeded?.id ?? '') : ''
   const members = useUniverseMembers(poolId)
   const identifiers = useMemo(() => members.data?.identifiers ?? [], [members.data])
-  const reference = useReferenceBatch(identifiers, undefined, date)
+  // Chunked, so a 5,000-name dataset is filterable in full rather than in its
+  // first thousand (BU-94).
+  const reference = useReferenceRows(identifiers, undefined, date)
 
-  const candidates = useMemo(() => {
-    const byIdentifier = fieldsByIdentifier(reference.data?.entries ?? [])
-    return (
+  const candidates = useMemo(
+    () =>
       identifiers
-        .map((identifier) => ({ identifier, fields: byIdentifier.get(identifier) ?? {} }))
+        .map((identifier) => ({
+          identifier,
+          fields: reference.byIdentifier.get(identifier) ?? {}
+        }))
         // A name the engine has no row for cannot be filtered on anything, and
         // under an as-of date "no row" means "not listed then" — so it is not
         // a candidate at all.
-        .filter((candidate) => date === '' || Object.keys(candidate.fields).length > 0)
-    )
-  }, [identifiers, reference.data, date])
+        .filter((candidate) => date === '' || Object.keys(candidate.fields).length > 0),
+    [identifiers, reference.byIdentifier, date]
+  )
 
   const loading =
     active &&
     (universes.isPending ||
       (poolId !== '' && members.isPending) ||
-      (identifiers.length > 0 && reference.isPending))
+      (identifiers.length > 0 && reference.loading))
 
   return { candidates, loading, from: seeded?.name }
 }

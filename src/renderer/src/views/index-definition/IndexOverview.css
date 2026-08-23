@@ -1,0 +1,40 @@
+/* The landing list for Index Definition (BU-95). */
+
+.index-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.index-overview-new {
+  width: 100%;
+  max-width: 420px;
+}
+
+.index-overview-input {
+  width: 100%;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.index-overview-hint {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+}
+
+.index-overview-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.index-overview-footnote {
+  margin: 0;
+  color: var(--text-muted);
+}

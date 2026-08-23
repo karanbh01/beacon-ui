@@ -89,32 +89,33 @@ export function useReferenceBatch(
 }
 
 /**
- * Which of these names were listed on a date (BU-93).
+ * Reference for a list of ANY length (BU-94).
  *
- * The engine caps a reference call at 1,000 identifiers, and answering "how
- * many constituents does each universe have as of today" means asking about
- * every name in every universe — 5,000 on a real dataset. So the list is
- * deduplicated across universes and split into calls of the cap.
+ * The engine caps a call at 1,000 identifiers. `useReferenceBatch` handled
+ * that by truncating, which was visible but harmless while the surplus rows
+ * simply drew with dashes — and became a wrong ANSWER the moment BU-92 began
+ * dropping rows the engine had not confirmed. A 5,000-name universe reported
+ * 757 members as of a date where the true figure was 3,849: the same
+ * proportion, measured on a fifth of the population.
  *
- * `found` is the whole answer: the endpoint returns only rows valid on the
- * date and marks the rest `found: false`. Nothing here decides what "listed"
- * means, which is the point — py-beacon owns that.
+ * So the list is split into calls of the cap instead. Sorted as well as
+ * deduplicated, because the chunk is its own query key and two renders asking
+ * the same question should hit one cache entry.
  */
-export interface ReferenceValidity {
-  /** Identifiers the engine had a valid row for on the date. */
-  listed: ReadonlySet<string>
-  /** True until every chunk has answered; counts are not trustworthy before. */
+export interface ReferenceRows {
+  /** identifier → its fields, absent when the engine had no valid row. */
+  byIdentifier: ReadonlyMap<string, Record<string, unknown>>
+  /** True until every chunk has answered; counts are not final before. */
   loading: boolean
 }
 
-export function useReferenceValidity(
+export function useReferenceRows(
   identifiers: readonly string[],
-  date: string
-): ReferenceValidity {
+  fields: readonly string[] = TABLE_REFERENCE_FIELDS,
+  date = ''
+): ReferenceRows {
   const client = useBeacon()
 
-  // Sorted as well as deduplicated: the sorted list is the query key, so two
-  // renders that ask the same question hit the same cache entry.
   const chunks = useMemo(() => {
     const unique = [...new Set(identifiers)].sort((a, b) => a.localeCompare(b))
     const out: string[][] = []
@@ -126,28 +127,32 @@ export function useReferenceValidity(
 
   const results = useQueries({
     queries: chunks.map((ids) => ({
-      queryKey: keys.data.referenceBatch(ids, TABLE_REFERENCE_FIELDS, date),
+      queryKey: keys.data.referenceBatch(ids, fields, date),
       queryFn: ({ signal }: { signal: AbortSignal }) => {
         if (client === null) throw new Error('No engine')
-        return client.data.referenceBatch(ids, TABLE_REFERENCE_FIELDS, date, signal)
+        return client.data.referenceBatch(ids, fields, date, signal)
       },
-      enabled: client !== null && date !== ''
+      enabled: client !== null
     }))
   })
 
-  const listed = useMemo(() => {
-    const found = new Set<string>()
+  const byIdentifier = useMemo(() => {
+    const rows = new Map<string, Record<string, unknown>>()
     for (const result of results) {
       for (const entry of result.data?.entries ?? []) {
-        if (entry.found) found.add(entry.identifier)
+        // `found: false` is the engine saying it has no valid row — under a
+        // date that means "not listed then". Either way there is nothing to
+        // record, and an entry mapped to undefined would be indistinguishable
+        // from one that is present, which is BU-92's bug.
+        if (entry.found && entry.fields != null) rows.set(entry.identifier, entry.fields)
       }
     }
-    return found
+    return rows
   }, [results])
 
   return {
-    listed,
-    loading: date === '' || chunks.length === 0 || results.some((result) => result.isPending)
+    byIdentifier,
+    loading: chunks.length > 0 && results.some((result) => result.isPending)
   }
 }
 

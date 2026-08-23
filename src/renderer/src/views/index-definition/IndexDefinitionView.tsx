@@ -15,6 +15,7 @@ import {
   useValidateIndex
 } from '../shared/strategyQueries'
 import { IndexDetailsForm } from './IndexDetailsForm'
+import { IndexOverview } from './IndexOverview'
 import { Methodology } from './Methodology'
 import { ValidationCard } from './ValidationCard'
 import { useIndexDraft } from './useIndexDraft'
@@ -40,12 +41,22 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
    * So the blank editor everyone saw was a 404 being misread.
    *
    * Hence the title is used only when it could actually address a document.
-   * Otherwise fall back to the first stored index, as Universe Set does, so
-   * the sidebar entry opens on something real.
+   * With nothing to address, the view shows the CATALOGUE (BU-95) rather
+   * than picking an index, which is what Universe Set does.
    */
-  const chosen =
+  /*
+   * `opened` is what the overview was clicked into, held locally rather than
+   * on the tab: `setSubject` applies only to QUERY tabs, because a document
+   * tab's identity is its document (taxonomy 1). This tab is "Index
+   * Definition", so what it is currently showing is the pane's business, and
+   * the back control is just clearing it.
+   */
+  const [opened, setOpened] = useState<string | undefined>(undefined)
+
+  const named =
     subject ?? tab.subject ?? tab.pinnedDoc ?? (isDocumentId(tab.title) ? tab.title : undefined)
-  const indexId = chosen ?? catalogue[0]?.id ?? ''
+  const chosen = named ?? opened
+  const indexId = chosen ?? ''
   const { draft, saved, dirty, loading, error, edit, revert, commit } = useIndexDraft(
     tab.id,
     indexId
@@ -61,17 +72,27 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
   const save = useSaveIndex()
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
-  // Only the fallback needs the catalogue; a tab that names its document
+  // Only the overview needs the catalogue; a tab that names its document
   // must not wait on a list it will never read.
   if (chosen === undefined && indices.isPending) return <ViewLoading what="indices" />
   if (loading) return <ViewLoading what={indexId} />
   if (error !== undefined) return <ViewError error={error} />
 
-  // Nothing to open rather than nothing found: an engine with no stored
-  // indices is a different sentence from an id it does not hold.
-  if (catalogue.length === 0 && indexId === '') {
-    return <ViewEmpty>This engine has no stored index definitions.</ViewEmpty>
+  /*
+   * No document chosen: the catalogue, and the way to start one (BU-95).
+   *
+   * This used to be a dead end — "This engine has no stored index
+   * definitions", which is true and useless on the tab whose purpose is
+   * creating them.
+   */
+  if (chosen === undefined) {
+    return (
+      <div className="index-definition-view">
+        <IndexOverview indices={catalogue} onOpen={setOpened} />
+      </div>
+    )
   }
+
   if (draft === undefined) {
     return <ViewEmpty>No index definition named “{indexId}” on this engine.</ViewEmpty>
   }
@@ -95,6 +116,17 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
             : {})}
         controls={
           <>
+            {/* Only when the overview is what we came from: a tab that names
+                its own document has nothing to go back to (BU-96). */}
+            {named === undefined && (
+              <Button
+                onClick={() => {
+                  setOpened(undefined)
+                }}
+              >
+                ← All indices
+              </Button>
+            )}
             <Button
               onClick={() => {
                 run(draft)

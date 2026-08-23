@@ -60,22 +60,6 @@ export function volume(value: number | undefined): string {
   return String(Math.round(value))
 }
 
-/** identifier → its reference fields, from a batch response. */
-export function fieldsByIdentifier(
-  entries: readonly {
-    identifier: string
-    found: boolean
-    fields?: Record<string, unknown> | null
-  }[]
-): Map<string, Record<string, unknown> | undefined> {
-  return new Map(
-    entries.map((entry) => [
-      entry.identifier,
-      entry.found ? (entry.fields ?? undefined) : undefined
-    ])
-  )
-}
-
 /** 3.16e12 → "3,160" — the design reports market cap in $bn. */
 export function billions(value: number | undefined): string {
   if (value === undefined) return '—'

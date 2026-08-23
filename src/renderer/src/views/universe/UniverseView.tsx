@@ -14,13 +14,8 @@ import {
   useUniverseMembers,
   useUniverses
 } from '../shared/strategyQueries'
-import {
-  REFERENCE_BATCH_LIMIT,
-  useCoverage,
-  useReferenceBatch,
-  useReferenceValidity
-} from '../shared/queries'
-import { billions, buildRow, fieldsByIdentifier, volume, type UniverseRow } from './universe'
+import { useCoverage, useReferenceRows } from '../shared/queries'
+import { billions, buildRow, volume, type UniverseRow } from './universe'
 import { blankUniverse, isEditable, type DraftUniverse } from './members'
 import { useCandidatePool } from './pool'
 import { UniverseEditor } from './UniverseEditor'
@@ -119,7 +114,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
     () => (overviewing ? catalogue.flatMap((universe) => universe.identifiers ?? []) : []),
     [overviewing, catalogue]
   )
-  const validity = useReferenceValidity(everyMember, overviewing ? (dataAsOf ?? '') : '')
+  const validity = useReferenceRows(everyMember, undefined, overviewing ? (dataAsOf ?? '') : '')
 
   const summaries: UniverseSummary[] = catalogue.map((universe) => ({
     id: universe.id,
@@ -128,9 +123,11 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
     // arriving: showing the stored length first would have the number tick
     // down as the real answer lands, which reads as wrong rather than
     // provisional.
-    constituents: validity.loading
-      ? undefined
-      : (universe.identifiers ?? []).filter((identifier) => validity.listed.has(identifier)).length,
+    constituents:
+      validity.loading || dataAsOf === undefined
+        ? undefined
+        : (universe.identifiers ?? []).filter((identifier) => validity.byIdentifier.has(identifier))
+            .length,
     source: universe.source
   }))
 
@@ -210,13 +207,16 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
 
   const stored = useMemo(() => members.data?.identifiers ?? [], [members.data])
 
-  // One request for the whole universe, where this was a useQueries fan-out
-  // of one call per name that stopped at 60.
-  const reference = useReferenceBatch(stored, undefined, asOf)
-  const byIdentifier = useMemo(
-    () => fieldsByIdentifier(reference.data?.entries ?? []),
-    [reference.data]
-  )
+  /*
+   * Every member, however many there are (BU-94).
+   *
+   * This asked in one call and took the first 1,000, which drew the surplus
+   * with dashes — harmless until BU-92 started DROPPING rows the engine had
+   * not confirmed, at which point the truncation was deciding the count. A
+   * 5,000-name universe reported 757 where the answer was 3,849.
+   */
+  const reference = useReferenceRows(stored, undefined, asOf)
+  const byIdentifier = reference.byIdentifier
 
   /*
    * Under an as-of date the membership is the names LISTED THEN.
@@ -231,13 +231,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
    * row of dashes.
    */
   const identifiers = useMemo(
-    // By VALUE, not by key: `fieldsByIdentifier` keeps an entry for a name the
-    // engine answered `found: false` for, mapped to undefined. `.has` would be
-    // true for exactly the rows this is meant to drop.
-    () =>
-      asOf === ''
-        ? stored
-        : stored.filter((identifier) => byIdentifier.get(identifier) !== undefined),
+    () => (asOf === '' ? stored : stored.filter((identifier) => byIdentifier.has(identifier))),
     [asOf, stored, byIdentifier]
   )
 
@@ -251,6 +245,17 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         kind="fields"
         controls={
           <>
+            {/* A query tab, so the subject IS where it is — clearing it is
+                the way back to the list (BU-96). */}
+            {selected !== '' && (
+              <Button
+                onClick={() => {
+                  setSubject(tab.id, '')
+                }}
+              >
+                ← All universes
+              </Button>
+            )}
             <Button onClick={startCreate}>New universe…</Button>
             {/* Seeded universes are the engine's, and it refuses writes to
                 them — so the control is absent rather than failing. */}
@@ -344,7 +349,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
       )}
 
       {/* Emptied by the date rather than empty — a different sentence. */}
-      {stored.length > 0 && identifiers.length === 0 && reference.isSuccess && (
+      {stored.length > 0 && identifiers.length === 0 && !reference.loading && (
         <ViewEmpty>
           None of this universe’s {stored.length.toLocaleString('en-US')} members were listed on{' '}
           {asOf}.
@@ -373,9 +378,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
             {asOf !== '' && ` as of ${asOf}`}
             {asOf !== '' &&
               identifiers.length < stored.length &&
-              ` · ${(stored.length - identifiers.length).toLocaleString('en-US')} of the stored ${stored.length.toLocaleString('en-US')} were not listed then`}
-            {identifiers.length > REFERENCE_BATCH_LIMIT &&
-              ` · detail for the first ${REFERENCE_BATCH_LIMIT.toLocaleString('en-US')}, which is py-beacon's cap per call`}{' '}
+              ` · ${(stored.length - identifiers.length).toLocaleString('en-US')} of the stored ${stored.length.toLocaleString('en-US')} were not listed then`}{' '}
             · click a row to open Reference Data
           </p>
         </>

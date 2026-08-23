@@ -67,6 +67,7 @@ test('a created universe is selectable in an index definition', async ({ window 
   await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveValue('MY-SECTOR')
 
   await openView(window, 'Index Definition')
+  await window.locator('.index-overview').getByText('TECH10').click()
   const starting = window.getByRole('combobox', { name: 'Starting universe' })
   await expect(starting).toBeVisible()
   await starting.selectOption('MY-SECTOR')
@@ -154,4 +155,27 @@ test('the tab opens on a list of universes rather than inside one', async ({ win
 
   await overview.getByText('All loaded assets').click()
   await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
+})
+
+test('an index definition can be created, which is what the tab is for', async ({ window }) => {
+  // BU-95. The create route had been reachable only through a misread 404,
+  // and BU-87 removed the misread along with the route.
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Index Definition')
+
+  await expect(window.locator('.index-overview').getByText('TECH10')).toBeVisible()
+  await window.getByRole('button', { name: 'New index…' }).click()
+
+  // Rejected before anything is sent: a space cannot address a document.
+  await window.getByRole('textbox', { name: 'Index id' }).fill('my index')
+  await expect(window.getByRole('button', { name: 'Create' })).toBeDisabled()
+
+  await window.getByRole('textbox', { name: 'Index id' }).fill('MY-INDEX')
+  await window.getByRole('button', { name: 'Create' }).click()
+
+  await expect(window.getByRole('textbox', { name: 'Name' })).toBeVisible()
+
+  // And back out again.
+  await window.getByRole('button', { name: '← All indices' }).click()
+  await expect(window.getByRole('button', { name: 'New index…' })).toBeVisible()
 })

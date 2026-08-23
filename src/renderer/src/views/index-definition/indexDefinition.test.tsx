@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { BeaconClient } from '../../api/client'
+import { ApiError } from '../../api/errors'
 import { ClientContext } from '../../api/queryClient'
 import { useWorkspace } from '../../state/tabs.store'
 import { IndexDefinitionView } from './IndexDefinitionView'
@@ -350,9 +351,16 @@ function mountFromSidebar(): { asked: string[] } {
 
   const client = {
     indices: {
-      list: () => Promise.resolve({ indices: [{ id: 'TECH10', name: SAVED.name }] }),
+      // Whole documents, as `GET /indices` actually returns — a summary here
+      // would let the overview read a field the engine always sends.
+      list: () => Promise.resolve({ indices: [SAVED] }),
       get: (id: string) => {
         asked.push(id)
+        // 404 for an id the engine does not hold, as a real one answers —
+        // which is what `useIndexDraft` reads as "this is a new index".
+        if (id !== SAVED.id) {
+          return Promise.reject(new ApiError(404, { code: 'not_found', message: 'No such index' }))
+        }
         return Promise.resolve(SAVED)
       }
     },
@@ -385,16 +393,62 @@ function mountFromSidebar(): { asked: string[] } {
 describe('opened with no document', () => {
   it('never asks the engine for an index named after the view', async () => {
     const { asked } = mountFromSidebar()
-    await screen.findByLabelText('Name')
+    await screen.findByText(SAVED.name)
 
-    expect(asked).not.toContain('Index Definition')
+    expect(asked).toEqual([])
   })
 
-  it('opens on the first stored index instead', async () => {
-    const { asked } = mountFromSidebar()
+  it('lists the stored indices rather than picking one', async () => {
+    // BU-95. It briefly opened on `catalogue[0]`, which is the same mistake
+    // Universe Set made — landing inside a document nobody chose.
+    mountFromSidebar()
+
+    expect(await screen.findByText(SAVED.name)).toBeInTheDocument()
+    expect(screen.getByText('TECH10')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Name')).toBeNull()
+  })
+
+  it('offers a way to create one, which is what the tab is for', async () => {
+    // The create route used to be reachable only through a misread 404, and
+    // BU-87 removed the misread along with the route.
+    mountFromSidebar()
+    await userEvent.click(await screen.findByRole('button', { name: 'New index…' }))
+
+    await userEvent.type(screen.getByLabelText('Index id'), 'MY-NEW-IDX')
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    // The editor, on a blank draft: the engine 404s an id it does not hold,
+    // and `useIndexDraft` reads that as "a new index".
+    expect(await screen.findByLabelText('Name')).toBeInTheDocument()
+    expect(screen.getByText('MY-NEW-IDX')).toBeInTheDocument()
+  })
+
+  it('goes back to the list from an index it opened', async () => {
+    mountFromSidebar()
+    await userEvent.click(await screen.findByText(SAVED.name))
     await screen.findByLabelText('Name')
 
-    expect(asked).toEqual(['TECH10'])
-    expect(screen.getByLabelText('Name')).toHaveValue(SAVED.name)
+    await userEvent.click(screen.getByRole('button', { name: '← All indices' }))
+
+    expect(await screen.findByRole('button', { name: 'New index…' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Name')).toBeNull()
+  })
+
+  it('refuses an id the engine could not address, before sending anything', async () => {
+    mountFromSidebar()
+    await userEvent.click(await screen.findByRole('button', { name: 'New index…' }))
+    await userEvent.type(screen.getByLabelText('Index id'), 'my index')
+
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+    expect(screen.getByText(/Letters, digits, dash and underscore only/)).toBeInTheDocument()
+  })
+
+  it('refuses an id that is already taken', async () => {
+    mountFromSidebar()
+    await userEvent.click(await screen.findByRole('button', { name: 'New index…' }))
+    await userEvent.type(screen.getByLabelText('Index id'), 'TECH10')
+
+    expect(screen.getByText(/already exists/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
   })
 })

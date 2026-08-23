@@ -6,27 +6,13 @@ import type { BeaconClient } from '../../api/client'
 import { ClientContext } from '../../api/queryClient'
 import { useWorkspace } from '../../state/tabs.store'
 import { UniverseView } from './UniverseView'
-import { billions, buildRow, fieldsByIdentifier, volume } from './universe'
+import { billions, buildRow, volume } from './universe'
 
 describe('volume', () => {
   it('reads as an order of magnitude rather than a count', () => {
     expect(volume(4_182_000)).toBe('4.2M')
     expect(volume(950)).toBe('950')
     expect(volume(undefined)).toBe('—')
-  })
-})
-
-describe('fieldsByIdentifier', () => {
-  it('treats a not-found entry as having no detail', () => {
-    // `found: false` is the engine saying it has no reference row, which is
-    // different from the client not having asked.
-    const map = fieldsByIdentifier([
-      { identifier: 'A', found: true, fields: { name: 'Alpha' } },
-      { identifier: 'B', found: false, fields: null }
-    ])
-
-    expect(map.get('A')).toEqual({ name: 'Alpha' })
-    expect(map.get('B')).toBeUndefined()
   })
 })
 
@@ -597,5 +583,98 @@ describe('a universe as it stood on a date', () => {
       expect(screen.getByText(/as of 2018-01-02/)).toBeInTheDocument()
     })
     expect(screen.getByText(/1 of the stored 2 were not listed then/)).toBeInTheDocument()
+  })
+})
+
+describe('a universe past the engine cap', () => {
+  const MANY = Array.from({ length: 2_400 }, (_, i) => `B${String(i).padStart(4, '0')}`)
+
+  function mountBig(): Call[] {
+    const calls: Call[] = []
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+
+    const client = {
+      universes: {
+        list: () => Promise.resolve({ universes: [{ id: 'BIG', name: 'Big', identifiers: MANY }] }),
+        members: () => Promise.resolve({ universe_id: 'BIG', identifiers: MANY })
+      },
+      data: {
+        coverage: () =>
+          Promise.resolve({
+            datasets: [{ dataset: 'market', configured: true, end: '2026-08-20' }]
+          }),
+        referenceBatch: (identifiers: readonly string[], fields: readonly string[] | undefined) => {
+          calls.push({ identifiers, fields })
+          return Promise.resolve({
+            as_of: '2026-08-20',
+            entries: identifiers.map((id) => ({
+              identifier: id,
+              found: true,
+              fields: { NAME: `${id} Corp` }
+            }))
+          })
+        }
+      }
+    } as unknown as BeaconClient
+
+    const tab = useWorkspace.getState().tabs[0]
+    render(
+      <QueryClientProvider client={queries}>
+        <ClientContext.Provider value={client}>
+          <UniverseView tab={tab!} subject="BIG" />
+        </ClientContext.Provider>
+      </QueryClientProvider>
+    )
+    return calls
+  }
+
+  /** The virtualiser draws no rows for 2,400 items in jsdom, so read the
+   *  footnote, which is the figure this is about anyway. */
+  function footnote(): string {
+    return document.querySelector('.universe-footnote')?.textContent ?? ''
+  }
+
+  it('asks about every member, in calls of the cap', async () => {
+    // 2,400 names is three calls, not one truncated to 1,000.
+    const calls = mountBig()
+
+    await waitFor(() => {
+      expect(calls).toHaveLength(3)
+    })
+    const asked = calls.flatMap((call) => [...call.identifiers])
+    expect(new Set(asked).size).toBe(MANY.length)
+    expect(calls.every((call) => call.identifiers.length <= 1_000)).toBe(true)
+  })
+
+  it('counts all of them, where it used to count the first thousand', async () => {
+    // The bug behind "757 assets" against an overview saying 3,849: the same
+    // proportion, measured on a fifth of the population.
+    mountBig()
+
+    await waitFor(() => {
+      expect(footnote()).toContain('2,400 assets')
+    })
+    // A client limitation that was described as an engine one.
+    expect(footnote()).not.toContain('detail for the first')
+  })
+})
+
+describe('getting back to the list', () => {
+  it('clears the tab’s subject, so reopening the tab lands on the overview too', async () => {
+    mount()
+    await screen.findByText('T000')
+
+    await userEvent.click(screen.getByRole('button', { name: '← All universes' }))
+
+    // The tab is the contract. Re-rendering on it is PaneHost's job — this
+    // harness passes `subject` as a fixed prop, so nothing here would change.
+    expect(useWorkspace.getState().tabs[0]?.subject).toBe('')
+  })
+
+  it('offers no way back from the list itself', async () => {
+    mountOverview()
+    await screen.findByText(/1 universe/)
+
+    expect(screen.queryByRole('button', { name: '← All universes' })).toBeNull()
   })
 })

@@ -207,7 +207,9 @@ const ROUTES: Record<string, unknown> = {
       }
     ]
   },
-  '/indices': { indices: [{ id: 'TECH10', name: 'Beacon US Technology Top 10' }] },
+  // Whole documents, as the endpoint returns — the overview reads a
+  // universe and a rebalance frequency off each row (BU-95).
+  '/indices': { indices: [indexDocument('TECH10')] },
   '/data/watchlists': { watchlists: [] }
 }
 
