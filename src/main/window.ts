@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { APP_ORIGIN } from './appProtocol'
-import { app, BrowserWindow, shell } from 'electron'
+import { devIcon } from './icon'
+import { BrowserWindow, shell } from 'electron'
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, MIN_HEIGHT, MIN_WIDTH } from './windowGeometry'
 import { forwardMaximizeChanges } from './ipc'
 import { persistWindowState, restoredBounds, wasMaximized } from './windowState'
@@ -27,17 +28,6 @@ const TRAFFIC_LIGHT_Y = 17
 const frameOptions = isMac
   ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: TRAFFIC_LIGHT_Y } }
   : { frame: false }
-
-/**
- * The window icon, in development only (BU-73).
- *
- * A packaged build takes its icon from the executable on Windows and the
- * bundle on macOS, and `build/` is not inside the app there — pointing at it
- * would be a path that resolves during `pnpm dev` and silently does not once
- * shipped. Unpackaged, Electron would otherwise show its own default icon in
- * the taskbar, which makes the dev window look like somebody else's app.
- */
-const devIcon = app.isPackaged ? {} : { icon: join(__dirname, '../../build/icon.png') }
 
 export interface MainWindowOptions {
   /**

@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { BrowserWindow } from 'electron'
 import { APP_ORIGIN } from './appProtocol'
+import { devIcon } from './icon'
 
 /** Figma 0:1 — frames 2:2 and 4:8. */
 const WIDTH = 573
@@ -14,8 +15,12 @@ const HEIGHT = 883
  * decoration — someone whose engine will not start has to be able to close
  * this without reaching for the task manager.
  *
- * Not resizable, and not in the taskbar as a second entry: it is one step of
- * launching the app, not a window in its own right.
+ * Not resizable, but it IS on the taskbar (BU-97). It used to set
+ * `skipTaskbar` to avoid being a second entry beside the main window — except
+ * there is no second entry to avoid, because the main window is built hidden
+ * and a hidden window has no taskbar presence either. The two together gave
+ * the app none at all for as long as the engine took to start, which on a
+ * first launch is a minute or more of looking like nothing is running.
  *
  * `#splash` selects what the renderer mounts. A second Vite entry would mean
  * a second HTML file, a second bundle and a second copy of the token and font
@@ -29,8 +34,8 @@ export function createSplashWindow(): BrowserWindow {
     resizable: false,
     maximizable: false,
     fullscreenable: false,
-    skipTaskbar: true,
     show: false,
+    ...devIcon,
     // The dark canvas token, as in window.ts: only visible before the first
     // frame, but a stale literal would flash a colour no longer in the
     // palette.
