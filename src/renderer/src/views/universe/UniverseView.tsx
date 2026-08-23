@@ -14,7 +14,12 @@ import {
   useUniverseMembers,
   useUniverses
 } from '../shared/strategyQueries'
-import { REFERENCE_BATCH_LIMIT, useCoverage, useReferenceBatch } from '../shared/queries'
+import {
+  REFERENCE_BATCH_LIMIT,
+  useCoverage,
+  useReferenceBatch,
+  useReferenceValidity
+} from '../shared/queries'
 import { billions, buildRow, fieldsByIdentifier, volume, type UniverseRow } from './universe'
 import { blankUniverse, isEditable, type DraftUniverse } from './members'
 import { useCandidatePool } from './pool'
@@ -59,7 +64,10 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
   const setSubject = useWorkspace((state) => state.setSubject)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
-  const catalogue = universes.data?.universes ?? []
+  // Memoised because the point-in-time counts key off it: `?? []` is a fresh
+  // array every render, which would rebuild the identifier list each time and
+  // re-key the reference queries.
+  const catalogue = useMemo(() => universes.data?.universes ?? [], [universes.data])
 
   /*
    * No subject means the OVERVIEW, not the first universe (BU-93).
@@ -90,16 +98,39 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
 
   const coverage = useCoverage()
 
-  /** The date the stored counts are current to — the DATA's, not each row's. */
+  /**
+   * The latest date the data reaches, which is what "as of today" means here.
+   *
+   * Market rather than reference: reference is a static frame with no end, so
+   * the last date anything is actually known for is the market series'.
+   */
   const dataAsOf = coverage.data?.datasets
     .find((set) => set.dataset === 'market')
     ?.end?.slice(0, 10)
 
+  /*
+   * The overview's counts are point-in-time, so they need reference data for
+   * every name in every universe. Fetched only while the overview is on
+   * screen — that is thousands of rows, and a user reading one universe's
+   * table has no use for it.
+   */
+  const overviewing = draft === undefined && selected === ''
+  const everyMember = useMemo(
+    () => (overviewing ? catalogue.flatMap((universe) => universe.identifiers ?? []) : []),
+    [overviewing, catalogue]
+  )
+  const validity = useReferenceValidity(everyMember, overviewing ? (dataAsOf ?? '') : '')
+
   const summaries: UniverseSummary[] = catalogue.map((universe) => ({
     id: universe.id,
     name: universe.name,
-    description: universe.description,
-    constituents: universe.identifiers?.length ?? 0,
+    // Members still listed on the as-of date. Undefined while that is still
+    // arriving: showing the stored length first would have the number tick
+    // down as the real answer lands, which reads as wrong rather than
+    // provisional.
+    constituents: validity.loading
+      ? undefined
+      : (universe.identifiers ?? []).filter((identifier) => validity.listed.has(identifier)).length,
     source: universe.source
   }))
 

@@ -6,16 +6,18 @@ import './UniverseOverview.css'
 export interface UniverseSummary {
   id: string
   name: string
-  description: string | null | undefined
-  /** Stored membership size — the engine sends the whole list with the row. */
-  constituents: number
+  /**
+   * Members still listed on the as-of date, not the stored membership size.
+   * Undefined until the reference data answering that has arrived.
+   */
+  constituents: number | undefined
   /** `seeded` is the engine's own; anything else is the user's. */
   source: string | undefined
 }
 
 export interface UniverseOverviewProps {
   universes: readonly UniverseSummary[]
-  /** The date the counts are current to. Same for every row — see below. */
+  /** The latest date the data reaches, which is what the counts are stated at. */
   asOf: string | undefined
   onOpen: (id: string) => void
 }
@@ -33,15 +35,14 @@ const COLUMNS: readonly Column<UniverseSummary>[] = [
     header: 'Constituents',
     width: 110,
     align: 'right',
-    render: (row) => row.constituents.toLocaleString('en-US')
-  },
-  {
-    key: 'description',
-    header: 'Description',
-    width: 320,
-    render: (row) => row.description ?? '—'
+    render: (row) => row.constituents?.toLocaleString('en-US') ?? '…'
   }
 ]
+
+/** The as-of column is the same date in every row, so it is built per render. */
+function columns(asOf: string | undefined): readonly Column<UniverseSummary>[] {
+  return [...COLUMNS, { key: 'asOf', header: 'As of', width: 110, render: () => asOf ?? '—' }]
+}
 
 /**
  * What universes exist (BU-93).
@@ -55,21 +56,24 @@ const COLUMNS: readonly Column<UniverseSummary>[] = [
  * `identifiers` array alongside its name, so there is no per-universe call
  * and no fan-out.
  *
- * **The as-of is the DATASET's date, not each universe's.** py-beacon records
- * no timestamp on a universe document — no created, no updated — so there is
- * nothing per-row to show. For a seeded universe the dataset's date is
- * genuinely its date; for one the user saved it is not, and the caption says
- * which rather than implying a freshness the API cannot support. A real
- * per-universe date needs an engine change; see
- * `docs/engine-requests/reference-dimensions.md`.
+ * **The count is point-in-time, not the stored list length.** A universe
+ * document is a fixed list that outlives its members, so "how many
+ * constituents does this have" and "how long is the saved list" are different
+ * questions once anything has delisted. The column answers the first, at the
+ * latest date the data reaches — the same date for every row, because it is a
+ * property of the dataset rather than of any universe.
+ *
+ * That costs reference data for every name in every universe, which is why
+ * `useReferenceValidity` deduplicates across universes and chunks to the
+ * engine's 1,000-per-call cap rather than asking once per universe.
  */
 export function UniverseOverview({ universes, asOf, onOpen }: UniverseOverviewProps): ReactElement {
-  const total = universes.reduce((sum, universe) => sum + universe.constituents, 0)
+  const total = universes.reduce((sum, universe) => sum + (universe.constituents ?? 0), 0)
 
   return (
     <div className="universe-overview">
       <Table
-        columns={COLUMNS}
+        columns={columns(asOf)}
         rows={universes}
         getRowId={(row) => row.id}
         onSelectRow={(row) => {
@@ -80,7 +84,7 @@ export function UniverseOverview({ universes, asOf, onOpen }: UniverseOverviewPr
       <p className="universe-footnote type-11">
         {universes.length.toLocaleString('en-US')} universe
         {universes.length === 1 ? '' : 's'} · {total.toLocaleString('en-US')} memberships
-        {asOf !== undefined && ` · data current to ${asOf}`} · click a row to open one
+        {asOf !== undefined && `, counted as of ${asOf}`} · click a row to open one
       </p>
     </div>
   )

@@ -89,6 +89,10 @@ function mount(subject: string | undefined = 'US-LARGECAP'): Call[] {
       members: () => Promise.resolve({ universe_id: 'US-LARGECAP', identifiers: IDENTIFIERS })
     },
     data: {
+      coverage: () =>
+        Promise.resolve({
+          datasets: [{ dataset: 'market', configured: true, end: '2026-08-19T00:00:00' }]
+        }),
       referenceBatch: (identifiers: readonly string[], fields: readonly string[] | undefined) => {
         calls.push({ identifiers, fields })
         return Promise.resolve({
@@ -219,15 +223,30 @@ describe('opening with no universe chosen', () => {
     expect(screen.queryByText('T000')).toBeNull()
   })
 
-  it('counts constituents from the list call, with no per-universe fetch', async () => {
+  it('counts what is listed as of the latest date the data reaches', async () => {
+    // Not the stored list length: a universe document outlives its members,
+    // so "how many constituents" and "how long is the saved list" stop
+    // agreeing the moment anything delists.
+    mountOverview()
+    await screen.findByText(/1 universe/)
+
+    await waitFor(() => {
+      expect(within(overview()).getByText(String(IDENTIFIERS.length))).toBeInTheDocument()
+    })
+    expect(within(overview()).getByText('2026-08-19')).toBeInTheDocument()
+    expect(screen.getByText(/counted as of 2026-08-19/)).toBeInTheDocument()
+  })
+
+  it('asks once for every name, not once per universe', async () => {
+    // Deduplicated across universes and chunked to the engine's cap, rather
+    // than a call per universe — which is the fan-out #45 removed elsewhere.
     const calls = mountOverview()
     await screen.findByText(/1 universe/)
 
-    expect(
-      within(overview()).getByText(IDENTIFIERS.length.toLocaleString('en-US'))
-    ).toBeInTheDocument()
-    // The reference batch belongs to a member table, and there is none.
-    expect(calls).toHaveLength(0)
+    await waitFor(() => {
+      expect(calls).toHaveLength(1)
+    })
+    expect(calls[0]?.identifiers).toHaveLength(IDENTIFIERS.length)
   })
 
   it('opens a universe when its row is clicked', async () => {

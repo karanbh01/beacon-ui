@@ -96,23 +96,24 @@ way.
 
 ---
 
-## Addendum: a timestamp on a universe document (BU-93)
+## Addendum: universe counts as of a date (BU-93)
 
-Universe Set now opens on an overview — one row per universe, with its name
-and constituent count. `GET /universes` already returns each universe's whole
-`identifiers` array alongside its name, so the counts cost nothing extra.
+Universe Set opens on an overview — one row per universe, with the number of
+members **still listed on the latest date the data reaches**, and that date.
+Not the stored list length: a universe document outlives its members, so the
+two stop agreeing the moment anything delists.
 
-What the overview cannot show is **when a universe was last written**. The
-`Universe` schema carries `id`, `name`, `description`, `source` and
-`identifiers` — no created, no updated. So an "as of" column can only report
-the date the _dataset_ is current to, which is the same value in every row and
-is only truthful for the seeded universe: that one genuinely tracks the data,
-while a user's is whatever they last saved.
+Two things make that affordable, both already in place:
 
-**Ask:** `created_at` and `updated_at` on the universe document, ISO 8601, set
-by the store on write. The document is already persisted as a file per
-universe, so the write path is the only place that needs to stamp it.
+- `GET /universes` returns each universe's whole `identifiers` array with its
+  name, so the membership needs no per-universe call.
+- `GET /data/reference?date=` answers which of those were listed then, and the
+  client deduplicates across universes and chunks to the 1,000-per-call cap
+  rather than asking once per universe.
 
-Small, but it turns a column that is the same everywhere into one that answers
-"is this list stale?" — which is the question anyone scanning a list of
-universes is actually asking.
+The date comes from `/data/coverage` — the `end` of the **market** dataset,
+since reference is a static frame with no end and the market series is the
+last date anything is actually known for.
+
+Nothing outstanding here. Recorded because the shape of that answer is
+assembled from three endpoints and is not obvious from any one of them.

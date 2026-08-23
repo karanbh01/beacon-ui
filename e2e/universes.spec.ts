@@ -145,8 +145,9 @@ test('the tab opens on a list of universes rather than inside one', async ({ win
 
   const overview = window.locator('.universe-overview')
   await expect(overview.getByText('All loaded assets')).toBeVisible()
-  // The count comes from the list call: no members request was needed.
+  // Counted as of the latest date the data reaches, not the stored length.
   await expect(overview.getByText('120', { exact: true })).toBeVisible()
+  await expect(overview.getByText('2026-08-03').first()).toBeVisible()
   // Loosely: the stub's catalogue GROWS across this file, which is the point
   // of BU-78's mutable universes, so a fixed total would be order-dependent.
   await expect(window.getByText(/\d+ universes? · /)).toBeVisible()

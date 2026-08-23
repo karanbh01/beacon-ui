@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
 
@@ -85,6 +86,69 @@ export function useReferenceBatch(
     },
     enabled: client !== null && wanted.length > 0
   })
+}
+
+/**
+ * Which of these names were listed on a date (BU-93).
+ *
+ * The engine caps a reference call at 1,000 identifiers, and answering "how
+ * many constituents does each universe have as of today" means asking about
+ * every name in every universe — 5,000 on a real dataset. So the list is
+ * deduplicated across universes and split into calls of the cap.
+ *
+ * `found` is the whole answer: the endpoint returns only rows valid on the
+ * date and marks the rest `found: false`. Nothing here decides what "listed"
+ * means, which is the point — py-beacon owns that.
+ */
+export interface ReferenceValidity {
+  /** Identifiers the engine had a valid row for on the date. */
+  listed: ReadonlySet<string>
+  /** True until every chunk has answered; counts are not trustworthy before. */
+  loading: boolean
+}
+
+export function useReferenceValidity(
+  identifiers: readonly string[],
+  date: string
+): ReferenceValidity {
+  const client = useBeacon()
+
+  // Sorted as well as deduplicated: the sorted list is the query key, so two
+  // renders that ask the same question hit the same cache entry.
+  const chunks = useMemo(() => {
+    const unique = [...new Set(identifiers)].sort((a, b) => a.localeCompare(b))
+    const out: string[][] = []
+    for (let at = 0; at < unique.length; at += REFERENCE_BATCH_LIMIT) {
+      out.push(unique.slice(at, at + REFERENCE_BATCH_LIMIT))
+    }
+    return out
+  }, [identifiers])
+
+  const results = useQueries({
+    queries: chunks.map((ids) => ({
+      queryKey: keys.data.referenceBatch(ids, TABLE_REFERENCE_FIELDS, date),
+      queryFn: ({ signal }: { signal: AbortSignal }) => {
+        if (client === null) throw new Error('No engine')
+        return client.data.referenceBatch(ids, TABLE_REFERENCE_FIELDS, date, signal)
+      },
+      enabled: client !== null && date !== ''
+    }))
+  })
+
+  const listed = useMemo(() => {
+    const found = new Set<string>()
+    for (const result of results) {
+      for (const entry of result.data?.entries ?? []) {
+        if (entry.found) found.add(entry.identifier)
+      }
+    }
+    return found
+  }, [results])
+
+  return {
+    listed,
+    loading: date === '' || chunks.length === 0 || results.some((result) => result.isPending)
+  }
 }
 
 export interface CorporateActionsOptions {
