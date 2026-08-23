@@ -103,9 +103,9 @@ describe('HomeView', () => {
     expect(screen.getByText('Thursday 16 July 2026')).toBeInTheDocument()
   })
 
-  it('puts the section labels in the serif, which is why it is bundled', () => {
-    // Home is the only view that uses Source Serif Pro (#50). If these stop
-    // carrying the class, the face becomes dead weight in the bundle again.
+  it('sets its headers in the type scale rather than styling them locally', () => {
+    // They were Source Serif Pro italic until BU-98. The face is gone from
+    // the bundle now, so nothing here should reach for a family of its own.
     const { container } = render(<HomeView {...props} onQuickstart={vi.fn()} />)
     expect(container.querySelectorAll('.type-section-label')).toHaveLength(4)
     expect(container.querySelector('.type-page-title')).not.toBeNull()

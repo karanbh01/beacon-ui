@@ -18,10 +18,14 @@ const MODULES = join(ROOT, 'node_modules', '@fontsource')
 /**
  * Only the faces actually used, latin only.
  *
- * Inter ships 18 weights across a dozen subsets and Source Serif Pro nearly
- * as many; shipping all of them would be tens of megabytes for four faces
- * the design uses. Adding a weight here is deliberate, and shows up as a new
- * binary in the diff.
+ * Inter ships 18 weights across a dozen subsets; shipping all of them would
+ * be tens of megabytes for four faces the design uses. Adding a weight here
+ * is deliberate, and shows up as a new binary in the diff.
+ *
+ * Source Serif Pro was here for the italic section labels until BU-98 set
+ * every header in the UI face. Nothing rendered it after that, so it stopped
+ * being downloaded — two faces and a licence file that would otherwise still
+ * ship in every build.
  */
 const FACES = [
   { package: 'inter', file: 'inter-latin-400-normal.woff2' },
@@ -31,8 +35,6 @@ const FACES = [
   // version line has been faking it since BU-14; the Home date and title
   // (BU-54) made it worth fixing.
   { package: 'inter', file: 'inter-latin-400-italic.woff2' },
-  { package: 'source-serif-pro', file: 'source-serif-pro-latin-400-italic.woff2' },
-  { package: 'source-serif-pro', file: 'source-serif-pro-latin-600-italic.woff2' },
   // The menu bar only (Figma 81:2 specifies Roboto there, not Inter). Bundled
   // for the same reason as the others: it is on some machines and not others,
   // and the fallback is 5% wider — see BU-52.
@@ -41,7 +43,6 @@ const FACES = [
 
 const LICENCES = [
   { package: 'inter', to: 'Inter-OFL.txt' },
-  { package: 'source-serif-pro', to: 'SourceSerifPro-OFL.txt' },
   { package: 'roboto', to: 'Roboto-Apache-2.0.txt' }
 ]
 
@@ -64,7 +65,6 @@ async function main() {
   }
 
   const inter = await version('inter')
-  const serif = await version('source-serif-pro')
   const roboto = await version('roboto')
 
   // Provenance beside the binaries. A woff2 in a repo with no note saying
@@ -78,15 +78,13 @@ async function main() {
       '',
       `Inter ${inter.version} (${inter.license}) — @fontsource/inter`,
       '  https://github.com/rsms/inter',
-      `Source Serif Pro ${serif.version} (${serif.license}) — @fontsource/source-serif-pro`,
-      '  https://github.com/adobe-fonts/source-serif',
       `Roboto ${roboto.version} (${roboto.license}) — @fontsource/roboto`,
       '  https://github.com/googlefonts/roboto',
       '',
-      'Inter and Source Serif Pro are under the SIL Open Font License 1.1;',
-      'Roboto is under the Apache License 2.0. All three permit redistribution',
-      'as part of a bundled application. Full terms are in Inter-OFL.txt,',
-      'SourceSerifPro-OFL.txt and Roboto-Apache-2.0.txt in this directory.',
+      'Inter is under the SIL Open Font License 1.1; Roboto is under the',
+      'Apache License 2.0. Both permit redistribution as part of a bundled',
+      'application. Full terms are in Inter-OFL.txt and Roboto-Apache-2.0.txt',
+      'in this directory.',
       ''
     ].join('\n')
   )

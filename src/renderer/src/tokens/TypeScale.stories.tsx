@@ -7,11 +7,8 @@ const SAMPLES = [
   { className: 'type-11', label: '11 Regular', note: 'Body, table cells, footnotes' },
   { className: 'type-10', label: '10 Medium · 0.4px', note: 'Stat labels, table headers' },
   { className: 'type-9', label: '9 Medium · 6%', note: 'Pricer section heads' },
-  {
-    className: 'type-section-label',
-    label: 'Source Serif Pro SemiBold Italic 16/17.4',
-    note: 'Section labels — the only non-Inter face'
-  }
+  { className: 'type-section-label', label: '16 SemiBold', note: 'Section labels' },
+  { className: 'type-page-title', label: '32 SemiBold', note: 'Page titles' }
 ]
 
 function Row({

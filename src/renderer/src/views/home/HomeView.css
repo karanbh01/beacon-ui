@@ -82,7 +82,7 @@
   flex-direction: column;
 }
 
-/* Source Serif Pro SemiBold Italic in text-muted (73:2). */
+/* 16px SemiBold in text-muted (73:2, reset to the UI face by BU-98). */
 .home-label {
   margin: 0;
   color: var(--text-muted);

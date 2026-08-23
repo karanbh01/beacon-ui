@@ -1,11 +1,13 @@
 /*
  * Type scale (BU-6) and the faces it needs (BU-38). Values read from Figma
  * rather than inferred: Stat 388:153 gives 10px Medium at 0.4px tracking and
- * 16px Medium; Section Label 73:2 is Source Serif Pro SemiBold Italic, not
- * Inter.
+ * 16px Medium.
  *
- * Two families are in play. Inter carries the whole UI; Source Serif Pro
- * appears only as the italic section label.
+ * Two families are in play. Inter carries the whole UI; Roboto is the window
+ * chrome only, for the reason on its own @font-face below. Source Serif Pro
+ * was a third — the italic section labels of Figma 73:2 — until BU-98 put
+ * every header in the UI face, at which point nothing rendered it and it
+ * stopped being bundled.
  *
  * The files are bundled, never fetched: the CSP is `default-src 'self'` and
  * the app has to work offline, so a CDN is not an option. Generated into
@@ -36,7 +38,7 @@
 }
 
 /*
- * Real italics for both families.
+ * A real italic, rather than a sheared upright.
  *
  * A `font-style: italic` with no italic face does not fail — the browser
  * shears the upright one and carries on, which is why this went unnoticed in
@@ -53,33 +55,6 @@
 
 /* 400 for the page title (Home 40:242), 600 for section labels (73:2). */
 @font-face {
-  font-family: 'Source Serif Pro';
-  font-style: italic;
-  font-weight: 400;
-  font-display: block;
-  src: url('../assets/fonts/source-serif-pro-latin-400-italic.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Source Serif Pro';
-  font-style: italic;
-  font-weight: 600;
-  font-display: block;
-  src: url('../assets/fonts/source-serif-pro-latin-600-italic.woff2') format('woff2');
-}
-
-/*
- * Roboto is the menu bar and nowhere else — Figma 81:2 specifies it there,
- * standing in for a native menu.
- *
- * Bundled rather than left to the system, and BU-52 is the argument: it was
- * resolving off this machine, which happens to have it, and falling back to
- * Inter on machines that do not. The nine menu labels sum to 419.8px in
- * Roboto and 441.4px in Inter — 5% wider, enough to push the search field
- * out of shape, which is exactly the symptom that was reported and that I
- * could not reproduce.
- */
-@font-face {
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 400;
@@ -95,7 +70,6 @@
  */
 :root {
   --font-ui: 'Inter', sans-serif;
-  --font-serif: 'Source Serif Pro', Georgia, serif;
   /* Window chrome only. Deliberately not --font-ui: see the @font-face above. */
   --font-chrome: 'Roboto', 'Inter', sans-serif;
 }
@@ -145,21 +119,26 @@
   line-height: normal;
 }
 
-/* Source Serif Pro SemiBold Italic 16px / 17.4px — section labels. */
+/*
+ * 16px SemiBold — section labels (BU-98).
+ *
+ * Source Serif Pro SemiBold Italic until the headers were asked to match the
+ * rest of the app's text. Size and weight are unchanged; only the face and
+ * the slant went. The 17.4px leading went with them: it was the serif's
+ * measured line box from Figma and means nothing to Inter.
+ */
 .type-section-label {
-  font-family: var(--font-serif);
+  font-family: var(--font-ui);
   font-size: 16px;
-  font-style: italic;
   font-weight: 600;
-  line-height: 17.4px;
+  line-height: normal;
 }
 
-/* Source Serif Pro Italic 32px — the page title (Home 40:242). */
+/* 32px SemiBold — the page title (Home 40:242). Serif italic until BU-98. */
 .type-page-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-ui);
   font-size: 32px;
-  font-style: italic;
-  font-weight: 400;
+  font-weight: 600;
   line-height: normal;
 }
 

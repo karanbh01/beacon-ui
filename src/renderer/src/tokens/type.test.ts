@@ -93,8 +93,6 @@ describe('type scale', () => {
         // Real italics rather than a synthesised slant — the footer's version
         // line and Home's date and title all need them (BU-54).
         'Inter 400 italic',
-        'Source Serif Pro 400 italic',
-        'Source Serif Pro 600 italic',
         // Window chrome only, and bundled for the reason BU-52 found: it was
         // resolving off the local machine and falling back to Inter — 5%
         // wider — anywhere it was not installed.
