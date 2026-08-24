@@ -1,5 +1,15 @@
 /* Figma 234:4680: 2x2 grid of 440px cards, 16px gaps. */
 
+/*
+ * Two 440px columns is 896px with the gap, and a pane in a side-by-side split
+ * is about 690px — so the second column was cut off and the pane scrolled
+ * sideways (BU-105). Below the width that fits two, the cards stack and take
+ * the pane's width, which reads better than half a table.
+ *
+ * A container query, not a media query: the constraint is the pane, and the
+ * other pane on the same window may well be wide enough for two.
+ */
+
 .reference-view {
   display: flex;
   flex-direction: column;
@@ -15,6 +25,17 @@
 
 .reference-card {
   width: 440px;
+}
+
+@container pane (width < 920px) {
+  .reference-grid {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .reference-card {
+    width: 100%;
+  }
 }
 
 .reference-footnote {

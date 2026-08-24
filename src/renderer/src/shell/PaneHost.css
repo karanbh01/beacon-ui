@@ -83,7 +83,14 @@
  * `pane-content` flush at 58,96 and its `pane-header` at 24,20 inside that.
  * The tab bar above must reach the sidebar; the content below must not.
  */
+/*
+ * A container, so a view can lay itself out against the PANE's width rather
+ * than the window's (BU-105). Two panes side by side on one window need
+ * different answers, which a media query cannot give them.
+ */
 .pane-body {
+  container-type: inline-size;
+  container-name: pane;
   flex: 1 1 auto;
   min-height: 0;
   padding: 20px 24px;
