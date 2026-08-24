@@ -18,6 +18,7 @@ import {
   severLink,
   tabsForPage,
   tabsForPane,
+  unlinkTab,
   visiblePane,
   type OpenTabInput
 } from './tabs.logic'
@@ -124,9 +125,48 @@ describe('setSubject', () => {
     expect(resolveSubject(after, findTab(after, 'prices')!)).toBe('TECH10')
   })
 
-  it('refuses on a linked tab — the subject belongs to the source', () => {
-    const state = workspace(PRICES, CHARTING)
-    expect(setSubject(state, 'charting', 'MSFT')).toBe(state)
+  it('writes through a linked tab to its source, moving the whole group', () => {
+    // BU-109. It used to refuse, on the reasoning that the subject belongs to
+    // the source — true, and it meant typing in a follower was silently
+    // dropped and the field snapped back. Linked tabs SHARE a subject, so
+    // setting it anywhere sets it everywhere.
+    const state = setSubject(workspace(PRICES, CHARTING), 'charting', 'MSFT')
+
+    expect(findTab(state, 'prices')?.subject).toBe('MSFT')
+    expect(resolveSubject(state, findTab(state, 'charting')!)).toBe('MSFT')
+  })
+
+  it('leaves a pinned tab alone, which follows a document rather than a subject', () => {
+    const state = workspace(PRICES, { ...CHARTING, id: 'bt', archetype: 'pinned' })
+    expect(setSubject(state, 'bt', 'MSFT')).toBe(state)
+  })
+})
+
+describe('unlinking from either end (BU-109)', () => {
+  it('severs the follower when asked from the follower', () => {
+    const state = unlinkTab(workspace(PRICES, CHARTING), 'charting')
+    expect(findTab(state, 'charting')?.archetype).toBe('query')
+  })
+
+  it('dissolves the group when asked from the source', () => {
+    // Standing on the source there was no way out at all: `severLink` only
+    // ever acted on a follower, so you had to go and find the other tab.
+    const state = unlinkTab(workspace(PRICES, CHARTING), 'prices')
+
+    expect(findTab(state, 'charting')?.archetype).toBe('query')
+    expect(findTab(state, 'charting')?.linkSourceId).toBeUndefined()
+  })
+
+  it('keeps the subject the follower was showing, which it inherited', () => {
+    // Severing must not blank the tab: it keeps what it had on screen and
+    // becomes independent (taxonomy 2).
+    const state = unlinkTab(workspace(PRICES, CHARTING), 'prices')
+    expect(findTab(state, 'charting')?.subject).toBe('AAPL')
+  })
+
+  it('does nothing to a tab that is in no link', () => {
+    const state = workspace(PRICES)
+    expect(unlinkTab(state, 'prices')).toBe(state)
   })
 })
 

@@ -60,6 +60,8 @@ export interface WorkspaceStore extends WorkspaceState {
   moveTab: (id: string, pane: number, index: number, paneCount: number) => void
   setSubject: (id: string, subject: string) => void
   severLink: (id: string) => void
+  /** Break the link from EITHER end (BU-109). */
+  unlinkTab: (id: string) => void
   linkTab: (id: string, sourceId: string) => void
   pinTab: (id: string, doc: string) => void
   setDirty: (id: string, dirty: boolean) => void
@@ -104,6 +106,9 @@ export const useWorkspace = create<WorkspaceStore>()(
       },
       severLink: (id) => {
         set((state) => logic.severLink(state, id))
+      },
+      unlinkTab: (id) => {
+        set((state) => logic.unlinkTab(state, id))
       },
       linkTab: (id, sourceId) => {
         set((state) => logic.linkTab(state, id, sourceId))

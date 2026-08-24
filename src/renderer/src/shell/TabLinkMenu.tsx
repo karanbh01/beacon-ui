@@ -53,7 +53,7 @@ export function TabLinkMenu({ tabId, left, top, onClose }: TabLinkMenuProps): Re
       style={{ left, top }}
       ref={box}
     >
-      {linkage.linkedTo !== undefined && (
+      {linkage.unlinkLabel !== undefined && (
         <button
           type="button"
           role="menuitem"
@@ -63,7 +63,7 @@ export function TabLinkMenu({ tabId, left, top, onClose }: TabLinkMenuProps): Re
             onClose()
           }}
         >
-          Unlink from {linkage.linkedTo}
+          {linkage.unlinkLabel}
         </button>
       )}
 
@@ -83,7 +83,7 @@ export function TabLinkMenu({ tabId, left, top, onClose }: TabLinkMenuProps): Re
         </button>
       ))}
 
-      {linkage.targets.length === 0 && linkage.linkedTo === undefined && (
+      {linkage.targets.length === 0 && !linkage.inLink && (
         <p className="tab-link-empty type-11">No other tab has a subject to follow.</p>
       )}
     </div>

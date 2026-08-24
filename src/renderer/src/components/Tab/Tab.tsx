@@ -1,4 +1,4 @@
-import type { DragEvent, ReactElement, ReactNode } from 'react'
+import type { DragEvent, ReactElement } from 'react'
 import { ChainIcon } from '../../icons/generated'
 import { TAB_MIME } from './dragTab'
 import './Tab.css'
@@ -33,6 +33,12 @@ export interface TabProps {
    * needs to know where the chip is.
    */
   onChipClick?: (anchor: DOMRect) => void
+  /**
+   * Makes the chain itself the unlink control (BU-109). Present only when
+   * this tab is in a link — breaking one is a single act, so it gets a single
+   * click rather than a menu.
+   */
+  onUnlink?: () => void
   /** Omit to make the tab unclosable, e.g. a pinned global tool. */
   onClose?: () => void
   /** Workspace id, carried by a drag so another strip can claim it (BU-55). */
@@ -41,53 +47,55 @@ export interface TabProps {
   className?: string
 }
 
-function chipContent(chip: TabChip): { className: string; body: ReactNode } {
-  if (chip.kind === 'pin') {
-    return {
-      className: 'tab-chip tab-chip-pin',
-      body: (
-        <>
-          <ChainIcon size={9} className="tab-chip-chain" />
-          <span className="tab-chip-label">{chip.target}</span>
-        </>
-      )
-    }
-  }
-  return {
-    className: 'tab-chip tab-chip-query',
-    body: (
-      <>
-        {chip.linked === true && <ChainIcon size={9} className="tab-chip-chain" />}
-        <span className="tab-chip-label">{chip.subject}</span>
-      </>
-    )
-  }
-}
-
 function Chip({
   chip,
-  onClick
+  onClick,
+  onUnlink
 }: {
   chip: TabChip
   onClick?: (anchor: DOMRect) => void
+  onUnlink?: () => void
 }): ReactElement {
-  const { className, body } = chipContent(chip)
   const name = chip.kind === 'pin' ? chip.target : chip.subject
-
-  if (onClick === undefined) return <span className={className}>{body}</span>
+  const chained = chip.kind === 'pin' || chip.linked === true
+  const label = chip.kind === 'pin' ? chip.target : chip.subject
+  const kindClass = chip.kind === 'pin' ? 'tab-chip-pin' : 'tab-chip-query'
 
   return (
-    <button
-      type="button"
-      className={`${className} tab-chip-button`}
-      aria-label={`Link ${name}`}
-      aria-haspopup="menu"
-      onClick={(event) => {
-        onClick(event.currentTarget.getBoundingClientRect())
-      }}
-    >
-      {body}
-    </button>
+    <span className={`tab-chip ${kindClass}`}>
+      {chained &&
+        (onUnlink === undefined ? (
+          <ChainIcon size={9} className="tab-chip-chain" />
+        ) : (
+          <button
+            type="button"
+            className="tab-chip-unlink"
+            aria-label={`Unlink ${name}`}
+            onClick={onUnlink}
+          >
+            <ChainIcon size={9} className="tab-chip-chain" />
+          </button>
+        ))}
+
+      {onClick === undefined ? (
+        <span className="tab-chip-label">{label}</span>
+      ) : (
+        <button
+          type="button"
+          className="tab-chip-label tab-chip-button"
+          aria-label={`Link ${name}`}
+          aria-haspopup="menu"
+          onClick={(event) => {
+            // The chip's own rect, not the label's: the menu should hang off
+            // the whole bubble.
+            const box = event.currentTarget.parentElement ?? event.currentTarget
+            onClick(box.getBoundingClientRect())
+          }}
+        >
+          {label}
+        </button>
+      )}
+    </span>
   )
 }
 
@@ -105,6 +113,7 @@ export function Tab({
   chip,
   onSelect,
   onChipClick,
+  onUnlink,
   onClose,
   dragId,
   onDragStateChange,
@@ -141,7 +150,11 @@ export function Tab({
         padding moved to `.tab` so the geometry is unchanged.
       */}
       {chip !== undefined && (
-        <Chip chip={chip} {...(onChipClick === undefined ? {} : { onClick: onChipClick })} />
+        <Chip
+          chip={chip}
+          {...(onChipClick === undefined ? {} : { onClick: onChipClick })}
+          {...(onUnlink === undefined ? {} : { onUnlink })}
+        />
       )}
       {onClose !== undefined && (
         <button type="button" className="tab-close" onClick={onClose} aria-label={`Close ${label}`}>

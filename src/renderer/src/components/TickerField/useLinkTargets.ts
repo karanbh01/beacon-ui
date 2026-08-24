@@ -15,7 +15,14 @@ export interface Linkage {
   targets: LinkTarget[]
   /** The source's title when following one, else undefined. */
   linkedTo: string | undefined
+  /** Titles of the tabs following this one, when it is a source. */
+  followers: string[]
+  /** True at either end of a link — both wear the chain (BU-108). */
+  inLink: boolean
+  /** What the unlink control should say, or undefined when there is none. */
+  unlinkLabel: string | undefined
   link: (sourceId: string) => void
+  /** Breaks the link from whichever end this tab is (BU-109). */
   unlink: () => void
 }
 
@@ -33,7 +40,7 @@ export interface Linkage {
 export function useLinkTargets(tabId: string): Linkage {
   const tabs = useWorkspace((state) => state.tabs)
   const linkTab = useWorkspace((state) => state.linkTab)
-  const severLink = useWorkspace((state) => state.severLink)
+  const unlinkTab = useWorkspace((state) => state.unlinkTab)
 
   const self = tabs.find((tab) => tab.id === tabId)
 
@@ -50,17 +57,36 @@ export function useLinkTargets(tabId: string): Linkage {
   )
 
   const source = tabs.find((tab) => tab.id === self?.linkSourceId)
+  const followers = tabs.filter((tab) => tab.linkSourceId === tabId).map((tab) => tab.title)
+  const linkedTo = self?.archetype === 'linked' ? (source?.title ?? 'another tab') : undefined
 
   return {
     targets,
-    linkedTo: self?.archetype === 'linked' ? (source?.title ?? 'another tab') : undefined,
+    linkedTo,
+    followers,
+    inLink: linkedTo !== undefined || followers.length > 0,
+    unlinkLabel: unlinkLabelFor(linkedTo, followers),
     link: (sourceId) => {
       linkTab(tabId, sourceId)
     },
     unlink: () => {
-      severLink(tabId)
+      unlinkTab(tabId)
     }
   }
+}
+
+/**
+ * Naming what unlinking will actually do.
+ *
+ * A follower leaves on its own; a source dissolves the group, so with more
+ * than one follower the control has to say so rather than implying the same
+ * small act.
+ */
+function unlinkLabelFor(linkedTo: string | undefined, followers: string[]): string | undefined {
+  if (linkedTo !== undefined) return `Unlink from ${linkedTo}`
+  if (followers.length === 1) return `Unlink from ${followers[0] ?? ''}`
+  if (followers.length > 1) return `Unlink all ${String(followers.length)} followers`
+  return undefined
 }
 
 function canFollow(candidate: Tab, tabId: string): boolean {

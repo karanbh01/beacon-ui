@@ -63,3 +63,45 @@ test('offers nothing to follow when no other tab has a subject', async ({ window
   await window.getByRole('button', { name: 'Link CMP005' }).click()
   await expect(window.getByText('No other tab has a subject to follow.')).toBeVisible()
 })
+
+test('a ticker typed in a linked tab moves the whole group', async ({ window }) => {
+  // BU-109. Typing in a follower used to be silently dropped: `setSubject`
+  // refused anything but a query tab, so the field snapped back and the tab
+  // looked stuck. Linked tabs share a subject.
+  await twoSubjects(window)
+  await window.getByRole('button', { name: 'Link CMP001' }).click()
+  await window.getByRole('menuitem', { name: /Prices/ }).click()
+
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP007')
+  await window.keyboard.press('Enter')
+
+  // Both chips, because both tabs now show it. `exact` matters: Playwright
+  // substring-matches an accessible name, so "Unlink CMP007" would count too.
+  await expect(window.getByRole('button', { name: 'Link CMP007', exact: true })).toHaveCount(2)
+})
+
+test('unlinks from the source, not only from the follower', async ({ window }) => {
+  // `severLink` only ever acted on a follower, so standing on the source
+  // there was no way out — you had to go and find the other tab.
+  await twoSubjects(window)
+  await window.getByRole('button', { name: 'Link CMP001' }).click()
+  await window.getByRole('menuitem', { name: /Prices/ }).click()
+  await expect(window.locator('.tab-chip-chain')).toHaveCount(2)
+
+  // The Prices tab is the source; unlink from its chain.
+  await window.getByRole('button', { name: 'Unlink CMP005' }).first().click()
+
+  await expect(window.locator('.tab-chip-chain')).toHaveCount(0)
+})
+
+test('the chain itself unlinks, in one click', async ({ window }) => {
+  await twoSubjects(window)
+  await window.getByRole('button', { name: 'Link CMP001' }).click()
+  await window.getByRole('menuitem', { name: /Prices/ }).click()
+
+  await window.getByRole('button', { name: 'Unlink CMP005' }).last().click()
+
+  await expect(window.locator('.tab-chip-chain')).toHaveCount(0)
+  // Severing keeps what was on screen (taxonomy 2).
+  await expect(window.getByRole('combobox', { name: 'Subject' })).toHaveValue('CMP005')
+})

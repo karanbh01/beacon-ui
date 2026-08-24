@@ -155,6 +155,7 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
           // Both ends of a link wear the chain (BU-108), so a tab needs to
           // know whether anything follows it, not only whether it follows.
           const isSource = state.tabs.some((other) => other.linkSourceId === tab.id)
+          const inLink = isSource || tab.archetype === 'linked'
           const chip = chipFor(tab, resolveSubject(state, tab), isSource)
           return (
             <Tab
@@ -164,6 +165,14 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
               dirty={tab.dirty}
               dragId={tab.id}
               {...(chip === undefined ? {} : { chip })}
+              {...(inLink
+                ? {
+                    onUnlink: () => {
+                      state.unlinkTab(tab.id)
+                      setLinking(undefined)
+                    }
+                  }
+                : {})}
               {...(chip === undefined
                 ? {}
                 : {

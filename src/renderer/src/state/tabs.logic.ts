@@ -286,9 +286,55 @@ export function reopenTab(state: WorkspaceState): WorkspaceState {
  * Returning state unchanged rather than throwing keeps a stray call from
  * taking the app down, and the tests pin that it is genuinely a no-op.
  */
+/**
+ * Set the subject a tab is showing.
+ *
+ * **A linked tab writes to its SOURCE** (BU-109). Linked tabs share one
+ * subject, so typing in any of them moves the whole group — which is what
+ * makes a link useful rather than a one-way mirror. Before this, typing in a
+ * follower was silently dropped: `setSubject` refused anything but a query
+ * tab, so the field reset itself on the next render and the tab looked stuck.
+ *
+ * One hop only, which `linkTab` guarantees by refusing a linked tab as a
+ * source — chains are not in the taxonomy.
+ */
 export function setSubject(state: WorkspaceState, id: string, subject: string): WorkspaceState {
-  if (findTab(state, id)?.archetype !== 'query') return state
+  const tab = findTab(state, id)
+  if (tab === undefined) return state
+
+  if (tab.archetype === 'linked' && tab.linkSourceId !== undefined) {
+    return setSubject(state, tab.linkSourceId, subject)
+  }
+
+  if (tab.archetype !== 'query') return state
   return replaceTab(state, id, (current) => ({ ...current, subject }))
+}
+
+/** Tabs following this one. */
+export function followersOf(state: WorkspaceState, id: string): Tab[] {
+  return state.tabs.filter((tab) => tab.linkSourceId === id)
+}
+
+/**
+ * Take this tab out of whatever link it is in (BU-109).
+ *
+ * `severLink` only ever worked on a follower, so standing on the source there
+ * was no way out — you had to find the other tab first. Either end can now
+ * break it:
+ *
+ * - a follower severs itself, and the source stops being one when its last
+ *   follower goes, since the chain is derived rather than stored;
+ * - a source dissolves the group, because "remove this tab from the link" has
+ *   no other meaning for the thing every follower points at.
+ *
+ * With two tabs the two readings coincide, which is the common case.
+ */
+export function unlinkTab(state: WorkspaceState, id: string): WorkspaceState {
+  const tab = findTab(state, id)
+  if (tab === undefined) return state
+  if (tab.archetype === 'linked') return severLink(state, id)
+
+  return followersOf(state, id).reduce((next, follower) => severLink(next, follower.id), state)
 }
 
 /**
