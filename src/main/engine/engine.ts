@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events'
 import type { EngineState } from '@shared/ipc'
 import { restartDelay, shouldGiveUp } from './backoff'
 import { SERVER_MODULE, locatePython, parsePort } from './python'
-import { generateSynthetic, readStoreStatus, shouldGenerate } from './synthetic'
+import { generateSynthetic, readStoreStatus, removeStore, shouldGenerate } from './synthetic'
 
 /** How often to confirm the server is still answering. */
 const HEALTH_INTERVAL_MS = 4_000
@@ -321,6 +321,54 @@ export class Engine extends EventEmitter {
   }
 
   /** Explicit restart, e.g. from the UI. Resets the backoff. */
+  /**
+   * Throw the demo store away and build a new one (BU-107).
+   *
+   * The opposite of `prepareData`, which refuses to touch an existing store —
+   * that guard protects someone who has real data at the app-data path, and
+   * it stays. This is the explicit override: the user asked, in the app, for
+   * this store to be replaced.
+   *
+   * `BEACON_DATA_PATH` still refuses. Naming a source is the strongest signal
+   * that the data is the user's rather than ours, and no button should
+   * overwrite it — the caller confirms with the user, not with the engine.
+   */
+  async regenerate(): Promise<void> {
+    if ((process.env.BEACON_DATA_PATH ?? '').trim() !== '') {
+      throw new Error('BEACON_DATA_PATH names your own data store, so this will not replace it.')
+    }
+
+    const python = this.python()
+
+    // Down first: the server holds the files open, and on Windows a delete
+    // under an open handle fails rather than waiting.
+    this.clearTimers()
+    this.killChild()
+    this.setState({ status: 'starting', detail: 'replacing the data store', restarts: 0 })
+
+    try {
+      const removed = await removeStore(python)
+      this.emit(
+        'log',
+        `${removed ? 'removed the existing data store' : 'no store to remove'}
+`
+      )
+
+      this.setState({ status: 'starting', detail: 'generating synthetic data', restarts: 0 })
+      await generateSynthetic(python, {
+        onLog: (line) => {
+          this.emit('log', line)
+        }
+      })
+    } finally {
+      // Whatever happened, the user is owed a running engine: a failed
+      // generation leaves the server startable, just with less to serve.
+      this.attempt = 0
+      this.stopping = false
+      this.spawnServer()
+    }
+  }
+
   restart(): void {
     this.clearTimers()
     this.attempt = 0

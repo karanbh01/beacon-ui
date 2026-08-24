@@ -5,6 +5,7 @@ import {
   UPDATE_CHANGED,
   type AppInfo,
   type BeaconBridge,
+  type RegenerateResult,
   type SaveResult,
   type EngineState,
   type OpenedReport,
@@ -20,6 +21,7 @@ const bridge: BeaconBridge = {
   engine: {
     state: () => ipcRenderer.invoke('engine:state') as Promise<EngineState>,
     restart: () => ipcRenderer.invoke('engine:restart') as Promise<void>,
+    regenerate: () => ipcRenderer.invoke('engine:regenerate') as Promise<RegenerateResult>,
     onChange: (listener) => {
       const handler = (_event: unknown, state: EngineState): void => {
         listener(state)

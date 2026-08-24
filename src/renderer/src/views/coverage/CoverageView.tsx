@@ -22,6 +22,7 @@ import {
   type CoverageStatus,
   type DatasetCoverage
 } from './coverage'
+import { useRegenerate } from './useRegenerate'
 import './CoverageView.css'
 
 const PILL: Record<CoverageStatus, 'done' | 'running' | 'failed' | 'info'> = {
@@ -48,6 +49,7 @@ export function CoverageView(): ReactElement {
   const [dataset, setDataset] = useState('')
   const query = useCoverage()
   const sync = useSyncDataset()
+  const regenerate = useRegenerate()
 
   // Memoised because `?? []` is a fresh array on every render, which would
   // make every downstream useMemo recompute for nothing.
@@ -77,7 +79,15 @@ export function CoverageView(): ReactElement {
             >
               Force sync
             </Button>
-            <Button chevron>Export</Button>
+            {/*
+              Replacing the demo store, rather than finding it on disk and
+              deleting it by hand (BU-107) — which on Windows does not even
+              work from Explorer, because the Store build of python redirects
+              the path py-beacon reports.
+            */}
+            <Button onClick={() => void regenerate.run()} disabled={regenerate.busy}>
+              {regenerate.busy ? 'Replacing…' : 'Replace data…'}
+            </Button>
           </>
         }
       >
@@ -94,7 +104,11 @@ export function CoverageView(): ReactElement {
 
       {query.isSuccess && (
         <>
-          <StatStrip>
+          {regenerate.problem !== undefined && (
+        <p className="coverage-problem type-11">{regenerate.problem}</p>
+      )}
+
+      <StatStrip>
             <Stat label="DATASETS" value={String(summary.datasets)} />
             <Stat
               label="CONFIGURED"

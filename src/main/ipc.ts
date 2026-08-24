@@ -11,6 +11,7 @@ import {
   type IpcRequest,
   type IpcResponse,
   type OpenedReport,
+  type RegenerateResult,
   type SaveResult,
   type UpdateState
 } from '@shared/ipc'
@@ -66,6 +67,41 @@ export function registerIpcHandlers(
   })
 
   handle('engine:state', (): EngineState => engine.getState())
+
+  /*
+   * Replacing the demo store (BU-107).
+   *
+   * Confirmed through the OS dialog rather than a renderer modal: it discards
+   * a couple of hundred megabytes and leaves the app without data for about
+   * two minutes, which is the kind of thing that deserves the platform's own
+   * "are you sure" rather than a div.
+   */
+  handle('engine:regenerate', async (event): Promise<RegenerateResult> => {
+    const window = senderWindow(event)
+    const message = {
+      type: 'warning' as const,
+      buttons: ['Replace', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      title: 'Replace the data store',
+      message: 'Replace the synthetic data store?',
+      detail:
+        'The current store is deleted and a new one generated. This takes a couple of minutes, and the app has no data until it finishes.\n\nYour universes, indices and watchlists are kept.'
+    }
+
+    const answer =
+      window === null
+        ? await dialog.showMessageBox(message)
+        : await dialog.showMessageBox(window, message)
+    if (answer.response !== 0) return { started: false }
+
+    try {
+      await engine.regenerate()
+      return { started: true }
+    } catch (cause) {
+      return { started: false, problem: cause instanceof Error ? cause.message : String(cause) }
+    }
+  })
 
   handle('engine:restart', () => {
     engine.restart()

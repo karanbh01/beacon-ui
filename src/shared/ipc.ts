@@ -84,6 +84,13 @@ export interface UpdateState {
  * a pure function of them. Only the save dialog and the write need main, so
  * that is all that crosses.
  */
+export interface RegenerateResult {
+  /** False when the user cancelled the confirmation, which is not an error. */
+  started: boolean
+  /** Why it could not run — `BEACON_DATA_PATH`, or a failure part way. */
+  problem?: string
+}
+
 export interface SaveRequest {
   /** Offered in the dialog, and the basis for the extension filter. */
   suggestedName: string
@@ -113,6 +120,16 @@ export interface IpcContract {
   'engine:restart': {
     request: undefined
     response: undefined
+  }
+  /**
+   * Throw the demo store away and build a new one (BU-107).
+   *
+   * Confirms with the user in main before destroying anything, so the answer
+   * says whether it actually ran rather than assuming it did.
+   */
+  'engine:regenerate': {
+    request: undefined
+    response: RegenerateResult
   }
   'update:state': {
     request: undefined
@@ -211,6 +228,8 @@ export interface BeaconBridge {
   engine: {
     state: () => Promise<EngineState>
     restart: () => Promise<void>
+    /** Replaces the synthetic store. Asks first. */
+    regenerate: () => Promise<RegenerateResult>
     /** Returns an unsubscribe function. */
     onChange: (listener: (state: EngineState) => void) => () => void
   }

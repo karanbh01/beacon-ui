@@ -12,3 +12,9 @@
   max-width: 720px;
   color: var(--text-muted);
 }
+
+/* Why replacing the store refused or failed (BU-107). */
+.coverage-problem {
+  margin: 0;
+  color: var(--danger);
+}

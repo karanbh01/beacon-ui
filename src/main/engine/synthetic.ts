@@ -13,17 +13,18 @@ export const SYNTHETIC_MODULE = 'beacon.synthetic'
 export const SYNTHETIC_SEED = 42
 
 /**
- * Kept at three minutes because the cost is machine-dependent, and lowering it
- * to match a fast one would turn a slow first launch into a hard failure.
+ * Five minutes, and generous on purpose.
  *
- * py-beacon reports the CLI's five thousand names over ten years at about
- * fifteen seconds. Timed on this machine, cold, it took **109 seconds** — the
- * same work, seven times the wall clock. Whatever the cause, the app must
- * survive the slow end of that range: this timeout only ever fires on a
- * generator that has genuinely wedged, and the price of it firing early is a
- * first launch with no data at all.
+ * py-beacon quotes about fifteen seconds for the CLI's default. Measured on
+ * this machine it took 109 seconds, and then 143 once BN-140 added features —
+ * nearly a million more rows. The cost tracks whatever the generator has
+ * learned to produce, which is not something this app can predict.
+ *
+ * The asymmetry decides the number: firing early costs a launch with no data
+ * at all, and firing late costs a wait somebody already expects. It only ever
+ * fires on a generator that has genuinely wedged.
  */
-const GENERATE_TIMEOUT_MS = 180_000
+const GENERATE_TIMEOUT_MS = 300_000
 
 const PROBE_TIMEOUT_MS = 20_000
 
@@ -58,6 +59,44 @@ export function readStoreStatus(python: string): Promise<StoreStatus> {
       }
       const [path = '', flag = ''] = stdout.trim().split(/\r?\n/)
       resolve({ path, exists: flag.trim() === '1' })
+    })
+  })
+}
+
+/**
+ * Delete a store, through python.
+ *
+ * **Not `fs.rm` from Node**, and the reason is the same one `readStoreStatus`
+ * gives for not reimplementing the path. Under the Microsoft Store build of
+ * python, MSIX redirects `%LOCALAPPDATA%` writes into a package-private cache
+ * and reads them back transparently: py-beacon reports its store at
+ * `…\AppData\Localeaconeacon\market-store`, that path does not exist to
+ * any other process, and the bytes are really under
+ * `…\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_…\LocalCache`.
+ * Node deleting the reported path would remove nothing and report success.
+ *
+ * Guarded by `store.exists`, so this only ever removes a directory holding a
+ * manifest and market data. A path that is not a store is not ours to delete,
+ * and a bug in the caller must not be able to turn this into `rm -rf` on a
+ * home directory.
+ */
+export function removeStore(python: string): Promise<boolean> {
+  const script = [
+    'import shutil',
+    'from beacon.data import store',
+    'p = store.default_path()',
+    'ok = store.exists(p)',
+    'shutil.rmtree(p) if ok else None',
+    'print("1" if ok else "0")'
+  ].join('; ')
+
+  return new Promise((resolve, reject) => {
+    execFile(python, ['-c', script], { timeout: PROBE_TIMEOUT_MS }, (error, stdout) => {
+      if (error !== null) {
+        reject(new Error(error.message))
+        return
+      }
+      resolve(stdout.trim().endsWith('1'))
     })
   })
 }
