@@ -183,10 +183,19 @@
  * buttons inside the chip rather than one. Padding stays on the chip so the
  * geometry the parity test measures does not move.
  */
+/*
+ * Neither `font: inherit` nor `color: inherit` here, though both are the
+ * reflex for un-styling a button.
+ *
+ * The label button carries `.tab-chip-label` too, and that class is declared
+ * EARLIER at equal specificity — so anything restated here wins. `font` is a
+ * shorthand resetting family, size, weight and line-height together, which
+ * took the chip's 10.5px text up to the tab's 12px; `color: inherit` took the
+ * accent off it. A button's own UA defaults lose to any author rule, so the
+ * label class is enough on its own.
+ */
 .tab-chip-button {
   padding: 0;
-  font: inherit;
-  color: inherit;
   background: none;
   border: 0;
   cursor: pointer;
@@ -206,13 +215,12 @@
 /*
  * The chain unlinks on click (BU-109).
  *
- * Hovering shows it broken. The strike is drawn here rather than as a second
- * icon because `icons/manifest.json` is explicit that the SVGs are the exact
- * bytes Figma exported and are never redrawn by hand — a broken-chain glyph
- * has to come from the file, not from me. Swap this for one the day it does.
+ * Hover recolours it and nothing else. A drawn strike was tried and read as
+ * damage rather than as an affordance — and `icons/manifest.json` is explicit
+ * that the SVGs are exact Figma exports, so a broken-chain state belongs in
+ * the icon set rather than composed on top of one.
  */
 .tab-chip-unlink {
-  position: relative;
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -221,21 +229,6 @@
   background: none;
   border: 0;
   cursor: pointer;
-}
-
-.tab-chip-unlink::after {
-  content: '';
-  position: absolute;
-  inset: 50% -1px auto -1px;
-  height: 1.25px;
-  background: var(--danger);
-  transform: rotate(-45deg);
-  opacity: 0;
-}
-
-.tab-chip-unlink:hover::after,
-.tab-chip-unlink:focus-visible::after {
-  opacity: 1;
 }
 
 .tab-chip-unlink:hover .tab-chip-chain,

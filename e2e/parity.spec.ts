@@ -178,6 +178,46 @@ test.describe('frame parity', () => {
     expect(computed?.family).toContain('Inter')
   })
 
+  test('a tab chip keeps its own type, not the tab label’s', async ({ window }) => {
+    /*
+     * BU-110. The chip's label became a <button> when linking moved onto it,
+     * and the reflex `font: inherit` that un-styles a button is a SHORTHAND —
+     * it reset family, size, weight and line-height together, beating the
+     * `.tab-chip-label` rule declared above it. The chip rendered at the tab
+     * label's 12px in the body colour instead of 10.5px in the accent.
+     *
+     * `tab.geometry.test.ts` reads the CSS text and the custom properties, so
+     * it could not see this. Only a computed style from a real element can.
+     */
+    await openPage(window, 'Data Explorer')
+    await openView(window, 'Prices')
+    await window.getByRole('combobox', { name: 'Subject' }).fill('CMP000')
+    await window.keyboard.press('Enter')
+    await window.locator('.tab-chip-label').first().waitFor()
+
+    const chip = await window.evaluate(() => {
+      const label = document.querySelector('.tab-chip-label')
+      const box = document.querySelector('.tab-chip')
+      if (label === null || box === null) return null
+      const style = getComputedStyle(label)
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
+      return {
+        size: style.fontSize,
+        colour: style.color,
+        accent,
+        padding: getComputedStyle(box).padding,
+        height: Math.round(box.getBoundingClientRect().height)
+      }
+    })
+
+    expect(chip, 'no tab chip on screen to measure').not.toBeNull()
+    expect(chip?.size).toBe('10.5px')
+    expect(chip?.padding).toBe('2px 6px')
+    expect(chip?.height).toBe(17)
+    // The accent, whatever the theme has set it to.
+    expect(chip?.colour).toBe(hexToRgb(chip?.accent ?? ''))
+  })
+
   test('the theme toggle knob sits centred in its track', async ({ window }) => {
     // It sat 2.5px from the top and 0.5px from the bottom: a 0.5px BORDER
     // rounds up to a whole device pixel and shrinks the padding box the knob
@@ -286,3 +326,10 @@ test.describe('frame parity', () => {
     expect(faces).toContain('Roboto 400 normal')
   })
 })
+
+/** `#4a88c7` → `rgb(74, 136, 199)`, which is what getComputedStyle returns. */
+function hexToRgb(hex: string): string {
+  const value = hex.replace('#', '')
+  const parts = [0, 2, 4].map((at) => parseInt(value.slice(at, at + 2), 16))
+  return `rgb(${parts.join(', ')})`
+}
