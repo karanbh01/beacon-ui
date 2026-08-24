@@ -99,3 +99,66 @@
 .ticker-suggestion-active {
   background: var(--sidebar-active-bg);
 }
+
+/*
+ * The link control (BU-104).
+ *
+ * A button rather than the bare chain icon, and present whether or not the
+ * tab is linked: forming a link had no affordance at all, and breaking one
+ * was a gesture — typing — that nothing on screen mentioned.
+ */
+.ticker-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.ticker-link:hover {
+  color: var(--text-primary);
+  background: var(--sidebar-active-bg);
+}
+
+.ticker-link:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* Following something is a state, so the control carries it. */
+.ticker-link-on {
+  color: var(--accent);
+}
+
+/*
+ * Inside the same rounded rectangle as the suggestions, so the surface grows
+ * downward rather than a second panel appearing beside it — the glass and the
+ * blur come from `.ticker-surface-open`, which is already applied.
+ */
+.ticker-links {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+
+.ticker-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+}
+
+.ticker-link-empty {
+  margin: 0;
+  padding: 4px 8px;
+  color: var(--text-muted);
+}

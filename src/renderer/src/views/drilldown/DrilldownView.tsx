@@ -116,6 +116,7 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
     <div className="drilldown-view">
       <PaneHeader
         kind="query"
+        tabId={tab.id}
         subject={identifier}
         {...(sourceTitle === undefined ? {} : { linkedTo: sourceTitle })}
         {...(asset.data === undefined

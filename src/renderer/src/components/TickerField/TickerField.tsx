@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactElement } from 'react'
 import { ChainIcon } from '../../icons/generated'
 import { useIdentifierIndex } from '../../views/shared/identifierIndex'
 import { useIdentifierSearch } from '../../views/shared/useIdentifierSearch'
 import { useTypeahead } from '../Typeahead/useTypeahead'
 import { mergeSuggestions, unavailableFor } from './suggestions'
+import { useLinkTargets } from './useLinkTargets'
 import './TickerField.css'
 
 export interface TickerFieldProps {
@@ -31,6 +32,11 @@ export interface TickerFieldProps {
   requires?: string
   label?: string
   className?: string
+  /**
+   * Enables the link control (BU-104). Without it the field is just a search
+   * box — Storybook and the tests that predate linking pass nothing.
+   */
+  tabId?: string
 }
 
 /** Modifier and navigation keys must not count as "typing". */
@@ -58,11 +64,48 @@ export function TickerField({
   onSever,
   requires,
   label,
-  className
+  className,
+  tabId
 }: TickerFieldProps): ReactElement {
-  const linked = linkedTo !== undefined
   const [draft, setDraft] = useState(subject)
+  const [linksOpen, setLinksOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
   const local = useIdentifierIndex()
+  const linkage = useLinkTargets(tabId ?? '')
+
+  /*
+   * The STORE decides whether this tab follows another, not the caller.
+   *
+   * `linkedTo` is passed by two views out of six, so a Reference Data tab
+   * could be genuinely linked — chain on the tab strip, subject inherited —
+   * while its own field showed "Link this tab". Two sources of truth for one
+   * fact, and the wrong one was nearer the control.
+   */
+  const source = linkage.linkedTo ?? linkedTo
+  const linked = source !== undefined
+
+  // Click-away and Escape for the link panel. Bound to the document because
+  // the click that should dismiss it can land anywhere.
+  useEffect(() => {
+    if (!linksOpen) return undefined
+
+    // Qualified: this file imports React's KeyboardEvent, so the bare names
+    // mean the synthetic types rather than the DOM ones.
+    const onDown = (event: globalThis.MouseEvent): void => {
+      if (box.current?.contains(event.target as Node) === true) return
+      setLinksOpen(false)
+    }
+    const onKey = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === 'Escape') setLinksOpen(false)
+    }
+
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [linksOpen])
 
   // A linked field mirrors its source, so an upstream change must show here
   // even while this input is mounted and untouched.
@@ -100,15 +143,34 @@ export function TickerField({
   }
 
   return (
-    <div className={['ticker-field', className].filter(Boolean).join(' ')}>
+    <div className={['ticker-field', className].filter(Boolean).join(' ')} ref={box}>
       {/*
         One rounded rectangle, not two: the surface owns the border and the
         radius, and opening the list grows it downwards. Same decision as the
         menu bar search (BU-53).
       */}
-      <div className={`ticker-surface${typeahead.open ? ' ticker-surface-open' : ''}`}>
+      <div className={`ticker-surface${typeahead.open || linksOpen ? ' ticker-surface-open' : ''}`}>
         <div className="ticker-row">
-          {linked && <ChainIcon size={9} className="ticker-chain" />}
+          {/*
+            The way in and out of a link (BU-104). Linking was reachable only
+            by opening a tab that was born linked, and severing only by
+            typing — a gesture nothing on screen mentioned.
+          */}
+          {tabId !== undefined && (
+            <button
+              type="button"
+              className={`ticker-link${linked ? ' ticker-link-on' : ''}`}
+              aria-label={linked ? `Linked to ${source}` : 'Link this tab'}
+              aria-expanded={linksOpen}
+              aria-haspopup="menu"
+              onClick={() => {
+                setLinksOpen(!linksOpen)
+              }}
+            >
+              <ChainIcon size={9} className={linked ? 'ticker-chain' : undefined} />
+            </button>
+          )}
+          {tabId === undefined && linked && <ChainIcon size={9} className="ticker-chain" />}
           <input
             className="ticker-input"
             value={draft}
@@ -126,6 +188,47 @@ export function TickerField({
             onBlur={typeahead.close}
           />
         </div>
+
+        {linksOpen && (
+          <>
+            <span className="ticker-rule" aria-hidden="true" />
+            <div className="ticker-links" role="menu" aria-label="Link this tab">
+              {linked && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="popover-row ticker-link-row"
+                  onClick={() => {
+                    linkage.unlink()
+                    setLinksOpen(false)
+                  }}
+                >
+                  Unlink from {source}
+                </button>
+              )}
+
+              {linkage.targets.map((target) => (
+                <button
+                  key={target.id}
+                  type="button"
+                  role="menuitem"
+                  className="popover-row ticker-link-row"
+                  onClick={() => {
+                    linkage.link(target.id)
+                    setLinksOpen(false)
+                  }}
+                >
+                  <span>{target.title}</span>
+                  <span className="popover-row-meta">{target.subject}</span>
+                </button>
+              ))}
+
+              {linkage.targets.length === 0 && !linked && (
+                <p className="ticker-link-empty type-11">No other tab has a subject to follow.</p>
+              )}
+            </div>
+          </>
+        )}
 
         {typeahead.open && (
           <>
