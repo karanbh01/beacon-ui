@@ -1,0 +1,32 @@
+/* Data Explorer → Database (BU-102). */
+
+.database-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.database-input {
+  width: 100%;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+/* Written as the word: a dash could be a string that is genuinely "—". */
+.database-null {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.database-footnote {
+  margin: 0;
+  max-width: 900px;
+  color: var(--text-muted);
+}
