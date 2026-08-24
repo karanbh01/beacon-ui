@@ -26,8 +26,16 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: var(--tab-gap);
   height: var(--tab-height);
   flex: none;
+  /*
+   * The trailing padding lives here rather than on `.tab-select` since the
+   * chip moved out of that button (BU-108). Leading padding stays on the
+   * button so clicking beside the label still selects the tab. Total width is
+   * unchanged: pad + label + gap + chip + pad.
+   */
+  padding-right: var(--tab-pad-x);
   /* Reserve the underline on every tab so activating one does not shift the
      row by 2px. */
   border-bottom: var(--tab-underline) solid transparent;
@@ -42,7 +50,7 @@
   align-items: center;
   gap: var(--tab-gap);
   height: 100%;
-  padding: 0 var(--tab-pad-x);
+  padding: 0 0 0 var(--tab-pad-x);
   font: inherit;
   background: none;
   border: 0;
@@ -165,4 +173,28 @@
 .tab-close:focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: -2px;
+}
+
+/*
+ * The chip as a control (BU-108). Linking is expressed by the chip, so it is
+ * changed there — the search field it used to hang off is for typing.
+ *
+ * Hover thickens the hairline rather than adding a border: the hairline is an
+ * inset shadow precisely so it takes part in no layout, and a border here
+ * would widen the tab on hover.
+ */
+.tab-chip-button {
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tab-chip-button:hover {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.tab-chip-button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }

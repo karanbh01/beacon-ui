@@ -83,7 +83,6 @@ export function FeaturesView({ tab, subject }: ViewProps): ReactElement {
     <div className="features-view">
       <PaneHeader
         kind="query"
-        tabId={tab.id}
         subject={identifier}
         {...(features.data === undefined ? {} : { meta: `as of ${features.data.as_of}` })}
         onQuery={(next) => {

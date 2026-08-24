@@ -1,4 +1,4 @@
-import type { DragEvent, ReactElement } from 'react'
+import type { DragEvent, ReactElement, ReactNode } from 'react'
 import { ChainIcon } from '../../icons/generated'
 import { TAB_MIME } from './dragTab'
 import './Tab.css'
@@ -9,7 +9,13 @@ import './Tab.css'
  * another tab's live subject.
  */
 export type TabChip =
-  { kind: 'pin'; target: string } | { kind: 'query'; subject: string; linked?: boolean }
+  | { kind: 'pin'; target: string }
+  /**
+   * `linked` marks BOTH ends of a link, not just the follower (BU-108). A
+   * link is a relationship between two tabs and the chain is how it is
+   * visible; showing it on one end only made the other look independent.
+   */
+  | { kind: 'query'; subject: string; linked?: boolean }
 
 export interface TabProps {
   label: string
@@ -18,6 +24,15 @@ export interface TabProps {
   dirty?: boolean
   chip?: TabChip
   onSelect?: () => void
+  /**
+   * Makes the chip a control rather than decoration (BU-108). The chip is
+   * where linking is expressed, so it is where linking is changed.
+   *
+   * The chip's own rect goes with it: the tab strip clips overflow so it can
+   * scroll sideways, so whatever opens has to be drawn outside the strip and
+   * needs to know where the chip is.
+   */
+  onChipClick?: (anchor: DOMRect) => void
   /** Omit to make the tab unclosable, e.g. a pinned global tool. */
   onClose?: () => void
   /** Workspace id, carried by a drag so another strip can claim it (BU-55). */
@@ -26,20 +41,53 @@ export interface TabProps {
   className?: string
 }
 
-function Chip({ chip }: { chip: TabChip }): ReactElement {
+function chipContent(chip: TabChip): { className: string; body: ReactNode } {
   if (chip.kind === 'pin') {
-    return (
-      <span className="tab-chip tab-chip-pin">
-        <ChainIcon size={9} className="tab-chip-chain" />
-        <span className="tab-chip-label">{chip.target}</span>
-      </span>
+    return {
+      className: 'tab-chip tab-chip-pin',
+      body: (
+        <>
+          <ChainIcon size={9} className="tab-chip-chain" />
+          <span className="tab-chip-label">{chip.target}</span>
+        </>
+      )
+    }
+  }
+  return {
+    className: 'tab-chip tab-chip-query',
+    body: (
+      <>
+        {chip.linked === true && <ChainIcon size={9} className="tab-chip-chain" />}
+        <span className="tab-chip-label">{chip.subject}</span>
+      </>
     )
   }
+}
+
+function Chip({
+  chip,
+  onClick
+}: {
+  chip: TabChip
+  onClick?: (anchor: DOMRect) => void
+}): ReactElement {
+  const { className, body } = chipContent(chip)
+  const name = chip.kind === 'pin' ? chip.target : chip.subject
+
+  if (onClick === undefined) return <span className={className}>{body}</span>
+
   return (
-    <span className="tab-chip tab-chip-query">
-      {chip.linked === true && <ChainIcon size={9} className="tab-chip-chain" />}
-      <span className="tab-chip-label">{chip.subject}</span>
-    </span>
+    <button
+      type="button"
+      className={`${className} tab-chip-button`}
+      aria-label={`Link ${name}`}
+      aria-haspopup="menu"
+      onClick={(event) => {
+        onClick(event.currentTarget.getBoundingClientRect())
+      }}
+    >
+      {body}
+    </button>
   )
 }
 
@@ -56,6 +104,7 @@ export function Tab({
   dirty = false,
   chip,
   onSelect,
+  onChipClick,
   onClose,
   dragId,
   onDragStateChange,
@@ -85,8 +134,15 @@ export function Tab({
         {/* Muted, not accent — the pane header states dirtiness loudly, the
             tab only needs to mark it. */}
         {dirty && <span className="tab-dirty" aria-label="unsaved changes" />}
-        {chip !== undefined && <Chip chip={chip} />}
       </button>
+      {/*
+        Outside the select button, because a button inside a button is not
+        valid HTML and screen readers do unpredictable things with it. The
+        padding moved to `.tab` so the geometry is unchanged.
+      */}
+      {chip !== undefined && (
+        <Chip chip={chip} {...(onChipClick === undefined ? {} : { onClick: onChipClick })} />
+      )}
       {onClose !== undefined && (
         <button type="button" className="tab-close" onClick={onClose} aria-label={`Close ${label}`}>
           &times;

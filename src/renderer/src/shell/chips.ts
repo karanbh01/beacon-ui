@@ -8,7 +8,18 @@ import type { Tab } from '../state/tabs.types'
  * value follows something else. Documents and global tools are bound to
  * nothing, so they carry no chip at all.
  */
-export function chipFor(tab: Tab, subject: string | undefined): TabChip | undefined {
+export function chipFor(
+  tab: Tab,
+  subject: string | undefined,
+  /**
+   * Whether another tab follows this one (BU-108).
+   *
+   * A link has two ends and the chain is how it is visible. Marking only the
+   * follower left the source looking independent, so nothing on screen said
+   * the two were related — you had to remember.
+   */
+  isSource = false
+): TabChip | undefined {
   if (tab.archetype === 'pinned') {
     return tab.pinnedDoc === undefined ? undefined : { kind: 'pin', target: tab.pinnedDoc }
   }
@@ -16,7 +27,8 @@ export function chipFor(tab: Tab, subject: string | undefined): TabChip | undefi
     return subject === undefined ? undefined : { kind: 'query', subject, linked: true }
   }
   if (tab.archetype === 'query') {
-    return subject === undefined ? undefined : { kind: 'query', subject }
+    if (subject === undefined) return undefined
+    return isSource ? { kind: 'query', subject, linked: true } : { kind: 'query', subject }
   }
   return undefined
 }

@@ -22,8 +22,6 @@ export interface QueryHeaderProps extends CommonProps {
   onSever?: () => void
   /** Dataset this view needs, so a suggestion it cannot serve is marked. */
   requires?: string
-  /** Enables the link control in the field (BU-104). */
-  tabId?: string
 }
 
 export interface DocumentHeaderProps extends CommonProps {
@@ -56,7 +54,7 @@ export function PaneHeader(props: PaneHeaderProps): ReactElement {
   const classes = ['pane-header', props.className].filter(Boolean).join(' ')
 
   if (props.kind === 'query') {
-    const { subject, linkedTo, meta, onQuery, onSever, requires, controls, tabId } = props
+    const { subject, linkedTo, meta, onQuery, onSever, requires, controls } = props
     return (
       <header className={classes}>
         <Left align="center">
@@ -66,7 +64,6 @@ export function PaneHeader(props: PaneHeaderProps): ReactElement {
             onQuery={onQuery}
             {...(onSever === undefined ? {} : { onSever })}
             {...(requires === undefined ? {} : { requires })}
-            {...(tabId === undefined ? {} : { tabId })}
           />
           {meta !== undefined && <span className="pane-header-meta">{meta}</span>}
         </Left>

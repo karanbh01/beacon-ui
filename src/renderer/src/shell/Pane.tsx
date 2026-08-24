@@ -5,6 +5,7 @@ import { carriesTab, paneDropTarget, TAB_MIME, type DropTarget } from '../compon
 import { activeTab, resolveSubject, tabsForPage, tabsForPane } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { chipFor } from './chips'
+import { TabLinkMenu } from './TabLinkMenu'
 import { MissingView } from './MissingView'
 import { NewTabMenu } from './NewTabMenu'
 import { newTabOptions, tabForOption } from './newTabOptions'
@@ -38,6 +39,16 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
   const state = useWorkspace()
   const [menuOpen, setMenuOpen] = useState(false)
   const [drop, setDrop] = useState<DropTarget | undefined>(undefined)
+  /**
+   * Which tab's link menu is open, and where its chip is (BU-108).
+   *
+   * Drawn at pane level rather than inside the tab: `.tab-bar` hides
+   * overflow-y so it can scroll sideways, which clips anything hanging below
+   * a tab. The menu is invisible in there, and no amount of z-index helps.
+   */
+  const [linking, setLinking] = useState<{ tabId: string; left: number; top: number } | undefined>(
+    undefined
+  )
   const host = useRef<HTMLDivElement>(null)
   /**
    * How deep into this pane's subtree the drag currently is.
@@ -141,7 +152,10 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
         }
       >
         {tabs.map((tab) => {
-          const chip = chipFor(tab, resolveSubject(state, tab))
+          // Both ends of a link wear the chain (BU-108), so a tab needs to
+          // know whether anything follows it, not only whether it follows.
+          const isSource = state.tabs.some((other) => other.linkSourceId === tab.id)
+          const chip = chipFor(tab, resolveSubject(state, tab), isSource)
           return (
             <Tab
               key={tab.id}
@@ -150,6 +164,22 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
               dirty={tab.dirty}
               dragId={tab.id}
               {...(chip === undefined ? {} : { chip })}
+              {...(chip === undefined
+                ? {}
+                : {
+                    onChipClick: (anchor: DOMRect) => {
+                      if (linking?.tabId === tab.id) {
+                        setLinking(undefined)
+                        return
+                      }
+                      const pane = host.current?.getBoundingClientRect()
+                      setLinking({
+                        tabId: tab.id,
+                        left: anchor.left - (pane?.left ?? 0),
+                        top: anchor.bottom - (pane?.top ?? 0) + 4
+                      })
+                    }
+                  })}
               onSelect={() => {
                 state.selectTab(tab.id, index)
               }}
@@ -160,6 +190,18 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
           )
         })}
       </TabBar>
+
+      {/* Outside the strip, which clips: see the note on `linking`. */}
+      {linking !== undefined && (
+        <TabLinkMenu
+          tabId={linking.tabId}
+          left={linking.left}
+          top={linking.top}
+          onClose={() => {
+            setLinking(undefined)
+          }}
+        />
+      )}
 
       <div className="pane-body">
         {active === undefined || View === undefined ? (
