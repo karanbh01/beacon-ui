@@ -156,6 +156,39 @@ export function useReferenceRows(
   }
 }
 
+/**
+ * Every feature the engine holds for one name (BU-99).
+ *
+ * The catalogue is a separate query on purpose: it changes when the DATASET
+ * changes, not when the subject does, so every ticker looked at in a session
+ * shares one copy of it.
+ */
+export function useFeatures(identifier: string, date = '') {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.data.features(identifier, date),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.features(identifier, date === '' ? undefined : date, signal)
+    },
+    enabled: client !== null && identifier !== ''
+  })
+}
+
+export function useFeatureCatalogue() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.data.featureCatalogue(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.featureCatalogue(signal)
+    },
+    enabled: client !== null
+  })
+}
+
 export interface CorporateActionsOptions {
   start?: string | undefined
 }

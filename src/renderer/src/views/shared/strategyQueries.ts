@@ -97,7 +97,12 @@ export function useCreateUniverse() {
   return useMutation({
     mutationFn: (body: { name: string; description?: string | null; identifiers: string[] }) => {
       if (client === null) throw new Error('No engine')
-      return client.universes.create(body)
+      // `frozen` explicitly (BN-143). The engine now also takes a serialised
+      // expression with `mode: 'live'`, re-resolved on every read — but this
+      // builder resolves the membership here and sends a list, so what it
+      // stores is a list. Saying so beats relying on a server default that
+      // could reasonably change to `live`.
+      return client.universes.create({ ...body, mode: 'frozen' })
     },
     onSuccess: () => {
       void queries.invalidateQueries({ queryKey: keys.strategy.universes() })

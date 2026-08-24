@@ -161,6 +161,20 @@ export interface BeaconClient {
      * reachable at all, since the endpoint returns stored columns by default
      * and derived ones only when asked for.
      */
+    /**
+     * Every feature the engine holds for one name (BN-140).
+     *
+     * `type` restricts to one feature dataset. Omitted searches all of them,
+     * which the parameter's own note warns "picks arbitrarily" where two
+     * datasets share a field name.
+     */
+    features: (
+      identifier: string,
+      date?: string,
+      signal?: AbortSignal
+    ) => Promise<ResponseOf<'/data/features/{identifier}'>>
+    /** The feature datasets and their fields, for building columns. */
+    featureCatalogue: (signal?: AbortSignal) => Promise<ResponseOf<'/data/features/catalogue'>>
     /** `date` is point-in-time: the engine returns only rows valid then. */
     referenceBatch: (
       identifiers: readonly string[],
@@ -373,6 +387,14 @@ export function createClient(options: ClientOptions): BeaconClient {
           params: { identifier },
           ...(signal === undefined ? {} : { signal })
         }),
+      features: (identifier, date, signal) =>
+        get('/data/features/{identifier}', {
+          params: { identifier },
+          query: date === undefined || date === '' ? {} : { date },
+          ...(signal === undefined ? {} : { signal })
+        }),
+      featureCatalogue: (signal) =>
+        get('/data/features/catalogue', { ...(signal === undefined ? {} : { signal }) }),
       referenceBatch: (identifiers, fields, date, signal) =>
         get('/data/reference', {
           query: {

@@ -20,6 +20,7 @@ import { RiskModelPaneView } from './risk-model/RiskModelPaneView'
 import { TermStructureView } from './term-structure/TermStructureView'
 import { TemplateEditorView } from './template-editor/TemplateEditorView'
 import { TrsPricerView } from './trs/TrsPricerView'
+import { FeaturesView } from './features/FeaturesView'
 import { IndexDefinitionView } from './index-definition/IndexDefinitionView'
 import { PricesView } from './prices/PricesView'
 import { ReferenceView } from './reference/ReferenceView'
@@ -69,6 +70,13 @@ const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] 
     title: 'Reference Data',
     archetype: 'query',
     component: ReferenceView
+  },
+  {
+    kind: 'features',
+    page: 'data-explorer',
+    title: 'Features',
+    archetype: 'query',
+    component: FeaturesView
   },
   {
     kind: 'corporate-actions',

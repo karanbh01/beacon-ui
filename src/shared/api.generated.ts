@@ -4,153 +4,17 @@
  */
 
 export interface paths {
-    "/beacon/compare": {
+    "/health": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Compare */
-        get: operations["compare_beacon_compare_get"];
+        /** Health */
+        get: operations["health_health_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/assets/{identifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Asset */
-        get: operations["asset_beacon__index_id__assets__identifier__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/attribution": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Attribution */
-        get: operations["attribution_beacon__index_id__attribution_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/backtest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit Backtest */
-        post: operations["submit_backtest_beacon__index_id__backtest_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/overview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Overview */
-        get: operations["overview_beacon__index_id__overview_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/weights": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Weights */
-        get: operations["weights_beacon__index_id__weights_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/data/corporate-actions/{identifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Corporate Actions */
-        get: operations["corporate_actions_data_corporate_actions__identifier__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/data/coverage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Coverage */
-        get: operations["coverage_data_coverage_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/data/coverage/{dataset}/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Sync */
-        post: operations["sync_data_coverage__dataset__sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -225,6 +89,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data/corporate-actions/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Corporate Actions */
+        get: operations["corporate_actions_data_corporate_actions__identifier__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Field Catalogue
+         * @description Every datapoint an expression can name.
+         *
+         *     The features half already has its own catalogue; this adds the market
+         *     and reference side so a client builds one field picker rather than one
+         *     per dataset. Read from the loaded store rather than from the
+         *     declaration, so a column nobody declared appears too.
+         */
+        get: operations["field_catalogue_data_fields_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/features/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feature Catalogue */
+        get: operations["feature_catalogue_data_features_catalogue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Features Batch */
+        get: operations["features_batch_data_features_get"];
+        put?: never;
+        /** Import Features */
+        post: operations["import_features_data_features_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/features/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Features For */
+        get: operations["features_for_data_features__identifier__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/data/watchlists": {
         parameters: {
             query?: never;
@@ -261,49 +219,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/derivatives/futures/price": {
+    "/data/coverage": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Futures Price */
-        post: operations["futures_price_derivatives_futures_price_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/derivatives/trs/price": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Trs Price */
-        post: operations["trs_price_derivatives_trs_price_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/derivatives/{index_id}/roll": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Roll */
-        get: operations["roll_derivatives__index_id__roll_get"];
+        /** Coverage */
+        get: operations["coverage_data_coverage_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -312,32 +236,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/derivatives/{index_id}/term-structure": {
+    "/data/coverage/{dataset}/sync": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Term Structure */
-        get: operations["term_structure_derivatives__index_id__term_structure_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Sync */
+        post: operations["sync_data_coverage__dataset__sync_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/health": {
+    "/universes": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Health */
-        get: operations["health_health_get"];
+        /** List Universes */
+        get: operations["list_universes_universes_get"];
+        put?: never;
+        /** Create Universe */
+        post: operations["create_universe_universes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/universes/{universe_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Universe */
+        get: operations["get_universe_universes__universe_id__get"];
+        /** Put Universe */
+        put: operations["put_universe_universes__universe_id__put"];
+        post?: never;
+        /** Delete Universe */
+        delete: operations["delete_universe_universes__universe_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/universes/{universe_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Members
+         * @description The members, re-evaluating the filter when the universe is live.
+         *
+         *     This is where the frozen/live distinction becomes observable: a frozen
+         *     universe answers with what it stored, a live one answers with what its
+         *     filter selects now. Both are legitimate; a universe that looked like
+         *     one and behaved like the other would not be.
+         */
+        get: operations["get_members_universes__universe_id__members_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -358,23 +327,6 @@ export interface paths {
         put?: never;
         /** Create Index */
         post: operations["create_index_indices_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/indices/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Preview Document */
-        post: operations["preview_document_indices_preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -415,18 +367,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/indices/{index_id}": {
+    "/indices/preview": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Index */
-        get: operations["get_index_indices__index_id__get"];
-        /** Put Index */
-        put: operations["put_index_indices__index_id__put"];
-        post?: never;
+        get?: never;
+        put?: never;
+        /** Preview Document */
+        post: operations["preview_document_indices_preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -467,6 +418,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/indices/{index_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Index */
+        get: operations["get_index_indices__index_id__get"];
+        /** Put Index */
+        put: operations["put_index_indices__index_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs": {
         parameters: {
             query?: never;
@@ -497,6 +466,23 @@ export interface paths {
         post?: never;
         /** Cancel Job */
         delete: operations["cancel_job_jobs__job_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/optimise/constraint-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Types */
+        get: operations["types_optimise_constraint_types_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -555,23 +541,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/optimise/constraint-types": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Types */
-        get: operations["types_optimise_constraint_types_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/optimise/runs": {
         parameters: {
             query?: never;
@@ -583,23 +552,6 @@ export interface paths {
         put?: never;
         /** Submit Run */
         post: operations["submit_run_optimise_runs_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/optimise/runs/{run_id}/exposures": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Exposures */
-        get: operations["exposures_optimise_runs__run_id__exposures_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -623,71 +575,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/reports/render": {
+    "/optimise/runs/{run_id}/exposures": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Submit Render */
-        post: operations["submit_render_reports_render_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/reports/renders/{render_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Download */
-        get: operations["download_reports_renders__render_id__get"];
+        /** Exposures */
+        get: operations["exposures_optimise_runs__run_id__exposures_get"];
         put?: never;
         post?: never;
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/reports/templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Templates */
-        get: operations["list_templates_reports_templates_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/reports/templates/{template_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Template */
-        get: operations["get_template_reports_templates__template_id__get"];
-        /** Put Template */
-        put: operations["put_template_reports_templates__template_id__put"];
-        post?: never;
-        /** Delete Template */
-        delete: operations["delete_template_reports_templates__template_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -744,52 +643,238 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/universes": {
+    "/reports/templates": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Universes */
-        get: operations["list_universes_universes_get"];
+        /** List Templates */
+        get: operations["list_templates_reports_templates_get"];
         put?: never;
-        /** Create Universe */
-        post: operations["create_universe_universes_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/universes/{universe_id}": {
+    "/reports/templates/{template_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Universe */
-        get: operations["get_universe_universes__universe_id__get"];
-        /** Put Universe */
-        put: operations["put_universe_universes__universe_id__put"];
+        /** Get Template */
+        get: operations["get_template_reports_templates__template_id__get"];
+        /** Put Template */
+        put: operations["put_template_reports_templates__template_id__put"];
         post?: never;
-        /** Delete Universe */
-        delete: operations["delete_universe_universes__universe_id__delete"];
+        /** Delete Template */
+        delete: operations["delete_template_reports_templates__template_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/universes/{universe_id}/members": {
+    "/reports/render": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Members */
-        get: operations["get_members_universes__universe_id__members_get"];
+        get?: never;
+        put?: never;
+        /** Submit Render */
+        post: operations["submit_render_reports_render_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/renders/{render_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download */
+        get: operations["download_reports_renders__render_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/derivatives/futures/price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Futures Price */
+        post: operations["futures_price_derivatives_futures_price_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/derivatives/trs/price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trs Price */
+        post: operations["trs_price_derivatives_trs_price_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/derivatives/{index_id}/term-structure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Term Structure */
+        get: operations["term_structure_derivatives__index_id__term_structure_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/derivatives/{index_id}/roll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roll */
+        get: operations["roll_derivatives__index_id__roll_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/beacon/{index_id}/backtest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Backtest */
+        post: operations["submit_backtest_beacon__index_id__backtest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/beacon/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare */
+        get: operations["compare_beacon_compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/beacon/{index_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_beacon__index_id__overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/beacon/{index_id}/weights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Weights */
+        get: operations["weights_beacon__index_id__weights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/beacon/{index_id}/attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attribution */
+        get: operations["attribution_beacon__index_id__attribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/beacon/{index_id}/assets/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Asset */
+        get: operations["asset_beacon__index_id__assets__identifier__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -816,52 +901,48 @@ export interface components {
              */
             benchmark: string;
             /**
-             * Contributions Not Held
-             * @description Contributions from benchmark constituents the index does not hold. They have no row in the weights table but are often the largest active positions there are, so omitting them would hide the biggest sources of tracking error.
+             * Tracking Error
+             * @description Annualised volatility of the active position.
              */
-            contributions_not_held?: {
-                [key: string]: number;
-            };
+            tracking_error: number;
             /**
              * Covered Weight
              * @description Share of *gross* active weight the model covers. Gross because active weights sum to roughly zero, so a plain sum would say nothing about coverage.
              */
             covered_weight: number;
             /**
-             * Tracking Error
-             * @description Annualised volatility of the active position.
-             */
-            tracking_error: number;
-            /**
              * Uncovered
              * @description Names with no estimate, from either side.
              */
             uncovered?: string[];
-            /** Window End */
-            window_end?: string | null;
+            /**
+             * Contributions Not Held
+             * @description Contributions from benchmark constituents the index does not hold. They have no row in the weights table but are often the largest active positions there are, so omitting them would hide the biggest sources of tracking error.
+             */
+            contributions_not_held?: {
+                [key: string]: number;
+            };
             /** Window Start */
             window_start?: string | null;
+            /** Window End */
+            window_end?: string | null;
         };
         /**
          * AssetView
          * @description Response of `GET /beacon/{index_id}/assets/{identifier}`.
          */
         AssetView: {
-            /** Beta */
-            beta: number;
-            /** Correlation */
-            correlation: number;
-            /** Excess Return */
-            excess_return: number;
-            /** Identifier */
-            identifier: string;
             /** Index Id */
             index_id: string;
-            /** Index Return */
-            index_return: number;
-            /** Observations */
-            observations: number;
-            price: components["schemas"]["SeriesPayload"];
+            /** Identifier */
+            identifier: string;
+            /**
+             * Weight History
+             * @description Rebalance date -> this name's applied weight. Only the rebalances it was actually in.
+             */
+            weight_history: {
+                [key: string]: number;
+            };
             /**
              * Raw Weight History
              * @description The same dates -> the weight before capping. Added alongside `weight_history` rather than replacing it, so the drilldown can show what the cap did to this name over time without breaking a client reading only the applied series.
@@ -873,15 +954,19 @@ export interface components {
             rebalances_held: number;
             /** Total Return */
             total_return: number;
+            /** Index Return */
+            index_return: number;
+            /** Excess Return */
+            excess_return: number;
             /** Tracking Error */
             tracking_error: number;
-            /**
-             * Weight History
-             * @description Rebalance date -> this name's applied weight. Only the rebalances it was actually in.
-             */
-            weight_history: {
-                [key: string]: number;
-            };
+            /** Correlation */
+            correlation: number;
+            /** Beta */
+            beta: number;
+            /** Observations */
+            observations: number;
+            price: components["schemas"]["SeriesPayload"];
         };
         /**
          * AttributionView
@@ -893,32 +978,32 @@ export interface components {
          *     upstream, which is worth surfacing rather than rounding away.
          */
         AttributionView: {
+            /** Index Id */
+            index_id: string;
+            /** Start */
+            start: string;
+            /** End */
+            end: string;
+            /** Periods */
+            periods: number;
+            /** Total Return */
+            total_return: number;
+            /** Contributions */
+            contributions: components["schemas"]["ContributionPayload"][];
+            /** Residual */
+            residual: number;
+            /** Reconciles */
+            reconciles: boolean;
             /**
              * Cap Drag
              * @description Capped return minus uncapped. Null on an uncapped index: reporting 0.0 would claim capping happened and made no difference.
              */
             cap_drag?: number | null;
-            /** Contributions */
-            contributions: components["schemas"]["ContributionPayload"][];
             /**
              * Cost Drag
              * @description Direct effect of transaction costs. Null at zero cost.
              */
             cost_drag?: number | null;
-            /** End */
-            end: string;
-            /** Index Id */
-            index_id: string;
-            /** Periods */
-            periods: number;
-            /** Reconciles */
-            reconciles: boolean;
-            /** Residual */
-            residual: number;
-            /** Start */
-            start: string;
-            /** Total Return */
-            total_return: number;
         };
         /**
          * BacktestMetrics
@@ -928,39 +1013,42 @@ export interface components {
          */
         BacktestMetrics: {
             /**
+             * Total Return
+             * @description Fraction, not percent: 0.0523 means 5.23%.
+             */
+            total_return: number;
+            /**
              * Annualised Return
              * @description Fraction, not percent: 0.0523 means 5.23%.
              */
             annualised_return: number;
             /**
-             * Max Drawdown
-             * @description Fraction, not percent: 0.0523 means 5.23%.
-             */
-            max_drawdown: number;
-            /** Sharpe Ratio */
-            sharpe_ratio: number;
-            /**
-             * Total Return
-             * @description Fraction, not percent: 0.0523 means 5.23%.
-             */
-            total_return: number;
-            /** Tracking Difference */
-            tracking_difference?: number | null;
-            /** Tracking Error */
-            tracking_error?: number | null;
-            /**
              * Volatility
              * @description Fraction, not percent: 0.0523 means 5.23%.
              */
             volatility: number;
+            /** Sharpe Ratio */
+            sharpe_ratio: number;
+            /**
+             * Max Drawdown
+             * @description Fraction, not percent: 0.0523 means 5.23%.
+             */
+            max_drawdown: number;
+            /** Tracking Error */
+            tracking_error?: number | null;
+            /** Tracking Difference */
+            tracking_difference?: number | null;
         };
         /**
          * BacktestRequest
          * @description Body of `POST /beacon/{index_id}/backtest`.
          */
         BacktestRequest: {
-            /** @description Optional external benchmark. The tracked index is always reported separately; this adds a second comparison. */
-            benchmark?: components["schemas"]["BenchmarkRef"] | null;
+            /**
+             * Start
+             * @description Start date, YYYY-MM-DD. Defaults to the index base date.
+             */
+            start?: string | null;
             /**
              * End
              * @description End date, YYYY-MM-DD.
@@ -972,16 +1060,13 @@ export interface components {
              */
             initial_capital: number;
             /**
-             * Start
-             * @description Start date, YYYY-MM-DD. Defaults to the index base date.
-             */
-            start?: string | null;
-            /**
              * Transaction Cost Bps
              * @description Cost per trade in basis points of notional.
              * @default 0
              */
             transaction_cost_bps: number;
+            /** @description Optional external benchmark. The tracked index is always reported separately; this adds a second comparison. */
+            benchmark?: components["schemas"]["BenchmarkRef"] | null;
         };
         /**
          * BatchReferenceResponse
@@ -992,13 +1077,13 @@ export interface components {
          *     asked for.
          */
         BatchReferenceResponse: {
+            /** Entries */
+            entries: components["schemas"]["ReferenceEntry"][];
             /**
              * As Of
              * @description Point-in-time date applied, if one was requested.
              */
             as_of?: string | null;
-            /** Entries */
-            entries: components["schemas"]["ReferenceEntry"][];
         };
         /**
          * BenchmarkRef
@@ -1010,16 +1095,16 @@ export interface components {
          */
         BenchmarkRef: {
             /**
-             * Id
-             * @description Index id, or market-data identifier.
-             */
-            id: string;
-            /**
              * Kind
              * @description 'index' for a stored index definition, 'identifier' for a market-data series.
              * @enum {string}
              */
             kind: "index" | "identifier";
+            /**
+             * Id
+             * @description Index id, or market-data identifier.
+             */
+            id: string;
             /**
              * Price Column
              * @description Market-data column to read. Ignored when kind is 'index'.
@@ -1037,25 +1122,25 @@ export interface components {
          *     them slightly wrong in order to hide that the split is approximate.
          */
         CarryDecomposition: {
-            /** Borrow */
-            borrow: number;
-            /**
-             * Dividend
-             * @description Negative: dividends reduce the forward.
-             */
-            dividend: number;
-            /** Financing */
-            financing: number;
-            /**
-             * Residual
-             * @description Total minus the three parts — the compounding the decomposition cannot attribute.
-             */
-            residual: number;
             /**
              * Total
              * @description Fair value minus spot.
              */
             total: number;
+            /** Financing */
+            financing: number;
+            /**
+             * Dividend
+             * @description Negative: dividends reduce the forward.
+             */
+            dividend: number;
+            /** Borrow */
+            borrow: number;
+            /**
+             * Residual
+             * @description Total minus the three parts — the compounding the decomposition cannot attribute.
+             */
+            residual: number;
         };
         /**
          * CompareEntry
@@ -1064,52 +1149,45 @@ export interface components {
         CompareEntry: {
             /** Index Id */
             index_id: string;
-            /** @description Rebased to 100 on the first shared date, so lines start together and the comparison is of shape, not scale. */
-            level: components["schemas"]["SeriesPayload"];
             /** Total Return */
             total_return: number;
+            /** @description Rebased to 100 on the first shared date, so lines start together and the comparison is of shape, not scale. */
+            level: components["schemas"]["SeriesPayload"];
         };
         /**
          * CompareView
          * @description Response of `GET /beacon/compare`.
          */
         CompareView: {
-            /** End */
-            end: string;
-            /** Entries */
-            entries: components["schemas"]["CompareEntry"][];
             /** Index Ids */
             index_ids: string[];
+            /** Start */
+            start: string;
+            /** End */
+            end: string;
             /**
              * Observations
              * @description Dates every index covers. Fewer than any one of them carries alone whenever their spans differ.
              */
             observations: number;
-            /** Start */
-            start: string;
+            /** Entries */
+            entries: components["schemas"]["CompareEntry"][];
         };
         /**
          * ConcentrationPayload
          * @description How concentrated a weight vector is.
          */
         ConcentrationPayload: {
-            /** Constituents */
-            constituents: number;
-            /**
-             * Effective Assets
-             * @description 1/HHI: how many equally weighted names would be as concentrated. Lower than the raw count whenever weights are uneven.
-             */
-            effective_assets: number;
             /**
              * Herfindahl
              * @description Sum of squared weights.
              */
             herfindahl: number;
             /**
-             * Largest
-             * @description Largest single weight.
+             * Effective Assets
+             * @description 1/HHI: how many equally weighted names would be as concentrated. Lower than the raw count whenever weights are uneven.
              */
-            largest: number;
+            effective_assets: number;
             /**
              * Top Weights
              * @description Combined weight of the largest N, keyed by N.
@@ -1117,6 +1195,13 @@ export interface components {
             top_weights: {
                 [key: string]: number;
             };
+            /**
+             * Largest
+             * @description Largest single weight.
+             */
+            largest: number;
+            /** Constituents */
+            constituents: number;
         };
         /**
          * ConstituentRow
@@ -1128,16 +1213,18 @@ export interface components {
          *     the difference is what capping moved.
          */
         ConstituentRow: {
+            /** Identifier */
+            identifier: string;
             /**
-             * Active Risk Contribution
-             * @description This name's share of tracking error. **Can be negative**: an underweight that hedges an overweight genuinely reduces tracking error, and hiding that behind an absolute value would misreport what the index is doing.
+             * Weight
+             * @description Applied weight, after any cap.
              */
-            active_risk_contribution?: number | null;
+            weight: number;
             /**
-             * Active Weight
-             * @description Weight minus the benchmark's, when a `benchmark` was given. Negative is an underweight.
+             * Raw Weight
+             * @description Weight before capping. Equal to `weight` on an uncapped index, and the only way to see what the cap cost.
              */
-            active_weight?: number | null;
+            raw_weight: number;
             /**
              * Capped
              * @description Whether this name was held at the cap on this rebalance.
@@ -1145,32 +1232,30 @@ export interface components {
              */
             capped: boolean;
             /**
+             * Shares Outstanding
+             * @description The company's shares outstanding on this date, from market data. Deliberately NOT the number of shares the index holds — that is a different figure needing a divisor and a notional, and naming this one `shares` would let the two be confused silently.
+             */
+            shares_outstanding?: number | null;
+            /**
              * Delta Since Rebalance
              * @description Held weight minus target weight, for this name, as of `as_of`. Null when `as_of` is the rebalance date itself: the weights were just set, so nothing has drifted and a zero would claim a measurement rather than its absence.
              */
             delta_since_rebalance?: number | null;
-            /** Identifier */
-            identifier: string;
-            /**
-             * Raw Weight
-             * @description Weight before capping. Equal to `weight` on an uncapped index, and the only way to see what the cap cost.
-             */
-            raw_weight: number;
             /**
              * Risk Contribution
              * @description This name's share of the index's annualised volatility, in the same units. Populated only when `risk=true` was requested; null also when the risk model has no estimate for this constituent, which `risk.uncovered` lists.
              */
             risk_contribution?: number | null;
             /**
-             * Shares Outstanding
-             * @description The company's shares outstanding on this date, from market data. Deliberately NOT the number of shares the index holds — that is a different figure needing a divisor and a notional, and naming this one `shares` would let the two be confused silently.
+             * Active Weight
+             * @description Weight minus the benchmark's, when a `benchmark` was given. Negative is an underweight.
              */
-            shares_outstanding?: number | null;
+            active_weight?: number | null;
             /**
-             * Weight
-             * @description Applied weight, after any cap.
+             * Active Risk Contribution
+             * @description This name's share of tracking error. **Can be negative**: an underweight that hedges an overweight genuinely reduces tracking error, and hiding that behind an absolute value would misreport what the index is doing.
              */
-            weight: number;
+            active_risk_contribution?: number | null;
         };
         /**
          * ConstraintRow
@@ -1189,25 +1274,23 @@ export interface components {
              */
             id: string;
             /**
+             * Type
+             * @description Constraint class, e.g. 'PositionBounds'.
+             */
+            type: string;
+            /**
              * Params
              * @description Constructor arguments for that class, by name.
              */
             params?: {
                 [key: string]: unknown;
             };
-            /**
-             * Type
-             * @description Constraint class, e.g. 'PositionBounds'.
-             */
-            type: string;
         };
         /**
          * ConstraintSet
          * @description A named list of constraints.
          */
         ConstraintSet: {
-            /** Constraints */
-            constraints?: components["schemas"]["ConstraintRow"][];
             /**
              * Id
              * @description Stable identifier, used in the URL.
@@ -1218,6 +1301,8 @@ export interface components {
              * @description Display name.
              */
             name: string;
+            /** Constraints */
+            constraints?: components["schemas"]["ConstraintRow"][];
         };
         /**
          * ConstraintSetCollection
@@ -1236,17 +1321,17 @@ export interface components {
          */
         ConstraintTypes: {
             /**
-             * Specs
-             * @description The same constraint types in the richer shape `/indices/rule-types` uses, so one client component can render both editors.
-             */
-            specs?: components["schemas"]["TypeSpec"][];
-            /**
              * Types
              * @description Constraint type -> the parameters it accepts. Kept for clients written against the original shape; `specs` carries the same set with everything needed to render it.
              */
             types: {
                 [key: string]: string[];
             };
+            /**
+             * Specs
+             * @description The same constraint types in the richer shape `/indices/rule-types` uses, so one client component can render both editors.
+             */
+            specs?: components["schemas"]["TypeSpec"][];
         };
         /**
          * ContributionPayload
@@ -1255,10 +1340,10 @@ export interface components {
         ContributionPayload: {
             /** Asset Id */
             asset_id: string;
-            /** Average Weight */
-            average_weight: number;
             /** Contribution */
             contribution: number;
+            /** Average Weight */
+            average_weight: number;
             /** Total Return */
             total_return: number;
         };
@@ -1279,11 +1364,21 @@ export interface components {
              */
             ex_date: string;
             /**
+             * Type
+             * @description Action type, e.g. DIVIDEND or SPLIT. A closed set the engine validates on load, but branch on `kind` rather than on this: new types are added, and a client that matches type strings breaks silently when one is.
+             */
+            type: string;
+            /**
              * Kind
              * @description What `value` means. 'cash' is an amount per share and adds up; 'ratio' is a share-count multiplier and compounds; 'structural' (rights issue, spin-off, merger) carries no directly aggregable value and should not be rendered as a quantity in either column.
              * @enum {string}
              */
             kind: "cash" | "ratio" | "structural";
+            /**
+             * Value
+             * @description Cash amount per share for cash actions; a share-count multiplier for ratio actions. What it means depends on `kind`, so the two are never summed together.
+             */
+            value: number;
             /**
              * Pay Date
              * @description Payment date, ISO 8601, where the source knows it. Null means unknown — omit the field in the UI rather than dashing it, since a dash reads as 'there is none'.
@@ -1294,16 +1389,6 @@ export interface components {
              * @description Lifecycle state, where the source knows it. Null means unknown, not 'not yet announced'.
              */
             status?: ("announced" | "paid" | "cancelled") | null;
-            /**
-             * Type
-             * @description Action type, e.g. DIVIDEND or SPLIT. A closed set the engine validates on load, but branch on `kind` rather than on this: new types are added, and a client that matches type strings breaks silently when one is.
-             */
-            type: string;
-            /**
-             * Value
-             * @description Cash amount per share for cash actions; a share-count multiplier for ratio actions. What it means depends on `kind`, so the two are never summed together.
-             */
-            value: number;
         };
         /**
          * CorporateActionsResponse
@@ -1314,16 +1399,10 @@ export interface components {
          *     reimplement the trailing window and get its boundary subtly wrong.
          */
         CorporateActionsResponse: {
-            /** Actions */
-            actions?: components["schemas"]["CorporateAction"][];
-            /**
-             * Cumulative Split Ratio
-             * @description Compounded share-count multiplier across the returned window. 1.0 when there were no splits.
-             * @default 1
-             */
-            cumulative_split_ratio: number;
             /** Identifier */
             identifier: string;
+            /** Actions */
+            actions?: components["schemas"]["CorporateAction"][];
             /**
              * Trailing Dividend
              * @description Ordinary dividends per share over the twelve calendar months ending at the as-of date.
@@ -1335,17 +1414,18 @@ export interface components {
              * @description Trailing dividend over the close on the as-of date. Null when no price is available — a missing price is a reason to say nothing rather than to guess.
              */
             trailing_dividend_yield?: number | null;
+            /**
+             * Cumulative Split Ratio
+             * @description Compounded share-count multiplier across the returned window. 1.0 when there were no splits.
+             * @default 1
+             */
+            cumulative_split_ratio: number;
         };
         /**
          * CoverageResponse
          * @description Response of `GET /data/coverage`.
          */
         CoverageResponse: {
-            /**
-             * Cache Size Bytes
-             * @description Total bytes on disk for the whole store. Null when no store backs this process.
-             */
-            cache_size_bytes?: number | null;
             /** Datasets */
             datasets: components["schemas"]["DatasetCoverage"][];
             /**
@@ -1354,6 +1434,11 @@ export interface components {
              * @default 0
              */
             identifiers_union: number;
+            /**
+             * Cache Size Bytes
+             * @description Total bytes on disk for the whole store. Null when no store backs this process.
+             */
+            cache_size_bytes?: number | null;
         };
         /**
          * DataSourceStatus
@@ -1377,36 +1462,40 @@ export interface components {
          */
         DatasetCoverage: {
             /**
-             * Cache Age
-             * @description Seconds since this dataset was last loaded or synced. Null when the dataset is not loaded at all, which is a different statement from 'loaded and never refreshed'.
+             * Dataset
+             * @description 'market' or 'reference'.
              */
-            cache_age?: number | null;
-            /**
-             * Cache Size Bytes
-             * @description Bytes the backing store occupies on disk. Null when the data did not come from a store, in which case it has no size to report rather than a size of zero.
-             */
-            cache_size_bytes?: number | null;
+            dataset: string;
             /**
              * Configured
              * @description Whether this dataset is loaded.
              */
             configured: boolean;
             /**
-             * Dataset
-             * @description 'market' or 'reference'.
+             * Identifiers
+             * @description Distinct identifiers present.
              */
-            dataset: string;
+            identifiers: number;
+            /**
+             * Start
+             * @description Earliest date held, ISO 8601.
+             */
+            start?: string | null;
             /**
              * End
              * @description Latest date held, ISO 8601.
              */
             end?: string | null;
             /**
-             * Field Count
-             * @description Data columns this dataset holds, excluding the identifier and date keys.
-             * @default 0
+             * Cache Age
+             * @description Seconds since this dataset was last loaded or synced. Null when the dataset is not loaded at all, which is a different statement from 'loaded and never refreshed'.
              */
-            field_count: number;
+            cache_age?: number | null;
+            /**
+             * Last Refreshed
+             * @description When this dataset was last loaded or synced, ISO 8601. Carried alongside the age because an age is only meaningful at the instant it was read, and a client holding a response for a minute needs the timestamp.
+             */
+            last_refreshed?: string | null;
             /**
              * Frequency
              * @description How often this dataset is expected to change: 'daily', 'static' or 'event'. The engine's definition of what stale means, so a client renders staleness from this rather than from thresholds of its own.
@@ -1414,30 +1503,26 @@ export interface components {
              */
             frequency: string;
             /**
-             * Identifiers
-             * @description Distinct identifiers present.
+             * Stale After Seconds
+             * @description Age beyond which this dataset should read as stale. Published so the mapping from frequency to a duration lives in one place; null means the question does not apply, as for static data.
              */
-            identifiers: number;
-            /**
-             * Last Refreshed
-             * @description When this dataset was last loaded or synced, ISO 8601. Carried alongside the age because an age is only meaningful at the instant it was read, and a client holding a response for a minute needs the timestamp.
-             */
-            last_refreshed?: string | null;
+            stale_after_seconds?: number | null;
             /**
              * Source
              * @description Where the data was loaded from, e.g. 'synthetic', 'yfinance', 'local'. Null when a fetcher was assembled in-process and nothing recorded a provenance.
              */
             source?: string | null;
             /**
-             * Stale After Seconds
-             * @description Age beyond which this dataset should read as stale. Published so the mapping from frequency to a duration lives in one place; null means the question does not apply, as for static data.
+             * Field Count
+             * @description Data columns this dataset holds, excluding the identifier and date keys.
+             * @default 0
              */
-            stale_after_seconds?: number | null;
+            field_count: number;
             /**
-             * Start
-             * @description Earliest date held, ISO 8601.
+             * Cache Size Bytes
+             * @description Bytes the backing store occupies on disk. Null when the data did not come from a store, in which case it has no size to report rather than a size of zero.
              */
-            start?: string | null;
+            cache_size_bytes?: number | null;
         };
         /**
          * DriftPayload
@@ -1445,30 +1530,30 @@ export interface components {
          */
         DriftPayload: {
             /**
+             * Total Absolute
+             * @description Sum of absolute weight changes.
+             */
+            total_absolute: number;
+            /**
              * Maximum
              * @description Largest single move.
              */
             maximum: number;
             /**
-             * Since
-             * @description The rebalance drifted from.
+             * Worst
+             * @description Constituent that moved most.
              */
-            since: string;
-            /**
-             * Total Absolute
-             * @description Sum of absolute weight changes.
-             */
-            total_absolute: number;
+            worst: string;
             /**
              * Turnover
              * @description Half the total: the one-way trading needed to return to target, since every overweight funds an underweight.
              */
             turnover: number;
             /**
-             * Worst
-             * @description Constituent that moved most.
+             * Since
+             * @description The rebalance drifted from.
              */
-            worst: string;
+            since: string;
         };
         /**
          * ErrorDetail
@@ -1481,17 +1566,17 @@ export interface components {
              */
             code: string;
             /**
+             * Message
+             * @description Human-readable summary.
+             */
+            message: string;
+            /**
              * Detail
              * @description Structured context, e.g. the offending field or rule.
              */
             detail?: {
                 [key: string]: unknown;
             } | null;
-            /**
-             * Message
-             * @description Human-readable summary.
-             */
-            message: string;
         };
         /**
          * ErrorEnvelope
@@ -1510,48 +1595,225 @@ export interface components {
          *     value factor faked without book values would not be.
          */
         ExposuresView: {
-            /** Active Exposures */
-            active_exposures: components["schemas"]["FactorExposure"][];
+            /** Run Id */
+            run_id: string;
             /** Factors */
             factors: string[];
-            /** Index Exposures */
-            index_exposures: components["schemas"]["FactorExposure"][];
-            /** Optimal Exposures */
-            optimal_exposures: components["schemas"]["FactorExposure"][];
             /**
              * R Squared
              * @description Read against a floor of roughly k/n rather than against zero: fitting k factors to an n-asset cross-section explains about that much by construction.
              */
             r_squared: number;
+            /** Index Exposures */
+            index_exposures: components["schemas"]["FactorExposure"][];
+            /** Optimal Exposures */
+            optimal_exposures: components["schemas"]["FactorExposure"][];
+            /** Active Exposures */
+            active_exposures: components["schemas"]["FactorExposure"][];
             risk: components["schemas"]["RiskDecomposition"];
-            /** Run Id */
-            run_id: string;
         };
         /**
          * FactorExposure
          * @description One factor loading.
          */
         FactorExposure: {
-            /** Exposure */
-            exposure: number;
             /** Factor */
             factor: string;
+            /** Exposure */
+            exposure: number;
+        };
+        /**
+         * FeatureBatchEntry
+         * @description One instrument in a batch feature response.
+         */
+        FeatureBatchEntry: {
+            /** Identifier */
+            identifier: string;
+            /** Features */
+            features: components["schemas"]["FeatureValue"][];
+        };
+        /**
+         * FeatureBatchResponse
+         * @description Response of `GET /data/features`.
+         */
+        FeatureBatchResponse: {
+            /** As Of */
+            as_of: string;
+            /** Entries */
+            entries: components["schemas"]["FeatureBatchEntry"][];
+        };
+        /**
+         * FeatureCatalogue
+         * @description Response of `GET /data/features/catalogue`.
+         *
+         *     What a client populates its controls from. Derived from the loaded data
+         *     rather than a fixed vocabulary, so a dataset somebody loads tomorrow
+         *     becomes a filter without a code change.
+         */
+        FeatureCatalogue: {
+            /** Types */
+            types: components["schemas"]["FeatureTypeCoverage"][];
+            /**
+             * Fields
+             * @description Every field across every dataset. Names collide where two datasets carry the same one, which is why the per-type lists above exist.
+             */
+            fields: string[];
+        };
+        /**
+         * FeatureImport
+         * @description Body of `POST /data/features`.
+         */
+        FeatureImport: {
+            /**
+             * Rows
+             * @description Field-value rows. Merged into whatever is already loaded; a row matching an existing identifier, date, type and field replaces it.
+             */
+            rows: components["schemas"]["FeatureRow"][];
+        };
+        /**
+         * FeatureImportResult
+         * @description What an import did.
+         */
+        FeatureImportResult: {
+            /** Accepted */
+            accepted: number;
+            /**
+             * Types
+             * @description Datasets the import touched.
+             */
+            types: string[];
+            /** Identifiers */
+            identifiers: number;
+        };
+        /**
+         * FeatureResponse
+         * @description Response of `GET /data/features/{identifier}`.
+         */
+        FeatureResponse: {
+            /** Identifier */
+            identifier: string;
+            /**
+             * As Of
+             * @description The date these were resolved at.
+             */
+            as_of: string;
+            /** Features */
+            features: components["schemas"]["FeatureValue"][];
+        };
+        /**
+         * FeatureRow
+         * @description One row of an import.
+         */
+        FeatureRow: {
+            /** Identifier */
+            identifier: string;
+            /**
+             * Date
+             * @description Calendar date, YYYY-MM-DD.
+             */
+            date: string;
+            /** Type */
+            type: string;
+            /** Field */
+            field: string;
+            /** Value */
+            value: number;
+            /** Detail */
+            detail?: string | null;
+        };
+        /**
+         * FeatureTypeCoverage
+         * @description One feature dataset, and how much of it is present.
+         */
+        FeatureTypeCoverage: {
+            /** Type */
+            type: string;
+            /** Fields */
+            fields: string[];
+            /**
+             * Identifiers
+             * @description Instruments this dataset covers.
+             */
+            identifiers: number;
+            /** Rows */
+            rows: number;
+        };
+        /**
+         * FeatureValue
+         * @description One field and what it was worth.
+         */
+        FeatureValue: {
+            /** Field */
+            field: string;
+            /**
+             * Value
+             * @description Null when nothing was knowable on the date: no coverage, nothing published yet, or nothing recent enough.
+             */
+            value: number | null;
+            /**
+             * Type
+             * @description Which dataset it came from.
+             */
+            type?: string | null;
+            /**
+             * Detail
+             * @description Free-form context the dataset carried.
+             */
+            detail?: string | null;
+            /**
+             * Date
+             * @description When the value became knowable — the announcement date, not the period it describes.
+             */
+            date?: string | null;
+        };
+        /**
+         * FieldCatalogue
+         * @description Response of `GET /data/fields`.
+         *
+         *     Every datapoint an expression can name, from one place, so a client builds
+         *     one field picker rather than one per dataset. Derived from the loaded
+         *     store, so a column or dataset nobody declared still appears.
+         */
+        FieldCatalogue: {
+            /** Fields */
+            fields: components["schemas"]["FieldDescriptor"][];
+            /** Namespaces */
+            namespaces: string[];
+        };
+        /**
+         * FieldDescriptor
+         * @description One datapoint a client can offer as a filter.
+         */
+        FieldDescriptor: {
+            /**
+             * Path
+             * @description How it is written, e.g. 'reference.sector' or 'features.fundamentals.revenue'.
+             */
+            path: string;
+            /**
+             * Namespace
+             * @description market, reference, actions or features.
+             */
+            namespace: string;
+            /** Name */
+            name: string;
+            /**
+             * Dataset
+             * @description Feature TYPE, for feature fields only.
+             */
+            dataset?: string | null;
+            /**
+             * Derived
+             * @description Computed per request rather than stored. Screenable either way — a client should not have to care.
+             * @default false
+             */
+            derived: boolean;
         };
         /**
          * Finding
          * @description One validation result, addressable to the rule that caused it.
          */
         Finding: {
-            /**
-             * Code
-             * @description Stable machine-readable code.
-             */
-            code: string;
-            /**
-             * Message
-             * @description Human-readable explanation.
-             */
-            message: string;
             /**
              * Path
              * @description Dotted path to the offending field.
@@ -1567,35 +1829,49 @@ export interface components {
              * @description 'error' blocks saving; 'warning' does not.
              */
             severity: string;
+            /**
+             * Code
+             * @description Stable machine-readable code.
+             */
+            code: string;
+            /**
+             * Message
+             * @description Human-readable explanation.
+             */
+            message: string;
         };
         /**
          * FrontierPoint
          * @description One portfolio on the efficient frontier.
          */
         FrontierPoint: {
-            /** Binding */
-            binding?: string[];
             /** Expected Return */
             expected_return?: number | null;
+            /** Volatility */
+            volatility: number;
+            /** Sharpe Ratio */
+            sharpe_ratio?: number | null;
+            /** Weights */
+            weights: {
+                [key: string]: number;
+            };
+            /** Binding */
+            binding?: string[];
             /**
              * Heuristic
              * @default false
              */
             heuristic: boolean;
-            /** Sharpe Ratio */
-            sharpe_ratio?: number | null;
-            /** Volatility */
-            volatility: number;
-            /** Weights */
-            weights: {
-                [key: string]: number;
-            };
         };
         /**
          * FrontierView
          * @description Response of `GET /optimise/runs/{run_id}/frontier`.
          */
         FrontierView: {
+            /** Run Id */
+            run_id: string;
+            /** Risk Free Rate */
+            risk_free_rate: number;
             /**
              * Expected Returns
              * @description Annualised historical mean returns, per name. A poor forecast, and the honest one: it is the only return estimate derivable from the data the server holds. A caller with a real view should supply it.
@@ -1603,19 +1879,15 @@ export interface components {
             expected_returns: {
                 [key: string]: number;
             };
+            /** Points */
+            points: components["schemas"]["FrontierPoint"][];
             minimum_variance: components["schemas"]["FrontierPoint"];
+            tangency: components["schemas"]["FrontierPoint"];
             /**
              * Monotonic
              * @description Whether risk rises with return across the grid. Always true for a correct solve, so a false here means a point did not reach optimality.
              */
             monotonic: boolean;
-            /** Points */
-            points: components["schemas"]["FrontierPoint"][];
-            /** Risk Free Rate */
-            risk_free_rate: number;
-            /** Run Id */
-            run_id: string;
-            tangency: components["schemas"]["FrontierPoint"];
         };
         /**
          * FuturesPriceRequest
@@ -1626,23 +1898,16 @@ export interface components {
          */
         FuturesPriceRequest: {
             /**
-             * Borrow Cost
-             * @description Continuous borrow or financing spread.
+             * Spot
+             * @description Spot price of the underlying.
+             */
+            spot: number;
+            /**
+             * Risk Free Rate
+             * @description Continuously compounded financing rate. Ignored when `curve` is supplied.
              * @default 0
              */
-            borrow_cost: number;
-            /**
-             * Contract Multiplier
-             * @description Index points per contract.
-             * @default 1
-             */
-            contract_multiplier: number;
-            /**
-             * Contracts
-             * @description Number of contracts.
-             * @default 1
-             */
-            contracts: number;
+            risk_free_rate: number;
             /**
              * Curve
              * @description Zero-rate pillars as {tenor_in_years: rate}. A flat curve and a scalar rate give identical answers, so supplying one changes nothing unless the curve has shape.
@@ -1657,6 +1922,12 @@ export interface components {
              */
             dividend_yield: number;
             /**
+             * Borrow Cost
+             * @description Continuous borrow or financing spread.
+             * @default 0
+             */
+            borrow_cost: number;
+            /**
              * Dividends
              * @description Discrete cash dividends as (years_to_ex, amount). When present these are used instead of the continuous yield: the two are different models of the same thing and applying both would double-count.
              */
@@ -1665,93 +1936,88 @@ export interface components {
                 number
             ][] | null;
             /**
+             * Valuation Date
+             * @description YYYY-MM-DD.
+             */
+            valuation_date?: string | null;
+            /**
              * Expiry
              * @description YYYY-MM-DD.
              */
             expiry?: string | null;
-            /**
-             * Grid Rates
-             * @description Columns of the sensitivity grid.
-             */
-            grid_rates?: number[] | null;
-            /**
-             * Grid Tenors
-             * @description Rows of the sensitivity grid, in years.
-             */
-            grid_tenors?: number[] | null;
-            /**
-             * Market Price
-             * @description Quoted price, for the basis and implied repo. Both are null without one rather than computed against the theoretical value, which would make them identically zero.
-             */
-            market_price?: number | null;
-            /**
-             * Risk Free Rate
-             * @description Continuously compounded financing rate. Ignored when `curve` is supplied.
-             * @default 0
-             */
-            risk_free_rate: number;
-            /**
-             * Spot
-             * @description Spot price of the underlying.
-             */
-            spot: number;
             /**
              * Time To Expiry
              * @description Years to expiry. Dates win when both are given, being the less ambiguous statement.
              */
             time_to_expiry?: number | null;
             /**
-             * Valuation Date
-             * @description YYYY-MM-DD.
+             * Contract Multiplier
+             * @description Index points per contract.
+             * @default 1
              */
-            valuation_date?: string | null;
+            contract_multiplier: number;
+            /**
+             * Contracts
+             * @description Number of contracts.
+             * @default 1
+             */
+            contracts: number;
+            /**
+             * Market Price
+             * @description Quoted price, for the basis and implied repo. Both are null without one rather than computed against the theoretical value, which would make them identically zero.
+             */
+            market_price?: number | null;
+            /**
+             * Grid Tenors
+             * @description Rows of the sensitivity grid, in years.
+             */
+            grid_tenors?: number[] | null;
+            /**
+             * Grid Rates
+             * @description Columns of the sensitivity grid.
+             */
+            grid_rates?: number[] | null;
         };
         /**
          * FuturesPriceResponse
          * @description Response of `POST /derivatives/futures/price`.
          */
         FuturesPriceResponse: {
+            /** Fair Value */
+            fair_value: number;
+            /** Time To Expiry */
+            time_to_expiry: number;
             /**
-             * Basis
-             * @description Market minus theoretical, when quoted.
+             * Financing Rate
+             * @description Rate used, read off the curve.
              */
-            basis?: number | null;
+            financing_rate: number;
             carry: components["schemas"]["CarryDecomposition"];
             /**
              * Contract Value
              * @description Fair value times multiplier times contracts.
              */
             contract_value: number;
-            /** Fair Value */
-            fair_value: number;
+            /** Market Price */
+            market_price?: number | null;
             /**
-             * Financing Rate
-             * @description Rate used, read off the curve.
+             * Basis
+             * @description Market minus theoretical, when quoted.
              */
-            financing_rate: number;
+            basis?: number | null;
             /**
              * Implied Repo
              * @description Financing rate the quoted price implies, when quoted.
              */
             implied_repo?: number | null;
-            /** Market Price */
-            market_price?: number | null;
             /** @description Fair value across a tenor x rate grid, centred on this contract. */
             sensitivity: components["schemas"]["TableFrame"];
-            /** Time To Expiry */
-            time_to_expiry: number;
         };
         /**
          * HealthResponse
          * @description Response of `GET /health`.
          */
         HealthResponse: {
-            /**
-             * Cache Age
-             * @description Seconds since the market data was last loaded or synced. Null only when no data source is configured — there is then nothing whose age could be reported.
-             */
-            cache_age?: number | null;
-            data_source: components["schemas"]["DataSourceStatus"];
             /**
              * Status
              * @description 'ok' when the process is serving.
@@ -1762,6 +2028,12 @@ export interface components {
              * @description Installed py-beacon version.
              */
             version: string;
+            data_source: components["schemas"]["DataSourceStatus"];
+            /**
+             * Cache Age
+             * @description Seconds since the market data was last loaded or synced. Null only when no data source is configured — there is then nothing whose age could be reported.
+             */
+            cache_age?: number | null;
         };
         /**
          * IdentifierMatch
@@ -1769,10 +2041,15 @@ export interface components {
          */
         IdentifierMatch: {
             /**
-             * Currency
-             * @description Denomination, when reference data has one.
+             * Identifier
+             * @description The symbol itself.
              */
-            currency?: string | null;
+            identifier: string;
+            /**
+             * Name
+             * @description Display name, or null when reference data carries none. A row without a name is still a useful suggestion, so it is returned rather than dropped.
+             */
+            name?: string | null;
             /**
              * Datasets
              * @description Which datasets actually cover this identifier: 'market', 'reference', 'corporate_actions'. This is what lets a client offer a reference-only name in a reference view and mark it unavailable for prices, rather than suggesting something the engine cannot then serve.
@@ -1784,15 +2061,10 @@ export interface components {
              */
             exchange?: string | null;
             /**
-             * Identifier
-             * @description The symbol itself.
+             * Currency
+             * @description Denomination, when reference data has one.
              */
-            identifier: string;
-            /**
-             * Name
-             * @description Display name, or null when reference data carries none. A row without a name is still a useful suggestion, so it is returned rather than dropped.
-             */
-            name?: string | null;
+            currency?: string | null;
         };
         /**
          * IdentifierSearchResponse
@@ -1841,6 +2113,16 @@ export interface components {
          */
         IndexDocument: {
             /**
+             * Id
+             * @description Stable identifier, used in the URL.
+             */
+            id: string;
+            /**
+             * Name
+             * @description Display name.
+             */
+            name: string;
+            /**
              * Base Date
              * @description Base date, YYYY-MM-DD.
              */
@@ -1851,50 +2133,19 @@ export interface components {
              */
             base_value: number;
             /**
-             * Calendar
-             * @description Exchange MIC backing trading-day arithmetic, e.g. 'XNYS'. Null means Monday to Friday, which is what every index defined before this field used. Naming one requires the `calendars` extra — an index that declares a calendar must never quietly compute against a different one.
-             */
-            calendar?: string | null;
-            /**
              * Currency
              * @description Index currency.
              */
             currency: string;
-            /** Description */
-            description?: string | null;
-            /**
-             * Effective Lag Sessions
-             * @description Sessions between a rebalance being announced and its weights taking effect. Stored now, honoured by the calculator in BN-126; until then it is declared and not applied, and 0 is the behaviour in force.
-             * @default 0
-             */
-            effective_lag_sessions: number;
-            /**
-             * Id
-             * @description Stable identifier, used in the URL.
-             */
-            id: string;
-            /**
-             * Name
-             * @description Display name.
-             */
-            name: string;
-            pipeline: components["schemas"]["PipelineSpec"];
-            /**
-             * Publication Time
-             * @description When the level is published, e.g. '18:00 America/New_York'. Display metadata: it says when a figure is released and changes no figure, so nothing in the calculation reads it.
-             */
-            publication_time?: string | null;
-            /**
-             * Rebalance Day Rule
-             * @description Which day of a scheduled month the rebalance falls on: FIRST_BUSINESS_DAY, LAST_BUSINESS_DAY or THIRD_FRIDAY. A date landing on a holiday rolls back to the previous session.
-             * @default FIRST_BUSINESS_DAY
-             */
-            rebalance_day_rule: string;
             /**
              * Rebalancing Frequency
              * @description MONTHLY, QUARTERLY, SEMI-ANNUAL or ANNUAL. The cadence; `rebalance_day_rule` decides which day of the month.
              */
             rebalancing_frequency: string;
+            universe: components["schemas"]["UniverseRef"];
+            pipeline: components["schemas"]["PipelineSpec"];
+            /** Description */
+            description?: string | null;
             /**
              * Return Type
              * @description How returns accumulate. PRICE ignores distributions; TOTAL_RETURN reinvests them across the index by shrinking the divisor; NET_TOTAL_RETURN does the same after withholding tax. PRICE is the default, so an index defined before this existed is unchanged.
@@ -1902,13 +2153,34 @@ export interface components {
              * @enum {string}
              */
             return_type: "PRICE" | "TOTAL_RETURN" | "NET_TOTAL_RETURN";
-            universe: components["schemas"]["UniverseRef"];
             /**
              * Withholding Tax Rate
              * @description Fraction of each distribution withheld, for a net index. A flat index-level rate rather than a per-country table: a table is only as good as the country field behind it, and an unpopulated one produces a number that looks precise and is not. Ignored unless `return_type` is NET_TOTAL_RETURN.
              * @default 0
              */
             withholding_tax_rate: number;
+            /**
+             * Calendar
+             * @description Exchange MIC backing trading-day arithmetic, e.g. 'XNYS'. Null means Monday to Friday, which is what every index defined before this field used. Naming one requires the `calendars` extra — an index that declares a calendar must never quietly compute against a different one.
+             */
+            calendar?: string | null;
+            /**
+             * Rebalance Day Rule
+             * @description Which day of a scheduled month the rebalance falls on: FIRST_BUSINESS_DAY, LAST_BUSINESS_DAY or THIRD_FRIDAY. A date landing on a holiday rolls back to the previous session.
+             * @default FIRST_BUSINESS_DAY
+             */
+            rebalance_day_rule: string;
+            /**
+             * Publication Time
+             * @description When the level is published, e.g. '18:00 America/New_York'. Display metadata: it says when a figure is released and changes no figure, so nothing in the calculation reads it.
+             */
+            publication_time?: string | null;
+            /**
+             * Effective Lag Sessions
+             * @description Sessions between a rebalance being announced and its weights taking effect. Stored now, honoured by the calculator in BN-126; until then it is declared and not applied, and 0 is the behaviour in force.
+             * @default 0
+             */
+            effective_lag_sessions: number;
         };
         /**
          * JobCollection
@@ -1923,11 +2195,6 @@ export interface components {
          * @description State of one background job.
          */
         JobStatus: {
-            /**
-             * Error
-             * @description Failure reason, when status is failed.
-             */
-            error?: string | null;
             /** Job Id */
             job_id: string;
             /**
@@ -1936,26 +2203,31 @@ export interface components {
              */
             kind: string;
             /**
-             * Message
-             * @description Latest progress message.
-             * @default
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
              */
-            message: string;
+            status: string;
             /**
              * Progress
              * @description Fraction complete, 0.0 to 1.0.
              */
             progress: number;
             /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
              * Result
              * @description Present only once the job has succeeded; null otherwise.
              */
             result?: unknown;
             /**
-             * Status
-             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             * Error
+             * @description Failure reason, when status is failed.
              */
-            status: string;
+            error?: string | null;
         };
         /**
          * OptimisationRunRequest
@@ -1963,59 +2235,59 @@ export interface components {
          */
         OptimisationRunRequest: {
             /**
-             * As Of
-             * @description Which rebalance to target, YYYY-MM-DD. Defaults to the latest.
+             * Index Id
+             * @description Index whose weights are the target.
              */
-            as_of?: string | null;
+            index_id: string;
             /**
              * Constraint Set Id
              * @description Constraint set to solve under.
              */
             constraint_set_id: string;
             /**
+             * As Of
+             * @description Which rebalance to target, YYYY-MM-DD. Defaults to the latest.
+             */
+            as_of?: string | null;
+            /**
+             * Start
+             * @description Start of the window the risk model is estimated over.
+             */
+            start?: string | null;
+            /**
              * End
              * @description End of that window.
              */
             end?: string | null;
-            /**
-             * Index Id
-             * @description Index whose weights are the target.
-             */
-            index_id: string;
             /**
              * Risk Free Rate
              * @description Used for the frontier's tangency point.
              * @default 0
              */
             risk_free_rate: number;
-            /**
-             * Start
-             * @description Start of the window the risk model is estimated over.
-             */
-            start?: string | null;
         };
         /**
          * OverviewView
          * @description Response of `GET /beacon/{index_id}/overview`.
          */
         OverviewView: {
-            concentration: components["schemas"]["ConcentrationPayload"];
-            /** End */
-            end: string;
             /** Index Id */
             index_id: string;
-            /** Last Rebalance */
-            last_rebalance: string;
-            level: components["schemas"]["SeriesPayload"];
-            metrics: components["schemas"]["BacktestMetrics"];
             /** Name */
             name: string;
+            /** Start */
+            start: string;
+            /** End */
+            end: string;
             /** Observations */
             observations: number;
             /** Rebalances */
             rebalances: number;
-            /** Start */
-            start: string;
+            /** Last Rebalance */
+            last_rebalance: string;
+            metrics: components["schemas"]["BacktestMetrics"];
+            concentration: components["schemas"]["ConcentrationPayload"];
+            level: components["schemas"]["SeriesPayload"];
         };
         /**
          * ParameterSpec
@@ -2028,45 +2300,45 @@ export interface components {
          */
         ParameterSpec: {
             /**
-             * Choices
-             * @description The accepted values, when this is a closed set. Null means any value of `type` is allowed.
-             */
-            choices?: string[] | null;
-            /**
-             * Default
-             * @description Value used when omitted. Null both for 'no default' and for a default of None; `required` distinguishes them.
-             */
-            default?: unknown;
-            /**
-             * Help
-             * @description One line of guidance for the field.
-             */
-            help?: string | null;
-            /**
-             * Label
-             * @description Human-readable field name.
-             */
-            label: string;
-            /**
              * Name
              * @description Parameter name, as it must appear in `params`.
              */
             name: string;
             /**
-             * Order
-             * @description Position in the form, ascending.
+             * Type
+             * @description Display type: number, integer, boolean, string or json. What control to render, not the Python annotation.
              */
-            order: number;
+            type: string;
             /**
              * Required
              * @description Whether the constructor rejects the call without it.
              */
             required: boolean;
             /**
-             * Type
-             * @description Display type: number, integer, boolean, string or json. What control to render, not the Python annotation.
+             * Default
+             * @description Value used when omitted. Null both for 'no default' and for a default of None; `required` distinguishes them.
              */
-            type: string;
+            default?: unknown;
+            /**
+             * Label
+             * @description Human-readable field name.
+             */
+            label: string;
+            /**
+             * Order
+             * @description Position in the form, ascending.
+             */
+            order: number;
+            /**
+             * Choices
+             * @description The accepted values, when this is a closed set. Null means any value of `type` is allowed.
+             */
+            choices?: string[] | null;
+            /**
+             * Help
+             * @description One line of guidance for the field.
+             */
+            help?: string | null;
         };
         /**
          * PipelineSpec
@@ -2075,30 +2347,14 @@ export interface components {
         PipelineSpec: {
             /** Selection */
             selection?: components["schemas"]["RuleSpec"][];
-            treatment?: components["schemas"]["TreatmentSpec"];
             weighting: components["schemas"]["WeightingSpec"];
+            treatment?: components["schemas"]["TreatmentSpec"];
         };
         /**
          * PreviewAsset
          * @description Per-asset outcome of the derivation.
          */
         PreviewAsset: {
-            /**
-             * Capped
-             * @description Whether this name sits at the cap.
-             * @default false
-             */
-            capped: boolean;
-            /**
-             * Excluded At
-             * @description Waterfall position where it dropped out.
-             */
-            excluded_at?: number | null;
-            /**
-             * Excluded By
-             * @description Id of the first rule that excluded it. Null when included.
-             */
-            excluded_by?: string | null;
             /** Identifier */
             identifier: string;
             /**
@@ -2107,15 +2363,31 @@ export interface components {
              */
             included: boolean;
             /**
-             * Uncapped Weight
-             * @description Weight before capping, when the cap bound this name.
+             * Excluded By
+             * @description Id of the first rule that excluded it. Null when included.
              */
-            uncapped_weight?: number | null;
+            excluded_by?: string | null;
+            /**
+             * Excluded At
+             * @description Waterfall position where it dropped out.
+             */
+            excluded_at?: number | null;
             /**
              * Weight
              * @description Final weight as a fraction. Null when excluded.
              */
             weight?: number | null;
+            /**
+             * Uncapped Weight
+             * @description Weight before capping, when the cap bound this name.
+             */
+            uncapped_weight?: number | null;
+            /**
+             * Capped
+             * @description Whether this name sits at the cap.
+             * @default false
+             */
+            capped: boolean;
         };
         /**
          * PreviewDocumentRequest
@@ -2127,13 +2399,13 @@ export interface components {
          *     sent, so editing a rule updates the resolved figures without saving.
          */
         PreviewDocumentRequest: {
+            /** @description The definition to derive, saved or not. */
+            document: components["schemas"]["IndexDocument"];
             /**
              * As Of
              * @description Date to evaluate the pipeline at, YYYY-MM-DD. Defaults to the document's base date.
              */
             as_of?: string | null;
-            /** @description The definition to derive, saved or not. */
-            document: components["schemas"]["IndexDocument"];
         };
         /**
          * PreviewRequest
@@ -2151,10 +2423,26 @@ export interface components {
          * @description Response of `POST /indices/{id}/preview`.
          */
         PreviewResponse: {
+            /** Index Id */
+            index_id: string;
             /** As Of */
             as_of: string;
+            /** Steps */
+            steps: components["schemas"]["PreviewStep"][];
             /** Assets */
             assets: components["schemas"]["PreviewAsset"][];
+            /**
+             * Weights
+             * @description Final weights as fractions, keyed by identifier.
+             */
+            weights: {
+                [key: string]: number;
+            };
+            /**
+             * Total Weight
+             * @description Sum of the final weights; 1.0 for a non-empty index.
+             */
+            total_weight: number;
             /**
              * Cap
              * @description Cap applied, as a fraction, if any.
@@ -2166,22 +2454,6 @@ export interface components {
              * @default 0
              */
             cap_redistributed: number;
-            /** Index Id */
-            index_id: string;
-            /** Steps */
-            steps: components["schemas"]["PreviewStep"][];
-            /**
-             * Total Weight
-             * @description Sum of the final weights; 1.0 for a non-empty index.
-             */
-            total_weight: number;
-            /**
-             * Weights
-             * @description Final weights as fractions, keyed by identifier.
-             */
-            weights: {
-                [key: string]: number;
-            };
         };
         /**
          * PreviewStep
@@ -2192,20 +2464,10 @@ export interface components {
          */
         PreviewStep: {
             /**
-             * Excluded
-             * @description Identifiers this step removed. Empty for the universe row.
-             */
-            excluded?: string[];
-            /**
              * Position
              * @description 0 is the universe; rules follow in order.
              */
             position: number;
-            /**
-             * Remaining
-             * @description Constituents surviving after this step.
-             */
-            remaining: number;
             /**
              * Rule Id
              * @description Rule responsible, or null for the universe row.
@@ -2216,6 +2478,16 @@ export interface components {
              * @description Rule class name.
              */
             rule_type?: string | null;
+            /**
+             * Remaining
+             * @description Constituents surviving after this step.
+             */
+            remaining: number;
+            /**
+             * Excluded
+             * @description Identifiers this step removed. Empty for the universe row.
+             */
+            excluded?: string[];
         };
         /**
          * PricesResponse
@@ -2237,6 +2509,13 @@ export interface components {
          * @description One identifier's row in a batch reference response.
          */
         ReferenceEntry: {
+            /** Identifier */
+            identifier: string;
+            /**
+             * Found
+             * @description Whether the reference dataset holds this identifier. False leaves `fields` empty rather than failing the batch, so one unknown name does not lose the other 511.
+             */
+            found: boolean;
             /**
              * Fields
              * @description Requested reference columns and derived fields. A column the dataset holds but this identifier has no value for is present and null, which is a different statement from the identifier being absent.
@@ -2244,13 +2523,6 @@ export interface components {
             fields?: {
                 [key: string]: unknown;
             };
-            /**
-             * Found
-             * @description Whether the reference dataset holds this identifier. False leaves `fields` empty rather than failing the batch, so one unknown name does not lose the other 511.
-             */
-            found: boolean;
-            /** Identifier */
-            identifier: string;
         };
         /**
          * ReferenceResponse
@@ -2261,6 +2533,8 @@ export interface components {
          *     mapping rather than as named attributes.
          */
         ReferenceResponse: {
+            /** Identifier */
+            identifier: string;
             /**
              * Fields
              * @description Reference columns for this identifier, e.g. NAME, CURRENCY, EXCHANGE. Timestamps are ISO 8601 strings.
@@ -2268,8 +2542,6 @@ export interface components {
             fields: {
                 [key: string]: unknown;
             };
-            /** Identifier */
-            identifier: string;
             /**
              * Universes
              * @description Universes containing this instrument, so a client can answer 'where is this used?' without reading every universe and searching it.
@@ -2282,28 +2554,28 @@ export interface components {
          */
         RenderRequest: {
             /**
-             * Index Id
-             * @description Required for a built-in template, which is generated from that index's latest completed backtest. Ignored for a stored template, which is rendered exactly as saved.
-             */
-            index_id?: string | null;
-            /**
              * Template Id
              * @description A stored template, or a built-in such as FACTSHEET-A4.
              */
             template_id: string;
+            /**
+             * Index Id
+             * @description Required for a built-in template, which is generated from that index's latest completed backtest. Ignored for a stored template, which is rendered exactly as saved.
+             */
+            index_id?: string | null;
         };
         /**
          * ReportTemplateCollection
          * @description Response of `GET /reports/templates`.
          */
         ReportTemplateCollection: {
+            /** Templates */
+            templates: components["schemas"]["ReportTemplateDocument"][];
             /**
              * Built In
              * @description Templates generated from a run rather than stored. These can be rendered but not edited: they are code, not documents.
              */
             built_in?: string[];
-            /** Templates */
-            templates: components["schemas"]["ReportTemplateDocument"][];
         };
         /**
          * ReportTemplateDocument
@@ -2316,12 +2588,10 @@ export interface components {
          */
         ReportTemplateDocument: {
             /**
-             * Blocks
-             * @description Content, drawn top to bottom. Each carries a `kind`, one of: bar_chart, chart, header, stat_grid, table, text.
+             * Template Id
+             * @description Stable identifier, used in the URL.
              */
-            blocks?: {
-                [key: string]: unknown;
-            }[];
+            template_id: string;
             /**
              * Name
              * @description Display name.
@@ -2335,10 +2605,12 @@ export interface components {
                 [key: string]: unknown;
             };
             /**
-             * Template Id
-             * @description Stable identifier, used in the URL.
+             * Blocks
+             * @description Content, drawn top to bottom. Each carries a `kind`, one of: bar_chart, chart, header, stat_grid, table, text.
              */
-            template_id: string;
+            blocks?: {
+                [key: string]: unknown;
+            }[];
         };
         /**
          * RiskDecomposition
@@ -2350,6 +2622,23 @@ export interface components {
          *     pairing of a matrix with some exposures.
          */
         RiskDecomposition: {
+            /** Total Variance */
+            total_variance: number;
+            /** Factor Variance */
+            factor_variance: number;
+            /** Specific Variance */
+            specific_variance: number;
+            /** Tracking Error */
+            tracking_error: number;
+            /** Factor Share */
+            factor_share: number;
+            /**
+             * Residual
+             * @description Total minus the two parts. Zero up to float noise, by construction.
+             */
+            residual: number;
+            /** Reconciles */
+            reconciles: boolean;
             /**
              * Contributions
              * @description Each factor's share of the factor variance. May be negative: a factor position that hedges another genuinely reduces risk.
@@ -2357,31 +2646,26 @@ export interface components {
             contributions: {
                 [key: string]: number;
             };
-            /** Factor Share */
-            factor_share: number;
-            /** Factor Variance */
-            factor_variance: number;
-            /** Reconciles */
-            reconciles: boolean;
-            /**
-             * Residual
-             * @description Total minus the two parts. Zero up to float noise, by construction.
-             */
-            residual: number;
-            /** Specific Variance */
-            specific_variance: number;
-            /** Total Variance */
-            total_variance: number;
-            /** Tracking Error */
-            tracking_error: number;
         };
         /**
          * RiskDiagnosticsPayload
          * @description How an estimate was produced, and how far it can be trusted.
          */
         RiskDiagnosticsPayload: {
+            /**
+             * Observations
+             * @description Periods used, after dropping incomplete rows.
+             */
+            observations: number;
             /** Assets */
             assets: number;
+            /** Target */
+            target: string;
+            /**
+             * Intensity
+             * @description Weight placed on the structured target. 0 means the estimate is the raw sample covariance.
+             */
+            intensity: number;
             /**
              * Average Correlation
              * @description Mean off-diagonal correlation. The sanity check a person can actually do: a diversified equity universe sits around 0.3-0.6, and a figure far outside that says the window or the universe is not what someone thought.
@@ -2392,16 +2676,8 @@ export interface components {
              * @description Largest eigenvalue over smallest. An optimiser inverts this matrix, and a large value means the inverse amplifies estimation error rather than reflecting it.
              */
             condition_number: number;
-            /**
-             * Intensity
-             * @description Weight placed on the structured target. 0 means the estimate is the raw sample covariance.
-             */
-            intensity: number;
-            /**
-             * Observations
-             * @description Periods used, after dropping incomplete rows.
-             */
-            observations: number;
+            /** Smallest Eigenvalue */
+            smallest_eigenvalue: number;
             /**
              * Positive Semi Definite
              * @description Computed from the eigenvalues, not asserted. A matrix that fails this can produce a negative portfolio variance, and a caller about to invert it needs to know.
@@ -2409,10 +2685,6 @@ export interface components {
             positive_semi_definite: boolean;
             /** Repaired */
             repaired: boolean;
-            /** Smallest Eigenvalue */
-            smallest_eigenvalue: number;
-            /** Target */
-            target: string;
         };
         /**
          * RiskModelCollection
@@ -2428,11 +2700,6 @@ export interface components {
          */
         RiskModelRequest: {
             /**
-             * End
-             * @description End of that window.
-             */
-            end?: string | null;
-            /**
              * Identifiers
              * @description Names to estimate over. Empty uses the index named by `index_id`.
              */
@@ -2442,6 +2709,22 @@ export interface components {
              * @description Take the universe from this index's latest run instead of listing names.
              */
             index_id?: string | null;
+            /**
+             * Start
+             * @description Start of the estimation window.
+             */
+            start?: string | null;
+            /**
+             * End
+             * @description End of that window.
+             */
+            end?: string | null;
+            /**
+             * Target
+             * @description Structured target to shrink toward: 'constant_correlation' or 'scaled_identity'.
+             * @default constant_correlation
+             */
+            target: string;
             /**
              * Intensity
              * @description Weight on the target, in [0, 1]. Null uses the heuristic from the panel's shape; 0 gives the raw sample covariance, which on a short history across many names is mostly noise.
@@ -2453,31 +2736,20 @@ export interface components {
              * @default false
              */
             repair: boolean;
-            /**
-             * Start
-             * @description Start of the estimation window.
-             */
-            start?: string | null;
-            /**
-             * Target
-             * @description Structured target to shrink toward: 'constant_correlation' or 'scaled_identity'.
-             * @default constant_correlation
-             */
-            target: string;
         };
         /**
          * RiskModelSummary
          * @description One entry in `GET /risk-models`.
          */
         RiskModelSummary: {
-            /** Assets */
-            assets: number;
-            /** Average Correlation */
-            average_correlation: number;
             /** Model Id */
             model_id: string;
+            /** Assets */
+            assets: number;
             /** Observations */
             observations: number;
+            /** Average Correlation */
+            average_correlation: number;
             /** Positive Semi Definite */
             positive_semi_definite: boolean;
         };
@@ -2486,19 +2758,18 @@ export interface components {
          * @description Response of `GET /risk-models/{model_id}`.
          */
         RiskModelView: {
+            /** Model Id */
+            model_id: string;
             /** Asset Ids */
             asset_ids: string[];
+            /** Start */
+            start?: string | null;
+            /** End */
+            end?: string | null;
             /** @description Symmetric with a unit diagonal, by construction. */
             correlation: components["schemas"]["TableFrame"];
             /** @description Annualised. */
             covariance: components["schemas"]["TableFrame"];
-            diagnostics: components["schemas"]["RiskDiagnosticsPayload"];
-            /** End */
-            end?: string | null;
-            /** Model Id */
-            model_id: string;
-            /** Start */
-            start?: string | null;
             /**
              * Volatilities
              * @description Annualised standard deviation per asset — the square root of the covariance diagonal.
@@ -2506,6 +2777,7 @@ export interface components {
             volatilities: {
                 [key: string]: number;
             };
+            diagnostics: components["schemas"]["RiskDiagnosticsPayload"];
         };
         /**
          * RiskPayload
@@ -2517,6 +2789,11 @@ export interface components {
          */
         RiskPayload: {
             /**
+             * Volatility
+             * @description Annualised volatility of the covered holdings, at the weights they are actually held.
+             */
+            volatility: number;
+            /**
              * Covered Weight
              * @description Fraction of the index the figure speaks for. Below 1.0 when the model has no estimate for some constituent; the covered names keep their real weights rather than being renormalised, which would restate the portfolio.
              */
@@ -2527,20 +2804,15 @@ export interface components {
              */
             uncovered?: string[];
             /**
-             * Volatility
-             * @description Annualised volatility of the covered holdings, at the weights they are actually held.
+             * Window Start
+             * @description First date of the estimation window.
              */
-            volatility: number;
+            window_start?: string | null;
             /**
              * Window End
              * @description Last date of the estimation window.
              */
             window_end?: string | null;
-            /**
-             * Window Start
-             * @description First date of the estimation window.
-             */
-            window_start?: string | null;
         };
         /**
          * RollResponse
@@ -2550,30 +2822,30 @@ export interface components {
          *     the *carry* roll rather than a market one.
          */
         RollResponse: {
-            /**
-             * Annualised Roll
-             * @description Positive in backwardation, negative in contango.
-             */
-            annualised_roll: number;
-            /** As Of */
-            as_of: string;
-            /** Back Expiry */
-            back_expiry: string;
-            /** Back Price */
-            back_price: number;
-            /** Front Expiry */
-            front_expiry: string;
-            /** Front Price */
-            front_price: number;
             /** Index Id */
             index_id: string;
+            /** As Of */
+            as_of: string;
+            /** Spot */
+            spot: number;
+            /** Front Expiry */
+            front_expiry: string;
+            /** Back Expiry */
+            back_expiry: string;
+            /** Front Price */
+            front_price: number;
+            /** Back Price */
+            back_price: number;
             /**
              * Roll Cost
              * @description Back minus front.
              */
             roll_cost: number;
-            /** Spot */
-            spot: number;
+            /**
+             * Annualised Roll
+             * @description Positive in backwardation, negative in contango.
+             */
+            annualised_roll: number;
         };
         /**
          * RuleSpec
@@ -2586,17 +2858,17 @@ export interface components {
              */
             id: string;
             /**
+             * Type
+             * @description Rule class name, e.g. 'MarketCapRule'.
+             */
+            type: string;
+            /**
              * Params
              * @description Constructor arguments for the rule.
              */
             params?: {
                 [key: string]: unknown;
             };
-            /**
-             * Type
-             * @description Rule class name, e.g. 'MarketCapRule'.
-             */
-            type: string;
         };
         /**
          * RuleTypes
@@ -2636,12 +2908,12 @@ export interface components {
          * @description Response of a successful save: the document plus any warnings.
          */
         SavedIndex: {
+            index: components["schemas"]["IndexDocument"];
             /**
              * Findings
              * @description Non-blocking warnings. Errors would have prevented the save.
              */
             findings?: components["schemas"]["Finding"][];
-            index: components["schemas"]["IndexDocument"];
         };
         /**
          * ScheduleView
@@ -2651,32 +2923,32 @@ export interface components {
          *     calendar and today, and storing it would leave a date that silently expires.
          */
         ScheduleView: {
-            /**
-             * As Of
-             * @description Date the answer was computed from.
-             */
-            as_of: string;
+            /** Index Id */
+            index_id: string;
+            /** Rebalancing Frequency */
+            rebalancing_frequency: string;
+            /** Rebalance Day Rule */
+            rebalance_day_rule: string;
             /**
              * Calendar
              * @description Null means business days.
              */
             calendar?: string | null;
             /**
-             * Days Until
-             * @description Calendar days from `as_of` to `next_rebalance`. Calendar days rather than sessions, because it is displayed as 'in 57 days' and a reader counts those on a wall calendar.
+             * As Of
+             * @description Date the answer was computed from.
              */
-            days_until?: number | null;
-            /** Index Id */
-            index_id: string;
+            as_of: string;
             /**
              * Next Rebalance
              * @description Next rebalance date, ISO 8601. Null when none falls within the lookahead — which happens only for a schedule this server cannot project, not for a normal index.
              */
             next_rebalance?: string | null;
-            /** Rebalance Day Rule */
-            rebalance_day_rule: string;
-            /** Rebalancing Frequency */
-            rebalancing_frequency: string;
+            /**
+             * Days Until
+             * @description Calendar days from `as_of` to `next_rebalance`. Calendar days rather than sessions, because it is displayed as 'in 57 days' and a reader counts those on a wall calendar.
+             */
+            days_until?: number | null;
             /**
              * Recent
              * @description Rebalances already passed, most recent last.
@@ -2694,11 +2966,6 @@ export interface components {
          */
         SeriesPayload: {
             /**
-             * Data
-             * @description Values, aligned to `index`. NaN becomes null.
-             */
-            data: unknown[];
-            /**
              * Index
              * @description Row labels; timestamps are ISO 8601 strings.
              */
@@ -2708,17 +2975,17 @@ export interface components {
              * @description Series name, if it has one.
              */
             name?: string | null;
+            /**
+             * Data
+             * @description Values, aligned to `index`. NaN becomes null.
+             */
+            data: unknown[];
         };
         /**
          * SyncRequest
          * @description Body of `POST /data/coverage/{dataset}/sync`.
          */
         SyncRequest: {
-            /**
-             * End
-             * @description Inclusive end date, YYYY-MM-DD.
-             */
-            end?: string | null;
             /**
              * Identifiers
              * @description What to fetch. Empty re-syncs everything already loaded, which is the common case: refresh what I have.
@@ -2729,6 +2996,11 @@ export interface components {
              * @description Inclusive start date, YYYY-MM-DD.
              */
             start?: string | null;
+            /**
+             * End
+             * @description Inclusive end date, YYYY-MM-DD.
+             */
+            end?: string | null;
         };
         /**
          * TableFrame
@@ -2737,6 +3009,11 @@ export interface components {
          *     Row-oriented so column order is preserved and the payload stays compact.
          */
         TableFrame: {
+            /**
+             * Index
+             * @description Row labels; timestamps are ISO 8601 strings.
+             */
+            index: unknown[];
             /**
              * Columns
              * @description Column names, in order.
@@ -2747,11 +3024,6 @@ export interface components {
              * @description Rows, each aligned to `columns`. NaN becomes null.
              */
             data: unknown[][];
-            /**
-             * Index
-             * @description Row labels; timestamps are ISO 8601 strings.
-             */
-            index: unknown[];
         };
         /**
          * TermStructureEntry
@@ -2760,26 +3032,26 @@ export interface components {
         TermStructureEntry: {
             /** Expiry */
             expiry: string;
+            /** Time To Expiry */
+            time_to_expiry: number;
             /** Financing Rate */
             financing_rate: number;
             /** Theoretical */
             theoretical: number;
-            /** Time To Expiry */
-            time_to_expiry: number;
         };
         /**
          * TermStructureResponse
          * @description Response of `GET /derivatives/{index_id}/term-structure`.
          */
         TermStructureResponse: {
-            /** As Of */
-            as_of: string;
-            /** Entries */
-            entries: components["schemas"]["TermStructureEntry"][];
             /** Index Id */
             index_id: string;
+            /** As Of */
+            as_of: string;
             /** Spot */
             spot: number;
+            /** Entries */
+            entries: components["schemas"]["TermStructureEntry"][];
         };
         /**
          * TreatmentSpec
@@ -2798,6 +3070,17 @@ export interface components {
          * @description One financing period.
          */
         TrsAccrual: {
+            /** Start */
+            start: string;
+            /** End */
+            end: string;
+            /** Days */
+            days: number;
+            /**
+             * Rate
+             * @description Reference rate for the period: the fixing for the current one, the curve's forward for later ones.
+             */
+            rate: number;
             /**
              * Accrual Fraction
              * @description ACT/360 day-count fraction.
@@ -2805,17 +3088,6 @@ export interface components {
             accrual_fraction: number;
             /** Amount */
             amount: number;
-            /** Days */
-            days: number;
-            /** End */
-            end: string;
-            /**
-             * Rate
-             * @description Reference rate for the period: the fixing for the current one, the curve's forward for later ones.
-             */
-            rate: number;
-            /** Start */
-            start: string;
         };
         /**
          * TrsPriceRequest
@@ -2823,49 +3095,38 @@ export interface components {
          */
         TrsPriceRequest: {
             /**
+             * Trade Id
+             * @description Identifier for the trade.
+             * @default TRS
+             */
+            trade_id: string;
+            /**
+             * Underlying Id
+             * @default INDEX
+             */
+            underlying_id: string;
+            /**
              * Currency
              * @default USD
              */
             currency: string;
             /**
-             * Curve
-             * @description Zero-rate pillars for projecting future periods. The current period always accrues at the rate already fixed at its reset.
+             * Start Date
+             * @description Calendar date, YYYY-MM-DD.
              */
-            curve?: {
-                [key: string]: number;
-            } | null;
-            /**
-             * Dividend Yield
-             * @default 0
-             */
-            dividend_yield: number;
+            start_date: string;
             /**
              * End Date
              * @description Calendar date, YYYY-MM-DD.
              */
             end_date: string;
-            /**
-             * Futures Prices
-             * @description Prices to compute breakeven spreads against.
-             */
-            futures_prices?: number[] | null;
-            /**
-             * Initial Price
-             * @description Level at inception or last reset.
-             */
-            initial_price: number;
-            /**
-             * Last Reset Date
-             * @description Defaults to the start date.
-             */
-            last_reset_date?: string | null;
             /** Notional */
             notional: number;
             /**
-             * Payment Frequency
-             * @default QUARTERLY
+             * Spread Bps
+             * @default 0
              */
-            payment_frequency: string;
+            spread_bps: number;
             /**
              * Reference Rate
              * @description Name of the index.
@@ -2879,53 +3140,71 @@ export interface components {
              */
             reference_rate_value: number;
             /**
+             * Payment Frequency
+             * @default QUARTERLY
+             */
+            payment_frequency: string;
+            /**
              * Reset Type
              * @description UNFUNDED accrues reference + spread; FUNDED accrues only the spread, and therefore has no rate sensitivity at all.
              * @default UNFUNDED
              */
             reset_type: string;
             /**
+             * Valuation Date
+             * @description Calendar date, YYYY-MM-DD.
+             */
+            valuation_date: string;
+            /**
+             * Last Reset Date
+             * @description Defaults to the start date.
+             */
+            last_reset_date?: string | null;
+            /**
              * Spot
              * @description Underlying level today.
              */
             spot: number;
             /**
-             * Spread Bps
+             * Initial Price
+             * @description Level at inception or last reset.
+             */
+            initial_price: number;
+            /**
+             * Dividend Yield
              * @default 0
              */
-            spread_bps: number;
-            /**
-             * Start Date
-             * @description Calendar date, YYYY-MM-DD.
-             */
-            start_date: string;
+            dividend_yield: number;
             /**
              * Time To Expiry
              * @description Needed for the breakeven table.
              */
             time_to_expiry?: number | null;
             /**
-             * Trade Id
-             * @description Identifier for the trade.
-             * @default TRS
+             * Futures Prices
+             * @description Prices to compute breakeven spreads against.
              */
-            trade_id: string;
+            futures_prices?: number[] | null;
             /**
-             * Underlying Id
-             * @default INDEX
+             * Curve
+             * @description Zero-rate pillars for projecting future periods. The current period always accrues at the rate already fixed at its reset.
              */
-            underlying_id: string;
-            /**
-             * Valuation Date
-             * @description Calendar date, YYYY-MM-DD.
-             */
-            valuation_date: string;
+            curve?: {
+                [key: string]: number;
+            } | null;
         };
         /**
          * TrsPriceResponse
          * @description Response of `POST /derivatives/trs/price`.
          */
         TrsPriceResponse: {
+            /** Trade Id */
+            trade_id: string;
+            /**
+             * Valuation Date
+             * @description Calendar date, YYYY-MM-DD.
+             */
+            valuation_date: string;
             /** Accrual Days */
             accrual_days: number;
             /**
@@ -2933,13 +3212,15 @@ export interface components {
              * @description ACT/360, from the last reset.
              */
             accrual_fraction: number;
+            /** Total Return Leg */
+            total_return_leg: number;
+            /** Financing Leg */
+            financing_leg: number;
             /**
-             * Breakeven
-             * @description Breakeven financing spread against each supplied futures price — what makes a swap and a future agree.
+             * Present Value
+             * @description Total return leg minus accrued financing, from the receiver's side.
              */
-            breakeven?: {
-                [key: string]: number;
-            }[];
+            present_value: number;
             /**
              * Dv01
              * @description Value change per +1bp. Negative for a receiver, who pays financing — the sign carries the information a magnitude would lose. Exactly zero on a funded swap, where only the spread accrues.
@@ -2950,24 +3231,15 @@ export interface components {
              * @description Spread at which the trade would be worth nothing today. Null when no time has accrued, where no spread could balance it.
              */
             fair_spread_bps?: number | null;
-            /** Financing Leg */
-            financing_leg: number;
-            /**
-             * Present Value
-             * @description Total return leg minus accrued financing, from the receiver's side.
-             */
-            present_value: number;
             /** Schedule */
             schedule: components["schemas"]["TrsAccrual"][];
-            /** Total Return Leg */
-            total_return_leg: number;
-            /** Trade Id */
-            trade_id: string;
             /**
-             * Valuation Date
-             * @description Calendar date, YYYY-MM-DD.
+             * Breakeven
+             * @description Breakeven financing spread against each supplied futures price — what makes a swap and a future agree.
              */
-            valuation_date: string;
+            breakeven?: {
+                [key: string]: number;
+            }[];
         };
         /**
          * TypeSpec
@@ -2975,23 +3247,23 @@ export interface components {
          */
         TypeSpec: {
             /**
-             * Label
-             * @description Human-readable name for the type.
-             */
-            label: string;
-            /**
              * Name
              * @description Class name, as it must appear in `type`.
              */
             name: string;
-            /** Parameters */
-            parameters?: components["schemas"]["ParameterSpec"][];
+            /**
+             * Label
+             * @description Human-readable name for the type.
+             */
+            label: string;
             /**
              * Summary
              * @description One line describing what it does.
              * @default
              */
             summary: string;
+            /** Parameters */
+            parameters?: components["schemas"]["ParameterSpec"][];
         };
         /**
          * Universe
@@ -2999,28 +3271,46 @@ export interface components {
          */
         Universe: {
             /**
-             * Description
-             * @description Optional free text.
-             */
-            description?: string | null;
-            /**
              * Id
              * @description Stable identifier.
              */
             id: string;
-            /** Identifiers */
-            identifiers?: string[];
             /**
              * Name
              * @description Display name.
              */
             name: string;
+            /** Identifiers */
+            identifiers?: string[];
+            /**
+             * Description
+             * @description Optional free text.
+             */
+            description?: string | null;
             /**
              * Source
              * @description 'user' for one somebody created, 'seeded' for one the generator wrote. A seeded universe cannot be edited or deleted.
              * @default user
              */
             source: string;
+            /**
+             * Filter
+             * @description The expression this universe was built from, when it was built by filtering. Null for a curated list.
+             */
+            filter?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Mode
+             * @description 'frozen' means the stored identifiers are the membership; 'live' means the filter is re-evaluated on read, so the membership moves when the data does. A frozen universe records what it contained; a live one records how it was chosen. They are different objects and a caller needs to know which they have.
+             * @default frozen
+             */
+            mode: string;
+            /**
+             * As Of
+             * @description The date a filter was last resolved at.
+             */
+            as_of?: string | null;
         };
         /**
          * UniverseCollection
@@ -3039,28 +3329,41 @@ export interface components {
          *     distinct documents.
          */
         UniverseCreate: {
-            /** Description */
-            description?: string | null;
-            /**
-             * Identifiers
-             * @description Members. Must be non-empty, and every one must exist in the loaded reference data.
-             */
-            identifiers: string[];
             /**
              * Name
              * @description Display name.
              */
             name: string;
+            /**
+             * Identifiers
+             * @description Members. Every one must exist in the loaded reference data. Required unless a filter is given.
+             */
+            identifiers?: string[];
+            /** Description */
+            description?: string | null;
+            /**
+             * Filter
+             * @description A serialised expression to build the membership from, instead of naming it. Mutually exclusive with a non-empty `identifiers`.
+             */
+            filter?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Mode
+             * @description 'live' re-evaluates the filter on every read; 'frozen' keeps the membership it resolved to. Only meaningful with a filter.
+             * @default frozen
+             */
+            mode: string;
         };
         /**
          * UniverseMembers
          * @description Response of `GET /universes/{id}/members`.
          */
         UniverseMembers: {
-            /** Identifiers */
-            identifiers: string[];
             /** Universe Id */
             universe_id: string;
+            /** Identifiers */
+            identifiers: string[];
         };
         /**
          * UniverseMembership
@@ -3092,43 +3395,43 @@ export interface components {
          */
         UniverseRef: {
             /**
-             * Identifiers
-             * @description Resolved instrument identifiers.
-             */
-            identifiers?: string[];
-            /**
              * Universe Id
              * @description Id of a stored universe, if referenced.
              */
             universe_id?: string | null;
+            /**
+             * Identifiers
+             * @description Resolved instrument identifiers.
+             */
+            identifiers?: string[];
         };
         /**
          * UniverseUpsert
          * @description Body of `PUT /universes/{id}`.
          */
         UniverseUpsert: {
-            /** Description */
-            description?: string | null;
-            /** Identifiers */
-            identifiers?: string[];
             /**
              * Name
              * @description Display name.
              */
             name: string;
+            /** Identifiers */
+            identifiers?: string[];
+            /** Description */
+            description?: string | null;
         };
         /**
          * ValidationReport
          * @description Response of the validation endpoint, and of a rejected save.
          */
         ValidationReport: {
-            /** Findings */
-            findings: components["schemas"]["Finding"][];
             /**
              * Valid
              * @description False when any finding has severity 'error'.
              */
             valid: boolean;
+            /** Findings */
+            findings: components["schemas"]["Finding"][];
         };
         /**
          * Watchlist
@@ -3141,15 +3444,15 @@ export interface components {
              */
             id: string;
             /**
-             * Identifiers
-             * @description Instrument identifiers, in user order.
-             */
-            identifiers?: string[];
-            /**
              * Name
              * @description Display name.
              */
             name: string;
+            /**
+             * Identifiers
+             * @description Instrument identifiers, in user order.
+             */
+            identifiers?: string[];
         };
         /**
          * WatchlistCollection
@@ -3168,15 +3471,15 @@ export interface components {
          */
         WatchlistUpsert: {
             /**
-             * Identifiers
-             * @description Instrument identifiers, in user order.
-             */
-            identifiers?: string[];
-            /**
              * Name
              * @description Display name.
              */
             name: string;
+            /**
+             * Identifiers
+             * @description Instrument identifiers, in user order.
+             */
+            identifiers?: string[];
         };
         /**
          * WeightingSpec
@@ -3190,10 +3493,10 @@ export interface components {
              */
             id: string;
             /**
-             * Max Weight
-             * @description Cap on any single constituent's weight, as a fraction (0.1 is 10%). Applied after the scheme and iterated until nothing breaches it. Null means uncapped.
+             * Scheme
+             * @description Scheme class name, e.g. 'EqualWeighted'.
              */
-            max_weight?: number | null;
+            scheme: string;
             /**
              * Params
              * @description Constructor arguments for the scheme.
@@ -3202,28 +3505,47 @@ export interface components {
                 [key: string]: unknown;
             };
             /**
-             * Scheme
-             * @description Scheme class name, e.g. 'EqualWeighted'.
+             * Max Weight
+             * @description Cap on any single constituent's weight, as a fraction (0.1 is 10%). Applied after the scheme and iterated until nothing breaches it. Null means uncapped.
              */
-            scheme: string;
+            max_weight?: number | null;
         };
         /**
          * WeightsView
          * @description Response of `GET /beacon/{index_id}/weights`.
          */
         WeightsView: {
-            /** @description The tracking-error decomposition, when a `benchmark` index was named alongside `risk=true`. */
-            active_risk?: components["schemas"]["ActiveRiskPayload"] | null;
-            /**
-             * Announced Date
-             * @description When that composition was published, if earlier than `rebalance_date`. Null when the index has no lag.
-             */
-            announced_date?: string | null;
+            /** Index Id */
+            index_id: string;
             /**
              * As Of
              * @description Date asked about.
              */
             as_of: string;
+            /**
+             * Rebalance Date
+             * @description Rebalance in force on that date. An index holds the weights set at its last rebalance until the next one, so this is usually earlier than `as_of`.
+             */
+            rebalance_date: string;
+            /**
+             * Announced Date
+             * @description When that composition was published, if earlier than `rebalance_date`. Null when the index has no lag.
+             */
+            announced_date?: string | null;
+            /** Weights */
+            weights: {
+                [key: string]: number;
+            };
+            /**
+             * Rows
+             * @description Per-constituent detail, heaviest first. Carries the same applied weights as `weights`, which is kept because charts and concentration maths want a mapping while a table wants ordered rows.
+             */
+            rows?: components["schemas"]["ConstituentRow"][];
+            concentration: components["schemas"]["ConcentrationPayload"];
+            /** @description Movement since the previous rebalance. Null at the first, where there is nothing to have drifted from. */
+            drift?: components["schemas"]["DriftPayload"] | null;
+            /** Capped */
+            capped?: string[];
             /** Cap */
             cap?: number | null;
             /**
@@ -3231,29 +3553,10 @@ export interface components {
              * @default 0
              */
             cap_redistributed: number;
-            /** Capped */
-            capped?: string[];
-            concentration: components["schemas"]["ConcentrationPayload"];
-            /** @description Movement since the previous rebalance. Null at the first, where there is nothing to have drifted from. */
-            drift?: components["schemas"]["DriftPayload"] | null;
-            /** Index Id */
-            index_id: string;
-            /**
-             * Rebalance Date
-             * @description Rebalance in force on that date. An index holds the weights set at its last rebalance until the next one, so this is usually earlier than `as_of`.
-             */
-            rebalance_date: string;
             /** @description The volatility decomposition, when `risk=true` was requested. Null otherwise: estimating a covariance over every constituent is the pane's whole cost, and nobody should pay it without asking. */
             risk?: components["schemas"]["RiskPayload"] | null;
-            /**
-             * Rows
-             * @description Per-constituent detail, heaviest first. Carries the same applied weights as `weights`, which is kept because charts and concentration maths want a mapping while a table wants ordered rows.
-             */
-            rows?: components["schemas"]["ConstituentRow"][];
-            /** Weights */
-            weights: {
-                [key: string]: number;
-            };
+            /** @description The tracking-error decomposition, when a `benchmark` index was named alongside `risk=true`. */
+            active_risk?: components["schemas"]["ActiveRiskPayload"] | null;
         };
     };
     responses: never;
@@ -3264,690 +3567,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    compare_beacon_compare_get: {
-        parameters: {
-            query: {
-                /** @description Index ids to compare, two or more. */
-                ids: string[];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompareView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    asset_beacon__index_id__assets__identifier__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-                identifier: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AssetView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    attribution_beacon__index_id__attribution_get: {
-        parameters: {
-            query?: {
-                /** @description Inclusive start date, YYYY-MM-DD. */
-                start?: string | null;
-                /** @description Inclusive end date, YYYY-MM-DD. */
-                end?: string | null;
-            };
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributionView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    submit_backtest_beacon__index_id__backtest_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["BacktestRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    overview_beacon__index_id__overview_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OverviewView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    weights_beacon__index_id__weights_get: {
-        parameters: {
-            query?: {
-                /** @description Date to report at, YYYY-MM-DD. Defaults to the latest rebalance. */
-                asof?: string | null;
-                /** @description Decompose the index's volatility across its constituents. Off by default: estimating a covariance over every name is the pane's whole cost. */
-                risk?: boolean;
-                /** @description Index id to measure tracking error against. Requires risk=true. */
-                benchmark?: string | null;
-            };
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeightsView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    corporate_actions_data_corporate_actions__identifier__get: {
-        parameters: {
-            query?: {
-                /** @description Inclusive start date, YYYY-MM-DD. */
-                start?: string | null;
-                /** @description Inclusive end date, YYYY-MM-DD. */
-                end?: string | null;
-                /** @description Restrict to these action types, e.g. DIVIDEND, SPLIT. */
-                types?: string[] | null;
-            };
-            header?: never;
-            path: {
-                identifier: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CorporateActionsResponse"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    coverage_data_coverage_get: {
+    health_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3962,105 +3582,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CoverageResponse"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    sync_data_coverage__dataset__sync_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dataset: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["SyncRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["HealthResponse"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -4537,6 +4059,589 @@ export interface operations {
             };
         };
     };
+    corporate_actions_data_corporate_actions__identifier__get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive start date, YYYY-MM-DD. */
+                start?: string | null;
+                /** @description Inclusive end date, YYYY-MM-DD. */
+                end?: string | null;
+                /** @description Restrict to these action types, e.g. DIVIDEND, SPLIT. */
+                types?: string[] | null;
+            };
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorporateActionsResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    field_catalogue_data_fields_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldCatalogue"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    feature_catalogue_data_features_catalogue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureCatalogue"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    features_batch_data_features_get: {
+        parameters: {
+            query?: {
+                /** @description Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call. */
+                identifiers?: string[] | null;
+                /** @description Point-in-time date, YYYY-MM-DD. Returns only rows valid then. */
+                date?: string | null;
+                /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
+                fields?: string[] | null;
+                /** @description Restrict to one feature dataset. Omitted searches every one, which picks arbitrarily between two carrying the same field name. */
+                type?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureBatchResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    import_features_data_features_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureImport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureImportResult"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    features_for_data_features__identifier__get: {
+        parameters: {
+            query?: {
+                /** @description Point-in-time date, YYYY-MM-DD. Returns only rows valid then. */
+                date?: string | null;
+                /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
+                fields?: string[] | null;
+                /** @description Restrict to one feature dataset. Omitted searches every one, which picks arbitrarily between two carrying the same field name. */
+                type?: string | null;
+            };
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_watchlists_data_watchlists_get: {
         parameters: {
             query?: never;
@@ -4913,407 +5018,7 @@ export interface operations {
             };
         };
     };
-    futures_price_derivatives_futures_price_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FuturesPriceRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FuturesPriceResponse"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    trs_price_derivatives_trs_price_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrsPriceRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrsPriceResponse"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    roll_derivatives__index_id__roll_get: {
-        parameters: {
-            query: {
-                /** @description Contract expiry, YYYY-MM-DD. */
-                front_expiry: string;
-                /** @description Contract expiry, YYYY-MM-DD. */
-                back_expiry: string;
-                /** @description Valuation date, YYYY-MM-DD. Defaults to the latest price held. */
-                as_of?: string | null;
-                /** @description Continuously compounded financing rate. */
-                risk_free_rate?: number;
-                /** @description Continuous dividend yield. */
-                dividend_yield?: number;
-            };
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RollResponse"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    term_structure_derivatives__index_id__term_structure_get: {
-        parameters: {
-            query: {
-                /** @description Contract expiries, YYYY-MM-DD. */
-                expiries: string[];
-                /** @description Valuation date, YYYY-MM-DD. Defaults to the latest price held. */
-                as_of?: string | null;
-                /** @description Continuously compounded financing rate. */
-                risk_free_rate?: number;
-                /** @description Continuous dividend yield. */
-                dividend_yield?: number;
-            };
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TermStructureResponse"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    health_health_get: {
+    coverage_data_coverage_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5328,7 +5033,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HealthResponse"];
+                    "application/json": components["schemas"]["CoverageResponse"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -5405,2760 +5110,18 @@ export interface operations {
             };
         };
     };
-    list_indices_indices_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IndexCollection"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    create_index_indices_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IndexDocument"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedIndex"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    preview_document_indices_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PreviewDocumentRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PreviewResponse"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Content */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationReport"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    rule_types_indices_rule_types_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RuleTypes"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    validate_indices_validate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IndexDocument"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationReport"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_index_indices__index_id__get: {
+    sync_data_coverage__dataset__sync_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IndexDocument"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    put_index_indices__index_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IndexDocument"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedIndex"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    preview_indices__index_id__preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
+                dataset: string;
             };
             cookie?: never;
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PreviewRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PreviewResponse"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    schedule_indices__index_id__schedule_get: {
-        parameters: {
-            query?: {
-                /** @description Date to answer from, YYYY-MM-DD. Defaults to today. */
-                asof?: string | null;
-            };
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ScheduleView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    list_jobs_jobs_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobCollection"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_job_jobs__job_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    cancel_job_jobs__job_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    list_sets_optimise_constraint_sets_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConstraintSetCollection"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    validate_optimise_constraint_sets_validate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConstraintSet"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationReport"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_set_optimise_constraint_sets__set_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                set_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConstraintSet"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    put_set_optimise_constraint_sets__set_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                set_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConstraintSet"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedConstraintSet"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Content */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationReport"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    delete_set_optimise_constraint_sets__set_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                set_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    types_optimise_constraint_types_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConstraintTypes"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    submit_run_optimise_runs_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OptimisationRunRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    exposures_optimise_runs__run_id__exposures_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExposuresView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    frontier_optimise_runs__run_id__frontier_get: {
-        parameters: {
-            query?: {
-                /** @description Rate the tangency point is measured against. */
-                risk_free_rate?: number;
-            };
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FrontierView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    submit_render_reports_render_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RenderRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    download_reports_renders__render_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                render_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    list_templates_reports_templates_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReportTemplateCollection"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_template_reports_templates__template_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                template_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReportTemplateDocument"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    put_template_reports_templates__template_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                template_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReportTemplateDocument"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReportTemplateDocument"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    delete_template_reports_templates__template_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                template_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    list_models_risk_models_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RiskModelCollection"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_model_risk_models__model_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RiskModelView"];
-                };
-            };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    estimate_risk_models__model_id__estimate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RiskModelRequest"] | null;
+                "application/json": components["schemas"]["SyncRequest"] | null;
             };
         };
         responses: {
@@ -8719,7 +5682,10 @@ export interface operations {
     };
     get_members_universes__universe_id__members_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Date to resolve a live filter at, YYYY-MM-DD. Defaults to the end of the loaded data. */
+                date?: string | null;
+            };
             header?: never;
             path: {
                 universe_id: string;
@@ -8735,6 +5701,3828 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UniverseMembers"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_indices_indices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndexCollection"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_index_indices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndexDocument"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedIndex"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rule_types_indices_rule_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleTypes"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    validate_indices_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndexDocument"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationReport"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_document_indices_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationReport"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_indices__index_id__preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    schedule_indices__index_id__schedule_get: {
+        parameters: {
+            query?: {
+                /** @description Date to answer from, YYYY-MM-DD. Defaults to today. */
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleView"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_index_indices__index_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndexDocument"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    put_index_indices__index_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndexDocument"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedIndex"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_jobs_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobCollection"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_job_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancel_job_jobs__job_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    types_optimise_constraint_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConstraintTypes"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_sets_optimise_constraint_sets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConstraintSetCollection"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    validate_optimise_constraint_sets_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConstraintSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationReport"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_set_optimise_constraint_sets__set_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConstraintSet"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    put_set_optimise_constraint_sets__set_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConstraintSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedConstraintSet"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationReport"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_set_optimise_constraint_sets__set_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit_run_optimise_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptimisationRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    frontier_optimise_runs__run_id__frontier_get: {
+        parameters: {
+            query?: {
+                /** @description Rate the tangency point is measured against. */
+                risk_free_rate?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontierView"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    exposures_optimise_runs__run_id__exposures_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExposuresView"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_models_risk_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskModelCollection"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_model_risk_models__model_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskModelView"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    estimate_risk_models__model_id__estimate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RiskModelRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_templates_reports_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportTemplateCollection"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_template_reports_templates__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportTemplateDocument"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    put_template_reports_templates__template_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportTemplateDocument"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportTemplateDocument"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_template_reports_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit_render_reports_render_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    download_reports_renders__render_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                render_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    futures_price_derivatives_futures_price_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FuturesPriceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuturesPriceResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    trs_price_derivatives_trs_price_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrsPriceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrsPriceResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    term_structure_derivatives__index_id__term_structure_get: {
+        parameters: {
+            query: {
+                /** @description Contract expiries, YYYY-MM-DD. */
+                expiries: string[];
+                /** @description Valuation date, YYYY-MM-DD. Defaults to the latest price held. */
+                as_of?: string | null;
+                /** @description Continuously compounded financing rate. */
+                risk_free_rate?: number;
+                /** @description Continuous dividend yield. */
+                dividend_yield?: number;
+            };
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermStructureResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    roll_derivatives__index_id__roll_get: {
+        parameters: {
+            query: {
+                /** @description Contract expiry, YYYY-MM-DD. */
+                front_expiry: string;
+                /** @description Contract expiry, YYYY-MM-DD. */
+                back_expiry: string;
+                /** @description Valuation date, YYYY-MM-DD. Defaults to the latest price held. */
+                as_of?: string | null;
+                /** @description Continuously compounded financing rate. */
+                risk_free_rate?: number;
+                /** @description Continuous dividend yield. */
+                dividend_yield?: number;
+            };
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit_backtest_beacon__index_id__backtest_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BacktestRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    compare_beacon_compare_get: {
+        parameters: {
+            query: {
+                /** @description Index ids to compare, two or more. */
+                ids: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompareView"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    overview_beacon__index_id__overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewView"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    weights_beacon__index_id__weights_get: {
+        parameters: {
+            query?: {
+                /** @description Date to report at, YYYY-MM-DD. Defaults to the latest rebalance. */
+                asof?: string | null;
+                /** @description Decompose the index's volatility across its constituents. Off by default: estimating a covariance over every name is the pane's whole cost. */
+                risk?: boolean;
+                /** @description Index id to measure tracking error against. Requires risk=true. */
+                benchmark?: string | null;
+            };
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeightsView"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    attribution_beacon__index_id__attribution_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive start date, YYYY-MM-DD. */
+                start?: string | null;
+                /** @description Inclusive end date, YYYY-MM-DD. */
+                end?: string | null;
+            };
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributionView"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    asset_beacon__index_id__assets__identifier__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetView"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */

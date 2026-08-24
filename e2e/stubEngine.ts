@@ -278,6 +278,53 @@ function body(url: URL): unknown {
     return { identifier, interval, prices: PRICES }
   }
 
+  if (path === '/data/features/catalogue') {
+    return {
+      types: [
+        { type: 'fundamentals', fields: ['eps', 'pe_ratio'], identifiers: 120, rows: 240 },
+        { type: 'alternative', fields: ['x_sentiment'], identifiers: 60, rows: 60 }
+      ],
+      fields: ['eps', 'pe_ratio', 'x_sentiment']
+    }
+  }
+
+  if (path.startsWith('/data/features/')) {
+    const identifier = path.slice('/data/features/'.length)
+    const index = IDENTIFIERS.indexOf(identifier)
+    if (index < 0) return undefined
+
+    // Every catalogue field comes back, nulls included — that is what the
+    // engine does, and the view draws "held nothing" as an answer.
+    const alternative = index % 2 === 0 ? 0.42 - index * 0.001 : null
+    return {
+      identifier,
+      as_of: '2026-08-03',
+      features: [
+        {
+          field: 'eps',
+          value: 16.6 - index * 0.05,
+          type: 'fundamentals',
+          detail: 'period ending 2026-06-30, reported 2026Q2',
+          date: '2026-07-31'
+        },
+        {
+          field: 'pe_ratio',
+          value: 10.4 + index * 0.02,
+          type: 'fundamentals',
+          detail: null,
+          date: '2026-07-31'
+        },
+        {
+          field: 'x_sentiment',
+          value: alternative,
+          type: alternative === null ? null : 'alternative',
+          detail: null,
+          date: alternative === null ? null : '2026-08-02'
+        }
+      ]
+    }
+  }
+
   if (path === '/data/reference') {
     const wanted = url.searchParams.getAll('identifiers').flatMap((value) => value.split(','))
     const ids = wanted.length > 0 ? wanted : IDENTIFIERS

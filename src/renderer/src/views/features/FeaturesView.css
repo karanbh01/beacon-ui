@@ -1,0 +1,25 @@
+/* Data Explorer → Features (BU-99). */
+
+.features-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.features-card {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* Held-but-empty is an answer, so it gets words rather than an empty table. */
+.features-none {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.features-footnote {
+  margin: 0;
+  max-width: 720px;
+  color: var(--text-muted);
+}
