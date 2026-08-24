@@ -314,3 +314,12 @@ test('nothing logs an error while any of that happens', async ({ window }) => {
 
   expect(errors, errors.join('\n')).toEqual([])
 })
+
+test('Data Coverage reports the FX dataset', async ({ window }) => {
+  // BU-100 / BN-145. The view is data-driven, so the engine sending the row
+  // is the whole feature — this asserts the client does not filter it out.
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Data Coverage')
+
+  await expect(window.getByRole('cell', { name: 'FX', exact: true })).toBeVisible()
+})

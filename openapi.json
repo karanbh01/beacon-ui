@@ -357,6 +357,18 @@
               "title": "Columns"
             },
             "description": "Market-data columns to return; all by default."
+          },
+          {
+            "name": "adjusted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Add an ADJ_CLOSE column: CLOSE back-adjusted for splits and dividends, so the last value equals the last raw close and history is scaled. An adjusted series answers what a holder would have made and is no longer a price.",
+              "default": false,
+              "title": "Adjusted"
+            },
+            "description": "Add an ADJ_CLOSE column: CLOSE back-adjusted for splits and dividends, so the last value equals the last raw close and history is scaled. An adjusted series answers what a holder would have made and is no longer a price."
           }
         ],
         "responses": {
@@ -1490,6 +1502,146 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FeatureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Requested data does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The path exists but does not accept this method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request or rule failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Library error during processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Endpoint exists but is not implemented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required optional dependency is absent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data/tables/{dataset}": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Table Page",
+        "description": "One page of a stored dataset, as it is held.\n\nDeliberately without filtering or sorting parameters. A client needing\nthose wants a query language, and this is the wrong place to grow one\n-- the per-identifier endpoints and the expression API already cover\nevery case anybody has asked for.",
+        "operationId": "table_page_data_tables__dataset__get",
+        "parameters": [
+          {
+            "name": "dataset",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dataset"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Rows to skip, for walking an enumeration.",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Rows to skip, for walking an enumeration."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum rows, at most 1000.",
+              "default": 100,
+              "title": "Limit"
+            },
+            "description": "Maximum rows, at most 1000."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TablePage"
                 }
               }
             }
@@ -11318,6 +11470,43 @@
         ],
         "title": "TableFrame",
         "description": "A pandas DataFrame on the wire.\n\nRow-oriented so column order is preserved and the payload stays compact."
+      },
+      "TablePage": {
+        "properties": {
+          "dataset": {
+            "type": "string",
+            "title": "Dataset"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Rows in the whole dataset, so a client can size its scrollbar without paging to the end to find out."
+          },
+          "rows": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Rows",
+            "description": "The {index, columns, data} frame shape used elsewhere."
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset",
+          "offset",
+          "limit",
+          "total",
+          "rows"
+        ],
+        "title": "TablePage",
+        "description": "Response of `GET /data/tables/{dataset}`.\n\nThe stored data as it is, before any view shapes it. Paged because the\ndefault synthetic store holds 11.8M market rows — an unbounded dump is not\nsomething a client can render or an engine should assemble."
       },
       "TermStructureEntry": {
         "properties": {

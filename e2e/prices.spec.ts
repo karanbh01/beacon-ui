@@ -42,11 +42,39 @@ test('the interval control reaches the engine, and Export writes a workbook', as
   }).toPass({ timeout: 10_000 })
 })
 
-test('Adjusted is gone rather than inert', async ({ window }) => {
-  // The market data has no adjusted close and /data/prices takes no
-  // `adjusted` parameter, so the button had nothing behind it.
+test('serves a currency pair, because a pair is just another identifier', async ({ window }) => {
+  // BU-101 / BN-144. There is no /data/fx: pairs come through the prices
+  // endpoint, which is why this view needed nothing but a working engine.
   await openPage(window, 'Data Explorer')
   await openView(window, 'Prices')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('EURUSD')
+  await window.keyboard.press('Enter')
 
-  await expect(window.getByRole('button', { name: 'Adjusted' })).toHaveCount(0)
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
+  await expect(window.getByText(/rows ·/)).toBeVisible()
+})
+
+test('finds a pair in the identifier search, or it is unreachable', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Prices')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('EURUS')
+
+  await expect(window.getByRole('option', { name: /EURUSD/ })).toBeVisible()
+})
+
+test('adds an adjusted close on request, and not otherwise', async ({ window }) => {
+  // BU-106 removed this control because no adjusted series existed. BN-146
+  // added one, and `adjusted` ADDS a column rather than replacing CLOSE.
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Prices')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP000')
+  await window.keyboard.press('Enter')
+  await window.locator('.tbl-row').first().waitFor()
+
+  await expect(window.getByRole('columnheader', { name: 'Adj Close' })).toHaveCount(0)
+
+  await window.getByRole('button', { name: 'Unadjusted' }).click()
+  await window.getByRole('menuitem', { name: 'Adjusted for actions' }).click()
+
+  await expect(window.getByRole('columnheader', { name: 'Adj Close' })).toBeVisible()
 })

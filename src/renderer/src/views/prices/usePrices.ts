@@ -47,6 +47,12 @@ export interface PricesParams {
   start?: string | undefined
   end?: string | undefined
   interval?: Interval | undefined
+  /**
+   * Adds an ADJ_CLOSE column, back-adjusted for splits and dividends
+   * (BN-146). The control for this was removed in BU-106 because no such
+   * series existed; the engine serves one now.
+   */
+  adjusted?: boolean | undefined
 }
 
 export function usePrices(identifier: string, params: PricesParams = {}) {
@@ -58,7 +64,10 @@ export function usePrices(identifier: string, params: PricesParams = {}) {
     // sending it would key a second cache entry for the same answer.
     ...(params.interval === undefined || params.interval === 'native'
       ? {}
-      : { interval: params.interval })
+      : { interval: params.interval }),
+    // Omitted when off, for the same reason as `native`: it is the server's
+    // default, and sending it would key a second cache entry for one answer.
+    ...(params.adjusted === true ? { adjusted: true } : {})
   }
 
   return useQuery({

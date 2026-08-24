@@ -82,11 +82,12 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   const [range, setRange] = useState<Range>('1Y')
   const [interval, setInterval] = useState<Interval>('native')
+  const [adjusted, setAdjusted] = useState(false)
   const setSubject = useWorkspace((state) => state.setSubject)
   const exporter = useExport()
 
   const start = useMemo(() => rangeStart(range), [range])
-  const prices = usePrices(identifier, { start, interval })
+  const prices = usePrices(identifier, { start, interval, adjusted })
   const reference = useReference(identifier, { noRetry: true })
 
   const summary = useMemo(() => summarise(prices.data?.prices), [prices.data])
@@ -122,13 +123,21 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
               }}
             />
             {/*
-              "Adjusted" is gone rather than inert (BU-106). The market data
-              is OPEN/HIGH/LOW/CLOSE/VOLUME/SHARES_OUTSTANDING/FREE_FLOAT/RATE
-              and `/data/prices` takes no `adjusted` parameter, so there is no
-              adjusted series to switch to. Deriving one here from corporate
-              actions would be a second implementation of adjustment logic
-              beside the engine's — see docs/engine-requests.
+              Back, and real this time. BU-106 removed it because no adjusted
+              series existed; BN-146 added one, so the flag adds an ADJ_CLOSE
+              column that `buildColumns` already had a slot for.
             */}
+            <MenuButton
+              label={adjusted ? 'Adjusted' : 'Unadjusted'}
+              value={adjusted ? 'on' : 'off'}
+              choices={[
+                { value: 'off', label: 'Unadjusted' },
+                { value: 'on', label: 'Adjusted for actions' }
+              ]}
+              onChoose={(value) => {
+                setAdjusted(value === 'on')
+              }}
+            />
             <MenuButton
               label="Export"
               disabled={summary.rows.length === 0 || exporter.busy}

@@ -61,7 +61,13 @@ export function describeSpan(row: DatasetCoverage): string {
 }
 
 /** "market" → "Market". Dataset names are engine identifiers, not prose. */
+/** Initialisms the engine spells in lower case; everything else title-cases. */
+const INITIALISMS: Record<string, string> = { fx: 'FX' }
+
 export function datasetLabel(dataset: string): string {
+  const known = INITIALISMS[dataset.toLowerCase()]
+  if (known !== undefined) return known
+
   const words = dataset.replace(/[_-]+/g, ' ').trim()
   if (words === '') return dataset
   return words.charAt(0).toUpperCase() + words.slice(1)

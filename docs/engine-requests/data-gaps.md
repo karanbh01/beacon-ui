@@ -2,13 +2,19 @@
 
 **For:** py-beacon
 **From:** beacon-ui, BU-100 / BU-101 / BU-102 / BU-106
-**Status:** open
+**Status:** FX, adjusted prices and the paged table endpoint all delivered; market cap outstanding
 
 Four asks, all found while building against a running engine at
 `c8f53f1` (BN-142). Each says what was checked, so none of it has to be
 taken on trust.
 
-## 1. FX in the coverage report (BU-100)
+## ~~1. FX in the coverage report~~ — delivered
+
+BN-145 reports `fx` on the same `DatasetCoverage` shape as the others, and the
+Coverage view needed no change beyond spelling the label `FX` rather than
+`Fx`. Original ask below.
+
+### 1. FX in the coverage report (BU-100)
 
 `GET /data/coverage` returns `market`, `reference`, `corporate_actions` and
 `features`. There is no `fx` row, though the generator writes one —
@@ -20,7 +26,14 @@ taken on trust.
 The Coverage view renders whatever rows come back, so nothing changes here
 once the engine sends it.
 
-## 2. FX rates as a series (BU-101)
+## ~~2. FX rates as a series~~ — delivered, the preferred way
+
+BN-144 made pairs addressable through the existing prices endpoint, which is
+option 1 below — so the Prices view, its chart and the typeahead all worked
+with no client change at all. `/data/identifiers?q=EUR` returns `EURUSD` with
+`datasets: ["market"]`. Original ask below.
+
+### 2. FX rates as a series (BU-101)
 
 There is no way to read an FX rate. Nothing under `/data/` mentions fx, and
 the six pairs are not addressable through `GET /data/prices/{identifier}`.
@@ -40,7 +53,13 @@ converted at" and not "what did EURUSD do".
 Either way `/data/identifiers` needs to enumerate pairs, or they stay
 unreachable — the subject field is how anything gets loaded.
 
-## 3. An adjusted price series (BU-106)
+## ~~3. An adjusted price series~~ — delivered
+
+BN-146 added an `adjusted` flag that ADDS an `ADJ_CLOSE` column rather than
+replacing `CLOSE`, which is the better shape: the table can show both. The
+control removed in BU-106 is back. Original ask below.
+
+### 3. An adjusted price series (BU-106)
 
 The Prices view had an "Adjusted" toggle that was never wired, and it turns
 out there was nothing to wire it to: the market frame has no adjusted close,
@@ -56,7 +75,13 @@ logic the index calculator already applies at rebalance, and a second
 implementation in the renderer would drift from the one that produces the
 official numbers.
 
-## 4. A paged table endpoint (BU-102)
+## ~~4. A paged table endpoint~~ — delivered, not yet consumed
+
+BN-147 added `GET /data/tables/{dataset}` with `offset` and `limit`. The
+Database view still reads per identifier and does not use it yet — whole-table
+browsing is a follow-up. Original ask below.
+
+### 4. A paged table endpoint (BU-102)
 
 A "database view" — the stored data as it is, before any view shapes it — is
 buildable per identifier from what exists. What is not buildable is browsing a

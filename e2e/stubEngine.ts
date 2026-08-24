@@ -53,12 +53,21 @@ const IDENTIFIERS = Array.from({ length: 120 }, (_, i) => `CMP${String(i).padSta
 const REFERENCE_ONLY = 'REFONLY'
 
 /** Everything the stub will admit to knowing. Anything else 404s. */
-const KNOWN = new Set([...IDENTIFIERS, REFERENCE_ONLY])
+/**
+ * Currency pairs (BN-144/145). They come through the SAME prices endpoint as
+ * an instrument, which is what makes them free for the Prices view — there is
+ * no `/data/fx`, and a pair is just another identifier.
+ */
+const PAIRS = ['EURUSD', 'GBPUSD', 'JPYUSD']
+
+const KNOWN = new Set([...IDENTIFIERS, REFERENCE_ONLY, ...PAIRS])
 
 function datasetsFor(identifier: string): string[] {
-  return identifier === REFERENCE_ONLY
-    ? ['reference']
-    : ['market', 'reference', 'corporate_actions']
+  if (identifier === REFERENCE_ONLY) return ['reference']
+  // A pair is market data and nothing else — no reference row, no actions.
+  // Verified against a running engine, which answers exactly this.
+  if (PAIRS.includes(identifier)) return ['market']
+  return ['market', 'reference', 'corporate_actions']
 }
 
 /**
@@ -83,7 +92,8 @@ function searchIdentifiers(url: URL): unknown {
 
   const all = [...KNOWN].map((identifier) => ({
     identifier,
-    name: `${identifier} Corporation`,
+    // Pairs carry no name, as the engine returns them.
+    name: PAIRS.includes(identifier) ? null : `${identifier} Corporation`,
     datasets: datasetsFor(identifier)
   }))
 
@@ -93,7 +103,7 @@ function searchIdentifiers(url: URL): unknown {
     needle === ''
       ? covered
       : covered
-          .map((row) => ({ row, score: rankOf(needle, row.identifier, row.name) }))
+          .map((row) => ({ row, score: rankOf(needle, row.identifier, row.name ?? '') }))
           .filter((entry) => Number.isFinite(entry.score))
           .sort((a, b) => a.score - b.score || a.row.identifier.localeCompare(b.row.identifier))
           .map((entry) => entry.row)
@@ -179,6 +189,20 @@ const ROUTES: Record<string, unknown> = {
     identifiers_union: 512,
     cache_size_bytes: 14_680_064,
     datasets: [
+      {
+        // BN-145 reports pairs as their own dataset. The Coverage view draws
+        // whatever rows arrive, so this is the whole of BU-100.
+        dataset: 'fx',
+        configured: true,
+        identifiers: 3,
+        source: 'synthetic',
+        frequency: 'daily',
+        field_count: 1,
+        start: '2021-01-04',
+        end: '2026-08-03',
+        cache_age: 30,
+        last_refreshed: '2026-08-04T06:00:00Z'
+      },
       {
         dataset: 'market',
         configured: true,
@@ -275,7 +299,19 @@ function body(url: URL): unknown {
     // Echo the interval asked for (BU-106). It was hard-coded 'native', so a
     // client that never sent the parameter looked identical to one that did.
     const interval = url.searchParams.get('interval') ?? 'native'
-    return { identifier, interval, prices: PRICES }
+
+    // `adjusted` ADDS a column rather than replacing one (BN-146), so a client
+    // that never sends it must see no ADJ_CLOSE at all.
+    const adjusted = url.searchParams.get('adjusted') === 'true'
+    const prices = adjusted
+      ? {
+          ...PRICES,
+          columns: [...PRICES.columns, 'ADJ_CLOSE'],
+          data: PRICES.data.map((row) => [...row, Number(row[3]) * 0.97])
+        }
+      : PRICES
+
+    return { identifier, interval, prices }
   }
 
   if (path === '/data/features/catalogue') {

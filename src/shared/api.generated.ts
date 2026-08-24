@@ -183,6 +183,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data/tables/{dataset}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Table Page
+         * @description One page of a stored dataset, as it is held.
+         *
+         *     Deliberately without filtering or sorting parameters. A client needing
+         *     those wants a query language, and this is the wrong place to grow one
+         *     -- the per-identifier endpoints and the expression API already cover
+         *     every case anybody has asked for.
+         */
+        get: operations["table_page_data_tables__dataset__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/data/watchlists": {
         parameters: {
             query?: never;
@@ -3026,6 +3051,34 @@ export interface components {
             data: unknown[][];
         };
         /**
+         * TablePage
+         * @description Response of `GET /data/tables/{dataset}`.
+         *
+         *     The stored data as it is, before any view shapes it. Paged because the
+         *     default synthetic store holds 11.8M market rows — an unbounded dump is not
+         *     something a client can render or an engine should assemble.
+         */
+        TablePage: {
+            /** Dataset */
+            dataset: string;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /**
+             * Total
+             * @description Rows in the whole dataset, so a client can size its scrollbar without paging to the end to find out.
+             */
+            total: number;
+            /**
+             * Rows
+             * @description The {index, columns, data} frame shape used elsewhere.
+             */
+            rows: {
+                [key: string]: unknown;
+            };
+        };
+        /**
          * TermStructureEntry
          * @description One expiry in a term structure.
          */
@@ -3771,6 +3824,8 @@ export interface operations {
                 interval?: string;
                 /** @description Market-data columns to return; all by default. */
                 columns?: string[] | null;
+                /** @description Add an ADJ_CLOSE column: CLOSE back-adjusted for splits and dividends, so the last value equals the last raw close and history is scaled. An adjusted series answers what a holder would have made and is no longer a price. */
+                adjusted?: boolean;
             };
             header?: never;
             path: {
@@ -4566,6 +4621,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeatureResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    table_page_data_tables__dataset__get: {
+        parameters: {
+            query?: {
+                /** @description Rows to skip, for walking an enumeration. */
+                offset?: number;
+                /** @description Maximum rows, at most 1000. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                dataset: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TablePage"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
