@@ -271,7 +271,11 @@ function body(url: URL): unknown {
     // is the whole point of the not-found path.
     const identifier = path.split('/').pop() ?? ''
     if (!KNOWN.has(identifier) || identifier === REFERENCE_ONLY) return undefined
-    return { identifier, interval: 'native', prices: PRICES }
+
+    // Echo the interval asked for (BU-106). It was hard-coded 'native', so a
+    // client that never sent the parameter looked identical to one that did.
+    const interval = url.searchParams.get('interval') ?? 'native'
+    return { identifier, interval, prices: PRICES }
   }
 
   if (path === '/data/reference') {

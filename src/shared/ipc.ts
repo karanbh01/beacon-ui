@@ -77,6 +77,28 @@ export interface UpdateState {
   detail?: string
 }
 
+/**
+ * A file the renderer wants written to disk (BU-106).
+ *
+ * The BYTES are the renderer's: it holds the rows, and a CSV or a workbook is
+ * a pure function of them. Only the save dialog and the write need main, so
+ * that is all that crosses.
+ */
+export interface SaveRequest {
+  /** Offered in the dialog, and the basis for the extension filter. */
+  suggestedName: string
+  /** 'csv' or 'xlsx' — picks the dialog's filter and nothing else. */
+  format: 'csv' | 'xlsx'
+  /** The whole file. Base64 because the bridge is a structured clone away. */
+  base64: string
+}
+
+export interface SaveResult {
+  /** False when the user dismissed the dialog, which is not an error. */
+  saved: boolean
+  path?: string
+}
+
 export interface IpcContract {
   'app:info': {
     /** No payload. */
@@ -121,6 +143,11 @@ export interface IpcContract {
   'window:splashDone': {
     request: undefined
     response: undefined
+  }
+  /** Ask where to put a file the renderer has already built, then write it. */
+  'file:save': {
+    request: SaveRequest
+    response: SaveResult
   }
   'window:minimize': {
     request: undefined
@@ -208,5 +235,9 @@ export interface BeaconBridge {
   reports: {
     /** Writes the bytes to a temp file and asks the OS to open it. */
     open: (filename: string, bytes: Uint8Array) => Promise<OpenedReport>
+  }
+  files: {
+    /** Asks where to put a file the renderer built, then writes it. */
+    save: (request: SaveRequest) => Promise<SaveResult>
   }
 }

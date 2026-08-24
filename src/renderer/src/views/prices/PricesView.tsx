@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
 import { num, type FrameRow } from '../../api/frame'
-import { Button } from '../../components/Button/Button'
+import { MenuButton } from '../../components/MenuButton/MenuButton'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { Stat, StatStrip } from '../../components/Stat/Stat'
@@ -10,7 +10,9 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useReference } from '../shared/queries'
-import { RANGES, rangeStart, usePrices, type Range } from './usePrices'
+import { useExport } from '../../export/useExport'
+import { sheetFromFrame } from '../../export/sheet'
+import { INTERVALS, RANGES, rangeStart, usePrices, type Interval, type Range } from './usePrices'
 import { compactVolume, price, signedPercent, summarise } from './summary'
 import './PricesView.css'
 
@@ -79,16 +81,23 @@ function formatDate(value: unknown): string {
 export function PricesView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   const [range, setRange] = useState<Range>('1Y')
+  const [interval, setInterval] = useState<Interval>('native')
   const setSubject = useWorkspace((state) => state.setSubject)
+  const exporter = useExport()
 
   const start = useMemo(() => rangeStart(range), [range])
-  const prices = usePrices(identifier, { start })
+  const prices = usePrices(identifier, { start, interval })
   const reference = useReference(identifier, { noRetry: true })
 
   const summary = useMemo(() => summarise(prices.data?.prices), [prices.data])
   const columns = useMemo(() => buildColumns(summary.columns), [summary.columns])
 
   const meta = reference.data === undefined ? undefined : describeInstrument(reference.data)
+
+  // Built on demand: serialising a 5,000-row frame on every render to serve a
+  // button most sessions never press is work for nothing.
+  const sheet = (): ReturnType<typeof sheetFromFrame> =>
+    sheetFromFrame(prices.data?.prices, `Prices ${identifier}`)
 
   return (
     <div className="prices-view">
@@ -104,9 +113,33 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
         }}
         controls={
           <>
-            <Button chevron>Daily</Button>
-            <Button chevron>Adjusted</Button>
-            <Button chevron>Export</Button>
+            <MenuButton
+              label={INTERVALS.find((entry) => entry.value === interval)?.label ?? 'Native'}
+              value={interval}
+              choices={INTERVALS.map((entry) => ({ value: entry.value, label: entry.label }))}
+              onChoose={(value) => {
+                setInterval(value as Interval)
+              }}
+            />
+            {/*
+              "Adjusted" is gone rather than inert (BU-106). The market data
+              is OPEN/HIGH/LOW/CLOSE/VOLUME/SHARES_OUTSTANDING/FREE_FLOAT/RATE
+              and `/data/prices` takes no `adjusted` parameter, so there is no
+              adjusted series to switch to. Deriving one here from corporate
+              actions would be a second implementation of adjustment logic
+              beside the engine's — see docs/engine-requests.
+            */}
+            <MenuButton
+              label="Export"
+              disabled={summary.rows.length === 0 || exporter.busy}
+              choices={[
+                { value: 'csv', label: 'CSV' },
+                { value: 'xlsx', label: 'Excel' }
+              ]}
+              onChoose={(format) => {
+                void exporter.save(sheet(), format === 'xlsx' ? 'xlsx' : 'csv')
+              }}
+            />
           </>
         }
       />

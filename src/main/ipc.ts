@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron'
 import {
   ENGINE_CHANGED,
   MAXIMIZE_CHANGED,
@@ -11,6 +11,7 @@ import {
   type IpcRequest,
   type IpcResponse,
   type OpenedReport,
+  type SaveResult,
   type UpdateState
 } from '@shared/ipc'
 import type { Engine } from './engine/engine'
@@ -99,6 +100,37 @@ export function registerIpcHandlers(
       node: process.versions.node,
       platform: process.platform
     }
+  })
+
+  /*
+   * Export (BU-106).
+   *
+   * The renderer builds the bytes — it holds the rows, and a CSV or a
+   * workbook is a pure function of them. Main only owns the two things a
+   * renderer cannot do: ask where, and write there.
+   *
+   * Modal to the requesting window rather than application-modal, so a save
+   * from one window does not freeze the other.
+   */
+  handle('file:save', async (event, request): Promise<SaveResult> => {
+    const window = senderWindow(event)
+    const filters =
+      request.format === 'csv'
+        ? [{ name: 'CSV', extensions: ['csv'] }]
+        : [{ name: 'Excel workbook', extensions: ['xlsx'] }]
+
+    const options = { defaultPath: request.suggestedName, filters }
+    const chosen =
+      window === null
+        ? await dialog.showSaveDialog(options)
+        : await dialog.showSaveDialog(window, options)
+
+    // Cancelling is an answer, not a failure: throwing here would surface as
+    // an error toast for someone who simply changed their mind.
+    if (chosen.canceled || chosen.filePath === '') return { saved: false }
+
+    await writeFile(chosen.filePath, Buffer.from(request.base64, 'base64'))
+    return { saved: true, path: chosen.filePath }
   })
 
   handle('window:minimize', (event) => {

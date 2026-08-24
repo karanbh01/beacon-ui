@@ -1,0 +1,58 @@
+@import '../../tokens/surface.css';
+
+/* A header button with a short list under it (BU-106). */
+
+.menu-button {
+  position: relative;
+  display: inline-flex;
+}
+
+/*
+ * Right-aligned: these sit at the right edge of a pane header, and a list
+ * hung from the left would run off the pane.
+ */
+.menu-button-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 140px;
+  padding: 4px;
+}
+
+.menu-button-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 8px;
+  font-family: var(--font-ui);
+  color: var(--text-primary);
+  text-align: left;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.menu-button-item:hover:not(:disabled) {
+  background: var(--sidebar-active-bg);
+}
+
+.menu-button-item:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.menu-button-item:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* A fixed gutter so the labels line up whether or not a row is ticked. */
+.menu-button-tick {
+  flex: none;
+  width: 8px;
+  color: var(--accent);
+}

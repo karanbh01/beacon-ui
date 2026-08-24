@@ -5,6 +5,7 @@ import {
   UPDATE_CHANGED,
   type AppInfo,
   type BeaconBridge,
+  type SaveResult,
   type EngineState,
   type OpenedReport,
   type UpdateState
@@ -65,6 +66,9 @@ const bridge: BeaconBridge = {
   reports: {
     open: (filename, bytes) =>
       ipcRenderer.invoke('report:open', { filename, bytes }) as Promise<OpenedReport>
+  },
+  files: {
+    save: (request) => ipcRenderer.invoke('file:save', request) as Promise<SaveResult>
   }
 }
 

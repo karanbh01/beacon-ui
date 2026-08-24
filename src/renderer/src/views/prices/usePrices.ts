@@ -29,16 +29,36 @@ export function rangeStart(range: Range, now = new Date()): string | undefined {
   return start.toISOString().slice(0, 10)
 }
 
+/**
+ * How the engine buckets the series. Its own words, from the `interval`
+ * parameter: "native, weekly or monthly." Native is whatever the dataset
+ * holds — daily for a daily dataset — which is why the control says so
+ * rather than promising "Daily" for data that might not be.
+ */
+export type Interval = 'native' | 'weekly' | 'monthly'
+
+export const INTERVALS: readonly { value: Interval; label: string }[] = [
+  { value: 'native', label: 'Native' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' }
+]
+
 export interface PricesParams {
   start?: string | undefined
   end?: string | undefined
+  interval?: Interval | undefined
 }
 
 export function usePrices(identifier: string, params: PricesParams = {}) {
   const client = useBeacon()
   const query = {
     ...(params.start === undefined ? {} : { start: params.start }),
-    ...(params.end === undefined ? {} : { end: params.end })
+    ...(params.end === undefined ? {} : { end: params.end }),
+    // Omitted rather than sent as 'native', which is the server's default —
+    // sending it would key a second cache entry for the same answer.
+    ...(params.interval === undefined || params.interval === 'native'
+      ? {}
+      : { interval: params.interval })
   }
 
   return useQuery({
