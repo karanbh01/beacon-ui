@@ -99,8 +99,6 @@ export function TickerField({
     if (linked && isTypingKey(event)) onSever?.()
   }
 
-  const hint = linked ? `linked to ${linkedTo} · type to break ⏎` : '⏎ query'
-
   return (
     <div className={['ticker-field', className].filter(Boolean).join(' ')}>
       {/*
@@ -127,7 +125,6 @@ export function TickerField({
             onKeyDown={handleKeyDown}
             onBlur={typeahead.close}
           />
-          <span className="ticker-hint">{hint}</span>
         </div>
 
         {typeahead.open && (

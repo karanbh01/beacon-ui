@@ -660,21 +660,16 @@ describe('a universe past the engine cap', () => {
 })
 
 describe('getting back to the list', () => {
-  it('clears the tab’s subject, so reopening the tab lands on the overview too', async () => {
+  it('clears the tab’s subject through the picker, not a second control', async () => {
+    // #103 removed the back arrow: the picker already carried "All universes"
+    // and two routes to one place was one too many in a crowded header.
     mount()
     await screen.findByText('T000')
 
-    await userEvent.click(screen.getByRole('button', { name: '← All universes' }))
+    await userEvent.selectOptions(screen.getByLabelText('Universe'), '')
 
     // The tab is the contract. Re-rendering on it is PaneHost's job — this
     // harness passes `subject` as a fixed prop, so nothing here would change.
     expect(useWorkspace.getState().tabs[0]?.subject).toBe('')
-  })
-
-  it('offers no way back from the list itself', async () => {
-    mountOverview()
-    await screen.findByText(/1 universe/)
-
-    expect(screen.queryByRole('button', { name: '← All universes' })).toBeNull()
   })
 })

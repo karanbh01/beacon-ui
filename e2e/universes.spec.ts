@@ -175,7 +175,7 @@ test('an index definition can be created, which is what the tab is for', async (
 
   await expect(window.getByRole('textbox', { name: 'Name' })).toBeVisible()
 
-  // And back out again.
-  await window.getByRole('button', { name: '← All indices' }).click()
+  // And back out through the picker, since #103 removed the back arrow.
+  await window.getByRole('combobox', { name: 'Index' }).selectOption('')
   await expect(window.getByRole('button', { name: 'New index…' })).toBeVisible()
 })

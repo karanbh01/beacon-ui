@@ -29,7 +29,6 @@ describe('query kind', () => {
 
     // Linked is a property of the nested TickerField, not a header variant.
     expect(container.querySelector('.ticker-chain')).not.toBeNull()
-    expect(screen.getByText('linked to Prices · type to break ⏎')).toBeInTheDocument()
   })
 
   it('passes the sever event through from the ticker field', async () => {

@@ -116,16 +116,30 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
             : {})}
         controls={
           <>
-            {/* Only when the overview is what we came from: a tab that names
-                its own document has nothing to go back to (BU-96). */}
+            {/*
+              The route back to the catalogue, and between indices (BU-103).
+              Universe Set has always had this; the index editor only ever had
+              the back arrow that #103 removes, so without it there would be
+              no way out of a document opened from the overview.
+            */}
             {named === undefined && (
-              <Button
-                onClick={() => {
-                  setOpened(undefined)
+              <Select
+                label="Index"
+                value={indexId}
+                options={[
+                  { value: '', label: 'All indices' },
+                  ...catalogue.map((index) => ({ value: index.id, label: index.name })),
+                  // A brand new index is not in the catalogue until it saves,
+                  // and a picker showing a value it does not list reads as
+                  // broken.
+                  ...(catalogue.some((index) => index.id === indexId)
+                    ? []
+                    : [{ value: indexId, label: `${indexId} · new` }])
+                ]}
+                onChange={(value) => {
+                  setOpened(value === '' ? undefined : value)
                 }}
-              >
-                ← All indices
-              </Button>
+              />
             )}
             <Button
               onClick={() => {

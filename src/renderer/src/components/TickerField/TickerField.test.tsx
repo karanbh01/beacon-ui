@@ -25,18 +25,19 @@ function withIndex(ui: ReactElement, index: Suggestion[] = []): ReturnType<typeo
 }
 
 describe('TickerField', () => {
-  it('shows the query hint when unlinked, with no chain', () => {
+  it('carries no chain when it owns its subject', () => {
+    // The "⏎ query" hint went with #103: it labelled the return key on a
+    // field that is plainly a search field.
     const { container } = withIndex(<TickerField subject="AAPL" onQuery={noop} />)
 
-    expect(screen.getByText('⏎ query')).toBeInTheDocument()
     expect(container.querySelector('.ticker-chain')).toBeNull()
+    expect(screen.queryByText(/⏎/)).toBeNull()
   })
 
-  it('shows the chain and the sever instruction when linked', () => {
+  it('shows the chain when it follows another tab', () => {
     const { container } = withIndex(<TickerField subject="AAPL" linkedTo="Prices" onQuery={noop} />)
 
     expect(container.querySelector('.ticker-chain')).not.toBeNull()
-    expect(screen.getByText('linked to Prices · type to break ⏎')).toBeInTheDocument()
   })
 
   it('emits the query on Enter', async () => {

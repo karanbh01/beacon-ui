@@ -420,15 +420,17 @@ describe('opened with no document', () => {
     // The editor, on a blank draft: the engine 404s an id it does not hold,
     // and `useIndexDraft` reads that as "a new index".
     expect(await screen.findByLabelText('Name')).toBeInTheDocument()
-    expect(screen.getByText('MY-NEW-IDX')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'MY-NEW-IDX' })).toBeInTheDocument()
   })
 
   it('goes back to the list from an index it opened', async () => {
+    // Through the picker, since #103 removed the back arrow. Without one the
+    // editor would be a one-way door: its header has no other route out.
     mountFromSidebar()
     await userEvent.click(await screen.findByText(SAVED.name))
     await screen.findByLabelText('Name')
 
-    await userEvent.click(screen.getByRole('button', { name: '← All indices' }))
+    await userEvent.selectOptions(screen.getByLabelText('Index'), '')
 
     expect(await screen.findByRole('button', { name: 'New index…' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Name')).toBeNull()

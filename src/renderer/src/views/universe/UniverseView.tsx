@@ -245,17 +245,6 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         kind="fields"
         controls={
           <>
-            {/* A query tab, so the subject IS where it is — clearing it is
-                the way back to the list (BU-96). */}
-            {selected !== '' && (
-              <Button
-                onClick={() => {
-                  setSubject(tab.id, '')
-                }}
-              >
-                ← All universes
-              </Button>
-            )}
             <Button onClick={startCreate}>New universe…</Button>
             {/* Seeded universes are the engine's, and it refuses writes to
                 them — so the control is absent rather than failing. */}

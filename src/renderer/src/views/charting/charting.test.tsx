@@ -71,9 +71,9 @@ describe('linked-tab mechanics (BU-25 acceptance)', () => {
     mount()
 
     expect(screen.getByLabelText('Subject')).toHaveValue('AAPL')
-    // Twice on purpose: the field's hint says how to take ownership, the
-    // footnote says what the link currently means.
-    expect(screen.getAllByText(/linked to Prices/)).toHaveLength(2)
+    // Once: the field's hint saying how to take ownership went with #103, so
+    // the footnote is the only place that spells the link out.
+    expect(screen.getAllByText(/linked to Prices/)).toHaveLength(1)
   })
 
   it('re-renders when the Prices tab changes subject', () => {
