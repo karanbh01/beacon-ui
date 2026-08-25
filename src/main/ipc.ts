@@ -15,6 +15,7 @@ import {
   type SaveResult,
   type UpdateState
 } from '@shared/ipc'
+import { externalUrl } from './externalUrl'
 import type { Engine } from './engine/engine'
 import type { Updater } from './updater'
 
@@ -167,6 +168,22 @@ export function registerIpcHandlers(
 
     await writeFile(chosen.filePath, Buffer.from(request.base64, 'base64'))
     return { saved: true, path: chosen.filePath }
+  })
+
+  /*
+   * Opening a link outside the app (BU-112).
+   *
+   * Scheme-checked here rather than trusted from the caller. `openExternal`
+   * hands the string to the OS, so `file:`, `ms-settings:` and friends turn a
+   * link into a way to launch things — and the renderer is the part of the
+   * app most likely to be handed a URL by something else.
+   */
+  handle('shell:openExternal', async (_event, request) => {
+    const url = externalUrl(request.url)
+    if (url === undefined) return undefined
+
+    await shell.openExternal(url)
+    return undefined
   })
 
   handle('window:minimize', (event) => {

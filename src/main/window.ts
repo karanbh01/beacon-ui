@@ -9,6 +9,33 @@ import { persistWindowState, restoredBounds, wasMaximized } from './windowState'
 const isMac = process.platform === 'darwin'
 
 /**
+ * Keep a window on its own document (BU-112).
+ *
+ * `setWindowOpenHandler` only fires for `window.open` and `target="_blank"`.
+ * A plain `<a href>` is a same-window navigation, and the splash had one to
+ * GitHub — clicking it replaced the app with a web page, inside a frameless
+ * window with no way back. The handler cannot see that; `will-navigate` can.
+ *
+ * Exported so the splash gets the same treatment: it is the window most
+ * likely to carry a link, and the one with the least way out of a mistake.
+ */
+export function guardNavigation(window: BrowserWindow): void {
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  window.webContents.on('will-navigate', (event, url) => {
+    // The renderer's own document — a dev-server reload, or the app protocol.
+    const here = window.webContents.getURL()
+    if (url === here || new URL(url).origin === new URL(here).origin) return
+
+    event.preventDefault()
+    void shell.openExternal(url)
+  })
+}
+
+/**
  * Frameless chrome (BU-37). The menu bar is the title bar, so the OS must not
  * draw one above it.
  *
@@ -119,11 +146,7 @@ export function createMainWindow(options: MainWindowOptions = {}): BrowserWindow
 `)
   })
 
-  // External links leave the app rather than navigating the shell away.
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url)
-    return { action: 'deny' }
-  })
+  guardNavigation(window)
 
   const devServerUrl = process.env.ELECTRON_RENDERER_URL
   if (devServerUrl !== undefined && devServerUrl !== '') {

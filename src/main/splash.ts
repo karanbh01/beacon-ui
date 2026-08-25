@@ -2,6 +2,7 @@ import { join } from 'node:path'
 import { BrowserWindow } from 'electron'
 import { APP_ORIGIN } from './appProtocol'
 import { devIcon } from './icon'
+import { guardNavigation } from './window'
 
 /** Figma 0:1 — frames 2:2 and 4:8. */
 const WIDTH = 573
@@ -47,6 +48,8 @@ export function createSplashWindow(): BrowserWindow {
       nodeIntegration: false
     }
   })
+
+  guardNavigation(window)
 
   // Both, for the reason set out in window.ts: `ready-to-show` waits for a
   // first frame that a never-shown window may never paint.

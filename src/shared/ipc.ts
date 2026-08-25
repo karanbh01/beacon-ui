@@ -166,6 +166,18 @@ export interface IpcContract {
     request: SaveRequest
     response: SaveResult
   }
+  /**
+   * Open a URL in the user's browser (BU-112).
+   *
+   * Main refuses anything but http(s), because the renderer is the least
+   * trusted place in the app to be handing `shell.openExternal` a string —
+   * `file:` and the OS's own schemes are how that call becomes a way to run
+   * things.
+   */
+  'shell:openExternal': {
+    request: { url: string }
+    response: undefined
+  }
   'window:minimize': {
     request: undefined
     response: undefined
@@ -258,5 +270,9 @@ export interface BeaconBridge {
   files: {
     /** Asks where to put a file the renderer built, then writes it. */
     save: (request: SaveRequest) => Promise<SaveResult>
+  }
+  shell: {
+    /** Opens an http(s) URL in the default browser. */
+    openExternal: (url: string) => Promise<void>
   }
 }

@@ -19,6 +19,8 @@ const LICENCE =
   'and do not reflect actual trading conditions. Past performance, whether actual or simulated, is not ' +
   'indicative of future results. © 2026 Karan Bhanot. All rights reserved.'
 
+const REPO = 'https://github.com/karanbh01/beacon-ui'
+
 export interface SplashProps {
   /** Passed in tests; the window reads it from the bridge itself. */
   version?: string
@@ -100,13 +102,22 @@ export function Splash({ version }: SplashProps): ReactElement {
       <footer className="splash-footer">
         <span className="splash-version">version {ownVersion ?? '—'}</span>
         {update.status === 'available' && <span className="splash-update">update</span>}
-        <a
+        {/*
+          A button, not an anchor. An `<a href>` navigated the splash itself
+          to GitHub — a frameless window with no back — because
+          `setWindowOpenHandler` only sees window.open, not a same-window
+          navigation (BU-112).
+        */}
+        <button
+          type="button"
           className="splash-github"
-          href="https://github.com/karanbh01/beacon-ui"
           aria-label="Repository"
+          onClick={() => {
+            void window.beacon?.shell.openExternal(REPO)
+          }}
         >
           <GithubIcon size={24} />
-        </a>
+        </button>
       </footer>
     </div>
   )

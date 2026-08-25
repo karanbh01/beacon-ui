@@ -33,6 +33,8 @@ registerPlaceholderViews()
  */
 const HOME_PAGE = 'home'
 
+const REPO = 'https://github.com/karanbh01/beacon-ui'
+
 /**
  * Everything that needs the API client sits inside BeaconProvider, so the
  * shell can render before — and without — an engine.
@@ -185,7 +187,12 @@ function AppBody(): ReactElement {
         update,
         onUpdateAction: runUpdateAction,
         themeMode: theme.mode,
-        onThemeChange: theme.setPreference
+        onThemeChange: theme.setPreference,
+        // The button has rendered against this prop since it was added and
+        // nothing ever supplied it, so it did nothing at all (BU-112).
+        onOpenRepo: () => {
+          void window.beacon?.shell.openExternal(REPO)
+        }
       }}
       {...(assistantOpen
         ? {

@@ -66,9 +66,9 @@ describe('Splash', () => {
     render(<Splash version="0.0.1" />)
 
     expect(screen.getByText('version 0.0.1')).toBeInTheDocument()
-    // A frameless window with no controls and a stuck engine would be
-    // unclosable without the task manager.
-    expect(screen.getByRole('link', { name: 'Repository' })).toBeInTheDocument()
+    // A button rather than a link since BU-112: an `<a href>` navigated this
+    // very window to GitHub, which in a frameless window is a dead end.
+    expect(screen.getByRole('button', { name: 'Repository' })).toBeInTheDocument()
   })
 
   it('reports startup as a progressbar, not just as text', () => {

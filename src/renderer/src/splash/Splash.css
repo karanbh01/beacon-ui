@@ -149,11 +149,21 @@
   border-radius: 9px;
 }
 
+/* A button since BU-112, so it needs the button defaults stripped. */
 .splash-github {
   display: flex;
   margin-left: auto;
+  padding: 0;
   color: var(--chrome-icon);
+  background: none;
+  border: 0;
+  cursor: pointer;
   -webkit-app-region: no-drag;
+}
+
+.splash-github:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .splash-github:hover {

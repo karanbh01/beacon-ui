@@ -71,6 +71,9 @@ const bridge: BeaconBridge = {
   },
   files: {
     save: (request) => ipcRenderer.invoke('file:save', request) as Promise<SaveResult>
+  },
+  shell: {
+    openExternal: (url) => ipcRenderer.invoke('shell:openExternal', { url }) as Promise<void>
   }
 }
 
