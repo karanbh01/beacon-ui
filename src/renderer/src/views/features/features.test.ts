@@ -1,57 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { datasetsOf, featureRows, featureValue, fieldLabel, rowsOfDataset } from './features'
-
-/** The shape a real engine returns, taken from a live probe. */
-const RESPONSE = {
-  identifier: 'CMPA',
-  as_of: '2026-08-24',
-  features: [
-    {
-      field: 'eps',
-      value: 16.61162278690342,
-      type: 'fundamentals',
-      detail: 'period ending 2026-06-30, reported 2026Q2',
-      date: '2026-07-31'
-    },
-    {
-      field: 'pe_ratio',
-      value: 10.448232872728154,
-      type: 'fundamentals',
-      detail: null,
-      date: null
-    },
-    { field: 'wikipedia_views', value: null, type: null, detail: null, date: null }
-  ]
-}
-
-describe('featureRows', () => {
-  it('keeps a field the engine holds nothing for', () => {
-    // The endpoint answers with every catalogue field, nulls included. "We
-    // hold no sentiment for this name" is an answer, and dropping the row
-    // would make the field look like it does not exist.
-    const rows = featureRows(RESPONSE)
-    expect(rows).toHaveLength(3)
-    expect(rows[2]).toMatchObject({ field: 'wikipedia_views', value: null, held: false })
-  })
-
-  it('carries the provenance, which is most of why a fundamental is readable', () => {
-    expect(rowsOfDataset(featureRows(RESPONSE), 'fundamentals')[0]).toMatchObject({
-      date: '2026-07-31',
-      detail: 'period ending 2026-06-30, reported 2026Q2'
-    })
-  })
-
-  it('groups by the dataset the engine named, not by guessing from the field', () => {
-    const rows = featureRows(RESPONSE)
-    expect(rowsOfDataset(rows, 'fundamentals')).toHaveLength(2)
-    // A field with no value has no dataset either, so it groups nowhere.
-    expect(rowsOfDataset(rows, 'alternative')).toHaveLength(0)
-  })
-
-  it('survives no response at all', () => {
-    expect(featureRows(undefined)).toEqual([])
-  })
-})
+import { featureValue, fieldLabel, fieldsIn, historyRows, within } from './features'
 
 describe('featureValue', () => {
   it('gives a ratio decimals and a count none', () => {
@@ -73,19 +21,87 @@ describe('fieldLabel', () => {
   })
 })
 
-describe('datasetsOf', () => {
-  it('takes the catalogue’s order, so the cards do not shuffle', () => {
-    const catalogue = {
-      types: [
-        { type: 'alternative', fields: ['x_sentiment'], identifiers: 1, rows: 1 },
-        { type: 'fundamentals', fields: ['eps'], identifiers: 1, rows: 1 }
-      ],
-      fields: ['eps', 'x_sentiment']
+describe('historyRows (BU-113)', () => {
+  const PAGE = {
+    dataset: 'features',
+    offset: 0,
+    limit: 1000,
+    total: 4,
+    rows: {
+      index: [0, 1, 2, 3],
+      columns: ['IDENTIFIER', 'DATE', 'TYPE', 'FIELD', 'VALUE', 'DETAIL'],
+      data: [
+        ['CMPA', '2026-04-30T00:00:00', 'fundamentals', 'pe_ratio', 10.4, null],
+        ['CMPA', '2026-07-31T00:00:00', 'fundamentals', 'eps', 16.6, 'reported 2026Q2'],
+        ['CMPA', '2026-04-30T00:00:00', 'fundamentals', 'eps', 16.1, 'reported 2026Q1'],
+        ['CMPA', '2026-07-31T00:00:00', 'fundamentals', 'pe_ratio', null, null]
+      ]
     }
-    expect(datasetsOf(catalogue)).toEqual(['alternative', 'fundamentals'])
+  }
+
+  it('reads columns by name rather than by position', () => {
+    // The endpoint documents a frame, not an order of columns — indexing into
+    // data[i][j] would break silently the day one is added.
+    const rows = historyRows(PAGE)
+    expect(rows[0]).toMatchObject({ field: 'eps', value: 16.6, dataset: 'fundamentals' })
   })
 
-  it('is empty for a store generated before features existed', () => {
-    expect(datasetsOf({ types: [], fields: [] })).toEqual([])
+  it('sorts newest first, since the current value is what is wanted', () => {
+    // Sorted here rather than assumed: a page of a stored table promises no
+    // order.
+    expect(historyRows(PAGE).map((row) => row.date)).toEqual([
+      '2026-07-31',
+      '2026-07-31',
+      '2026-04-30',
+      '2026-04-30'
+    ])
+  })
+
+  it('trims the midnight off a date', () => {
+    expect(historyRows(PAGE)[0]?.date).toBe('2026-07-31')
+  })
+
+  it('keeps a null value as null rather than as zero', () => {
+    const missing = historyRows(PAGE).find((row) => row.field === 'pe_ratio')
+    expect(missing?.value).toBeNull()
+  })
+
+  it('survives no page at all', () => {
+    expect(historyRows(undefined)).toEqual([])
+  })
+})
+
+describe('fieldsIn', () => {
+  it('lists each field once, for the filter', () => {
+    const rows = [
+      { key: '0', date: '2026-07-31', dataset: 'f', field: 'eps', value: 1, detail: undefined },
+      { key: '1', date: '2026-04-30', dataset: 'f', field: 'eps', value: 2, detail: undefined },
+      { key: '2', date: '2026-04-30', dataset: 'f', field: 'pe_ratio', value: 3, detail: undefined }
+    ]
+    expect(fieldsIn(rows)).toEqual(['eps', 'pe_ratio'])
+  })
+})
+
+describe('within (BU-113)', () => {
+  const rows = [
+    { key: '0', date: '2026-07-31', dataset: 'f', field: 'eps', value: 1, detail: undefined },
+    { key: '1', date: '2025-07-31', dataset: 'f', field: 'eps', value: 2, detail: undefined },
+    { key: '2', date: '2024-07-31', dataset: 'f', field: 'eps', value: 3, detail: undefined }
+  ]
+
+  it('keeps both ends optional, so a half-set window still narrows', () => {
+    expect(within(rows, '2025-01-01', '').map((row) => row.date)).toEqual([
+      '2026-07-31',
+      '2025-07-31'
+    ])
+    expect(within(rows, '', '2025-01-01').map((row) => row.date)).toEqual(['2024-07-31'])
+  })
+
+  it('is inclusive of both bounds', () => {
+    expect(within(rows, '2025-07-31', '2025-07-31')).toHaveLength(1)
+  })
+
+  it('returns everything when neither end is set', () => {
+    expect(within(rows, '', '')).toHaveLength(3)
   })
 })

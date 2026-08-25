@@ -410,6 +410,57 @@ function body(url: URL): unknown {
     return { identifier, interval, prices }
   }
 
+  /*
+   * A page of a stored table (BN-147), filtered by identifier (BU-113).
+   *
+   * The filter is the point: without it the only way to reach one name's
+   * rows was to page the whole dataset. A stub that ignored `identifiers`
+   * would let a client forget to send it and still look right.
+   */
+  if (path.startsWith('/data/tables/')) {
+    const dataset = decodeURIComponent(path.slice('/data/tables/'.length))
+    if (dataset !== 'features') return undefined
+
+    const wanted = url.searchParams.getAll('identifiers').flatMap((value) => value.split(','))
+    const limit = Math.min(Number(url.searchParams.get('limit') ?? '1000'), 1000)
+    const offset = Number(url.searchParams.get('offset') ?? '0')
+
+    // Two quarters per name, so "newest first" is observable rather than
+    // assumed, and every row carries its own provenance.
+    const rows: unknown[][] = []
+    for (const identifier of wanted.length > 0 ? wanted : IDENTIFIERS) {
+      const index = IDENTIFIERS.indexOf(identifier)
+      if (index < 0) continue
+      for (const [at, quarter] of [
+        ['2026-07-31T00:00:00', '2026Q2'],
+        ['2026-04-30T00:00:00', '2026Q1']
+      ] as const) {
+        rows.push([
+          identifier,
+          at,
+          'fundamentals',
+          'eps',
+          16.6 - index * 0.05,
+          `reported ${quarter}`
+        ])
+        rows.push([identifier, at, 'fundamentals', 'pe_ratio', 10.4 + index * 0.02, null])
+      }
+    }
+
+    const page = rows.slice(offset, offset + limit)
+    return {
+      dataset,
+      offset,
+      limit,
+      total: rows.length,
+      rows: {
+        index: page.map((_row, position) => offset + position),
+        columns: ['IDENTIFIER', 'DATE', 'TYPE', 'FIELD', 'VALUE', 'DETAIL'],
+        data: page
+      }
+    }
+  }
+
   if (path === '/data/features/catalogue') {
     return {
       types: [

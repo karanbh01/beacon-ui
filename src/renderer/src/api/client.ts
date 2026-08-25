@@ -175,6 +175,18 @@ export interface BeaconClient {
     ) => Promise<ResponseOf<'/data/features/{identifier}'>>
     /** The feature datasets and their fields, for building columns. */
     featureCatalogue: (signal?: AbortSignal) => Promise<ResponseOf<'/data/features/catalogue'>>
+    /**
+     * One page of a stored dataset, as it is held (BN-147).
+     *
+     * `identifiers` is what makes this usable per instrument: without it the
+     * only way to reach one name's rows was to page the whole table, which
+     * for features is 970 requests for 0.02% of the payload.
+     */
+    table: (
+      dataset: string,
+      query?: { identifiers?: readonly string[]; offset?: number; limit?: number },
+      signal?: AbortSignal
+    ) => Promise<ResponseOf<'/data/tables/{dataset}'>>
     /** `date` is point-in-time: the engine returns only rows valid then. */
     referenceBatch: (
       identifiers: readonly string[],
@@ -395,6 +407,16 @@ export function createClient(options: ClientOptions): BeaconClient {
         }),
       featureCatalogue: (signal) =>
         get('/data/features/catalogue', { ...(signal === undefined ? {} : { signal }) }),
+      table: (dataset, query, signal) =>
+        get('/data/tables/{dataset}', {
+          params: { dataset },
+          query: {
+            ...(query?.identifiers === undefined ? {} : { identifiers: [...query.identifiers] }),
+            ...(query?.offset === undefined ? {} : { offset: query.offset }),
+            ...(query?.limit === undefined ? {} : { limit: query.limit })
+          },
+          ...(signal === undefined ? {} : { signal })
+        }),
       referenceBatch: (identifiers, fields, date, signal) =>
         get('/data/reference', {
           query: {

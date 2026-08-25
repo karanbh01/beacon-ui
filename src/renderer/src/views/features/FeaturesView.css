@@ -23,3 +23,30 @@
   max-width: 720px;
   color: var(--text-muted);
 }
+
+.features-count {
+  color: var(--text-muted);
+}
+
+.features-filter {
+  margin-bottom: 12px;
+}
+
+/* Range, dates and the field filter, on one row (BU-113). */
+.features-controls {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.features-input {
+  width: 100%;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  outline: none;
+}

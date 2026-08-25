@@ -196,6 +196,28 @@ export function useFeatureCatalogue() {
   })
 }
 
+/**
+ * One instrument's rows from a stored dataset (BU-113).
+ *
+ * The history was always there — `/data/tables/features` carries IDENTIFIER,
+ * DATE, TYPE, FIELD, VALUE, DETAIL across a million rows — but the endpoint
+ * took only offset and limit, so reaching one name meant paging the lot. The
+ * `identifiers` filter is what makes it a per-instrument view.
+ */
+export function useTable(dataset: string, identifier: string, limit = REFERENCE_BATCH_LIMIT) {
+  const client = useBeacon()
+  const identifiers = identifier === '' ? [] : [identifier]
+
+  return useQuery({
+    queryKey: keys.data.table(dataset, identifiers, 0, limit),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.table(dataset, { identifiers, limit }, signal)
+    },
+    enabled: client !== null && identifier !== ''
+  })
+}
+
 export interface CorporateActionsOptions {
   start?: string | undefined
 }

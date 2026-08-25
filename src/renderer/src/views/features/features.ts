@@ -1,45 +1,7 @@
 import type { components } from '@shared/api.generated'
+import type { TableFrame } from '../../api/frame'
 
-export type FeatureResponse = components['schemas']['FeatureResponse']
-export type FeatureCatalogue = components['schemas']['FeatureCatalogue']
-
-export interface FeatureRow {
-  field: string
-  value: number | null
-  /** The feature dataset it came from — 'fundamentals', 'alternative'. */
-  dataset: string | undefined
-  /** When this datapoint became true, which is not the as-of date. */
-  date: string | undefined
-  /** The engine's own words: "period ending 2026-06-30, reported 2026Q2". */
-  detail: string | undefined
-  /** False when the engine holds no value for this name. */
-  held: boolean
-}
-
-/**
- * The engine's answer, as rows (BU-99).
- *
- * `GET /data/features/{identifier}` returns every field in the catalogue, with
- * nulls where this name has none — so a company with fundamentals but no
- * alternative data comes back carrying both, four filled and two empty. That
- * is worth drawing: "we hold no sentiment for this" is an answer, and hiding
- * the row would make it look like the field does not exist.
- */
-export function featureRows(response: FeatureResponse | undefined): FeatureRow[] {
-  return (response?.features ?? []).map((entry) => ({
-    field: entry.field,
-    value: typeof entry.value === 'number' ? entry.value : null,
-    dataset: entry.type ?? undefined,
-    date: typeof entry.date === 'string' ? entry.date.slice(0, 10) : undefined,
-    detail: entry.detail ?? undefined,
-    held: entry.value !== null
-  }))
-}
-
-/** Rows for one dataset, in catalogue order. Empty means "not this one". */
-export function rowsOfDataset(rows: readonly FeatureRow[], dataset: string): FeatureRow[] {
-  return rows.filter((row) => row.dataset === dataset)
-}
+export type TablePage = components['schemas']['TablePage']
 
 /**
  * `debt_to_equity` → "Debt to equity", `pe_ratio` → "Pe ratio".
@@ -65,7 +27,78 @@ export function featureValue(value: number | null): string {
   return value.toLocaleString('en-US', { maximumFractionDigits: 4 })
 }
 
-/** Datasets the catalogue declares, in the order it declares them. */
-export function datasetsOf(catalogue: FeatureCatalogue | undefined): string[] {
-  return (catalogue?.types ?? []).map((entry) => entry.type)
+export interface FeatureHistoryRow {
+  key: string
+  date: string
+  dataset: string
+  field: string
+  value: number | null
+  detail: string | undefined
+}
+
+/**
+ * Feature history, from the stored table (BU-113).
+ *
+ * `/data/tables/features` holds every value ever published — IDENTIFIER,
+ * DATE, TYPE, FIELD, VALUE, DETAIL — where `/data/features/{identifier}`
+ * answers point-in-time with one value per field. Prices and Corporate
+ * Actions show a series, and there was no reason this should not.
+ *
+ * Newest first, because the current value is what anyone opens this to read
+ * and the history is what they scroll for.
+ */
+export function historyRows(page: TablePage | undefined): FeatureHistoryRow[] {
+  // The generated type calls `rows` an open object — py-beacon documents it
+  // as "the {index, columns, data} frame shape used elsewhere", which is
+  // exactly `TableFrame`.
+  const frame = page?.rows as TableFrame | undefined
+  if (frame === undefined) return []
+
+  const at = (name: string): number => frame.columns.indexOf(name)
+  const dateAt = at('DATE')
+  const typeAt = at('TYPE')
+  const fieldAt = at('FIELD')
+  const valueAt = at('VALUE')
+  const detailAt = at('DETAIL')
+
+  const rows = frame.data.map((cells, position) => {
+    const raw = cells[dateAt]
+    const value = cells[valueAt]
+    return {
+      key: String(position),
+      date: typeof raw === 'string' ? raw.slice(0, 10) : '—',
+      dataset: typeof cells[typeAt] === 'string' ? cells[typeAt] : '—',
+      field: typeof cells[fieldAt] === 'string' ? cells[fieldAt] : '—',
+      value: typeof value === 'number' && Number.isFinite(value) ? value : null,
+      detail: typeof cells[detailAt] === 'string' ? cells[detailAt] : undefined
+    }
+  })
+
+  // Sorted here rather than assumed: the endpoint documents a page of a
+  // stored table, not an order.
+  return rows.sort((a, b) => b.date.localeCompare(a.date) || a.field.localeCompare(b.field))
+}
+
+/** The distinct fields present, for the row filter. */
+export function fieldsIn(rows: readonly FeatureHistoryRow[]): string[] {
+  return [...new Set(rows.map((row) => row.field))].sort((a, b) => a.localeCompare(b))
+}
+
+/**
+ * Rows inside a date window, either end optional.
+ *
+ * Applied here rather than in the request because `/data/tables/{dataset}`
+ * takes only offset, limit and identifiers — and one instrument's history is
+ * a few hundred rows, so one fetch serves every range the user tries.
+ */
+export function within(
+  rows: readonly FeatureHistoryRow[],
+  from: string,
+  to: string
+): FeatureHistoryRow[] {
+  return rows.filter((row) => {
+    if (from !== '' && row.date < from) return false
+    if (to !== '' && row.date > to) return false
+    return true
+  })
 }
