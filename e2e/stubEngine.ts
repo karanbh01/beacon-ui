@@ -18,6 +18,85 @@ import type { Duplex } from 'node:stream'
  */
 
 /**
+ * The engine's error envelope, and the codes it actually uses (BU-88).
+ *
+ * Every one of these was probed against a running py-beacon rather than
+ * guessed. The stub used to answer generously wherever the engine is strict,
+ * which is the worst way for a fake to be wrong: a test passes, the same code
+ * meets a real engine, and the failure lands on the user. Four bugs reached
+ * Karan that way — an unknown column that 422s, a `{id, name}` where whole
+ * documents come back, an id that never 404s, and reference data served for
+ * the wrong instrument entirely.
+ */
+interface Refusal {
+  status: number
+  payload: unknown
+}
+
+function isRefusal(value: unknown): value is Refusal {
+  return typeof value === 'object' && value !== null && 'status' in value && 'payload' in value
+}
+
+function refuse(status: number, code: string, message: string, detail?: unknown): Refusal {
+  return {
+    status,
+    payload: { error: { code, message, ...(detail === undefined ? {} : { detail }) } }
+  }
+}
+
+/** `Data not found: market data for 'ZZZ'. (Source: MarketData)` */
+function notFound(description: string, source: string): Refusal {
+  return refuse(404, 'DATA_NOT_FOUND', `Data not found: ${description}. (Source: ${source})`, {
+    data_description: description,
+    source
+  })
+}
+
+/**
+ * The pattern every document id must match, and the engine's own 422 for it.
+ *
+ * BU-87 was exactly this: the app sent a tab title as an index id and the
+ * engine refused a space. The stub answered anyway, so nothing caught it.
+ */
+const DOCUMENT_ID = /^[A-Za-z0-9_-]{1,64}$/
+
+function badId(field: string, value: string): Refusal {
+  return refuse(422, 'VALIDATION_ERROR', 'Request validation failed.', {
+    errors: [
+      {
+        type: 'string_pattern_mismatch',
+        loc: ['path', field],
+        msg: `String should match pattern '${DOCUMENT_ID.source}'`,
+        input: value
+      }
+    ]
+  })
+}
+
+/**
+ * Reference columns this dataset carries, upper-case as the engine spells
+ * them. Naming one it does not have is a 422, not a null — that is the whole
+ * of BU-85, where the client asked for three invented columns and every
+ * detail column came back empty against a real engine while the stub
+ * fabricated whatever was requested.
+ */
+const REFERENCE_COLUMNS = [
+  'COUNTRY_DOMICILE',
+  'COUNTRY_LISTING',
+  'CURRENCY',
+  'DATE_FROM',
+  'DATE_TO',
+  'EXCHANGE',
+  'NAME',
+  'REGION',
+  'SECTOR',
+  'SUB_INDUSTRY'
+]
+
+/** Computed on request rather than stored, so it is legal in `fields`. */
+const DERIVED_COLUMNS = ['adv_3m']
+
+/**
  * Fixed, because every assertion below is written against these.
  *
  * A `TableFrame` — index / columns / data — not a list of bar objects. That
@@ -294,8 +373,12 @@ function body(url: URL): unknown {
   if (path === '/data/identifiers') return searchIdentifiers(url)
 
   if (path.startsWith('/indices/')) {
-    const id = path.slice('/indices/'.length)
-    return id === '' || id.includes('/') ? undefined : indexDocument(decodeURIComponent(id))
+    const id = decodeURIComponent(path.slice('/indices/'.length))
+    if (id === '' || id.includes('/')) return undefined
+    // BU-87 in one line: the app sent a tab TITLE here and the engine
+    // refused the space. This answered anyway, so nothing caught it.
+    if (!DOCUMENT_ID.test(id)) return badId('index_id', id)
+    return indexDocument(id)
   }
 
   if (path.startsWith('/data/prices/')) {
@@ -303,7 +386,9 @@ function body(url: URL): unknown {
     // for. Without this no test could tell a real ticker from a typo, which
     // is the whole point of the not-found path.
     const identifier = path.split('/').pop() ?? ''
-    if (!KNOWN.has(identifier) || identifier === REFERENCE_ONLY) return undefined
+    if (!KNOWN.has(identifier) || identifier === REFERENCE_ONLY) {
+      return notFound(`market data for '${identifier}'`, 'MarketData')
+    }
 
     // Echo the interval asked for (BU-106). It was hard-coded 'native', so a
     // client that never sent the parameter looked identical to one that did.
@@ -375,6 +460,25 @@ function body(url: URL): unknown {
     const ids = wanted.length > 0 ? wanted : IDENTIFIERS
     const date = url.searchParams.get('date') ?? ''
 
+    // An unknown column is a HARD refusal — the whole batch, not a null in
+    // one field. BU-85 shipped three invented column names because this
+    // returned whatever was asked for.
+    const fields = url.searchParams.getAll('fields').flatMap((value) => value.split(','))
+    const unknown = fields.filter(
+      (field) =>
+        field !== '' &&
+        !REFERENCE_COLUMNS.includes(field.toUpperCase()) &&
+        !DERIVED_COLUMNS.includes(field)
+    )
+    if (unknown.length > 0) {
+      return refuse(
+        422,
+        'INVALID_RULE',
+        `Invalid rule: fields. Reason: unknown reference column(s): ${unknown.join(', ')}. ` +
+          `Available: ${REFERENCE_COLUMNS.join(', ')}`
+      )
+    }
+
     // "Returns only rows valid then" — the endpoint's own words. A name not
     // yet listed comes back `found: false` with no fields, exactly as a real
     // engine answers it, rather than being omitted from the response.
@@ -393,7 +497,9 @@ function body(url: URL): unknown {
     // while showing the wrong company — and no test could tell.
     const identifier = decodeURIComponent(path.slice('/data/reference/'.length))
     const index = IDENTIFIERS.indexOf(identifier)
-    if (index < 0 && identifier !== REFERENCE_ONLY) return undefined
+    if (index < 0 && identifier !== REFERENCE_ONLY) {
+      return notFound(`reference data for '${identifier}'`, 'ReferenceData')
+    }
 
     return {
       identifier,
@@ -402,8 +508,13 @@ function body(url: URL): unknown {
   }
 
   if (path.startsWith('/data/corporate-actions/')) {
+    const identifier = decodeURIComponent(path.slice('/data/corporate-actions/'.length))
+    if (!IDENTIFIERS.includes(identifier)) {
+      return notFound(`instrument '${identifier}'`, 'MarketData')
+    }
+
     return {
-      identifier: path.split('/').pop(),
+      identifier,
       actions: [
         {
           ex_date: '2026-05-09',
@@ -439,7 +550,8 @@ function body(url: URL): unknown {
   if (path === '/universes') return { universes }
 
   if (path.endsWith('/members') && path.startsWith('/universes/')) {
-    const id = path.slice('/universes/'.length, -'/members'.length)
+    const id = decodeURIComponent(path.slice('/universes/'.length, -'/members'.length))
+    if (!DOCUMENT_ID.test(id)) return badId('universe_id', id)
     const found = universes.find((universe) => universe.id === id)
     return found === undefined
       ? undefined
@@ -594,6 +706,21 @@ export function startStubEngine(): Promise<StubEngine> {
     }
 
     const payload = body(url)
+
+    /*
+     * A refusal carries its own status (BU-88).
+     *
+     * Everything unhandled used to flatten to 404, so a 422 the engine
+     * returns — an unknown reference column, an id that cannot address a
+     * document — arrived here as "not found". The client branches on status
+     * and on `code`, so collapsing them made two different failures
+     * indistinguishable and let both ship.
+     */
+    if (isRefusal(payload)) {
+      response.writeHead(payload.status).end(JSON.stringify(payload.payload))
+      return
+    }
+
     if (payload === undefined) {
       // py-beacon's envelope, not a bare detail — the client branches on
       // `code` and renders `message`.
