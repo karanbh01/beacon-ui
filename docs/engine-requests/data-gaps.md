@@ -100,7 +100,6 @@ BN-140. Anyone building or testing against features needs a store made after
 it — worth stating because the endpoints exist and answer emptily rather than
 erroring, which reads as a client fault.
 
-
 ---
 
 ## Addendum: an identifier filter on the table endpoint (BU-113)
