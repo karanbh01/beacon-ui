@@ -212,3 +212,73 @@ describe('client availability', () => {
     expect(screen.getByText('shell')).toBeInTheDocument()
   })
 })
+
+describe('reconnecting to an engine (BU-86)', () => {
+  function mount(engine: EngineState, queries: QueryClient) {
+    return render(
+      <BeaconProvider
+        engine={engine}
+        queryClient={queries}
+        socketFactory={() => new FakeSocket() as unknown as WebSocket}
+      >
+        <p>pane</p>
+      </BeaconProvider>
+    )
+  }
+
+  it('drops everything cached when the engine comes back', async () => {
+    /*
+     * The query keys say nothing about which engine answered, so a restart
+     * left every stored answer in place describing a process that is gone.
+     * That is how a seeded universe stayed missing for a session: it appeared
+     * in the new engine while the app served the old one's empty list.
+     */
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidate = vi.spyOn(queries, 'invalidateQueries')
+
+    const { rerender } = mount({ status: 'degraded' }, queries)
+    expect(invalidate).not.toHaveBeenCalled()
+
+    rerender(
+      <BeaconProvider
+        engine={{ status: 'connected', baseUrl: 'http://127.0.0.1:1', token: 't' }}
+        queryClient={queries}
+        socketFactory={() => new FakeSocket() as unknown as WebSocket}
+      >
+        <p>pane</p>
+      </BeaconProvider>
+    )
+
+    await waitFor(() => {
+      expect(invalidate).toHaveBeenCalled()
+    })
+  })
+
+  it('does not re-invalidate while it stays connected', async () => {
+    // Only the TRANSITION matters. Firing on every render would refetch the
+    // world whenever anything above this re-rendered.
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const connected: EngineState = {
+      status: 'connected',
+      baseUrl: 'http://127.0.0.1:1',
+      token: 't'
+    }
+
+    const { rerender } = mount(connected, queries)
+    const invalidate = vi.spyOn(queries, 'invalidateQueries')
+
+    rerender(
+      <BeaconProvider
+        engine={connected}
+        queryClient={queries}
+        socketFactory={() => new FakeSocket() as unknown as WebSocket}
+      >
+        <p>pane</p>
+      </BeaconProvider>
+    )
+
+    await waitFor(() => {
+      expect(invalidate).not.toHaveBeenCalled()
+    })
+  })
+})

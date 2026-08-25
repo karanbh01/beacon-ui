@@ -48,6 +48,28 @@ export function BeaconProvider({
   const { baseUrl, token, status } = engine
   const retryTimer = useRef<NodeJS.Timeout>(undefined)
 
+  /*
+   * A reconnect invalidates everything (BU-86).
+   *
+   * The client is rebuilt when the URL or token changes, so a restart is
+   * transparent to views — but the CACHE is not rebuilt, and the query keys
+   * do not mention the engine. So every stored answer survived, describing a
+   * process that no longer exists.
+   *
+   * That is how a seeded universe went missing for a session: the engine was
+   * restarted underneath the app, GLOBAL appeared in the new one, and the
+   * catalogue on screen was the empty list from the old one for the next five
+   * minutes.
+   *
+   * Cheap on a first connect, when the cache is empty and this is a no-op.
+   */
+  const wasConnected = useRef(false)
+  useEffect(() => {
+    const connected = status === 'connected'
+    if (connected && !wasConnected.current) void queries.invalidateQueries()
+    wasConnected.current = connected
+  }, [status, queries])
+
   useEffect(() => {
     if (baseUrl === undefined || token === undefined || status !== 'connected') return undefined
 
