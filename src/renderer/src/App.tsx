@@ -8,6 +8,7 @@ import { AssistantPanel } from './assistant/AssistantPanel'
 import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
 import { PaneHost } from './shell/PaneHost'
+import { StaleStoreNotice } from './shell/StaleStoreNotice'
 import { useJobs } from './api/jobs'
 import { HomeView } from './views/home/HomeView'
 import { activityRows } from './views/home/activityRows'
@@ -221,6 +222,11 @@ function AppBody(): ReactElement {
       ) : (
         <PaneHost page={page} />
       )}
+      {/*
+        Only ever set for a store this app generated itself (BU-89) — the
+        engine has no opinion about anybody else's data.
+      */}
+      <StaleStoreNotice {...(engine.stale === undefined ? {} : { reason: engine.stale })} />
       <JobTray />
     </AppShell>
   )

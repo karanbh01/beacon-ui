@@ -4,8 +4,21 @@ import { EventEmitter } from 'node:events'
 import type { EngineState } from '@shared/ipc'
 import { restartDelay, shouldGiveUp } from './backoff'
 import { SERVER_MODULE, locatePython, parsePort } from './python'
-import { environmentFor, readSettings } from '../dataSettings'
-import { generateSynthetic, readStoreStatus, removeStore, shouldGenerate } from './synthetic'
+import {
+  environmentFor,
+  readProvenance,
+  readSettings,
+  staleReason,
+  writeProvenance,
+  type StoreProvenance
+} from '../dataSettings'
+import {
+  generateArgs,
+  generateSynthetic,
+  readStoreStatus,
+  removeStore,
+  shouldGenerate
+} from './synthetic'
 
 /** How often to confirm the server is still answering. */
 const HEALTH_INTERVAL_MS = 4_000
@@ -75,6 +88,8 @@ export class Engine extends EventEmitter {
   private startTimer: NodeJS.Timeout | undefined
   private attempt = 0
   private stopping = false
+  /** Written this session, waiting for a server to say which version wrote it. */
+  private unstamped: StoreProvenance | undefined
   private readonly token: string
   private readonly options: EngineOptions
 
@@ -177,6 +192,7 @@ export class Engine extends EventEmitter {
           this.emit('log', line)
         }
       })
+      this.recordProvenance()
     } catch (cause) {
       const reason = cause instanceof Error ? cause.message : String(cause)
       this.emit(
@@ -185,6 +201,49 @@ export class Engine extends EventEmitter {
 `
       )
     }
+  }
+
+  /**
+   * Stamp what was generated, and with what (BU-89).
+   *
+   * Only ever written after THIS app generates a store, which is what makes
+   * the marker meaningful: its presence is the difference between "we made
+   * this and may replace it" and "this is somebody's data, leave it".
+   *
+   * The version has to wait. Generation runs before the server is up, and
+   * /health is the only thing that reports py-beacon's version — asking
+   * python separately would be a second answer that could disagree with the
+   * one the footer shows. So the marker lands now, dated and with its
+   * arguments, and `stampVersion` fills the version on the first connect.
+   */
+  private recordProvenance(): void {
+    const provenance: StoreProvenance = {
+      engineVersion: '',
+      args: generateArgs(),
+      generatedAt: new Date().toISOString()
+    }
+    writeProvenance(provenance)
+    this.unstamped = provenance
+  }
+
+  /** Finish a marker this session left waiting for a version. */
+  private stampVersion(version: string): void {
+    const pending = this.unstamped
+    if (pending === undefined) return
+    this.unstamped = undefined
+    writeProvenance({ ...pending, engineVersion: version })
+  }
+
+  /**
+   * Whether the store is behind what this build would generate (BU-89).
+   *
+   * Only ever an opinion about a store this app wrote. No marker means the
+   * store is not ours, and `BEACON_DATA_PATH` means the user has named it
+   * theirs — in both cases there is nothing to offer and nothing to say.
+   */
+  private staleness(version: string): string | undefined {
+    if ((this.environment().BEACON_DATA_PATH ?? '').trim() !== '') return undefined
+    return staleReason(readProvenance(), version, generateArgs())
   }
 
   /** The real environment with the saved data settings folded in (BU-111). */
@@ -287,11 +346,18 @@ export class Engine extends EventEmitter {
       }
       const body = (await response.json()) as HealthResponse
       this.attempt = 0
+
+      // Reading the marker is a file read, so it happens on the transition
+      // rather than on every four-second poll that reports the same thing.
+      const settled = this.state.status === 'connected' && this.state.version === body.version
+      if (!settled) this.stampVersion(body.version)
+
       this.setState({
         status: 'connected',
         version: body.version,
         detail: undefined,
-        restarts: 0
+        restarts: 0,
+        ...(settled ? {} : { stale: this.staleness(body.version) })
       })
     } catch {
       this.fail('health check did not respond')
@@ -369,6 +435,7 @@ export class Engine extends EventEmitter {
           this.emit('log', line)
         }
       })
+      this.recordProvenance()
     } finally {
       // Whatever happened, the user is owed a running engine: a failed
       // generation leaves the server startable, just with less to serve.

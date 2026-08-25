@@ -52,6 +52,13 @@ export interface EngineState {
   detail?: string
   /** Consecutive failed starts; drives the restart backoff. */
   restarts?: number
+  /**
+   * Why the store this app generated is behind what it would generate now
+   * (BU-89), in words a person can read. Absent when there is nothing to say
+   * — and always absent for a store this app did not write, which it has no
+   * standing to judge.
+   */
+  stale?: string
 }
 
 /**

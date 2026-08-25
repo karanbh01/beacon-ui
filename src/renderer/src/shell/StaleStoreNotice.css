@@ -1,0 +1,42 @@
+/*
+ * Top right, clear of the job tray at the bottom: the two can be on screen
+ * together, and a regeneration offer buried under a progress card would be
+ * the one thing nothing else in the app says.
+ */
+.stale-store {
+  position: fixed;
+  top: 74px;
+  right: 20px;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 320px;
+  padding: 12px 14px;
+  /* Canvas rather than surface: `--surface` is 20% alpha, and Home's date
+     read straight through the card behind the words offering to delete a
+     data store. Anything floating over content has to be opaque. */
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+
+.stale-store-head {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.stale-store-body {
+  color: var(--text-secondary);
+}
+
+.stale-store-problem {
+  color: var(--danger);
+}
+
+.stale-store-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
