@@ -79,7 +79,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Reference */
+        /**
+         * Reference
+         * @description One instrument's reference record, stored and derived.
+         *
+         *     `fields` is honoured on the same terms as the batch form (BN-149).
+         *     Before that it was accepted and ignored, so `market_cap` came back
+         *     empty from here and populated from `/data/reference` -- a parameter
+         *     that looks supported while doing nothing, which is the failure a
+         *     client cannot diagnose.
+         *
+         *     Universe memberships are answered here and not there: they were not
+         *     answerable when this endpoint was written, because no universe could
+         *     be created through the API and none was seeded, so the answer was
+         *     always "none". BN-132 changed that.
+         */
         get: operations["reference_data_reference__identifier__get"];
         put?: never;
         post?: never;
@@ -192,12 +206,16 @@ export interface paths {
         };
         /**
          * Table Page
-         * @description One page of a stored dataset, as it is held.
+         * @description One page of a stored dataset, optionally narrowed to some names.
          *
-         *     Deliberately without filtering or sorting parameters. A client needing
-         *     those wants a query language, and this is the wrong place to grow one
-         *     -- the per-identifier endpoints and the expression API already cover
-         *     every case anybody has asked for.
+         *     `identifiers` is the only filter, and it exists because one
+         *     instrument's *history* -- its feature rows, its actions -- was
+         *     otherwise reachable only by paging the whole table and filtering
+         *     client-side, which is 964k rows to find a few dozen (BN-150).
+         *
+         *     Still no sorting or predicate parameters. A client needing those wants
+         *     a query language, and this is the wrong place to grow one -- the
+         *     per-identifier endpoints and the expression API cover the rest.
          */
         get: operations["table_page_data_tables__dataset__get"];
         put?: never;
@@ -4022,6 +4040,8 @@ export interface operations {
             query?: {
                 /** @description Point-in-time date, YYYY-MM-DD. Returns only rows valid then. */
                 date?: string | null;
+                /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
+                fields?: string[] | null;
             };
             header?: never;
             path: {
@@ -4704,6 +4724,8 @@ export interface operations {
                 offset?: number;
                 /** @description Maximum rows, at most 1000. */
                 limit?: number;
+                /** @description Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call. */
+                identifiers?: string[] | null;
             };
             header?: never;
             path: {

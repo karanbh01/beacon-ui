@@ -179,3 +179,28 @@ test('an index definition can be created, which is what the tab is for', async (
   await window.getByRole('combobox', { name: 'Index' }).selectOption('')
   await expect(window.getByRole('button', { name: 'New index…' })).toBeVisible()
 })
+
+test('market cap fills its column and becomes a filter', async ({ window }) => {
+  // BU-85's last piece. The engine had no market cap in any form, so the
+  // "FF Mkt Cap ($B)" column drawn from the Figma frame showed a dash on
+  // every row; it is a derived field now, asked for by name.
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+  await window.getByRole('combobox', { name: 'Universe' }).selectOption('GLOBAL')
+
+  const table = window.locator('.universe-view .tbl-row').first()
+  await expect(table).toBeVisible()
+  await expect(table.getByText('—', { exact: true })).toHaveCount(0)
+
+  // And the builder derives a range filter from it, with no client change.
+  await window.getByRole('button', { name: 'New universe…' }).click()
+  await window.getByRole('button', { name: /Add filter/ }).click()
+
+  // The pool is the whole seeded universe plus its reference rows, so the
+  // dimensions appear only once that has arrived.
+  const dimensions = window.getByLabel('Row 01 dimension')
+  await expect
+    .poll(async () => dimensions.locator('option').allTextContents(), { timeout: 20_000 })
+    .toContain('Market cap')
+  expect(await dimensions.locator('option').allTextContents()).toContain('Free float market cap')
+})

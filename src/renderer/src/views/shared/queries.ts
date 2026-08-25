@@ -38,7 +38,7 @@ export function useReference(identifier: string, options: ReferenceOptions = {})
 }
 
 /**
- * The one field a table has to ASK for. Everything else arrives anyway.
+ * The derived fields a table has to ASK for. Stored columns arrive anyway.
  *
  * This used to name columns — `name`, `gics_sector`, `market_cap` and so on —
  * and every one of them was wrong. Reference columns are UPPERCASE and
@@ -48,12 +48,19 @@ export function useReference(identifier: string, options: ReferenceOptions = {})
  * against a real engine. The stub hid it by fabricating whatever was asked
  * for.
  *
- * Naming ONLY the derived field is both the fix and the more robust request:
+ * Naming ONLY the derived fields is both the fix and the more robust request:
  * omitting the stored columns returns all of them, whatever a given dataset
- * happens to carry, so no column name is hard-coded in the client at all.
- * Verified against a running engine.
+ * happens to carry, so no stored column name is hard-coded here at all.
+ *
+ * The two market caps arrived later. They are derived for the same reason
+ * `adv_3m` is — a price times a share count, moving daily — and this app
+ * asked for them in that shape rather than as stored columns. Naming them
+ * fills the "FF Mkt Cap ($B)" column that has been drawing dashes since it
+ * was built to the Figma frame, and gives the universe builder a market-cap
+ * range and rank for free, since it derives its filters from whatever comes
+ * back. Verified against a running engine.
  */
-export const TABLE_REFERENCE_FIELDS = ['adv_3m'] as const
+export const TABLE_REFERENCE_FIELDS = ['adv_3m', 'market_cap', 'free_float_market_cap'] as const
 
 /** py-beacon caps a batch at 1000 identifiers per call. */
 export const REFERENCE_BATCH_LIMIT = 1000

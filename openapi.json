@@ -634,6 +634,7 @@
           "data"
         ],
         "summary": "Reference",
+        "description": "One instrument's reference record, stored and derived.\n\n`fields` is honoured on the same terms as the batch form (BN-149).\nBefore that it was accepted and ignored, so `market_cap` came back\nempty from here and populated from `/data/reference` -- a parameter\nthat looks supported while doing nothing, which is the failure a\nclient cannot diagnose.\n\nUniverse memberships are answered here and not there: they were not\nanswerable when this endpoint was written, because no universe could\nbe created through the API and none was seeded, so the answer was\nalways \"none\". BN-132 changed that.",
         "operationId": "reference_data_reference__identifier__get",
         "parameters": [
           {
@@ -662,6 +663,27 @@
               "title": "Date"
             },
             "description": "Point-in-time date, YYYY-MM-DD. Returns only rows valid then."
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default.",
+              "title": "Fields"
+            },
+            "description": "Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default."
           }
         ],
         "responses": {
@@ -1595,7 +1617,7 @@
           "data"
         ],
         "summary": "Table Page",
-        "description": "One page of a stored dataset, as it is held.\n\nDeliberately without filtering or sorting parameters. A client needing\nthose wants a query language, and this is the wrong place to grow one\n-- the per-identifier endpoints and the expression API already cover\nevery case anybody has asked for.",
+        "description": "One page of a stored dataset, optionally narrowed to some names.\n\n`identifiers` is the only filter, and it exists because one\ninstrument's *history* -- its feature rows, its actions -- was\notherwise reachable only by paging the whole table and filtering\nclient-side, which is 964k rows to find a few dozen (BN-150).\n\nStill no sorting or predicate parameters. A client needing those wants\na query language, and this is the wrong place to grow one -- the\nper-identifier endpoints and the expression API cover the rest.",
         "operationId": "table_page_data_tables__dataset__get",
         "parameters": [
           {
@@ -1633,6 +1655,27 @@
               "title": "Limit"
             },
             "description": "Maximum rows, at most 1000."
+          },
+          {
+            "name": "identifiers",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call.",
+              "title": "Identifiers"
+            },
+            "description": "Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call."
           }
         ],
         "responses": {

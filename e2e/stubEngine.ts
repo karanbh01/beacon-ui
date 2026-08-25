@@ -94,7 +94,7 @@ const REFERENCE_COLUMNS = [
 ]
 
 /** Computed on request rather than stored, so it is legal in `fields`. */
-const DERIVED_COLUMNS = ['adv_3m']
+const DERIVED_COLUMNS = ['adv_3m', 'market_cap', 'free_float_market_cap']
 
 /**
  * Fixed, because every assertion below is written against these.
@@ -226,6 +226,8 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
       // is the whole reason the engine keeps two columns.
       country_domicile: ['US', 'IE', 'JP'][index % 3],
       free_float_market_cap: 3.16e12 - index * 1.1e10,
+      // Larger than the free float, as it must be: free float is a subset.
+      market_cap: (3.16e12 - index * 1.1e10) / 0.73,
       adv_3m: 4_182_000 - index * 9_000
     }
   }
