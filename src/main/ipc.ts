@@ -106,6 +106,11 @@ export function registerIpcHandlers(
     }
   })
 
+  handle('engine:start', () => {
+    engine.start()
+    return undefined
+  })
+
   handle('engine:restart', () => {
     engine.restart()
     return undefined

@@ -80,13 +80,21 @@ void app.whenReady().then(() => {
   const splash = createSplashWindow()
   const window = createMainWindow({ deferShow: true })
 
+  /*
+   * Reaching the app means the engine is wanted (BU-115).
+   *
+   * Start calls `engine:start` itself and waits for the result, but closing
+   * the splash lands here too — and an app whose engine was never started has
+   * no data and no obvious way to ask for any. `start` is idempotent, so the
+   * ordinary path calls it twice and spawns once.
+   */
   const handOver = (): void => {
+    engine.start()
     revealMainWindow(window)
     if (!splash.isDestroyed()) splash.close()
   }
 
   registerIpcHandlers(engine, updater, { onSplashDone: handOver })
-  engine.start()
   updater.start()
 
   // Closing the splash before the engine answers is a decision to carry on

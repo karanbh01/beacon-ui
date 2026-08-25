@@ -137,6 +137,18 @@ export interface IpcContract {
     request: undefined
     response: EngineState
   }
+  /**
+   * Begin startup: locate python, generate data if there is none, spawn.
+   *
+   * Nothing happens until this is called (BU-115). The splash's Start is what
+   * calls it, so the data settings beside it can be changed BEFORE the first
+   * generation rather than after it, which is the only time changing them is
+   * cheap.
+   */
+  'engine:start': {
+    request: undefined
+    response: undefined
+  }
   /** Force a restart, e.g. from a footer action. */
   'engine:restart': {
     request: undefined
@@ -288,6 +300,8 @@ export interface BeaconBridge {
   appInfo: () => Promise<AppInfo>
   engine: {
     state: () => Promise<EngineState>
+    /** Begin startup. A second call while it is already running does nothing. */
+    start: () => Promise<void>
     restart: () => Promise<void>
     /** Replaces the synthetic store. Asks first. */
     regenerate: () => Promise<RegenerateResult>

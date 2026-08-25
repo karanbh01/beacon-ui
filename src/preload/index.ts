@@ -21,6 +21,7 @@ const bridge: BeaconBridge = {
   appInfo: () => ipcRenderer.invoke('app:info') as Promise<AppInfo>,
   engine: {
     state: () => ipcRenderer.invoke('engine:state') as Promise<EngineState>,
+    start: () => ipcRenderer.invoke('engine:start') as Promise<void>,
     restart: () => ipcRenderer.invoke('engine:restart') as Promise<void>,
     regenerate: () => ipcRenderer.invoke('engine:regenerate') as Promise<RegenerateResult>,
     onChange: (listener) => {

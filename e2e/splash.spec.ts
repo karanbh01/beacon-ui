@@ -19,10 +19,56 @@ async function launch(engineUrl: string, profile: string): Promise<ElectronAppli
   })
 }
 
+test('both buttons are outside the drag region, or they cannot be clicked', async ({
+  engine
+}, testInfo) => {
+  const app = await launch(engine.url, testInfo.outputPath('profile'))
+  const splash = await app.firstWindow()
+  await splash.getByRole('button', { name: 'Start' }).waitFor()
+
+  /*
+   * The one failure a click test cannot catch.
+   *
+   * The whole splash surface is a drag region, and on one the OS takes a
+   * press as "move the window" before the renderer sees a click. Start and
+   * Data settings shipped without opting out and were dead to the mouse,
+   * while the tests below — which click both — kept passing: Playwright
+   * dispatches input through the debugger, which never consults the
+   * drag-region hit test. So this asks the computed style instead.
+   */
+  const regions = await splash.evaluate(() =>
+    [...document.querySelectorAll('.splash-actions button')].map((button) =>
+      getComputedStyle(button).getPropertyValue('-webkit-app-region')
+    )
+  )
+
+  expect(regions).toEqual(['no-drag', 'no-drag'])
+  await app.close()
+})
+
+test('starts nothing until Start is pressed', async ({ engine }, testInfo) => {
+  const app = await launch(engine.url, testInfo.outputPath('profile'))
+  const splash = await app.firstWindow()
+
+  // Idle, not "starting": no python has been spawned and no data generated,
+  // which is what makes changing the data settings here worth anything.
+  await expect(splash.getByRole('progressbar', { name: 'Startup' })).toHaveAttribute(
+    'aria-valuenow',
+    '0'
+  )
+  await expect(splash.getByText('Ready when you are')).toBeVisible()
+
+  // What happens after the press is the next test's business — and it is
+  // over in a frame, since the hand-over closes this window.
+  await app.close()
+})
+
 test('holds the app back until Start is pressed', async ({ engine }, testInfo) => {
   const app = await launch(engine.url, testInfo.outputPath('profile'))
   const splash = await app.firstWindow()
 
+  // Enabled from the first frame now (BU-115): pressing it is what starts
+  // the engine, so gating it on the engine would have been circular.
   await expect(splash.getByRole('button', { name: 'Start' })).toBeEnabled()
 
   /*

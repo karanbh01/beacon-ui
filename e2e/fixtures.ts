@@ -29,6 +29,31 @@ const ROOT = join(__dirname, '..')
  * it they share a persisted workspace and the second test sees whatever the
  * first left open.
  */
+/**
+ * Wait for the window whose URL `wants` accepts.
+ *
+ * Polled rather than `waitForEvent`, which only sees windows created after it
+ * attaches: the one being waited for is usually already open, and a missed
+ * event never replays.
+ */
+async function windowFor(
+  app: ElectronApplication,
+  wants: (url: string) => boolean,
+  what: string
+): Promise<Page> {
+  const deadline = Date.now() + 30_000
+  for (;;) {
+    const found = app.windows().find((candidate) => wants(candidate.url()))
+    if (found !== undefined) return found
+    if (Date.now() > deadline) throw new Error(`${what} never appeared`)
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+}
+
+/** `#splash` and `#settings` are hashes off one entry; the app itself has none. */
+const isSplash = (url: string): boolean => url.includes('#splash')
+const isApp = (url: string): boolean => url !== '' && !url.includes('#')
+
 export const test = base.extend<BeaconFixtures>({
   // Playwright reads the destructuring pattern to work out which fixtures this
   // one depends on. `{}` is how you say "none" — an unused identifier there
@@ -57,23 +82,18 @@ export const test = base.extend<BeaconFixtures>({
 
   window: async ({ app }, use) => {
     /*
-     * The splash comes first and waits to be started (BU-111).
+     * The splash comes first and waits to be started (BU-111, BU-115).
      *
-     * It used to hand over by itself the moment the engine answered, so a
-     * test only had to wait. Now Start is pressed — by the test, as by a
-     * user, which is the point of driving the app rather than its internals.
+     * Found by URL, not by `firstWindow()`. Both windows are created in the
+     * same tick, so which one arrives first is a race — and when it came back
+     * as the main window the test skipped Start entirely and drove a window
+     * that was still hidden. That was survivable while the engine started on
+     * its own; now that Start IS the startup, it means driving an app with no
+     * engine behind it, which showed up as data that never arrived.
      */
-    let window = await app.firstWindow()
-    if (window.url().includes('#splash')) {
-      const splash = window
-      await splash.getByRole('button', { name: 'Start' }).click({ timeout: 30_000 })
-
-      window =
-        app.windows().find((candidate) => !candidate.url().includes('#splash')) ??
-        (await app.waitForEvent('window', {
-          predicate: (candidate) => !candidate.url().includes('#splash')
-        }))
-    }
+    const splash = await windowFor(app, isSplash, 'the splash')
+    await splash.getByRole('button', { name: 'Start' }).click({ timeout: 30_000 })
+    const window = await windowFor(app, isApp, 'the app window')
 
     await window.waitForSelector('.app-shell')
     // Fonts settle before anything is measured or screenshotted; a metric

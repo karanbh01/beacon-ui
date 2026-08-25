@@ -12,6 +12,20 @@ export interface SplashProgress {
 }
 
 /**
+ * Before Start is pressed (BU-115).
+ *
+ * The engine's own initial state is `starting`, which would have the bar
+ * claim the engine was coming up while nothing had been asked of it. Nothing
+ * is happening yet, and the bar says so by being empty.
+ */
+export const NOT_STARTED: SplashProgress = {
+  fraction: 0,
+  label: 'Ready when you are',
+  ready: false,
+  failed: false
+}
+
+/**
  * Four stages, because there are four and they are not instant.
  *
  * The engine already reports its own lifecycle, and BU-57 added a step that

@@ -183,3 +183,17 @@
   align-self: center;
   margin-top: 20px;
 }
+
+/*
+ * Both buttons opt out of the drag region, or they cannot be pressed.
+ *
+ * The whole splash surface drags — there is no menu bar to carry it — and on
+ * a drag region the OS takes a press as "move the window" before the renderer
+ * ever sees a click. Start and Data settings arrived with BU-111 without this
+ * and were dead to the mouse, while the E2E that clicks both kept passing:
+ * Playwright dispatches input through the debugger, which never consults the
+ * drag-region hit test. Anything clickable added here needs the same line.
+ */
+.splash-actions button {
+  -webkit-app-region: no-drag;
+}

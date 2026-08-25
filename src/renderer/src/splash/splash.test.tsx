@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EngineState } from '@shared/ipc'
 import { Splash } from './Splash'
 import { splashProgress } from './splashProgress'
@@ -55,7 +55,37 @@ describe('splashProgress', () => {
   })
 })
 
+interface Stubs {
+  start?: () => Promise<void>
+  restart?: () => Promise<void>
+  splashDone?: () => Promise<void>
+  openSettingsWindow?: () => Promise<void>
+}
+
+/** The bridge, with only the calls a given test cares about spied on. */
+function stub(engine: EngineState, calls: Stubs = {}): void {
+  vi.stubGlobal('beacon', {
+    engine: {
+      state: () => Promise.resolve(engine),
+      start: calls.start ?? (() => Promise.resolve()),
+      restart: calls.restart ?? (() => Promise.resolve()),
+      onChange: () => () => undefined
+    },
+    update: { state: () => Promise.resolve({ status: 'idle' }), onChange: () => () => undefined },
+    data: { openSettingsWindow: calls.openSettingsWindow ?? (() => Promise.resolve()) },
+    window: {
+      splashDone: calls.splashDone ?? (() => Promise.resolve()),
+      isMaximized: () => Promise.resolve(false),
+      onMaximizeChange: () => () => undefined
+    }
+  })
+}
+
 describe('Splash', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('carries the licence, which is the only place the app states it', () => {
     render(<Splash version="0.0.1" />)
 
@@ -77,57 +107,72 @@ describe('Splash', () => {
     expect(screen.getByRole('progressbar', { name: 'Startup' })).toBeInTheDocument()
   })
 
-  it('waits for Start rather than handing over the moment the engine is up', async () => {
-    // BU-111. It used to call `splashDone` from an effect the instant the
-    // engine reported ready, so the app appeared whenever startup happened to
-    // finish — including part-way through changing where the data comes from.
+  it('starts the engine when Start is pressed, and not before', async () => {
+    // BU-115. Nothing loads until the button is pressed: no python, no
+    // generation. That is what makes the settings beside it worth having,
+    // since a store location is only cheap to change before a store exists.
+    const start = vi.fn(() => Promise.resolve())
     const splashDone = vi.fn(() => Promise.resolve())
-    vi.stubGlobal('beacon', {
-      engine: {
-        state: () => Promise.resolve({ status: 'connected' }),
-        onChange: () => () => undefined
-      },
-      update: { state: () => Promise.resolve({ status: 'idle' }), onChange: () => () => undefined },
-      data: { openSettingsWindow: () => Promise.resolve() },
-      window: {
-        splashDone,
-        isMaximized: () => Promise.resolve(false),
-        onMaximizeChange: () => () => undefined
-      }
-    })
+    stub({ status: 'connected' }, { start, splashDone })
 
     render(<Splash version="0.0.1" />)
-    await screen.findByText('Ready')
+    await screen.findByText('Ready when you are')
+    expect(start).not.toHaveBeenCalled()
     expect(splashDone).not.toHaveBeenCalled()
 
     await userEvent.click(screen.getByRole('button', { name: 'Start' }))
-    expect(splashDone).toHaveBeenCalledTimes(1)
-    vi.unstubAllGlobals()
+    expect(start).toHaveBeenCalledTimes(1)
   })
 
-  it('will not start before the engine can serve', () => {
-    // Pressing Start on a dead engine would open an app with nothing behind
-    // it, which is worse than waiting on a screen that says why.
+  it('hands over once the engine it started is up', async () => {
+    const splashDone = vi.fn(() => Promise.resolve())
+    stub({ status: 'connected' }, { splashDone })
+
     render(<Splash version="0.0.1" />)
-    expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled()
+    // Ready, and still nothing: the hand-over is the second half of a press,
+    // not something that happens on its own (BU-111).
+    await screen.findByText('Ready when you are')
+    expect(splashDone).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Start' }))
+    await waitFor(() => {
+      expect(splashDone).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('waits rather than handing over while the engine is still coming up', async () => {
+    const splashDone = vi.fn(() => Promise.resolve())
+    stub({ status: 'starting' }, { splashDone })
+
+    render(<Splash version="0.0.1" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+    // The press moves the bar; it does not open an app with nothing behind it.
+    await screen.findByText('Starting the engine…')
+    expect(splashDone).not.toHaveBeenCalled()
+  })
+
+  it('turns into a retry when the engine gives up', async () => {
+    const restart = vi.fn(() => Promise.resolve())
+    stub({ status: 'stopped', detail: 'server exited with code 2' }, { restart })
+
+    render(<Splash version="0.0.1" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+    // `stopped` is the engine having given up, so nothing moves again until
+    // something explicitly restarts it.
+    const retry = await screen.findByRole('button', { name: 'Try again' })
+    await userEvent.click(retry)
+    expect(restart).toHaveBeenCalledTimes(1)
   })
 
   it('offers the data settings, which is the point of waiting', async () => {
     const openSettingsWindow = vi.fn(() => Promise.resolve())
-    vi.stubGlobal('beacon', {
-      engine: {
-        state: () => Promise.resolve({ status: 'starting' }),
-        onChange: () => () => undefined
-      },
-      update: { state: () => Promise.resolve({ status: 'idle' }), onChange: () => () => undefined },
-      data: { openSettingsWindow },
-      window: { isMaximized: () => Promise.resolve(false), onMaximizeChange: () => () => undefined }
-    })
+    stub({ status: 'starting' }, { openSettingsWindow })
 
     render(<Splash version="0.0.1" />)
     await userEvent.click(screen.getByRole('button', { name: 'Data settings…' }))
 
     expect(openSettingsWindow).toHaveBeenCalledTimes(1)
-    vi.unstubAllGlobals()
   })
 })

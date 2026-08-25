@@ -88,6 +88,8 @@ export class Engine extends EventEmitter {
   private startTimer: NodeJS.Timeout | undefined
   private attempt = 0
   private stopping = false
+  /** True from the first `start()` until `stop()`. Guards a second launch. */
+  private launched = false
   /** Written this session, waiting for a server to say which version wrote it. */
   private unstamped: StoreProvenance | undefined
   private readonly token: string
@@ -132,11 +134,23 @@ export class Engine extends EventEmitter {
   /**
    * Start supervising.
    *
+   * Called when the splash's Start is pressed, not at app launch (BU-115):
+   * generating a store is minutes of work, and the settings that decide where
+   * it lands sit on the same window. Doing it before the user has said go
+   * meant the one moment those settings are cheap to change had already
+   * passed.
+   *
+   * Idempotent, because Start is a button and buttons get pressed twice. A
+   * second call while a store is being generated would run a second generator
+   * over the same directory.
+   *
    * With BEACON_SERVER_URL set we attach to an externally-run server and
    * never spawn — that is the dev loop where py-beacon is being edited in
    * another terminal and restarting it from here would fight the developer.
    */
   start(): void {
+    if (this.launched) return
+    this.launched = true
     this.stopping = false
     const external = this.options.serverUrl
     if (external !== undefined && external !== '') {
@@ -446,9 +460,14 @@ export class Engine extends EventEmitter {
   }
 
   restart(): void {
+    // Nothing to restart before Start has been pressed, and starting here
+    // would defeat it — saving data settings on the splash calls this.
+    if (!this.launched) return
+
     this.clearTimers()
     this.attempt = 0
     this.killChild()
+    this.launched = false
     this.start()
   }
 
@@ -469,6 +488,7 @@ export class Engine extends EventEmitter {
   /** Called on app quit. Must leave no orphaned python behind. */
   stop(): void {
     this.stopping = true
+    this.launched = false
     this.clearTimers()
     this.killChild()
     this.state = { status: 'stopped' }

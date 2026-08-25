@@ -5,7 +5,7 @@ import { useEngine } from '../state/engine'
 import { useTheme } from '../state/theme'
 import { useUpdate } from '../state/update'
 import { WindowControls } from '../shell/WindowControls'
-import { splashProgress } from './splashProgress'
+import { NOT_STARTED, splashProgress } from './splashProgress'
 import './Splash.css'
 
 /** The frame's own text (36:1139), which is the only place the app says this. */
@@ -21,6 +21,11 @@ const LICENCE =
   'indicative of future results. © 2026 Karan Bhanot. All rights reserved.'
 
 const REPO = 'https://github.com/karanbh01/beacon-ui'
+
+function startLabel(starting: boolean, failed: boolean): string {
+  if (!starting) return 'Start'
+  return failed ? 'Try again' : 'Starting…'
+}
 
 export interface SplashProps {
   /** Passed in tests; the window reads it from the bridge itself. */
@@ -40,9 +45,10 @@ export interface SplashProps {
  */
 export function Splash({ version }: SplashProps): ReactElement {
   const [ownVersion, setOwnVersion] = useState<string | undefined>(version)
+  const [starting, setStarting] = useState(false)
   const engine = useEngine()
   const update = useUpdate()
-  const progress = splashProgress(engine)
+  const progress = starting ? splashProgress(engine) : NOT_STARTED
 
   // Follows the OS the same way the app does; without this the splash would
   // flash the wrong palette before the window it precedes.
@@ -61,16 +67,37 @@ export function Splash({ version }: SplashProps): ReactElement {
   }, [version])
 
   /*
-   * No automatic hand-over (BU-111).
+   * Start IS the launch (BU-115).
    *
-   * The splash used to call `splashDone` the instant the engine reported
-   * ready, so the app appeared whenever startup happened to finish — which is
-   * also the moment someone might be part-way through changing where the data
-   * comes from. Start is now pressed.
+   * Nothing loads until it is pressed: main spawns no python and generates no
+   * data before this call, which is what makes the settings button beside it
+   * useful — a store location is only cheap to change before a store has been
+   * written to it.
+   *
+   * A failed startup turns the button into a retry. The engine backs off and
+   * tries again on its own, but "stopped" means it has given up, and then the
+   * only thing that will move is an explicit restart.
    */
   const start = (): void => {
-    void window.beacon?.window.splashDone()
+    setStarting(true)
+    if (progress.failed) {
+      void window.beacon?.engine.restart()
+      return
+    }
+    void window.beacon?.engine.start()
   }
+
+  /*
+   * Hand over once, when the engine is up and Start has been pressed.
+   *
+   * The automatic hand-over BU-111 removed fired whenever startup happened to
+   * finish, which could be mid-settings-change. This one cannot: it is the
+   * second half of a press.
+   */
+  useEffect(() => {
+    if (!starting || !progress.ready) return
+    void window.beacon?.window.splashDone()
+  }, [starting, progress.ready])
 
   return (
     <div className="splash">
@@ -104,8 +131,8 @@ export function Splash({ version }: SplashProps): ReactElement {
       </div>
 
       <div className="splash-actions">
-        <Button variant="accent" onClick={start} disabled={!progress.ready}>
-          Start
+        <Button variant="accent" onClick={start} disabled={starting && !progress.failed}>
+          {startLabel(starting, progress.failed)}
         </Button>
         <Button
           onClick={() => {
