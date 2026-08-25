@@ -132,11 +132,20 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
   return {
     identifier,
     found: true,
+    // The columns a real engine carries after BN-128, including the two
+    // country columns it deliberately keeps apart.
     fields: {
       date_from: listedFrom(index),
       name: `${identifier} Corporation`,
       gics_sector: ['Information Technology', 'Financials', 'Health Care'][index % 3],
       gics_sub_industry: 'Application Software',
+      region: ['United States', 'Europe', 'Japan'][index % 3],
+      exchange: ['XNAS', 'XLON', 'XTKS'][index % 3],
+      currency: ['USD', 'GBP', 'JPY'][index % 3],
+      country_listing: ['US', 'GB', 'JP'][index % 3],
+      // Deliberately not the listing country for some names: that difference
+      // is the whole reason the engine keeps two columns.
+      country_domicile: ['US', 'IE', 'JP'][index % 3],
       free_float_market_cap: 3.16e12 - index * 1.1e10,
       adv_3m: 4_182_000 - index * 9_000
     }
@@ -379,7 +388,17 @@ function body(url: URL): unknown {
   }
 
   if (path.startsWith('/data/reference/')) {
-    return { identifier: path.split('/').pop(), fields: referenceEntry('CMP000', 0).fields }
+    // The identifier ASKED FOR, not CMP000's row for everything. It served
+    // one instrument's fields under every name, so the view looked right
+    // while showing the wrong company — and no test could tell.
+    const identifier = decodeURIComponent(path.slice('/data/reference/'.length))
+    const index = IDENTIFIERS.indexOf(identifier)
+    if (index < 0 && identifier !== REFERENCE_ONLY) return undefined
+
+    return {
+      identifier,
+      fields: referenceEntry(identifier, Math.max(index, 0)).fields
+    }
   }
 
   if (path.startsWith('/data/corporate-actions/')) {

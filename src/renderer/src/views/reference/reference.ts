@@ -34,7 +34,22 @@ export const REFERENCE_CARDS: readonly ReferenceCard[] = [
       { label: 'SEDOL', keys: ['sedol'] },
       { label: 'Exchange', keys: ['exchange', 'exchange_name', 'full_exchange_name', 'mic'] },
       { label: 'Currency', keys: ['currency'] },
-      { label: 'Country', keys: ['country'] },
+      /*
+       * Two rows, because py-beacon carries two columns (BN-128).
+       *
+       * The split is deliberate: a name listed in Hong Kong and domiciled in
+       * Bermuda has two different answers, and this app asked for them
+       * separately for that reason. A single "Country" row reading whichever
+       * turned up first would put back exactly the ambiguity the split
+       * removed — and until now it read `country`, a column no py-beacon
+       * dataset has, so it was a permanent dash.
+       *
+       * `country` stays as a fallback on the listing row: the fields
+       * dictionary is open, and another reference source may well carry one
+       * plain country column meaning the listing venue.
+       */
+      { label: 'Country of Listing', keys: ['country_listing', 'country'] },
+      { label: 'Country of Domicile', keys: ['country_domicile'] },
       { label: 'Security Type', keys: ['security_type', 'instrument_type', 'quote_type', 'type'] }
     ]
   },

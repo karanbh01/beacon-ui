@@ -84,3 +84,49 @@ describe('unclaimedCount', () => {
     expect(unclaimedCount(undefined)).toBe(0)
   })
 })
+
+describe('the two country columns (BU-114)', () => {
+  /** What a post-BN-128 engine actually sends, lower-cased on the wire. */
+  const FIELDS = {
+    NAME: 'Alpha Corp',
+    EXCHANGE: 'XHKG',
+    CURRENCY: 'HKD',
+    COUNTRY_LISTING: 'HK',
+    COUNTRY_DOMICILE: 'BM'
+  }
+
+  function rowLabels(): string[] {
+    return REFERENCE_CARDS.flatMap((card) => card.rows.map((row) => row.label))
+  }
+
+  it('asks for both, because the engine deliberately keeps them apart', () => {
+    // A name listed in Hong Kong and domiciled in Bermuda has two answers.
+    // One "Country" row would put back the ambiguity BN-128 removed.
+    expect(rowLabels()).toContain('Country of Listing')
+    expect(rowLabels()).toContain('Country of Domicile')
+    expect(rowLabels()).not.toContain('Country')
+  })
+
+  it('reads each from its own column', () => {
+    const index = indexFields(FIELDS)
+    expect(readField(index, ['country_listing', 'country'])).toBe('HK')
+    expect(readField(index, ['country_domicile'])).toBe('BM')
+  })
+
+  it('used to read a column no py-beacon dataset has', () => {
+    // The old row was `keys: ['country']`, so it was a permanent dash against
+    // every real engine.
+    expect(readField(indexFields(FIELDS), ['country'])).toBe('—')
+  })
+
+  it('still answers a source that carries one plain country column', () => {
+    // The fields dictionary is open; another reference source may well have
+    // exactly one, meaning the listing venue.
+    expect(readField(indexFields({ COUNTRY: 'US' }), ['country_listing', 'country'])).toBe('US')
+  })
+
+  it('claims both, so neither shows up as an unclaimed extra field', () => {
+    expect(claimedKeys().has('country_listing')).toBe(true)
+    expect(claimedKeys().has('country_domicile')).toBe(true)
+  })
+})

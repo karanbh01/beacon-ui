@@ -323,3 +323,22 @@ test('Data Coverage reports the FX dataset', async ({ window }) => {
 
   await expect(window.getByRole('cell', { name: 'FX', exact: true })).toBeVisible()
 })
+
+test('Reference Data states listing and domicile country separately', async ({ window }) => {
+  // BU-114. The row asked for a `country` column no py-beacon dataset has,
+  // so it was a permanent dash; the engine carries country_listing and
+  // country_domicile, kept apart on purpose.
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Reference Data')
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+  await window.locator('.reference-grid').waitFor()
+
+  const identifiers = window.locator('.reference-card').first()
+  await expect(identifiers.getByText('Country of Listing')).toBeVisible()
+  await expect(identifiers.getByText('Country of Domicile')).toBeVisible()
+  // CMP001 is listed in GB and domiciled in IE, which is the case that makes
+  // one collapsed column wrong.
+  await expect(identifiers.getByText('GB', { exact: true })).toBeVisible()
+  await expect(identifiers.getByText('IE', { exact: true })).toBeVisible()
+})
