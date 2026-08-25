@@ -1,0 +1,63 @@
+/* The data-settings window (BU-111). A 520x380 child of the splash. */
+
+.data-settings {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--canvas);
+}
+
+/*
+ * Draggable, like the splash's own bar: the window is frameless, so this is
+ * the only way to move it. The controls opt out — see WindowControls.
+ */
+.data-settings-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 42px;
+  padding-left: 16px;
+  border-bottom: 1px solid var(--divider);
+  -webkit-app-region: drag;
+}
+
+.data-settings-title {
+  color: var(--text-primary);
+}
+
+.data-settings-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.data-settings-input {
+  width: 100%;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.data-settings-row {
+  display: flex;
+  gap: 8px;
+}
+
+.data-settings-note {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.data-settings-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--divider);
+}

@@ -36,7 +36,7 @@ export function createSplashWindow(): BrowserWindow {
     maximizable: false,
     fullscreenable: false,
     show: false,
-    ...devIcon,
+    ...devIcon(),
     // The dark canvas token, as in window.ts: only visible before the first
     // frame, but a stale literal would flash a colour no longer in the
     // palette.

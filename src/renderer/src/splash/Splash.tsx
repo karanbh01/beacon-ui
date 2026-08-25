@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react'
+import { Button } from '../components/Button/Button'
 import { GithubIcon } from '../icons/generated'
 import { useEngine } from '../state/engine'
 import { useTheme } from '../state/theme'
@@ -59,10 +60,17 @@ export function Splash({ version }: SplashProps): ReactElement {
       .catch(() => undefined)
   }, [version])
 
-  useEffect(() => {
-    if (!progress.ready) return
+  /*
+   * No automatic hand-over (BU-111).
+   *
+   * The splash used to call `splashDone` the instant the engine reported
+   * ready, so the app appeared whenever startup happened to finish — which is
+   * also the moment someone might be part-way through changing where the data
+   * comes from. Start is now pressed.
+   */
+  const start = (): void => {
     void window.beacon?.window.splashDone()
-  }, [progress.ready])
+  }
 
   return (
     <div className="splash">
@@ -93,6 +101,19 @@ export function Splash({ version }: SplashProps): ReactElement {
         >
           {progress.label}
         </p>
+      </div>
+
+      <div className="splash-actions">
+        <Button variant="accent" onClick={start} disabled={!progress.ready}>
+          Start
+        </Button>
+        <Button
+          onClick={() => {
+            void window.beacon?.data.openSettingsWindow()
+          }}
+        >
+          Data settings…
+        </Button>
       </div>
 
       <div className="splash-rule" />

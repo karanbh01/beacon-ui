@@ -169,3 +169,17 @@
 .splash-github:hover {
   color: var(--text-primary);
 }
+
+/*
+ * Start, and the way to change what starts (BU-111).
+ *
+ * Between the progress bar and the licence rule: the bar says whether the
+ * engine is ready, and Start is what that readiness is FOR. Putting it in the
+ * footer beside the version would have separated the two.
+ */
+.splash-actions {
+  display: flex;
+  gap: 8px;
+  align-self: center;
+  margin-top: 20px;
+}

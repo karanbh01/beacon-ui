@@ -10,7 +10,15 @@ import { app } from 'electron'
  * shipped. Unpackaged, Electron would otherwise show its own default icon in
  * the taskbar, which makes the dev window look like somebody else's app.
  *
- * Shared by both windows since BU-97: the splash is the first thing on the
+ * Shared by every window since BU-97: the splash is the first thing on the
  * taskbar, so it is the one that most needs to look like this app.
+ *
+ * A function, not a constant. As a constant it read `app.isPackaged` at
+ * IMPORT time, which means any module that transitively reaches this one
+ * needs a live Electron `app` just to be loaded — a unit test importing the
+ * IPC handlers crashed on it. Nothing needs the answer before a window is
+ * built.
  */
-export const devIcon = app.isPackaged ? {} : { icon: join(__dirname, '../../build/icon.png') }
+export function devIcon(): { icon?: string } {
+  return app.isPackaged ? {} : { icon: join(__dirname, '../../build/icon.png') }
+}

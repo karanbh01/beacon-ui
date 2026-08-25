@@ -56,13 +56,23 @@ export const test = base.extend<BeaconFixtures>({
   },
 
   window: async ({ app }, use) => {
-    // The splash is the first window and hands over once the engine answers;
-    // waiting for a window WITHOUT the splash hash is what waits for the app.
+    /*
+     * The splash comes first and waits to be started (BU-111).
+     *
+     * It used to hand over by itself the moment the engine answered, so a
+     * test only had to wait. Now Start is pressed — by the test, as by a
+     * user, which is the point of driving the app rather than its internals.
+     */
     let window = await app.firstWindow()
     if (window.url().includes('#splash')) {
-      window = await app.waitForEvent('window', {
-        predicate: (candidate) => !candidate.url().includes('#splash')
-      })
+      const splash = window
+      await splash.getByRole('button', { name: 'Start' }).click({ timeout: 30_000 })
+
+      window =
+        app.windows().find((candidate) => !candidate.url().includes('#splash')) ??
+        (await app.waitForEvent('window', {
+          predicate: (candidate) => !candidate.url().includes('#splash')
+        }))
     }
 
     await window.waitForSelector('.app-shell')

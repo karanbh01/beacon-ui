@@ -72,7 +72,7 @@ export function createMainWindow(options: MainWindowOptions = {}): BrowserWindow
   const window = new BrowserWindow({
     ...(saved ?? { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT }),
     ...frameOptions,
-    ...devIcon,
+    ...devIcon(),
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
     show: false,

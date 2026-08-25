@@ -4,6 +4,7 @@ import { EventEmitter } from 'node:events'
 import type { EngineState } from '@shared/ipc'
 import { restartDelay, shouldGiveUp } from './backoff'
 import { SERVER_MODULE, locatePython, parsePort } from './python'
+import { environmentFor, readSettings } from '../dataSettings'
 import { generateSynthetic, readStoreStatus, removeStore, shouldGenerate } from './synthetic'
 
 /** How often to confirm the server is still answering. */
@@ -154,8 +155,11 @@ export class Engine extends EventEmitter {
     const python = this.python()
 
     try {
+      // The saved settings, folded in: they say where the store is and
+      // whether to generate one, and a real environment variable outranks
+      // them (BU-111).
       const status = await readStoreStatus(python)
-      if (!shouldGenerate(status, process.env)) return
+      if (!shouldGenerate(status, this.environment())) return
 
       this.setState({
         status: 'starting',
@@ -183,6 +187,11 @@ export class Engine extends EventEmitter {
     }
   }
 
+  /** The real environment with the saved data settings folded in (BU-111). */
+  private environment(): NodeJS.ProcessEnv {
+    return environmentFor(readSettings(), process.env)
+  }
+
   private python(): string {
     return locatePython({
       override: this.options.pythonPath,
@@ -199,7 +208,7 @@ export class Engine extends EventEmitter {
     this.setState({ status: 'starting', detail: undefined, restarts: this.attempt })
 
     const child = spawn(python, ['-m', SERVER_MODULE, '--port', '0'], {
-      env: { ...process.env, BEACON_API_TOKEN: this.token, PYTHONUNBUFFERED: '1' },
+      env: { ...this.environment(), BEACON_API_TOKEN: this.token, PYTHONUNBUFFERED: '1' },
       stdio: ['ignore', 'pipe', 'pipe']
     })
     this.child = child
@@ -334,7 +343,7 @@ export class Engine extends EventEmitter {
    * overwrite it — the caller confirms with the user, not with the engine.
    */
   async regenerate(): Promise<void> {
-    if ((process.env.BEACON_DATA_PATH ?? '').trim() !== '') {
+    if ((this.environment().BEACON_DATA_PATH ?? '').trim() !== '') {
       throw new Error('BEACON_DATA_PATH names your own data store, so this will not replace it.')
     }
 

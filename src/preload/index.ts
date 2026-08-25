@@ -5,6 +5,7 @@ import {
   UPDATE_CHANGED,
   type AppInfo,
   type BeaconBridge,
+  type DataSettings,
   type RegenerateResult,
   type SaveResult,
   type EngineState,
@@ -74,6 +75,14 @@ const bridge: BeaconBridge = {
   },
   shell: {
     openExternal: (url) => ipcRenderer.invoke('shell:openExternal', { url }) as Promise<void>
+  },
+  data: {
+    settings: () => ipcRenderer.invoke('data:settings') as Promise<DataSettings>,
+    saveSettings: (settings) =>
+      ipcRenderer.invoke('data:saveSettings', settings) as Promise<DataSettings>,
+    chooseStore: () => ipcRenderer.invoke('data:chooseStore') as Promise<{ path: string }>,
+    openSettingsWindow: () => ipcRenderer.invoke('window:openSettings') as Promise<void>,
+    closeSettingsWindow: () => ipcRenderer.invoke('window:closeSettings') as Promise<void>
   }
 }
 

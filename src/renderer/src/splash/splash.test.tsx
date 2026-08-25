@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { EngineState } from '@shared/ipc'
 import { Splash } from './Splash'
@@ -76,7 +77,10 @@ describe('Splash', () => {
     expect(screen.getByRole('progressbar', { name: 'Startup' })).toBeInTheDocument()
   })
 
-  it('tells main when it is done, once', async () => {
+  it('waits for Start rather than handing over the moment the engine is up', async () => {
+    // BU-111. It used to call `splashDone` from an effect the instant the
+    // engine reported ready, so the app appeared whenever startup happened to
+    // finish — including part-way through changing where the data comes from.
     const splashDone = vi.fn(() => Promise.resolve())
     vi.stubGlobal('beacon', {
       engine: {
@@ -84,6 +88,7 @@ describe('Splash', () => {
         onChange: () => () => undefined
       },
       update: { state: () => Promise.resolve({ status: 'idle' }), onChange: () => () => undefined },
+      data: { openSettingsWindow: () => Promise.resolve() },
       window: {
         splashDone,
         isMaximized: () => Promise.resolve(false),
@@ -93,8 +98,36 @@ describe('Splash', () => {
 
     render(<Splash version="0.0.1" />)
     await screen.findByText('Ready')
+    expect(splashDone).not.toHaveBeenCalled()
 
+    await userEvent.click(screen.getByRole('button', { name: 'Start' }))
     expect(splashDone).toHaveBeenCalledTimes(1)
+    vi.unstubAllGlobals()
+  })
+
+  it('will not start before the engine can serve', () => {
+    // Pressing Start on a dead engine would open an app with nothing behind
+    // it, which is worse than waiting on a screen that says why.
+    render(<Splash version="0.0.1" />)
+    expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled()
+  })
+
+  it('offers the data settings, which is the point of waiting', async () => {
+    const openSettingsWindow = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('beacon', {
+      engine: {
+        state: () => Promise.resolve({ status: 'starting' }),
+        onChange: () => () => undefined
+      },
+      update: { state: () => Promise.resolve({ status: 'idle' }), onChange: () => () => undefined },
+      data: { openSettingsWindow },
+      window: { isMaximized: () => Promise.resolve(false), onMaximizeChange: () => () => undefined }
+    })
+
+    render(<Splash version="0.0.1" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Data settings…' }))
+
+    expect(openSettingsWindow).toHaveBeenCalledTimes(1)
     vi.unstubAllGlobals()
   })
 })

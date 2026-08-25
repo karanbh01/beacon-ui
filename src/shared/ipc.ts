@@ -91,6 +91,20 @@ export interface RegenerateResult {
   problem?: string
 }
 
+/**
+ * How the engine should find its data (BU-111).
+ *
+ * These are the two environment variables `shouldGenerate` already reads,
+ * made settable from inside the app for anyone who never opens a terminal.
+ * A real environment variable still wins — see `environmentFor`.
+ */
+export interface DataSettings {
+  /** Empty means py-beacon's own app-data location. */
+  storePath: string
+  /** Generate a synthetic store when there is nothing at that location. */
+  synthetic: boolean
+}
+
 export interface SaveRequest {
   /** Offered in the dialog, and the basis for the extension filter. */
   suggestedName: string
@@ -174,6 +188,34 @@ export interface IpcContract {
    * `file:` and the OS's own schemes are how that call becomes a way to run
    * things.
    */
+  'data:settings': {
+    request: undefined
+    response: DataSettings
+  }
+  /**
+   * Save them and restart the engine against the result.
+   *
+   * Answers with what was stored, since the engine may have been pointed at
+   * a location that turns out to hold nothing.
+   */
+  'data:saveSettings': {
+    request: DataSettings
+    response: DataSettings
+  }
+  /** Ask the user for a folder. Empty when they dismissed the dialog. */
+  'data:chooseStore': {
+    request: undefined
+    response: { path: string }
+  }
+  /** The splash opening its settings window, and that window closing itself. */
+  'window:openSettings': {
+    request: undefined
+    response: undefined
+  }
+  'window:closeSettings': {
+    request: undefined
+    response: undefined
+  }
   'shell:openExternal': {
     request: { url: string }
     response: undefined
@@ -274,5 +316,12 @@ export interface BeaconBridge {
   shell: {
     /** Opens an http(s) URL in the default browser. */
     openExternal: (url: string) => Promise<void>
+  }
+  data: {
+    settings: () => Promise<DataSettings>
+    saveSettings: (settings: DataSettings) => Promise<DataSettings>
+    chooseStore: () => Promise<{ path: string }>
+    openSettingsWindow: () => Promise<void>
+    closeSettingsWindow: () => Promise<void>
   }
 }

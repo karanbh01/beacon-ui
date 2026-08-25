@@ -99,3 +99,32 @@ and coverage reports `features: configured=false` on a store generated before
 BN-140. Anyone building or testing against features needs a store made after
 it — worth stating because the endpoints exist and answer emptily rather than
 erroring, which reads as a client fault.
+
+
+---
+
+## Addendum: an identifier filter on the table endpoint (BU-113)
+
+BN-147's `GET /data/tables/{dataset}` returns exactly the shape a history view
+needs. For features:
+
+```
+columns : IDENTIFIER, DATE, TYPE, FIELD, VALUE, DETAIL
+total   : 969,992
+row 0   : CMPA | 2016-11-27 | fundamentals | pe_ratio | 10.4482 | period ending 2016-09-30, reported 2016Q3
+```
+
+Every historical value is there, dated and attributed. What is missing is a
+way to ask for one name's rows. The endpoint takes only `offset` and `limit`;
+passing `identifiers=CMPA` is ignored, and the total comes back as 969,992
+either way — verified against a running engine. Paging the whole table to
+find one instrument's ~180 rows is 970 requests for 0.02% of the payload.
+
+**Ask:** an `identifiers` filter on `GET /data/tables/{dataset}`,
+comma-separated or repeated, exactly as `/data/reference` already accepts.
+
+That endpoint already returns the right columns and already pages, so this is
+the smallest change that unblocks a Features history view — and it serves the
+Database view's whole-table browsing at the same time. A
+`/data/features/{identifier}/history` would also work but adds an endpoint
+where a parameter would do.

@@ -15,7 +15,9 @@ import {
   type SaveResult,
   type UpdateState
 } from '@shared/ipc'
+import { readSettings, writeSettings } from './dataSettings'
 import { externalUrl } from './externalUrl'
+import { closeSettingsWindow, openSettingsWindow } from './settingsWindow'
 import type { Engine } from './engine/engine'
 import type { Updater } from './updater'
 
@@ -178,6 +180,48 @@ export function registerIpcHandlers(
    * link into a way to launch things — and the renderer is the part of the
    * app most likely to be handed a URL by something else.
    */
+  handle('data:settings', () => readSettings())
+
+  /*
+   * Saving restarts the engine (BU-111).
+   *
+   * These decide where data comes from and whether any is generated, and the
+   * engine reads them when it spawns — so a save that did not restart would
+   * store a preference with no effect until next launch, which is the kind of
+   * setting people press twice.
+   */
+  handle('data:saveSettings', (_event, request) => {
+    const settings = { storePath: request.storePath.trim(), synthetic: request.synthetic }
+    writeSettings(settings)
+    engine.restart()
+    return settings
+  })
+
+  handle('data:chooseStore', async (event) => {
+    const window = senderWindow(event)
+    const options = {
+      title: 'Choose a data store',
+      properties: ['openDirectory' as const, 'createDirectory' as const]
+    }
+    const chosen =
+      window === null
+        ? await dialog.showOpenDialog(options)
+        : await dialog.showOpenDialog(window, options)
+
+    // Dismissing is an answer: the caller keeps whatever it had.
+    return { path: chosen.canceled ? '' : (chosen.filePaths[0] ?? '') }
+  })
+
+  handle('window:openSettings', (event) => {
+    openSettingsWindow(senderWindow(event))
+    return undefined
+  })
+
+  handle('window:closeSettings', () => {
+    closeSettingsWindow()
+    return undefined
+  })
+
   handle('shell:openExternal', async (_event, request) => {
     const url = externalUrl(request.url)
     if (url === undefined) return undefined
