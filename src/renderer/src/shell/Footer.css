@@ -28,6 +28,11 @@
   border-radius: 50%;
 }
 
+/* Idle: nothing has been asked of the engine, which is neither good nor bad. */
+.dot-muted {
+  background: var(--text-muted);
+}
+
 .dot-success {
   background: var(--success);
 }

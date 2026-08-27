@@ -67,6 +67,11 @@
   flex: none;
 }
 
+/* The bar's measured height: 6px track, 9px gap, one 11px line. */
+.splash-progress-idle {
+  height: 29px;
+}
+
 .splash-progress-track {
   height: 6px;
   background: var(--surface);

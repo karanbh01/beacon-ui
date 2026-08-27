@@ -4,9 +4,15 @@ import { APP_ORIGIN } from './appProtocol'
 import { devIcon } from './icon'
 import { guardNavigation } from './window'
 
-/** Enough for four rows and a path, and no more (BU-111). */
+/**
+ * Enough for what is in it, and no more (BU-111).
+ *
+ * Grew by 110 when replacing the data moved in (BU-116): the body does not
+ * scroll, so anything that does not fit is simply not readable, and the note
+ * about BEACON_DATA_PATH was the part that fell off the bottom.
+ */
 const WIDTH = 520
-const HEIGHT = 380
+const HEIGHT = 490
 
 let open: BrowserWindow | null = null
 

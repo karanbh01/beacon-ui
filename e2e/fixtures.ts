@@ -54,6 +54,16 @@ async function windowFor(
 const isSplash = (url: string): boolean => url.includes('#splash')
 const isApp = (url: string): boolean => url !== '' && !url.includes('#')
 
+/** The splash, whether or not it won the race to be created first. */
+export async function splashWindow(app: ElectronApplication): Promise<Page> {
+  return windowFor(app, isSplash, 'the splash')
+}
+
+/** The app window, which exists from launch but stays hidden until Start. */
+export async function appWindow(app: ElectronApplication): Promise<Page> {
+  return windowFor(app, isApp, 'the app window')
+}
+
 export const test = base.extend<BeaconFixtures>({
   // Playwright reads the destructuring pattern to work out which fixtures this
   // one depends on. `{}` is how you say "none" — an unused identifier there

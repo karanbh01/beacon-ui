@@ -12,20 +12,6 @@ export interface SplashProgress {
 }
 
 /**
- * Before Start is pressed (BU-115).
- *
- * The engine's own initial state is `starting`, which would have the bar
- * claim the engine was coming up while nothing had been asked of it. Nothing
- * is happening yet, and the bar says so by being empty.
- */
-export const NOT_STARTED: SplashProgress = {
-  fraction: 0,
-  label: 'Ready when you are',
-  ready: false,
-  failed: false
-}
-
-/**
  * Four stages, because there are four and they are not instant.
  *
  * The engine already reports its own lifecycle, and BU-57 added a step that
@@ -33,12 +19,18 @@ export const NOT_STARTED: SplashProgress = {
  * data. A bar animated to look busy would be lying about the one moment the
  * user actually waits.
  *
+ * Nothing at all until Start is pressed, which is the point of pressing it.
+ *
  * The stages are inferred from what `EngineState` already carries rather than
  * from a new channel: `detail` names the generation step, and `baseUrl`
  * appears only once the server has announced its port, which is what
  * separates "spawning" from "waiting for it to answer".
  */
-export function splashProgress(engine: EngineState): SplashProgress {
+export function splashProgress(engine: EngineState): SplashProgress | undefined {
+  // Nothing has been asked of the engine yet, so there is nothing to report
+  // and no bar to draw (BU-115). A bar at zero still says "started, at zero".
+  if (engine.status === 'idle') return undefined
+
   if (engine.status === 'connected') {
     return { fraction: 1, label: 'Ready', ready: true, failed: false }
   }

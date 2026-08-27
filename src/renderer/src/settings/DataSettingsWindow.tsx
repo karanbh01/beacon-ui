@@ -24,6 +24,8 @@ export function DataSettingsWindow(): ReactElement {
   const [settings, setSettings] = useState<DataSettings>(DEFAULTS)
   const [saved, setSaved] = useState<DataSettings>(DEFAULTS)
   const [busy, setBusy] = useState(false)
+  const [rebuilding, setRebuilding] = useState(false)
+  const [problem, setProblem] = useState<string | undefined>(undefined)
 
   useTheme()
 
@@ -41,6 +43,35 @@ export function DataSettingsWindow(): ReactElement {
 
   const close = (): void => {
     void window.beacon?.data.closeSettingsWindow()
+  }
+
+  /**
+   * Replace the store the app generated (BU-116).
+   *
+   * The same call the Data Coverage view makes, offered here because this is
+   * where someone comes when the data looks wrong — and because from the
+   * splash it is reachable *before* the app has started, which is when
+   * rebuilding costs nothing but time.
+   *
+   * Main asks for confirmation in the OS dialog and does the deleting: this
+   * discards a couple of hundred megabytes, and a div is not the right thing
+   * to ask that with. Nothing is invalidated here because there is no query
+   * cache in this window; the app's own refreshes when the engine reconnects.
+   */
+  const regenerate = (): void => {
+    setRebuilding(true)
+    setProblem(undefined)
+    void window.beacon?.engine
+      .regenerate()
+      .then((result) => {
+        if (result.problem !== undefined) setProblem(result.problem)
+      })
+      .catch((cause: unknown) => {
+        setProblem(cause instanceof Error ? cause.message : String(cause))
+      })
+      .finally(() => {
+        setRebuilding(false)
+      })
   }
 
   const save = (): void => {
@@ -118,6 +149,20 @@ export function DataSettingsWindow(): ReactElement {
           Turn this off to run against real data only. The engine will start with nothing to serve
           until a store exists at the location above.
         </p>
+
+        <div className="data-settings-row">
+          <Button disabled={saved.storePath !== '' || rebuilding || busy} onClick={regenerate}>
+            {rebuilding ? 'Replacing…' : 'Replace the data…'}
+          </Button>
+        </div>
+
+        <p className="data-settings-note type-11">
+          {saved.storePath === ''
+            ? 'Deletes the generated store and builds a fresh one at py-beacon’s current defaults — five thousand names, and whatever columns this version produces. A couple of minutes, and the app has no data until it finishes. Your universes, indices and watchlists are kept.'
+            : 'Only the app’s own store can be replaced. The location saved above is yours, so nothing here will delete it.'}
+        </p>
+
+        {problem !== undefined && <p className="data-settings-problem type-11">{problem}</p>}
 
         <p className="data-settings-note type-11">
           <strong>BEACON_DATA_PATH</strong> and <strong>BEACON_NO_SYNTHETIC</strong> still win where

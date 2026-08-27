@@ -1,5 +1,5 @@
 import { _electron as electron, type ElectronApplication } from '@playwright/test'
-import { expect, test } from './fixtures'
+import { expect, splashWindow, test } from './fixtures'
 
 /**
  * The splash waits to be started (BU-111).
@@ -23,7 +23,7 @@ test('both buttons are outside the drag region, or they cannot be clicked', asyn
   engine
 }, testInfo) => {
   const app = await launch(engine.url, testInfo.outputPath('profile'))
-  const splash = await app.firstWindow()
+  const splash = await splashWindow(app)
   await splash.getByRole('button', { name: 'Start' }).waitFor()
 
   /*
@@ -46,26 +46,37 @@ test('both buttons are outside the drag region, or they cannot be clicked', asyn
   await app.close()
 })
 
-test('starts nothing until Start is pressed', async ({ engine }, testInfo) => {
+test('starts nothing, and says nothing, until Start is pressed', async ({ engine }, testInfo) => {
   const app = await launch(engine.url, testInfo.outputPath('profile'))
-  const splash = await app.firstWindow()
+  const splash = await splashWindow(app)
+  await splash.getByRole('button', { name: 'Start' }).waitFor()
 
-  // Idle, not "starting": no python has been spawned and no data generated,
-  // which is what makes changing the data settings here worth anything.
-  await expect(splash.getByRole('progressbar', { name: 'Startup' })).toHaveAttribute(
-    'aria-valuenow',
-    '0'
-  )
-  await expect(splash.getByText('Ready when you are')).toBeVisible()
+  // No bar at all (BU-116). An empty track with a caption under it still says
+  // "this has begun"; no python has been spawned and no data generated.
+  await expect(splash.getByRole('progressbar', { name: 'Startup' })).toHaveCount(0)
 
   // What happens after the press is the next test's business — and it is
   // over in a frame, since the hand-over closes this window.
   await app.close()
 })
 
+test('closing the splash leaves, rather than opening the app', async ({ engine }, testInfo) => {
+  const app = await launch(engine.url, testInfo.outputPath('profile'))
+  const splash = await splashWindow(app)
+  await splash.getByRole('button', { name: 'Start' }).waitFor()
+
+  const exited = app.waitForEvent('close')
+  await splash.getByRole('button', { name: 'Close' }).click()
+  await exited
+
+  // The X used to hand over, so it opened the app — the opposite of what a
+  // close button means, and impossible to undo once the splash had gone.
+  expect(app.windows()).toHaveLength(0)
+})
+
 test('holds the app back until Start is pressed', async ({ engine }, testInfo) => {
   const app = await launch(engine.url, testInfo.outputPath('profile'))
-  const splash = await app.firstWindow()
+  const splash = await splashWindow(app)
 
   // Enabled from the first frame now (BU-115): pressing it is what starts
   // the engine, so gating it on the engine would have been circular.
@@ -100,7 +111,7 @@ test('holds the app back until Start is pressed', async ({ engine }, testInfo) =
 
 test('opens data settings, and closes back to the splash', async ({ engine }, testInfo) => {
   const app = await launch(engine.url, testInfo.outputPath('profile'))
-  const splash = await app.firstWindow()
+  const splash = await splashWindow(app)
 
   await splash.getByRole('button', { name: 'Data settings…' }).click()
 
@@ -122,6 +133,20 @@ test('opens data settings, and closes back to the splash', async ({ engine }, te
   await expect(settings.getByRole('textbox', { name: 'Store location' })).toBeVisible()
   // Nothing changed, so there is nothing to save.
   await expect(settings.getByRole('button', { name: 'Save and restart' })).toBeDisabled()
+
+  /*
+   * Replacing the data lives here too (BU-116).
+   *
+   * Reached from the splash, this is the one moment a rebuild is free: the
+   * app has not started, so there is nothing to interrupt. Only the offer is
+   * exercised — accepting it deletes the store and takes minutes, and main
+   * asks through the OS dialog, which a test must not be answering.
+   */
+  await expect(settings.getByRole('button', { name: 'Replace the data…' })).toBeEnabled()
+
+  await settings.getByRole('textbox', { name: 'Store location' }).fill('D:/mine')
+  // Still enabled: it follows what is SAVED, and nothing has been saved.
+  await expect(settings.getByRole('button', { name: 'Replace the data…' })).toBeEnabled()
 
   await settings.getByRole('button', { name: 'Cancel' }).click()
   await expect.poll(() => app.windows().some((c) => c.url().includes('#settings'))).toBe(false)

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EngineState } from '@shared/ipc'
 import { Splash } from './Splash'
-import { splashProgress } from './splashProgress'
+import { splashProgress, type SplashProgress } from './splashProgress'
 
 /**
  * The bar tracks the engine's real startup rather than being animated to look
@@ -11,9 +11,20 @@ import { splashProgress } from './splashProgress'
  * that is the one moment the user actually waits.
  */
 describe('splashProgress', () => {
-  const at = (engine: EngineState): ReturnType<typeof splashProgress> => splashProgress(engine)
+  /** Every case below has something to report; only `idle` does not. */
+  const at = (engine: EngineState): SplashProgress => {
+    const progress = splashProgress(engine)
+    if (progress === undefined) throw new Error('expected progress to report something')
+    return progress
+  }
 
-  it('starts before the engine has said anything', () => {
+  it('reports nothing at all before Start is pressed', () => {
+    // BU-115. A bar at zero with a caption under it still says "this has
+    // begun"; until the button is pressed nothing has.
+    expect(splashProgress({ status: 'idle' })).toBeUndefined()
+  })
+
+  it('starts once the engine has been asked for, before it has said anything', () => {
     expect(at({ status: 'starting' })).toMatchObject({ fraction: 0.2, ready: false })
   })
 
@@ -116,7 +127,8 @@ describe('Splash', () => {
     stub({ status: 'connected' }, { start, splashDone })
 
     render(<Splash version="0.0.1" />)
-    await screen.findByText('Ready when you are')
+    // Idle: no bar, no caption, nothing claiming to be underway (BU-115).
+    expect(screen.queryByRole('progressbar')).toBeNull()
     expect(start).not.toHaveBeenCalled()
     expect(splashDone).not.toHaveBeenCalled()
 
@@ -129,9 +141,9 @@ describe('Splash', () => {
     stub({ status: 'connected' }, { splashDone })
 
     render(<Splash version="0.0.1" />)
-    // Ready, and still nothing: the hand-over is the second half of a press,
-    // not something that happens on its own (BU-111).
-    await screen.findByText('Ready when you are')
+    // Connected, and still nothing: the hand-over is the second half of a
+    // press, not something that happens on its own (BU-111).
+    await screen.findByRole('button', { name: 'Start' })
     expect(splashDone).not.toHaveBeenCalled()
 
     await userEvent.click(screen.getByRole('button', { name: 'Start' }))
@@ -152,18 +164,22 @@ describe('Splash', () => {
     expect(splashDone).not.toHaveBeenCalled()
   })
 
-  it('turns into a retry when the engine gives up', async () => {
+  it('retries rather than starts when the engine has given up', async () => {
+    const start = vi.fn(() => Promise.resolve())
     const restart = vi.fn(() => Promise.resolve())
-    stub({ status: 'stopped', detail: 'server exited with code 2' }, { restart })
+    stub({ status: 'stopped', detail: 'server exited with code 2' }, { start, restart })
 
     render(<Splash version="0.0.1" />)
+    // The reason, on screen, without anyone having to open a log.
+    await screen.findByText('server exited with code 2')
+
     await userEvent.click(screen.getByRole('button', { name: 'Start' }))
 
-    // `stopped` is the engine having given up, so nothing moves again until
-    // something explicitly restarts it.
-    const retry = await screen.findByRole('button', { name: 'Try again' })
-    await userEvent.click(retry)
+    // `stopped` is the engine having given up: `start` is a no-op on an
+    // engine that considers itself launched, so nothing would move.
     expect(restart).toHaveBeenCalledTimes(1)
+    expect(start).not.toHaveBeenCalled()
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
 
   it('offers the data settings, which is the point of waiting', async () => {

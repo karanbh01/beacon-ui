@@ -1,5 +1,13 @@
 import { randomBytes } from 'node:crypto'
-import { spawn, type ChildProcess } from 'node:child_process'
+import {
+  spawn,
+  type ChildProcess,
+  type ChildProcessByStdio,
+  type SpawnOptionsWithStdioTuple,
+  type StdioNull,
+  type StdioPipe
+} from 'node:child_process'
+import type { Readable } from 'node:stream'
 import { EventEmitter } from 'node:events'
 import type { EngineState } from '@shared/ipc'
 import { restartDelay, shouldGiveUp } from './backoff'
@@ -71,6 +79,20 @@ export interface EngineOptions {
   resourcesPath?: string | undefined
   /** Injected in tests. */
   fetchImpl?: typeof fetch
+  /**
+   * Injected in tests, for the same reason `fetchImpl` is: the alternative is
+   * a test that really launches python, and one that gets the lifecycle wrong
+   * then leaves a server running on the machine that ran it.
+   *
+   * The one overload this class uses, rather than all of `spawn`: stdin
+   * ignored, stdout and stderr piped — which is what makes `stdout` non-null
+   * and the announced port readable.
+   */
+  spawnImpl?: (
+    command: string,
+    args: readonly string[],
+    options: SpawnOptionsWithStdioTuple<StdioNull, StdioPipe, StdioPipe>
+  ) => ChildProcessByStdio<null, Readable, Readable>
 }
 
 /**
@@ -81,7 +103,7 @@ export interface EngineOptions {
  * UI has to say so rather than look healthy.
  */
 export class Engine extends EventEmitter {
-  private state: EngineState = { status: 'starting' }
+  private state: EngineState = { status: 'idle' }
   private child: ChildProcess | null = null
   private healthTimer: NodeJS.Timeout | undefined
   private restartTimer: NodeJS.Timeout | undefined
@@ -90,6 +112,8 @@ export class Engine extends EventEmitter {
   private stopping = false
   /** True from the first `start()` until `stop()`. Guards a second launch. */
   private launched = false
+  /** True while `regenerate` owns the lifecycle, so nothing else spawns. */
+  private rebuilding = false
   /** Written this session, waiting for a server to say which version wrote it. */
   private unstamped: StoreProvenance | undefined
   private readonly token: string
@@ -151,6 +175,12 @@ export class Engine extends EventEmitter {
   start(): void {
     if (this.launched) return
     this.launched = true
+
+    // A rebuild is already holding the lifecycle and will spawn when it is
+    // done — it now knows the app has been asked for. Spawning here would
+    // race the generator it is running.
+    if (this.rebuilding) return
+
     this.stopping = false
     const external = this.options.serverUrl
     if (external !== undefined && external !== '') {
@@ -280,7 +310,8 @@ export class Engine extends EventEmitter {
 
     this.setState({ status: 'starting', detail: undefined, restarts: this.attempt })
 
-    const child = spawn(python, ['-m', SERVER_MODULE, '--port', '0'], {
+    const launch = this.options.spawnImpl ?? spawn
+    const child = launch(python, ['-m', SERVER_MODULE, '--port', '0'], {
       env: { ...this.environment(), BEACON_API_TOKEN: this.token, PYTHONUNBUFFERED: '1' },
       stdio: ['ignore', 'pipe', 'pipe']
     })
@@ -435,6 +466,10 @@ export class Engine extends EventEmitter {
     this.killChild()
     this.setState({ status: 'starting', detail: 'replacing the data store', restarts: 0 })
 
+    // The lifecycle is ours until this finishes; `start` defers to it rather
+    // than spawning a second server alongside the one below.
+    this.rebuilding = true
+
     try {
       const removed = await removeStore(python)
       this.emit(
@@ -451,11 +486,35 @@ export class Engine extends EventEmitter {
       })
       this.recordProvenance()
     } finally {
-      // Whatever happened, the user is owed a running engine: a failed
-      // generation leaves the server startable, just with less to serve.
+      this.rebuilding = false
       this.attempt = 0
       this.stopping = false
-      this.spawnServer()
+
+      /*
+       * Only start what has been asked for.
+       *
+       * Replacing the store from the splash's data settings is a request to
+       * rebuild the data, not to launch the app — Start is what does that
+       * (BU-115). Read at the END rather than the beginning, because Start
+       * may well have been pressed during the couple of minutes this takes,
+       * and then the app is owed the engine it asked for.
+       *
+       * A running engine is owed one back either way: a failed generation
+       * leaves the server startable, just with less to serve.
+       */
+      if (this.launched) {
+        this.spawnServer()
+      } else {
+        // Back to untouched: a new store, and nothing running to serve it.
+        // A stale baseUrl would point at the server just killed.
+        this.setState({
+          status: 'idle',
+          detail: undefined,
+          baseUrl: undefined,
+          token: undefined,
+          restarts: 0
+        })
+      }
     }
   }
 

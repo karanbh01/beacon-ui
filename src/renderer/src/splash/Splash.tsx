@@ -5,7 +5,7 @@ import { useEngine } from '../state/engine'
 import { useTheme } from '../state/theme'
 import { useUpdate } from '../state/update'
 import { WindowControls } from '../shell/WindowControls'
-import { NOT_STARTED, splashProgress } from './splashProgress'
+import { splashProgress } from './splashProgress'
 import './Splash.css'
 
 /** The frame's own text (36:1139), which is the only place the app says this. */
@@ -22,8 +22,8 @@ const LICENCE =
 
 const REPO = 'https://github.com/karanbh01/beacon-ui'
 
-function startLabel(starting: boolean, failed: boolean): string {
-  if (!starting) return 'Start'
+function startLabel(pressed: boolean, failed: boolean): string {
+  if (!pressed) return 'Start'
   return failed ? 'Try again' : 'Starting…'
 }
 
@@ -45,10 +45,12 @@ export interface SplashProps {
  */
 export function Splash({ version }: SplashProps): ReactElement {
   const [ownVersion, setOwnVersion] = useState<string | undefined>(version)
-  const [starting, setStarting] = useState(false)
+  const [pressed, setPressed] = useState(false)
   const engine = useEngine()
   const update = useUpdate()
-  const progress = starting ? splashProgress(engine) : NOT_STARTED
+  // Undefined until something is actually happening, which is what keeps the
+  // bar and its label off the screen entirely before Start (BU-115).
+  const progress = splashProgress(engine)
 
   // Follows the OS the same way the app does; without this the splash would
   // flash the wrong palette before the window it precedes.
@@ -79,8 +81,8 @@ export function Splash({ version }: SplashProps): ReactElement {
    * only thing that will move is an explicit restart.
    */
   const start = (): void => {
-    setStarting(true)
-    if (progress.failed) {
+    setPressed(true)
+    if (progress?.failed === true) {
       void window.beacon?.engine.restart()
       return
     }
@@ -94,10 +96,11 @@ export function Splash({ version }: SplashProps): ReactElement {
    * finish, which could be mid-settings-change. This one cannot: it is the
    * second half of a press.
    */
+  const ready = progress?.ready === true
   useEffect(() => {
-    if (!starting || !progress.ready) return
+    if (!pressed || !ready) return
     void window.beacon?.window.splashDone()
-  }, [starting, progress.ready])
+  }, [pressed, ready])
 
   return (
     <div className="splash">
@@ -109,30 +112,41 @@ export function Splash({ version }: SplashProps): ReactElement {
           dark exports swap on `data-theme` without a flash of the wrong one. */}
       <div className="splash-logo" role="img" aria-label="Beacon" />
 
-      <div
-        className="splash-progress"
-        role="progressbar"
-        aria-valuenow={Math.round(progress.fraction * 100)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Startup"
-      >
-        <div className="splash-progress-track">
-          <div
-            className={`splash-progress-fill${progress.failed ? ' splash-progress-failed' : ''}`}
-            style={{ width: `${String(progress.fraction * 100)}%` }}
-          />
-        </div>
-        <p
-          className={`splash-progress-label${progress.failed ? ' splash-progress-label-failed' : ''}`}
+      {/*
+        No bar until there is something to report (BU-116). An empty track
+        with a caption under it still says "this has begun"; before Start
+        nothing has. Its height is held open rather than collapsed, so
+        pressing Start does not shunt the buttons and the licence down the
+        window — the frame puts them where they are for a reason.
+      */}
+      {progress === undefined && <div className="splash-progress splash-progress-idle" />}
+
+      {progress !== undefined && (
+        <div
+          className="splash-progress"
+          role="progressbar"
+          aria-valuenow={Math.round(progress.fraction * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Startup"
         >
-          {progress.label}
-        </p>
-      </div>
+          <div className="splash-progress-track">
+            <div
+              className={`splash-progress-fill${progress.failed ? ' splash-progress-failed' : ''}`}
+              style={{ width: `${String(progress.fraction * 100)}%` }}
+            />
+          </div>
+          <p
+            className={`splash-progress-label${progress.failed ? ' splash-progress-label-failed' : ''}`}
+          >
+            {progress.label}
+          </p>
+        </div>
+      )}
 
       <div className="splash-actions">
-        <Button variant="accent" onClick={start} disabled={starting && !progress.failed}>
-          {startLabel(starting, progress.failed)}
+        <Button variant="accent" onClick={start} disabled={pressed && progress?.failed !== true}>
+          {startLabel(pressed, progress?.failed === true)}
         </Button>
         <Button
           onClick={() => {

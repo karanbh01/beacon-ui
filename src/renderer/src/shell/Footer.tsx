@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import type { UpdateState } from '@shared/ipc'
+import type { EngineStatus, UpdateState } from '@shared/ipc'
 import type { UpdateAction } from '../state/update'
 import { GithubIcon } from '../icons/generated'
 import { ThemeToggle } from '../components/ThemeToggle/ThemeToggle'
@@ -7,7 +7,14 @@ import type { ThemeMode } from '../tokens/tokens'
 import { updateNotice, type UpdateNotice } from './updateNotice'
 import './Footer.css'
 
-export type EngineState = 'connected' | 'degraded' | 'starting' | 'stopped'
+/**
+ * The engine's own status, not a second copy of it.
+ *
+ * This was a hand-written union of the same four names, and it drifted the
+ * moment a fifth was added (BU-115) — the alias is what makes that a compile
+ * error rather than a footer with a missing case.
+ */
+export type EngineState = EngineStatus
 
 export interface FooterProps {
   /** Live from the python supervisor (BU-19). */
@@ -30,6 +37,7 @@ export interface FooterProps {
 }
 
 const ENGINE_TONE: Record<EngineState, string> = {
+  idle: 'dot-muted',
   connected: 'dot-success',
   degraded: 'dot-danger',
   stopped: 'dot-danger',
@@ -42,6 +50,7 @@ const ENGINE_TONE: Record<EngineState, string> = {
  * nothing is reconnecting is the failure mode BU-19 is meant to remove.
  */
 function engineLabel(state: EngineState, version?: string): string {
+  if (state === 'idle') return 'engine not started'
   if (state === 'degraded') return 'engine unavailable · reconnecting'
   if (state === 'stopped') return 'engine stopped'
   if (state === 'starting') return 'engine starting…'

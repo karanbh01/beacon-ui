@@ -83,12 +83,13 @@ void app.whenReady().then(() => {
   /*
    * Reaching the app means the engine is wanted (BU-115).
    *
-   * Start calls `engine:start` itself and waits for the result, but closing
-   * the splash lands here too — and an app whose engine was never started has
-   * no data and no obvious way to ask for any. `start` is idempotent, so the
-   * ordinary path calls it twice and spawns once.
+   * `start` is idempotent, so calling it here as well as from the splash's
+   * own Start costs nothing and closes the gap where the app could be shown
+   * with no engine behind it.
    */
+  let handedOver = false
   const handOver = (): void => {
+    handedOver = true
     engine.start()
     revealMainWindow(window)
     if (!splash.isDestroyed()) splash.close()
@@ -97,9 +98,21 @@ void app.whenReady().then(() => {
   registerIpcHandlers(engine, updater, { onSplashDone: handOver })
   updater.start()
 
-  // Closing the splash before the engine answers is a decision to carry on
-  // without it, not a reason to leave the user with no window at all.
-  splash.on('closed', handOver)
+  /*
+   * Closing the splash is leaving, not entering.
+   *
+   * It used to hand over, so the X opened the app — the opposite of what a
+   * close button means, and unreachable to undo, since the splash is gone by
+   * then. Quitting is also the only way out: the main window exists but is
+   * hidden, so `window-all-closed` never fires and the process would sit
+   * there with nothing on screen.
+   *
+   * The hand-over closes this window itself, which is why the flag is needed
+   * — that close must not quit the app it just opened.
+   */
+  splash.on('closed', () => {
+    if (!handedOver) app.quit()
+  })
 
   forwardEngineChanges(engine, splash)
   forwardUpdateChanges(updater, splash)

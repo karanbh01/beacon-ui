@@ -4,15 +4,16 @@ import type { EngineState } from '@shared/ipc'
 /**
  * Live engine state from main (BU-19).
  *
- * Starts as `starting` rather than `connected`: an optimistic default would
- * make the footer claim a healthy engine for the first frame of every launch,
- * which is exactly the lie BU-19 exists to prevent.
+ * Starts as `idle` rather than `connected`: an optimistic default would make
+ * the footer claim a healthy engine for the first frame of every launch,
+ * which is exactly the lie BU-19 exists to prevent. Idle rather than starting,
+ * because until Start is pressed nothing is starting (BU-115).
  *
  * Outside Electron there is no bridge, so it reports `stopped` — Storybook and
  * a browser tab genuinely have no engine.
  */
 export function useEngine(): EngineState {
-  const [state, setState] = useState<EngineState>({ status: 'starting' })
+  const [state, setState] = useState<EngineState>({ status: 'idle' })
 
   useEffect(() => {
     const api = window.beacon?.engine

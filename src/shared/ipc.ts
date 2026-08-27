@@ -31,7 +31,13 @@ export interface AppInfo {
  * footer says different things for each, and conflating them would let the
  * app claim it is recovering forever.
  */
-export type EngineStatus = 'starting' | 'connected' | 'degraded' | 'stopped'
+/**
+ * `idle` is "nothing has been asked of it yet" (BU-115) — distinct from
+ * `starting`, which is work in progress. Startup waits for the splash's Start,
+ * so without this the app would report an engine coming up while no process
+ * existed and nothing was happening.
+ */
+export type EngineStatus = 'idle' | 'starting' | 'connected' | 'degraded' | 'stopped'
 
 export interface EngineState {
   status: EngineStatus

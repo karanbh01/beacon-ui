@@ -122,13 +122,19 @@ describe('engine state reaches the footer (BU-19)', () => {
     expect(screen.queryByText(/reconnecting/)).toBeNull()
   })
 
-  it('shows starting rather than optimistically claiming connected', () => {
+  it('claims nothing about the engine until main has said something', async () => {
     const pending = deferred<AppInfo>()
     stubBridge(() => pending.promise, { status: 'starting' })
 
     render(<App />)
 
-    expect(screen.getByText(/engine starting/)).toBeInTheDocument()
+    // The first frame, before any answer has arrived: idle, because until
+    // Start is pressed nothing is starting either (BU-115). An optimistic
+    // default here is the lie BU-19 exists to prevent.
+    expect(screen.getByText('engine not started')).toBeInTheDocument()
+    expect(screen.queryByText(/engine connected/)).toBeNull()
+
+    expect(await screen.findByText(/engine starting/)).toBeInTheDocument()
   })
 
   it('survives a missing bridge, and says the engine is stopped', async () => {
