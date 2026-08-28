@@ -1,0 +1,97 @@
+.preset-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Dimmed rather than opaque: the arrangement being named stays visible. */
+  background: rgb(0 0 0 / 28%);
+}
+
+.preset-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 420px;
+  padding: 16px 18px;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 22%);
+}
+
+.preset-title {
+  margin: 0;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.preset-note {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.preset-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.preset-input {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.preset-rule {
+  height: 0.5px;
+  background: var(--divider);
+}
+
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.preset-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.preset-name {
+  color: var(--text-primary);
+}
+
+.preset-meta {
+  flex: 1 1 auto;
+  color: var(--text-muted);
+}
+
+.preset-forget {
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.preset-forget:hover {
+  color: var(--danger);
+}
+
+.preset-actions {
+  display: flex;
+  justify-content: flex-end;
+}

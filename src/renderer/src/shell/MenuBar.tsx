@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
 import { layoutFor, useChrome } from '../state/chrome'
+import { presetsFor, usePresets } from '../state/presets'
 import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
 import { DataSourcesPanel } from './chrome/DataSourcesPanel'
@@ -30,6 +31,13 @@ export interface MenuBarProps {
   onCreateIndex?: (name: string) => void
   /** The logo is how Home is reached — see HomeView. */
   onGoHome?: () => void
+  /**
+   * Opens the preset dialog (BU-119).
+   *
+   * Saving needs a name, and a name needs somewhere to type it; the bar has
+   * nowhere, so the app owns that surface and the bar only asks for it.
+   */
+  onSavePreset?: () => void
   /**
    * Sidebar page the layout menu acts on (BU-75). Layout is per page, so the
    * bar has to know which one is showing or its menu would edit the wrong
@@ -65,6 +73,7 @@ export function MenuBar({
   onOpenIndex,
   onCreateIndex,
   onGoHome,
+  onSavePreset,
   page = HOME_PAGE_ID,
   platform,
   className
@@ -76,6 +85,12 @@ export function MenuBar({
   const theme = useTheme()
   const layout = useChrome((state) => layoutFor(state.layoutByPage, page))
   const setLayout = useChrome((state) => state.setLayout)
+  const saved = usePresets((state) => state.presets)
+  const applyPreset = usePresets((state) => state.apply)
+
+  // Only this page's, since a preset names views by kind and the kinds a page
+  // can open are its own.
+  const presets = useMemo(() => presetsFor(saved, page), [saved, page])
 
   const classes = ['menu-bar', platform === 'darwin' && 'menu-bar-mac', className]
     .filter(Boolean)
@@ -90,7 +105,7 @@ export function MenuBar({
     setPanel('none')
   }
 
-  const menus = buildMenus({ theme: theme.preference, layout })
+  const menus = buildMenus({ theme: theme.preference, layout, presets })
 
   /*
    * Dismissal is owned by the bar, not by each menu.
@@ -125,6 +140,8 @@ export function MenuBar({
     if (action === 'theme-light') theme.setPreference('light')
     else if (action === 'theme-dark') theme.setPreference('dark')
     else if (action === 'theme-system') theme.setPreference('system')
+    else if (action === 'preset-save') onSavePreset?.()
+    else if (action.startsWith('preset-apply-')) applyPreset(action.slice('preset-apply-'.length))
     else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
   }
 

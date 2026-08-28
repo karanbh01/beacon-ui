@@ -50,6 +50,13 @@ export const GUIDES_PAGE: SidebarPage = { id: 'guides', label: 'Guides', Icon: O
 
 export const HOME_PAGE_ID = 'home'
 
+/** A page's name as the sidebar says it. Falls back to the id, which is readable. */
+export function pageLabel(id: string): string {
+  if (id === HOME_PAGE_ID) return 'Home'
+  if (id === GUIDES_PAGE.id) return GUIDES_PAGE.label
+  return SIDEBAR_PAGES.find((page) => page.id === id)?.label ?? id
+}
+
 /** Menu bar labels, Figma 81:2. */
 export const MENUS = [
   'File',

@@ -44,6 +44,21 @@ export function recentTabs(
   return [...tabs].sort((a, b) => (activatedAt[b.id] ?? 0) - (activatedAt[a.id] ?? 0))
 }
 
+/**
+ * Ids are per-tab, and a page can hold several of the same kind.
+ *
+ * Readable and deterministic rather than random: `tab-prices-2` says what it
+ * is in a persisted workspace and in a test, and two runs of the same actions
+ * produce the same file.
+ */
+export function newTabId(viewKind: string, existing: readonly Tab[]): string {
+  const taken = new Set(existing.map((tab) => tab.id))
+  for (let n = 1; ; n++) {
+    const id = n === 1 ? `tab-${viewKind}` : `tab-${viewKind}-${String(n)}`
+    if (!taken.has(id)) return id
+  }
+}
+
 export function paneKey(page: string, pane: number): string {
   return `${page}#${String(pane)}`
 }
@@ -150,6 +165,35 @@ export function openTab(state: WorkspaceState, input: OpenTabInput): WorkspaceSt
     tabs: [...state.tabs, tab],
     activeByPane: { ...state.activeByPane, [paneKey(input.page, pane)]: input.id },
     activatedAt: stamp(state, input.id)
+  }
+}
+
+/**
+ * Swap out everything on one page (BU-119).
+ *
+ * What applying a preset does, and the reason it is a single transition: a
+ * page half-rebuilt — old tabs closed, new ones not yet open — is a state the
+ * pane host would render, and every tab of the outgoing arrangement has to go
+ * whether or not the incoming one has a pane for it.
+ *
+ * The page's OLD active entries go too. They name tabs that no longer exist,
+ * and a stale id in `activeByPane` outlives the tabs it points at.
+ */
+export function replacePage(
+  state: WorkspaceState,
+  page: string,
+  tabs: readonly Tab[],
+  actives: Record<string, string | undefined>
+): WorkspaceState {
+  const mine = `${page}#`
+  const kept = Object.fromEntries(
+    Object.entries(state.activeByPane).filter(([key]) => !key.startsWith(mine))
+  )
+
+  return {
+    ...state,
+    tabs: [...state.tabs.filter((tab) => tab.page !== page), ...tabs],
+    activeByPane: { ...kept, ...actives }
   }
 }
 

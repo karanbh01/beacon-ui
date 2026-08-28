@@ -8,6 +8,7 @@ import { AssistantPanel } from './assistant/AssistantPanel'
 import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
 import { PaneHost } from './shell/PaneHost'
+import { PresetDialog } from './shell/PresetDialog'
 import { StaleStoreNotice } from './shell/StaleStoreNotice'
 import { useJobs } from './api/jobs'
 import { HomeView } from './views/home/HomeView'
@@ -54,6 +55,7 @@ function AppBody(): ReactElement {
   const [bridge, setBridge] = useState<BridgeState>({ status: 'pending' })
   const [page, setPage] = useState(HOME_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
+  const [namingPreset, setNamingPreset] = useState(false)
   const engine = useEngine()
   const update = useUpdate()
   const dataAge = useDataAge()
@@ -169,6 +171,11 @@ function AppBody(): ReactElement {
         onGoHome: () => {
           setPage(HOME_PAGE)
         },
+        // Saving needs a name typed somewhere, and the bar has nowhere to put
+        // one — so it asks, and the dialog lands here (BU-119).
+        onSavePreset: () => {
+          setNamingPreset(true)
+        },
         ...(bridge.status === 'ok' ? { platform: bridge.info.platform } : {})
       }}
       footer={{
@@ -222,6 +229,15 @@ function AppBody(): ReactElement {
       ) : (
         <PaneHost page={page} />
       )}
+      {namingPreset && (
+        <PresetDialog
+          page={page}
+          onClose={() => {
+            setNamingPreset(false)
+          }}
+        />
+      )}
+
       {/*
         Only ever set for a store this app generated itself (BU-89) — the
         engine has no opinion about anybody else's data.

@@ -1,3 +1,4 @@
+import { newTabId } from '../state/tabs.logic'
 import type { Tab } from '../state/tabs.types'
 import type { ViewOption } from './viewRegistry'
 
@@ -40,15 +41,6 @@ export function newTabOptions(views: readonly ViewOption[], open: readonly Tab[]
     }
     return view
   })
-}
-
-/** Ids are per-tab, and a page can hold several of the same kind. */
-export function newTabId(viewKind: string, existing: readonly Tab[]): string {
-  const taken = new Set(existing.map((tab) => tab.id))
-  for (let n = 1; ; n++) {
-    const id = n === 1 ? `tab-${viewKind}` : `tab-${viewKind}-${String(n)}`
-    if (!taken.has(id)) return id
-  }
 }
 
 /**

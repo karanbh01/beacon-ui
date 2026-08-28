@@ -42,6 +42,24 @@ describe('buildMenus', () => {
     expect(layouts).toHaveLength(LAYOUT_OPTIONS.length)
   })
 
+  it('offers saving an arrangement whether or not any are saved', () => {
+    const view = buildMenus(CONTEXT).find((menu) => menu.label === 'View')
+    expect(view?.items.some((item) => item.action === 'preset-save')).toBe(true)
+  })
+
+  it('lists the presets it is given, and applies by id', () => {
+    // The caller has already filtered these to the page being shown: a
+    // preset names views by kind, and the kinds a page can open are its own.
+    const view = buildMenus({
+      ...CONTEXT,
+      presets: [{ id: 'preset-2', name: 'Research' }]
+    }).find((menu) => menu.label === 'View')
+
+    const preset = view?.items.find((item) => item.label === 'Research')
+    expect(preset?.action).toBe('preset-apply-preset-2')
+    expect(preset?.enabled).toBe(true)
+  })
+
   it('ticks the theme and layout in force', () => {
     const view = buildMenus({ theme: 'dark', layout: 'grid' }).find((m) => m.label === 'View')
     const ticked = view?.items.filter((item) => item.checked === true).map((item) => item.label)

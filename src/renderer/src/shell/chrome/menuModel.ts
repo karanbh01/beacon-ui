@@ -13,7 +13,14 @@ import { MENUS } from '../pages'
  * one live item reads as a broken File menu; a File menu whose items are
  * visibly not yet wired reads as an app under construction, which is true.
  */
-export type MenuAction = 'theme-light' | 'theme-dark' | 'theme-system' | `layout-${string}` | 'none'
+export type MenuAction =
+  | 'theme-light'
+  | 'theme-dark'
+  | 'theme-system'
+  | `layout-${string}`
+  | 'preset-save'
+  | `preset-apply-${string}`
+  | 'none'
 
 export interface MenuItem {
   label: string
@@ -43,6 +50,14 @@ export interface MenuContext {
   theme: 'light' | 'dark' | 'system'
   /** The current page's layout, so View can tick it. */
   layout: string
+  /**
+   * Saved arrangements for the page being shown (BU-119).
+   *
+   * Already filtered by the caller: a preset names views by kind, and the
+   * kinds a page can open are its own, so offering another page's here would
+   * offer something that cannot be applied.
+   */
+  presets?: readonly { id: string; name: string }[]
 }
 
 /**
@@ -92,6 +107,17 @@ export function buildMenus(context: MenuContext): Menu[] {
         enabled: true,
         checked: context.layout === option.id,
         ...(index === 0 ? { separatorBefore: true } : {})
+      })),
+      {
+        label: 'Save layout as preset…',
+        action: 'preset-save',
+        enabled: true,
+        separatorBefore: true
+      },
+      ...(context.presets ?? []).map((preset) => ({
+        label: preset.name,
+        action: `preset-apply-${preset.id}` as MenuAction,
+        enabled: true
       }))
     ],
     Data: [soon('Refresh all'), soon('Manage sources…'), soon('Import CSV…')],
