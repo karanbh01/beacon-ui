@@ -83,6 +83,12 @@ describe('dividersFor', () => {
     expect(dividers('main-stack')).toEqual(['x col=1 row=1 / 3', 'y col=2 / 3 row=1'])
   })
 
+  it('stops the horizontal divider at the left column when the main pane is on the right', () => {
+    // The mirror of main-stack, so the horizontal handle belongs over the
+    // stacked column — which here is column 1, not column 2.
+    expect(dividers('stack-main')).toEqual(['x col=1 row=1 / 3', 'y col=1 / 2 row=1'])
+  })
+
   it('stops the vertical divider at the row that is actually split', () => {
     // banner's top pane is full width; only the bottom row has two panes.
     expect(dividers('banner')).toEqual(['x col=1 row=2 / 3', 'y col=1 / 3 row=1'])

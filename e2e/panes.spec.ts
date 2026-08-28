@@ -286,3 +286,20 @@ test('a pane that loses its last tab stays, showing the empty state', async ({ w
   await expect(window.locator('.pane')).toHaveCount(2)
   await expect(window.locator('[data-pane="1"]').getByText(/Nothing open here yet/)).toBeVisible()
 })
+
+test('the main pane can sit on the right, with the stack beside it', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Stack with main pane')
+  await expect(window.locator('.pane')).toHaveCount(3)
+
+  const boxes = await Promise.all(
+    [0, 1, 2].map(async (pane) => window.locator(`[data-pane="${String(pane)}"]`).boundingBox())
+  )
+  const [topLeft, bottomLeft, right] = boxes
+  if (!topLeft || !bottomLeft || !right) throw new Error('all three panes should have a box')
+
+  // Reading order: the stack is on the left, the tall one on the right.
+  expect(bottomLeft.y).toBeGreaterThan(topLeft.y)
+  expect(right.x).toBeGreaterThan(topLeft.x + topLeft.width - 1)
+  expect(right.height).toBeGreaterThan(topLeft.height * 1.5)
+})

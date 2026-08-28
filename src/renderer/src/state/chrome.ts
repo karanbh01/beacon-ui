@@ -8,10 +8,10 @@ import { HOME_PAGE_ID, SIDEBAR_PAGES } from '../shell/pages'
  * geometry is read straight off the component, so the control's glyphs and
  * the layout it names cannot drift apart.
  *
- * `rows` is the exception, and deliberately so (BU-117): the frame draws five
- * and stacked panes are not among them, though every other two-pane split is.
- * It is written in the same units for the same reason, so the glyph the menu
- * draws for it is still the layout it selects.
+ * `rows` and `stack-main` are the exceptions, and deliberately so (BU-117,
+ * BU-118): the frame draws five, and neither stacked panes nor a main pane on
+ * the RIGHT is among them. Both are written in the same units for the same
+ * reason, so the glyph the menu draws is still the layout it selects.
  */
 export interface LayoutPane {
   x: number
@@ -65,6 +65,22 @@ export const LAYOUT_OPTIONS: readonly LayoutOption[] = [
       { x: 0, y: 0, w: 11, h: 24 },
       { x: 13, y: 0, w: 11, h: 11 },
       { x: 13, y: 13, w: 11, h: 11 }
+    ]
+  },
+  {
+    /*
+     * Not in 119:2 either (BU-118). The mirror of `main-stack`, and the one
+     * to reach for when the stack is the input and the tall pane is the
+     * result — a universe and a filter feeding a chart.
+     *
+     * Reading order, so pane 0 is top-left and pane 2 is the tall one.
+     */
+    id: 'stack-main',
+    label: 'Stack with main pane',
+    panes: [
+      { x: 0, y: 0, w: 11, h: 11 },
+      { x: 0, y: 13, w: 11, h: 11 },
+      { x: 13, y: 0, w: 11, h: 24 }
     ]
   },
   {
