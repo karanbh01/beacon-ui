@@ -3,10 +3,15 @@ import { persist } from 'zustand/middleware'
 import { HOME_PAGE_ID, SIDEBAR_PAGES } from '../shell/pages'
 
 /**
- * The five arrangements in Figma's Layout Menu (119:2), drawn as 1.5px
- * outlined rectangles on a 24x24 grid. The rectangles ARE the spec — each
- * option's geometry is read straight off the component, so the control's
- * glyphs and the layout it names cannot drift apart.
+ * The arrangements in Figma's Layout Menu (119:2), drawn as 1.5px outlined
+ * rectangles on a 24x24 grid. The rectangles ARE the spec — each option's
+ * geometry is read straight off the component, so the control's glyphs and
+ * the layout it names cannot drift apart.
+ *
+ * `rows` is the exception, and deliberately so (BU-117): the frame draws five
+ * and stacked panes are not among them, though every other two-pane split is.
+ * It is written in the same units for the same reason, so the glyph the menu
+ * draws for it is still the layout it selects.
  */
 export interface LayoutPane {
   x: number
@@ -36,6 +41,21 @@ export const LAYOUT_OPTIONS: readonly LayoutOption[] = [
     panes: [
       { x: 0, y: 0, w: 11, h: 24 },
       { x: 13, y: 0, w: 11, h: 24 }
+    ]
+  },
+  {
+    /*
+     * Not in 119:2 (BU-117).
+     *
+     * The pair to `columns`, and the one a chart wants: a price series is
+     * wide and short, so two side by side each get half the time axis, while
+     * stacked they each keep all of it.
+     */
+    id: 'rows',
+    label: 'Two rows',
+    panes: [
+      { x: 0, y: 0, w: 24, h: 11 },
+      { x: 0, y: 13, w: 24, h: 11 }
     ]
   },
   {

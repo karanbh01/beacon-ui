@@ -44,6 +44,28 @@ test('a layout choice splits the page into that many panes', async ({ window }) 
   await expect(window.locator('.pane')).toHaveCount(4)
 })
 
+test('two rows stack the panes rather than sitting them side by side', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Two rows')
+  await expect(window.locator('.pane')).toHaveCount(2)
+
+  const [top, bottom] = await window.locator('.pane').all()
+  const above = await top?.boundingBox()
+  const below = await bottom?.boundingBox()
+  if (above === undefined || above === null || below === undefined || below === null) {
+    throw new Error('both panes should have a box')
+  }
+
+  // Stacked: the second starts below the first, and both keep the full width.
+  expect(below.y).toBeGreaterThan(above.y + above.height - 1)
+  expect(Math.abs(below.width - above.width)).toBeLessThan(2)
+  expect(above.width).toBeGreaterThan(below.height)
+
+  // One handle, and it runs across rather than down (BU-117).
+  await expect(window.locator('.pane-divider')).toHaveCount(1)
+  await expect(window.locator('.pane-divider-y')).toHaveCount(1)
+})
+
 test('each pane holds its own tabs and its own active view', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await chooseLayout(window, 'Two columns')

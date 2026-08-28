@@ -46,6 +46,7 @@ describe('layoutById', () => {
   it('resolves each option in the menu', () => {
     expect(panesFor('grid')).toHaveLength(4)
     expect(panesFor('columns')).toHaveLength(2)
+    expect(panesFor('rows')).toHaveLength(2)
   })
 
   it('falls back to a single pane rather than taking the shell down', () => {
@@ -64,6 +65,12 @@ describe('dividersFor', () => {
 
   it('gives two columns one full-height divider and no horizontal one', () => {
     expect(dividers('columns')).toEqual(['x col=1 row=1 / 3'])
+  })
+
+  it('gives two rows one full-width divider and no vertical one', () => {
+    // The mirror of `columns`, and the assertion that would fail if the
+    // stacked layout were declared as two half-width panes by mistake.
+    expect(dividers('rows')).toEqual(['y col=1 / 3 row=1'])
   })
 
   it('gives the grid both, each spanning everything', () => {
