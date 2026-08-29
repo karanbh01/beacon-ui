@@ -10,6 +10,12 @@ import { join } from 'node:path'
  * arrange, name, wreck it, choose the name again.
  */
 
+/** Open the View menu and hover the layout group, where layouts live. */
+async function layoutGroup(window: Page): Promise<void> {
+  await window.getByRole('button', { name: 'View', exact: true }).click()
+  await window.getByRole('menuitem', { name: /Window layout/ }).hover()
+}
+
 /**
  * Click something in the View menu, by the words on it.
  *
@@ -21,6 +27,12 @@ import { join } from 'node:path'
 async function view(window: Page, label: string): Promise<void> {
   await window.getByRole('button', { name: 'View', exact: true }).click()
   await window.getByRole('menu', { name: 'View' }).getByText(label, { exact: true }).click()
+}
+
+/** Choose a layout, which since BU-121 is inside the Window layout flyout. */
+async function chooseLayout(window: Page, label: string): Promise<void> {
+  await layoutGroup(window)
+  await window.getByRole('menuitemradio', { name: label }).click()
 }
 
 function subject(window: Page, pane: number) {
@@ -49,7 +61,7 @@ async function applyPreset(window: Page, name: string): Promise<void> {
 
 test('an arrangement comes back by name, tabs and layout together', async ({ window }) => {
   await openPage(window, 'Data Explorer')
-  await view(window, 'Two columns')
+  await chooseLayout(window, 'Two columns')
 
   await openIn(window, 0, 'Prices')
   // Scoped: both panes end up with a Subject field, and the assertion below
@@ -61,7 +73,7 @@ test('an arrangement comes back by name, tabs and layout together', async ({ win
   await savePreset(window, 'Research')
 
   // Wreck it: a different layout, and nothing of the arrangement left.
-  await view(window, 'Single pane')
+  await chooseLayout(window, 'Single pane')
   await expect(window.locator('.pane')).toHaveCount(1)
 
   await applyPreset(window, 'Research')
@@ -105,7 +117,7 @@ test('a saved preset says what it was called and what to type', async ({ window 
 
 test('a preset is reached from another page by its code', async ({ window }) => {
   await openPage(window, 'Data Explorer')
-  await view(window, 'Two columns')
+  await chooseLayout(window, 'Two columns')
   await openIn(window, 0, 'Prices')
   await savePreset(window, 'Screening')
 

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { WithQueries } from '../../../../test/queries'
 import { LAYOUT_OPTIONS, useChrome } from '../../state/chrome'
+import { useWorkspace } from '../../state/tabs.store'
 import { MenuBar } from '../MenuBar'
 import { buildMenus, nextEnabled, type MenuItem } from './menuModel'
 
@@ -35,11 +36,24 @@ describe('buildMenus', () => {
     }
   })
 
-  it('offers every layout the Layout menu does', () => {
+  it('offers every layout the Layout menu does, grouped under one item', () => {
+    // BU-121: seven layouts are one choice, so they hang off `Window layout`
+    // rather than filling the menu that also holds the theme and presets.
     const view = buildMenus(CONTEXT).find((menu) => menu.label === 'View')
-    const layouts = view?.items.filter((item) => item.action.startsWith('layout-'))
+    const group = view?.items.find((item) => item.label === 'Window layout')
 
-    expect(layouts).toHaveLength(LAYOUT_OPTIONS.length)
+    expect(group?.submenu).toHaveLength(LAYOUT_OPTIONS.length)
+    expect(
+      view?.items.some((item) => item.action.startsWith('layout-') && item.submenu === undefined)
+    ).toBe(true)
+  })
+
+  it('offers resetting the page, which the layouts alone cannot do', () => {
+    const view = buildMenus(CONTEXT).find((menu) => menu.label === 'View')
+    const reset = view?.items.find((item) => item.action === 'layout-reset')
+
+    expect(reset?.label).toBe('Reset window')
+    expect(reset?.enabled).toBe(true)
   })
 
   it('offers saving an arrangement whether or not any are saved', () => {
@@ -54,11 +68,14 @@ describe('buildMenus', () => {
     expect(view?.items.some((item) => item.action.startsWith('preset-apply'))).toBe(false)
   })
 
-  it('ticks the theme and layout in force', () => {
+  it('ticks the theme and layout in force, each where the choice is made', () => {
     const view = buildMenus({ theme: 'dark', layout: 'grid' }).find((m) => m.label === 'View')
     const ticked = view?.items.filter((item) => item.checked === true).map((item) => item.label)
+    const group = view?.items.find((item) => item.label === 'Window layout')
+    const inGroup = group?.submenu?.filter((item) => item.checked === true).map((i) => i.label)
 
-    expect(ticked).toEqual(['Dark theme', 'Four panes'])
+    expect(ticked).toEqual(['Dark theme'])
+    expect(inGroup).toEqual(['Four panes'])
   })
 
   it('marks everything it cannot do as disabled rather than hiding it', () => {
@@ -160,12 +177,41 @@ describe('the menu bar', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
-  it('changes the layout of the page it was given', async () => {
+  it('changes the layout of the page it was given, through the group', async () => {
     bar()
     await userEvent.click(screen.getByRole('button', { name: 'View' }))
+    // Hovering the group opens the flyout, which is where the layouts live
+    // since BU-121.
+    await userEvent.hover(screen.getByRole('menuitem', { name: /Window layout/ }))
     await userEvent.click(screen.getByRole('menuitemradio', { name: /Two columns/ }))
 
     expect(useChrome.getState().layoutByPage['data-explorer']).toBe('columns')
+  })
+
+  it('resets the page to one empty pane', async () => {
+    useChrome.setState({ layoutByPage: { 'data-explorer': 'grid' } })
+    useWorkspace.setState({
+      tabs: [
+        {
+          id: 'tab-prices',
+          page: 'data-explorer',
+          pane: 2,
+          viewKind: 'prices',
+          archetype: 'query',
+          title: 'Prices',
+          dirty: false
+        }
+      ]
+    })
+
+    bar()
+    await userEvent.click(screen.getByRole('button', { name: 'View' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /Reset window/ }))
+
+    // Both halves: a single pane still holding six tabs is the arrangement
+    // you were trying to get out of.
+    expect(useChrome.getState().layoutByPage['data-explorer']).toBe('single')
+    expect(useWorkspace.getState().tabs).toEqual([])
   })
 
   it('does nothing when a placeholder is clicked', async () => {

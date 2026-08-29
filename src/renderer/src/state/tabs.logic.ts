@@ -198,6 +198,16 @@ export function replacePage(
 }
 
 /**
+ * Close everything on one page (BU-121).
+ *
+ * `replacePage` with nothing to put back — the same transition, so the same
+ * guarantee that no active id survives the tabs it pointed at.
+ */
+export function resetPage(state: WorkspaceState, page: string): WorkspaceState {
+  return replacePage(state, page, [], {})
+}
+
+/**
  * `pane` is the pane the tab was clicked in, which under a collapsed layout
  * is not the pane it is stored in. Omitting it selects in its own pane, which
  * is right for every caller that is not a tab strip.

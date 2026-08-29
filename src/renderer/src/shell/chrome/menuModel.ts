@@ -18,6 +18,7 @@ export type MenuAction =
   | 'theme-dark'
   | 'theme-system'
   | `layout-${string}`
+  | 'layout-reset'
   | 'preset-save'
   | `preset-apply-${string}`
   | 'none'
@@ -33,6 +34,13 @@ export interface MenuItem {
   /** Shown with a tick when true. Only meaningful for live items. */
   checked?: boolean
   separatorBefore?: boolean
+  /**
+   * Items in a flyout, opened by hovering this one (BU-121).
+   *
+   * An item with a submenu does nothing itself: its `action` is never
+   * dispatched, because activating it means opening the flyout.
+   */
+  submenu?: readonly MenuItem[]
 }
 
 export interface Menu {
@@ -93,13 +101,31 @@ export function buildMenus(context: MenuContext): Menu[] {
         enabled: true,
         checked: context.theme === 'system'
       },
-      ...LAYOUT_OPTIONS.map((option, index) => ({
-        label: option.label,
-        action: `layout-${option.id}` as MenuAction,
+      /*
+       * Seven layouts under one item (BU-121).
+       *
+       * They are one choice, not seven, and listing them inline made a menu
+       * that also carries the theme and preset saving read as a layout menu
+       * with other things stuck to it. The flyout keeps the tick where the
+       * choice is.
+       */
+      {
+        label: 'Window layout',
+        action: 'none',
         enabled: true,
-        checked: context.layout === option.id,
-        ...(index === 0 ? { separatorBefore: true } : {})
-      })),
+        separatorBefore: true,
+        submenu: LAYOUT_OPTIONS.map((option) => ({
+          label: option.label,
+          action: `layout-${option.id}` as MenuAction,
+          enabled: true,
+          checked: context.layout === option.id
+        }))
+      },
+      {
+        label: 'Reset window',
+        action: 'layout-reset',
+        enabled: true
+      },
       /*
        * Saving only (BU-120).
        *

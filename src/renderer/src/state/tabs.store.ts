@@ -65,6 +65,8 @@ export interface WorkspaceStore extends WorkspaceState {
   linkTab: (id: string, sourceId: string) => void
   pinTab: (id: string, doc: string) => void
   setDirty: (id: string, dirty: boolean) => void
+  /** Close every tab on a page (BU-121). */
+  resetPage: (page: string) => void
   openOrRetarget: (request: {
     page: string
     viewKind: string
@@ -122,6 +124,10 @@ export const useWorkspace = create<WorkspaceStore>()(
       openOrRetarget: (request) => {
         set((state) => logic.openOrRetarget(state, request))
       },
+      resetPage: (page) => {
+        set((state) => logic.resetPage(state, page))
+      },
+
       reset: () => {
         set(logic.emptyWorkspace())
       }

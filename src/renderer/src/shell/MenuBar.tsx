@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
-import { layoutFor, useChrome } from '../state/chrome'
+import { layoutFor, SINGLE_PANE, useChrome } from '../state/chrome'
 import { presetsFor, usePresets } from '../state/presets'
+import { useWorkspace } from '../state/tabs.store'
 import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
 import { DataSourcesPanel } from './chrome/DataSourcesPanel'
@@ -96,6 +97,7 @@ export function MenuBar({
   const setLayout = useChrome((state) => state.setLayout)
   const saved = usePresets((state) => state.presets)
   const applyPreset = usePresets((state) => state.apply)
+  const resetPage = useWorkspace((state) => state.resetPage)
 
   // Only this page's, since a preset names views by kind and the kinds a page
   // can open are its own.
@@ -150,7 +152,12 @@ export function MenuBar({
     else if (action === 'theme-dark') theme.setPreference('dark')
     else if (action === 'theme-system') theme.setPreference('system')
     else if (action === 'preset-save') onSavePreset?.()
-    else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
+    else if (action === 'layout-reset') {
+      // Both halves, or it is not a reset: a single pane still holding six
+      // tabs is the arrangement you were trying to get out of.
+      setLayout(page, SINGLE_PANE.id)
+      resetPage(page)
+    } else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
   }
 
   return (

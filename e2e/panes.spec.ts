@@ -15,6 +15,13 @@ async function chooseLayout(window: Page, label: string): Promise<void> {
   await window.keyboard.press('Escape')
 }
 
+/** The same choice from the menu bar, where it lives in a flyout (BU-121). */
+async function chooseLayoutFromMenu(window: Page, label: string): Promise<void> {
+  await window.getByRole('button', { name: 'View', exact: true }).click()
+  await window.getByRole('menuitem', { name: /Window layout/ }).hover()
+  await window.getByRole('menuitemradio', { name: label }).click()
+}
+
 /** Open a view from a specific pane's `+`. */
 async function openIn(window: Page, pane: number, title: string): Promise<void> {
   await window
@@ -302,4 +309,23 @@ test('the main pane can sit on the right, with the stack beside it', async ({ wi
   expect(bottomLeft.y).toBeGreaterThan(topLeft.y)
   expect(right.x).toBeGreaterThan(topLeft.x + topLeft.width - 1)
   expect(right.height).toBeGreaterThan(topLeft.height * 1.5)
+})
+
+test('the View menu reaches the layouts through a flyout, and can reset the page', async ({
+  window
+}) => {
+  await openPage(window, 'Data Explorer')
+  await chooseLayoutFromMenu(window, 'Four panes')
+  await expect(window.locator('.pane')).toHaveCount(4)
+
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
+  await expect(window.locator('.tab-bar').first().getByText('Prices')).toBeVisible()
+
+  await window.getByRole('button', { name: 'View', exact: true }).click()
+  await window.getByRole('menuitem', { name: /Reset window/ }).click()
+
+  // Both halves: one pane, and nothing left open in it.
+  await expect(window.locator('.pane')).toHaveCount(1)
+  await expect(window.getByText(/Nothing open here yet/)).toBeVisible()
 })

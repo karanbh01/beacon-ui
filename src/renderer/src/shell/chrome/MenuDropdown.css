@@ -76,3 +76,28 @@
   color: var(--text-muted);
   white-space: nowrap;
 }
+
+/* The chevron on a group, in the hint's column but its own glyph. */
+.menu-dropdown-more {
+  flex: none;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+/*
+ * The flyout, attached to the panel that opened it (BU-121).
+ *
+ * `left: 100%` with a 1px pull-back puts its left border ON the panel's right
+ * border, so the two share one hairline and read as a single shape. The pull
+ * also removes the gap the pointer would otherwise have to cross, which is
+ * what makes a hover-opened submenu feel broken when it is merely nearby.
+ *
+ * `top` is set inline, from the index of the row that opened it, so the
+ * flyout starts level with its own parent.
+ */
+.menu-dropdown-flyout {
+  top: 0;
+  left: calc(100% - 1px);
+  margin-top: -4px;
+}
