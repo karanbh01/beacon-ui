@@ -356,3 +356,45 @@ test('the price table takes the height the pane gives it', async ({ window }) =>
   expect(half.body).toBeLessThan(half.pane)
   expect(half.body).toBeGreaterThanOrEqual(140)
 })
+
+test('the table fills the width it is given, and the chart the height', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openIn(window, 0, 'Prices')
+  await window.locator('[data-pane="0"]').getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+  await window.locator('.tbl-row').first().waitFor()
+
+  const table = await window.evaluate(() => {
+    const card = document.querySelector('.tbl')?.getBoundingClientRect()
+    const body = document.querySelector('.pane-body')?.getBoundingClientRect()
+    const head = [...document.querySelectorAll('.tbl-head .tbl-cell')].map((c) =>
+      Math.round(c.getBoundingClientRect().width)
+    )
+    const row = [...document.querySelectorAll('.tbl-row .tbl-cell')]
+      .slice(0, head.length)
+      .map((c) => Math.round(c.getBoundingClientRect().width))
+    return { card: card?.width ?? 0, avail: body?.width ?? 0, head, row }
+  })
+
+  // Fills the pane rather than sitting at the sum of its column widths, and
+  // the head still lines up with the body at that width (BU-131).
+  expect(table.card).toBeGreaterThan(table.avail - 60)
+  expect(table.head).toEqual(table.row)
+  // Grown in proportion: Date was declared widest of the first five.
+  expect(table.head[0] ?? 0).toBeGreaterThan(table.head[1] ?? 0)
+
+  await openIn(window, 0, 'Charting')
+  await window.locator('.level-chart').waitFor()
+  const tall = await window.evaluate(
+    () => document.querySelector('.level-chart')?.getBoundingClientRect().height ?? 0
+  )
+
+  await chooseLayout(window, 'Two rows')
+  const short = await window.evaluate(
+    () => document.querySelector('.level-chart')?.getBoundingClientRect().height ?? 0
+  )
+
+  // Takes the pane's height, down to a floor that stays readable (BU-132).
+  expect(short).toBeLessThan(tall)
+  expect(short).toBeGreaterThanOrEqual(240)
+})

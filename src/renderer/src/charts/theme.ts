@@ -111,7 +111,27 @@ export function chartOptions(mode: ThemeMode): DeepPartial<ChartOptions> {
         labelBackgroundColor: token.accent
       }
     },
-    handleScale: { axisPressedMouseMove: { time: true, price: false } },
+    /*
+     * Ranging is deliberate or it does not happen (BU-134).
+     *
+     * The wheel belonged to the chart and was taken from the pane it sits in
+     * — scrolling a pane with the pointer over a chart zoomed the chart
+     * instead, which is the wrong reading of that gesture nearly every time.
+     * Dragging an axis is unambiguous, so both axes take it, and a
+     * double-click puts either back to automatic.
+     */
+    handleScroll: {
+      mouseWheel: false,
+      pressedMouseMove: true,
+      horzTouchDrag: true,
+      vertTouchDrag: false
+    },
+    handleScale: {
+      mouseWheel: false,
+      pinch: false,
+      axisPressedMouseMove: { time: true, price: true },
+      axisDoubleClickReset: { time: true, price: true }
+    },
     autoSize: true
   }
 }

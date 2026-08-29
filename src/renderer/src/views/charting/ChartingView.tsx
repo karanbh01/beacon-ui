@@ -127,7 +127,7 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
           {...(data.rebased && data.baseDate !== undefined
             ? { note: `rebased · 100 = ${data.baseDate}` }
             : {})}
-          height={520}
+          height="fill"
         />
       )}
 

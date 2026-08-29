@@ -395,6 +395,24 @@ test('the chart frames the plot and keeps volume to a tenth of it', async ({ win
   // Inset on both axis sides, so the labels sit outside the box (BU-130).
   expect(box?.insetLeft ?? 0).toBeGreaterThan(20)
   expect(box?.insetBottom ?? 0).toBeGreaterThan(10)
+
+  // The legend and the volume caption sit INSIDE that box, left aligned to
+  // it rather than to the canvas, which includes the axis (BU-133).
+  const labels = await window.evaluate(() => {
+    const frame = document.querySelector('.level-chart-frame')?.getBoundingClientRect()
+    const legend = document.querySelector('.level-chart-legend')?.getBoundingClientRect()
+    const caption = document.querySelector('.level-chart-sublabel')?.getBoundingClientRect()
+    if (frame === undefined || legend === undefined || caption === undefined) return undefined
+    return {
+      legend: legend.left - frame.left,
+      caption: caption.left - frame.left,
+      captionInside: caption.bottom < frame.bottom && caption.top > frame.top
+    }
+  })
+
+  expect(labels?.legend).toBeGreaterThan(0)
+  expect(labels?.legend).toBe(labels?.caption)
+  expect(labels?.captionInside).toBe(true)
 })
 
 test('the chart draws the adjusted line or the traded one, never both', async ({ window }) => {

@@ -14,8 +14,8 @@
 .level-chart-legend {
   position: absolute;
   top: 8px;
-  left: 52px;
   right: 12px;
+  /* `left` is set inline, from the measured axis width (BU-133). */
   /*
    * Above the chart's own canvases, which are absolute at z-index 1 and 2.
    * Anything lower is painted over — a legend at z-index 1 disappears
@@ -89,4 +89,21 @@
   z-index: 3;
   pointer-events: none;
   border: 1px solid var(--border);
+}
+
+/*
+ * A chart that takes the pane's height (BU-132).
+ *
+ * The chart itself watches its container — `autoSize` — so this is the whole
+ * of the resizing. The floor is a readability limit, not a layout one: a
+ * price line under about this is a squiggle.
+ */
+.level-chart-filling {
+  flex: 1 1 auto;
+  /*
+   * 240 rather than 320: the header, toolbar and footnote take about 170px,
+   * so a floor of 320 made a half-height pane scroll — which is the thing
+   * filling was supposed to stop. A price line reads fine at this.
+   */
+  min-height: 240px;
 }

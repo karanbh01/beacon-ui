@@ -161,3 +161,22 @@ describe('withAlpha', () => {
     expect(withAlpha('red', 0.5)).toBe('red')
   })
 })
+
+describe('what the pointer can do to a chart (BU-134)', () => {
+  it('leaves the wheel to the pane it sits in', () => {
+    // A pane that scrolls and a chart that zooms are competing for the same
+    // gesture, and the pane asked first.
+    const options = chartOptions('light')
+    expect(options.handleScroll).toMatchObject({ mouseWheel: false })
+    expect(options.handleScale).toMatchObject({ mouseWheel: false })
+  })
+
+  it('takes a drag on either axis, which is unambiguous', () => {
+    const options = chartOptions('dark')
+    expect(options.handleScale).toMatchObject({
+      axisPressedMouseMove: { time: true, price: true },
+      // And a double-click puts either back to automatic.
+      axisDoubleClickReset: { time: true, price: true }
+    })
+  })
+})

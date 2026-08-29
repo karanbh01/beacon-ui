@@ -30,7 +30,14 @@ export interface LevelChartProps {
   mode: ThemeMode
   /** Drawdown or volume, in a second pane sharing the time axis. */
   subPanel?: SubPanel
-  height?: number
+  /**
+   * A fixed height in px, or `fill` to take the pane's (BU-132).
+   *
+   * `fill` is what a chart in a pane wants: fixed at 520 it left space below
+   * it in a tall pane and overflowed a short one. The floor is in CSS, since
+   * a price line under about 320px is a squiggle.
+   */
+  height?: number | 'fill'
   /** Shown top-right, e.g. "rebased · 100 = 22 Jul 2025" (Figma 289:2861). */
   note?: string
 }
@@ -126,13 +133,17 @@ export function LevelChart({
    * inset by the axis widths the chart reports — so the box stays on the
    * plot when the price labels get wider.
    */
+  const filling = height === 'fill'
   const [axes, setAxes] = useState({ left: 0, bottom: 0 })
+  const [plot, setPlot] = useState(0)
   useEffect(() => {
     const created = chart.current
     if (created === null) return undefined
 
     const measure = (): void => {
       setAxes({ left: created.priceScale('left').width(), bottom: created.timeScale().height() })
+      // Measured rather than taken from the prop, which may be `fill`.
+      setPlot(host.current?.getBoundingClientRect().height ?? 0)
     }
     measure()
 
@@ -145,8 +156,11 @@ export function LevelChart({
   }, [series, subPanel, height, mode])
 
   return (
-    <div className="level-chart" style={{ height }}>
-      <div className="level-chart-legend type-11">
+    <div
+      className={filling ? 'level-chart level-chart-filling' : 'level-chart'}
+      style={filling ? undefined : { height }}
+    >
+      <div className="level-chart-legend type-11" style={{ left: axes.left + LEGEND_INSET }}>
         {series.map((line, index) => (
           <span key={line.label} className="level-chart-key">
             <span
@@ -170,10 +184,18 @@ export function LevelChart({
       {subPanel !== undefined && (
         <span
           className="level-chart-sublabel type-11"
-          // Sits on the subpanel's top edge, which moved when the pane became
-          // a tenth of the frame (BU-128): a fixed percentage left it
-          // floating in the middle of the price line.
-          style={{ bottom: axes.bottom + (height - axes.bottom) * subPanelShare() }}
+          /*
+           * On the subpanel's top edge, and inside the frame.
+           *
+           * The height moved when the pane became a tenth of the chart
+           * (BU-128) — a fixed percentage left it floating in the middle of
+           * the price line — and the left offset is the axis width, or it
+           * straddles the frame's edge (BU-133).
+           */
+          style={{
+            left: axes.left + LEGEND_INSET,
+            bottom: axes.bottom + (plot - axes.bottom) * subPanelShare()
+          }}
         >
           {subPanel.label}
         </span>
@@ -189,6 +211,9 @@ export function LevelChart({
  * meant a second chart with its time scales manually kept in sync, which
  * drifts the moment either one is panned.
  */
+/** Clear of the frame's own hairline, without floating away from it. */
+const LEGEND_INSET = 10
+
 /** Relative pane heights when there is a subpanel: nine parts to one. */
 const SUBPANEL_SHARE = { main: 9, panel: 1 }
 

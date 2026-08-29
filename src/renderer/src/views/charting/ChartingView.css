@@ -12,3 +12,16 @@
   margin: 0;
   color: var(--text-muted);
 }
+
+/*
+ * A column that owns the pane's height, so the chart inside it can fill
+ * (BU-132). Everything but the chart keeps its own size.
+ */
+.charting-view {
+  height: 100%;
+  min-height: 0;
+}
+
+.charting-view > *:not(.level-chart) {
+  flex: none;
+}
