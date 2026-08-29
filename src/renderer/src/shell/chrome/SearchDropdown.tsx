@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import { useEffect, useRef, type ReactElement } from 'react'
 import { groupRows, type SearchRow } from './searchResults'
 import './SearchDropdown.css'
 
@@ -26,9 +26,23 @@ export function SearchDropdown({
   onHover
 }: SearchDropdownProps): ReactElement {
   let index = -1
+  const list = useRef<HTMLDivElement>(null)
+
+  /*
+   * Follow the highlight (BU-123).
+   *
+   * Five assets, the open tabs and the arrangements they could go into add up
+   * to more rows than the panel is tall, and a highlight that walks off the
+   * bottom is one the keyboard appears to have lost.
+   */
+  useEffect(() => {
+    if (activeIndex < 0) return
+    const rowsInDom = list.current?.querySelectorAll<HTMLElement>('[role="option"]')
+    rowsInDom?.[activeIndex]?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex])
 
   return (
-    <div className="search-dropdown" role="listbox" aria-label="Search results">
+    <div className="search-dropdown" role="listbox" aria-label="Search results" ref={list}>
       {groupRows(rows).map((group) => (
         <div key={group.group} className="search-dropdown-group">
           <p className="popover-heading">{group.group}</p>

@@ -35,6 +35,13 @@
  * The highlight follows the keyboard, so it cannot be :hover — the pointer
  * may be resting anywhere on screen while arrow keys move the selection.
  */
+/*
+ * The keyboard's highlight, which has to read on both themes.
+ *
+ * `--sidebar-active-bg` is 15% alpha in dark and all but vanishes over the
+ * glass panel, so the bar carries the meaning and the wash only supports it.
+ */
 .search-dropdown-row-active {
   background: var(--sidebar-active-bg);
+  box-shadow: inset 2px 0 0 var(--accent);
 }

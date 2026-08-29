@@ -342,3 +342,33 @@ test('Reference Data states listing and domicile country separately', async ({ w
   await expect(identifiers.getByText('GB', { exact: true })).toBeVisible()
   await expect(identifiers.getByText('IE', { exact: true })).toBeVisible()
 })
+
+test('the search field browses with the arrows and completes with Tab', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  const search = window.getByRole('combobox', { name: 'Search' })
+
+  await search.fill('CMP0')
+  await window
+    .getByRole('option', { name: /CMP001/ })
+    .first()
+    .waitFor()
+
+  // Assets first (BU-123), so the first ArrowDown lands on a symbol and Tab
+  // completes the obvious thing.
+  const rows = window.getByRole('option')
+  await expect(rows.first()).toContainText('CMP000')
+
+  await search.press('ArrowDown')
+  await expect(rows.first()).toHaveAttribute('aria-selected', 'true')
+
+  await search.press('ArrowDown')
+  await expect(rows.nth(1)).toHaveAttribute('aria-selected', 'true')
+  // The input points at the row it has highlighted, so assistive tech follows.
+  await expect(search).toHaveAttribute('aria-activedescendant', /identifier:CMP001/)
+
+  await search.press('ArrowUp')
+  await expect(rows.first()).toHaveAttribute('aria-selected', 'true')
+
+  await search.press('Tab')
+  await expect(search).toHaveValue('CMP000 ')
+})

@@ -116,16 +116,46 @@ export function searchRows(
 
   const { identifiers = [], indices = [], views = [], presets = [] } = sources
 
-  const rows: SearchRow[] = tabs
-    .filter((tab) => matches(tab, needle))
-    .slice(0, MAX_TABS)
-    .map((tab) => ({
+  const rows: SearchRow[] = []
+
+  /*
+   * Assets first (BU-123).
+   *
+   * What was typed is usually a symbol, and Tab completes whatever is
+   * highlighted — so the row the first ArrowDown lands on decides whether
+   * completing does the obvious thing. Everything else here is a place the
+   * symbol could go; this is the symbol.
+   */
+  const open = new Set(tabs.map((tab) => tab.subject).filter((subject) => subject !== undefined))
+  let offered = 0
+  for (const suggestion of identifiers) {
+    // Counted per identifier, not against the total: with no tabs matching,
+    // a shared budget would let the whole limit through as assets and turn
+    // the panel into a page.
+    if (offered >= MAX_IDENTIFIERS) break
+    // Not one already open as a subject — the tab row below IS that, and the
+    // same symbol twice under two headings reads as a bug.
+    if (open.has(suggestion.identifier)) continue
+    offered += 1
+    rows.push({
+      id: `identifier:${suggestion.identifier}`,
+      group: 'ASSETS',
+      label: suggestion.identifier,
+      meta: suggestion.name ?? '',
+      kind: 'identifier',
+      subject: suggestion.identifier
+    })
+  }
+
+  for (const tab of tabs.filter((tab) => matches(tab, needle)).slice(0, MAX_TABS)) {
+    rows.push({
       id: tab.id,
       group: 'OPEN TABS',
       label: tab.title,
       meta: describe(tab),
       kind: 'tab'
-    }))
+    })
+  }
 
   /*
    * `<ticker> <preset>` — an instrument, then where to put it (BU-122).
@@ -193,28 +223,6 @@ export function searchRows(
       meta: index.name ?? '',
       kind: 'index',
       subject: index.id
-    })
-  }
-
-  // Not one already open as a subject — the tab row above IS that, and the
-  // same symbol twice under two headings reads as a bug.
-  const open = new Set(tabs.map((tab) => tab.subject).filter((subject) => subject !== undefined))
-
-  let offered = 0
-  for (const suggestion of identifiers) {
-    // Counted per identifier, not against the total: with no tabs matching,
-    // a shared budget would let the whole limit through as assets and turn
-    // the panel into a page.
-    if (offered >= MAX_IDENTIFIERS) break
-    if (open.has(suggestion.identifier)) continue
-    offered += 1
-    rows.push({
-      id: `identifier:${suggestion.identifier}`,
-      group: 'ASSETS',
-      label: suggestion.identifier,
-      meta: suggestion.name ?? '',
-      kind: 'identifier',
-      subject: suggestion.identifier
     })
   }
 

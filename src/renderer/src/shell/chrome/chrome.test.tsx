@@ -50,6 +50,28 @@ describe('searchRows', () => {
     expect(searchRows('tech10', TABS).map((r) => r.label)).toContain('Weights')
   })
 
+  it('puts the assets first, because that is what was typed', () => {
+    // BU-123. Tab completes the highlighted row, so the row the first
+    // ArrowDown lands on decides whether completing does the obvious thing.
+    const rows = searchRows('prices', TABS, {
+      identifiers: [{ identifier: 'PRICES-CO', name: 'Prices Company' }]
+    })
+
+    expect(rows[0]?.group).toBe('ASSETS')
+    // The open tab still matches, below it.
+    expect(rows.some((row) => row.group === 'OPEN TABS')).toBe(true)
+  })
+
+  it('still refuses to list a symbol twice under two headings', () => {
+    // AAPL is open as a tab subject, so it is not offered again as an asset.
+    const rows = searchRows('aapl', TABS, {
+      identifiers: [{ identifier: 'AAPL', name: 'Apple' }]
+    })
+
+    expect(rows.filter((row) => row.group === 'ASSETS')).toEqual([])
+    expect(rows[0]?.group).toBe('OPEN TABS')
+  })
+
   it('finds a preset by its code, from any page', () => {
     // The code exists to be typed: DE001 reaches a Data Explorer arrangement
     // from wherever you are, which a per-page dropdown cannot.
@@ -385,9 +407,12 @@ describe('searchRows with identifiers (BU-72)', () => {
     expect(groups.map((g) => g.group)).toEqual(['ASSETS', 'ACTIONS'])
   })
 
-  it('puts open tabs above identifiers — what you have beats what you could open', () => {
-    const groups = groupRows(searchRows('aapl', TABS, { identifiers: FOUND }))
-    expect(groups[0]?.group).toBe('OPEN TABS')
+  it('puts identifiers above open tabs — what was typed comes first (BU-123)', () => {
+    // The reverse of BU-72's order, and deliberately. Tab completes the
+    // highlighted row now, so the first row decides what completing does;
+    // a symbol that is already an open tab is still not repeated below.
+    const groups = groupRows(searchRows('cmp02', TABS, { identifiers: FOUND }))
+    expect(groups[0]?.group).toBe('ASSETS')
   })
 
   it('keeps the order the engine ranked them in', () => {

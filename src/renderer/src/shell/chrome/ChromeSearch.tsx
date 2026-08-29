@@ -163,7 +163,19 @@ export function ChromeSearch({
             aria-expanded={open}
             aria-controls="search-results"
             aria-autocomplete="list"
+            {...(rows[typeahead.active] === undefined
+              ? {}
+              : { 'aria-activedescendant': `search-row-${rows[typeahead.active]?.id ?? ''}` })}
             spellCheck={false}
+            /*
+             * Chromium's own autofill dropdown opens over a field it has seen
+             * a value in before, and eats Up and Down on its way past (BU-123)
+             * — so the highlight moved under a test driving the element
+             * directly and not under a person at a keyboard. `TickerField`
+             * has always set this; this field never did.
+             */
+            autoComplete="off"
+
             value={query}
             onChange={(event) => {
               setQuery(event.target.value)
