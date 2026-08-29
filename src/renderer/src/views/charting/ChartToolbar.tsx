@@ -13,6 +13,9 @@ export interface ChartToolbarProps {
   onRange: (range: Range) => void
   interval: Interval
   onInterval: (interval: Interval) => void
+  /** Adjusted or traded, never both at once (BU-129). */
+  adjusted: boolean
+  onAdjusted: (adjusted: boolean) => void
   compare: readonly string[]
   onAdd: (identifier: string) => void
   onRemove: (identifier: string) => void
@@ -32,6 +35,8 @@ export function ChartToolbar({
   onRange,
   interval,
   onInterval,
+  adjusted,
+  onAdjusted,
   compare,
   onAdd,
   onRemove,
@@ -48,6 +53,23 @@ export function ChartToolbar({
           onInterval(next as Interval)
         }}
         label="Interval"
+      />
+
+      {/*
+        One line at a time. Two that differ only by dividends are
+        indistinguishable at chart scale and legible only in the legend, so
+        this is a choice rather than a pair of toggles.
+      */}
+      <Select
+        options={[
+          { value: 'traded', label: 'Unadjusted' },
+          { value: 'adjusted', label: 'Adjusted' }
+        ]}
+        value={adjusted ? 'adjusted' : 'traded'}
+        onChange={(next) => {
+          onAdjusted(next === 'adjusted')
+        }}
+        label="Prices"
       />
 
       {compare.map((identifier, index) => (

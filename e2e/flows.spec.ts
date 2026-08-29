@@ -396,3 +396,44 @@ test('the chart frames the plot and keeps volume to a tenth of it', async ({ win
   expect(box?.insetLeft ?? 0).toBeGreaterThan(20)
   expect(box?.insetBottom ?? 0).toBeGreaterThan(10)
 })
+
+test('the chart draws the adjusted line or the traded one, never both', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
+
+  // The footnote names the line, since two that differ only by dividends are
+  // indistinguishable at chart scale (BU-129).
+  await expect(window.getByText(/· unadjusted/)).toBeVisible()
+  await window.getByLabel('Prices', { exact: true }).selectOption('adjusted')
+  await expect(window.getByText(/· adjusted/)).toBeVisible()
+  await expect(window.getByText(/· unadjusted/)).toHaveCount(0)
+})
+
+test('a view query bar completes with Tab', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
+
+  const field = window.getByRole('combobox', { name: 'Subject' })
+  await field.fill('CMP00')
+  await window
+    .getByRole('option', { name: /CMP001/ })
+    .first()
+    .waitFor()
+
+  await field.press('ArrowDown')
+  await field.press('Tab')
+
+  // Completed into the field, not committed: the table is still empty until
+  // Enter (BU-126).
+  await expect(field).toHaveValue(/^CMP00\d$/)
+  await expect(window.getByText(/Type an identifier/)).toBeVisible()
+
+  await field.press('Enter')
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
+})

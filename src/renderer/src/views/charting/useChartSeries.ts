@@ -40,6 +40,8 @@ export interface ChartRequest {
   compare: readonly string[]
   start: string | undefined
   interval: Interval
+  /** Draw the back-adjusted line instead of the traded one (BU-129). */
+  adjusted: boolean
 }
 
 /**
@@ -59,9 +61,10 @@ export function useChartSeries(request: ChartRequest): ChartData {
   const query = useMemo(
     () => ({
       ...(request.start === undefined ? {} : { start: request.start }),
-      interval: request.interval
+      interval: request.interval,
+      ...(request.adjusted ? { adjusted: true } : {})
     }),
-    [request.start, request.interval]
+    [request.start, request.interval, request.adjusted]
   )
 
   const results = useQueries({
@@ -75,10 +78,27 @@ export function useChartSeries(request: ChartRequest): ChartData {
     }))
   })
 
+  // Extracted so the dependency list stays statically checkable: `results` is
+  // a new array on every render, and what matters is when its contents moved.
+  const stamps = results.map((result) => result.dataUpdatedAt).join()
+
   return useMemo(() => {
     const rebased = identifiers.length > 1
+    /*
+     * One line, and which one is a choice (BU-129).
+     *
+     * This used to read `close` and fall back to an adjusted column when
+     * there was none — a silent mixture rather than an answer. Now the
+     * request asks for the adjusted column and this reads it, with the
+     * traded close as the fallback: an engine that cannot adjust should draw
+     * the line it has rather than nothing.
+     */
+    const columns: [string, ...string[]] = request.adjusted
+      ? ['adj close', 'adj_close', 'close']
+      : ['close']
+
     const series = identifiers.map((identifier, index) => {
-      const points = toPoints(results[index]?.data?.prices, 'close', 'adj close', 'adj_close')
+      const points = toPoints(results[index]?.data?.prices, ...columns)
       return { label: identifier, points: rebased ? rebase100(points) : points }
     })
 
@@ -94,5 +114,5 @@ export function useChartSeries(request: ChartRequest): ChartData {
     }
     // `results` is a new array each render; its contents are what matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [identifiers, results.map((result) => result.dataUpdatedAt).join(), results.length])
+  }, [identifiers, request.adjusted, stamps, results.length])
 }

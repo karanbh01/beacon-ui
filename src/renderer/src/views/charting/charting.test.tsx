@@ -171,3 +171,20 @@ describe('range and interval', () => {
     expect(screen.getByText(/3M weekly|1Y weekly/)).toBeInTheDocument()
   })
 })
+
+describe('adjusted or unadjusted (BU-129)', () => {
+  it('says which line is drawn, and switches between them', async () => {
+    mount()
+
+    // Unadjusted to begin with: the traded line is what a price view means
+    // by "price" until someone asks for the other one.
+    expect(screen.getByText(/unadjusted/)).toBeInTheDocument()
+
+    await userEvent.selectOptions(screen.getByLabelText('Prices'), 'adjusted')
+
+    // One line at a time — the footnote names it rather than a legend
+    // holding two that differ only by dividends.
+    expect(screen.getByText(/· adjusted/)).toBeInTheDocument()
+    expect(screen.queryByText(/unadjusted/)).toBeNull()
+  })
+})

@@ -33,6 +33,7 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
   const [range, setRange] = useState<Range>('1Y')
   const [interval, setInterval] = useState<Interval>('native')
   const [compare, setCompare] = useState<readonly string[]>([])
+  const [adjusted, setAdjusted] = useState(false)
 
   const mode = useThemeMode()
   const setSubject = useWorkspace((state) => state.setSubject)
@@ -45,7 +46,7 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
 
   const identifier = subject ?? ''
   const start = useMemo(() => rangeStart(range), [range])
-  const data = useChartSeries({ subject: identifier, compare, start, interval })
+  const data = useChartSeries({ subject: identifier, compare, start, interval, adjusted })
   const reference = useReference(identifier, { noRetry: true })
 
   const meta = describeInstrument(reference.data?.fields)
@@ -82,6 +83,8 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
         onRange={setRange}
         interval={interval}
         onInterval={setInterval}
+        adjusted={adjusted}
+        onAdjusted={setAdjusted}
         compare={compare}
         mode={mode}
         onAdd={(next) => {
@@ -134,6 +137,8 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
           : 'independent · this tab holds its own subject'}
         {' · '}
         {rangeLabel} {interval === 'native' ? 'daily' : interval}
+        {' · '}
+        {adjusted ? 'adjusted' : 'unadjusted'}
         {compare.length > 0 && ` · compare: ${compare.join(', ')} (rebased)`}
       </p>
     </div>
