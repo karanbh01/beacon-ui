@@ -200,6 +200,7 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
             rows={summary.rows}
             getRowId={(row) => String(row.index)}
             fillHeight
+            fillWidth
           />
           <p className="prices-footnote type-11">
             {summary.rows.length.toLocaleString('en-US')} rows · {summary.firstDate} →{' '}

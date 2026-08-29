@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import type { ReactElement, ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties, ReactElement, ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import './Table.css'
 
@@ -44,8 +44,25 @@ export interface TableProps<T> {
   fillHeight?: boolean
   /** Floor for `fillHeight`. Below this there is not enough table to read. */
   minRows?: number
+  /**
+   * Share the pane's spare width out among the columns (BU-131).
+   *
+   * In proportion to the widths they are declared with, so the shape stays
+   * as designed — and those widths become the minimum, so a narrow pane
+   * scrolls rather than crushing Date into three characters.
+   */
+  fillWidth?: boolean
   caption?: string
   className?: string
+}
+
+/** `.tbl-head`'s own horizontal padding, which the gutter is added to. */
+const HEAD_PADDING = 16
+
+/** The declared width, plus a share of anything left over when filling. */
+function cellStyle<T>(column: Column<T>, fill: boolean): CSSProperties {
+  if (!fill) return { width: column.width }
+  return { flexGrow: column.width, flexShrink: 0, flexBasis: column.width, width: column.width }
 }
 
 function cellClasses<T>(column: Column<T>): string {
@@ -76,11 +93,38 @@ export function Table<T>({
   maxBodyHeight,
   fillHeight = false,
   minRows = 5,
+  fillWidth = false,
   caption,
   className
 }: TableProps<T>): ReactElement {
   const bodyRef = useRef<HTMLDivElement>(null)
   const virtualize = rows.length > VIRTUALIZE_ABOVE
+
+  /*
+   * The header reserves whatever the body's scrollbar takes (BU-131).
+   *
+   * The head is outside the scrolling body, so its content box is wider by
+   * the scrollbar — with fixed column widths that showed as the last column
+   * being clipped, and with columns that GROW it spreads across all of them
+   * and every header sits off its own numbers. Measured rather than assumed:
+   * the width is the platform's, and it is 0 for an overlay scrollbar.
+   */
+  const [gutter, setGutter] = useState(0)
+  useEffect(() => {
+    const body = bodyRef.current
+    if (body === null) return undefined
+
+    const measure = (): void => {
+      setGutter(body.offsetWidth - body.clientWidth)
+    }
+    measure()
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(body)
+    return () => {
+      observer.disconnect()
+    }
+  }, [rows.length, fillWidth])
 
   const virtualizer = useVirtualizer({
     count: virtualize ? rows.length : 0,
@@ -133,7 +177,7 @@ export function Table<T>({
           <div
             key={column.key}
             className={cellClasses(column)}
-            style={{ width: column.width }}
+            style={cellStyle(column, fillWidth)}
             role="cell"
           >
             {column.render(row)}
@@ -146,17 +190,17 @@ export function Table<T>({
   return (
     <div
       className={['tbl', fillHeight && 'tbl-fill', className].filter(Boolean).join(' ')}
-      style={{ width }}
+      style={fillWidth ? { width: '100%', minWidth: width } : { width }}
       role="table"
     >
       {caption !== undefined && <span className="tbl-caption">{caption}</span>}
 
-      <div className="tbl-head" role="row">
+      <div className="tbl-head" role="row" style={{ paddingRight: HEAD_PADDING + gutter }}>
         {columns.map((column) => (
           <div
             key={column.key}
             className={cellClasses(column)}
-            style={{ width: column.width }}
+            style={cellStyle(column, fillWidth)}
             role="columnheader"
           >
             {column.header}
@@ -193,7 +237,7 @@ export function Table<T>({
             <div
               key={column.key}
               className={cellClasses(column)}
-              style={{ width: column.width }}
+              style={cellStyle(column, fillWidth)}
               role="cell"
             >
               {totalRow[column.key]}

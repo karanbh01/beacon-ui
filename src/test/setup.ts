@@ -26,3 +26,25 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
     dispatchEvent: () => false
   })
 }
+
+/**
+ * jsdom has no ResizeObserver, and the Table uses one to reserve the scroll
+ * gutter in its header (BU-131). A stub rather than a polyfill: nothing in
+ * jsdom lays anything out, so an observer that never fires reports exactly
+ * as much as a real one would.
+ */
+if (typeof globalThis.ResizeObserver !== 'function') {
+  globalThis.ResizeObserver = class {
+    observe(): void {
+      return undefined
+    }
+
+    unobserve(): void {
+      return undefined
+    }
+
+    disconnect(): void {
+      return undefined
+    }
+  }
+}

@@ -4,7 +4,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  align-items: flex-start;
   /* The chain the table's `fillHeight` needs: a column that owns the pane's
      height, and is allowed to shrink below its content (BU-127). */
   height: 100%;
@@ -20,6 +19,9 @@
  */
 .prices-view > *:not(.tbl) {
   flex: none;
+  /* Everything else still hugs its own content, as `align-items: flex-start`
+     used to do for all of them. */
+  align-self: flex-start;
 }
 
 /* Footnote provenance line: 11px muted, counts and spans (taxonomy 9). */
