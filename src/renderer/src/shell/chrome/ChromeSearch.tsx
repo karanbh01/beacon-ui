@@ -7,7 +7,7 @@ import { useWorkspace } from '../../state/tabs.store'
 import { useIdentifierSearch } from '../../views/shared/useIdentifierSearch'
 import { SearchDropdown } from './SearchDropdown'
 import { allViews, type ViewOption } from '../viewRegistry'
-import { recentRows, searchRows, type SearchRow } from './searchResults'
+import { firstWord, recentRows, searchRows, type SearchRow } from './searchResults'
 import { usePaletteIndices } from './usePaletteIndices'
 
 export interface ChromeSearchProps {
@@ -61,8 +61,17 @@ export function ChromeSearch({
   const input = useRef<HTMLInputElement>(null)
 
   const tabs = useWorkspace((state) => state.tabs)
-  // Identifiers arrive already ranked (BN-127); searchRows keeps that order.
-  const found = useIdentifierSearch(query)
+  /*
+   * Searched on the FIRST WORD, not the whole query (BU-124).
+   *
+   * `CMP001 DE` is an instrument and what to do with it; asking the engine
+   * for "CMP001 DE" matches nothing, which took the instrument away exactly
+   * when the second half was being typed — and with it every arrangement it
+   * could be loaded into.
+   *
+   * Identifiers arrive already ranked (BN-127); searchRows keeps that order.
+   */
+  const found = useIdentifierSearch(firstWord(query))
   const indices = usePaletteIndices()
   const presets = usePresets((state) => state.presets)
   // Both selections are stable references; the sort is memoised because it
@@ -122,13 +131,7 @@ export function ChromeSearch({
    * instead would take the query away before it could be finished. Falls back
    * to the first row, which is what every shell does with nothing selected.
    */
-  const completion = (): string | undefined => {
-    const row = rows[typeahead.active] ?? rows[0]
-    if (row === undefined) return undefined
-    if (row.kind === 'identifier' || row.kind === 'index') return row.subject
-    if (row.kind === 'preset' && row.subject === undefined) return row.label
-    return undefined
-  }
+  const completion = (): string | undefined => (rows[typeahead.active] ?? rows[0])?.complete
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === 'Tab' && !event.shiftKey && open) {

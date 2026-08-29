@@ -232,8 +232,16 @@ test('a ticker completes with Tab, then loads into a preset by code', async ({ w
   // A completed instrument offers the arrangements it can go into.
   await expect(window.getByRole('option', { name: /Screening/ })).toBeVisible()
 
-  await search.fill('CMP001 DE001')
-  await window.getByRole('option', { name: /CMP001 → Screening/ }).click()
+  // Part-typed, by code: the arrangement survives the second word being
+  // typed, and Tab finishes it (BU-124).
+  await search.fill('CMP001 DE')
+  const load = window.getByRole('option', { name: /CMP001 · Screening/ })
+  await expect(load).toBeVisible()
+  await search.press('ArrowDown')
+  await search.press('Tab')
+  await expect(search).toHaveValue('CMP001 DE001 ')
+
+  await window.getByRole('option', { name: /CMP001 · Screening/ }).click()
 
   // Applied, travelled, and every loadable tab pointed at the instrument.
   await expect(window.locator('.pane')).toHaveCount(2)

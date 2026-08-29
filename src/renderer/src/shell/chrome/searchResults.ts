@@ -23,6 +23,14 @@ export interface SearchRow {
   view?: ViewOption
   /** Set on `preset`: which arrangement, when `subject` is the instrument. */
   preset?: string
+  /**
+   * What Tab puts in the field for this row (BU-124).
+   *
+   * Carried rather than derived from the label, because the two differ: a
+   * load row READS `CMP001 · Screening` and COMPLETES to `CMP001 DE001`,
+   * which is the text that parses back into the same row.
+   */
+  complete?: string
 }
 
 /** Where a matched tab lives, so a row says more than its own title. */
@@ -128,7 +136,10 @@ export function searchRows(
    */
   const open = new Set(tabs.map((tab) => tab.subject).filter((subject) => subject !== undefined))
   let offered = 0
-  for (const suggestion of identifiers) {
+  // Not once the query has moved on to what to DO with the instrument
+  // (BU-124): `CMP001 DE` is asking about arrangements, and offering CMP001
+  // itself again is offering the word already typed.
+  for (const suggestion of naming(query) ? identifiers : []) {
     // Counted per identifier, not against the total: with no tabs matching,
     // a shared budget would let the whole limit through as assets and turn
     // the panel into a page.
@@ -143,7 +154,8 @@ export function searchRows(
       label: suggestion.identifier,
       meta: suggestion.name ?? '',
       kind: 'identifier',
-      subject: suggestion.identifier
+      subject: suggestion.identifier,
+      complete: suggestion.identifier
     })
   }
 
@@ -171,7 +183,8 @@ export function searchRows(
     rows.push({
       id: `load:${preset.id}:${loading.subject}`,
       group: 'LOAD INTO',
-      label: `${loading.subject} → ${preset.name}`,
+      label: `${loading.subject} · ${preset.name}`,
+      complete: `${loading.subject} ${preset.code}`,
       meta:
         loadable === 0
           ? `${preset.code} · nothing to load`
@@ -194,7 +207,8 @@ export function searchRows(
         label: preset.name,
         meta: `${preset.code} · ${pageLabel(preset.page)}`,
         kind: 'preset',
-        preset: preset.id
+        preset: preset.id,
+        complete: preset.code
       })
     }
   }
@@ -222,7 +236,8 @@ export function searchRows(
       label: index.dirty === true ? `${index.id} •` : index.id,
       meta: index.name ?? '',
       kind: 'index',
-      subject: index.id
+      subject: index.id,
+      complete: index.id
     })
   }
 
@@ -251,6 +266,16 @@ export function searchRows(
   return rows
 }
 
+/** The first word of a query, which is where an instrument would be. */
+export function firstWord(query: string): string {
+  return query.trim().split(/\s+/)[0] ?? ''
+}
+
+/** True while the query is still naming one thing rather than two. */
+function naming(query: string): boolean {
+  return query.trim() === firstWord(query)
+}
+
 /**
  * Split "CMP001 screen" into the instrument and the presets it could go into.
  *
@@ -265,12 +290,11 @@ export function parseLoad(
   identifiers: readonly Suggestion[],
   presets: readonly Preset[]
 ): { subject: string; presets: Preset[] } {
-  const words = query.trim().split(/\s+/)
-  const head = (words[0] ?? '').toUpperCase()
+  const head = firstWord(query).toUpperCase()
   const known = identifiers.some((entry) => entry.identifier.toUpperCase() === head)
   if (!known || presets.length === 0) return { subject: '', presets: [] }
 
-  const rest = words.slice(1).join(' ').trim().toLowerCase()
+  const rest = query.trim().slice(head.length).trim().toLowerCase()
   // Nothing after the instrument: offer everywhere it could go, which is the
   // "I have typed a ticker, now what" case.
   const matching = rest === '' ? [...presets] : presets.filter((p) => matchesPreset(p, rest))

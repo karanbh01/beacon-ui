@@ -85,7 +85,10 @@ describe('searchRows', () => {
     }
 
     const byCode = searchRows('de001', TABS, { presets: [preset] })
-    expect(byCode.find((row) => row.kind === 'preset')?.label).toBe('Screening')
+    const found = byCode.find((row) => row.kind === 'preset')
+    expect(found?.label).toBe('Screening')
+    // Tab on a bare preset row fills in its code, which is the short name.
+    expect(found?.complete).toBe('DE001')
 
     const byName = searchRows('screen', TABS, { presets: [preset] })
     const row = byName.find((entry) => entry.kind === 'preset')
@@ -116,7 +119,7 @@ describe('searchRows', () => {
     const typed = searchRows('CMP001 DE001', TABS, { presets: [preset], identifiers })
     const row = typed.find((entry) => entry.group === 'LOAD INTO')
 
-    expect(row?.label).toBe('CMP001 → Screening')
+    expect(row?.label).toBe('CMP001 · Screening')
     expect(row?.subject).toBe('CMP001')
     expect(row?.preset).toBe('preset-1')
     // One of the two tabs owns a subject; the global one does not.
@@ -131,6 +134,34 @@ describe('searchRows', () => {
     // the query away from the view-and-subject reading.
     const other = searchRows('prices CMP001', TABS, { presets: [preset], identifiers })
     expect(other.some((entry) => entry.group === 'LOAD INTO')).toBe(false)
+  })
+
+  it('survives the arrangement being typed, by code or by name (BU-124)', () => {
+    const preset = {
+      id: 'preset-1',
+      name: 'Screening',
+      code: 'DE001',
+      page: 'data-explorer',
+      layout: 'columns',
+      tabs: [{ pane: 0, viewKind: 'prices', archetype: 'query' as const, title: 'Prices' }]
+    }
+    // As the CALLER supplies them: the identifier is searched on the first
+    // word, so it is still there once a second word is being typed.
+    const identifiers = [{ identifier: 'CMP001', name: 'Company One' }]
+
+    for (const query of ['CMP001 DE', 'CMP001 scree', 'CMP001 DE001']) {
+      const row = searchRows(query, TABS, { presets: [preset], identifiers }).find(
+        (entry) => entry.group === 'LOAD INTO'
+      )
+      expect(row?.preset, query).toBe('preset-1')
+      // Tab completes to text that parses back into this same row.
+      expect(row?.complete, query).toBe('CMP001 DE001')
+    }
+
+    // The instrument is not offered again as an asset while its arrangement
+    // is being named — it is the word already typed.
+    const mid = searchRows('CMP001 DE', TABS, { presets: [preset], identifiers })
+    expect(mid.some((entry) => entry.group === 'ASSETS')).toBe(false)
   })
 
   it('always offers the action, even when nothing matches', () => {
