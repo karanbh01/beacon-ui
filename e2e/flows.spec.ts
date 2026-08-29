@@ -372,3 +372,27 @@ test('the search field browses with the arrows and completes with Tab', async ({
   await search.press('Tab')
   await expect(search).toHaveValue('CMP000 ')
 })
+
+test('the chart frames the plot and keeps volume to a tenth of it', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+
+  // Charting is linked, so it needs a query tab to follow.
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
+  await window.locator('.level-chart-frame').waitFor()
+
+  const box = await window.evaluate(() => {
+    const frame = document.querySelector('.level-chart-frame')?.getBoundingClientRect()
+    const plot = document.querySelector('.level-chart-plot')?.getBoundingClientRect()
+    if (frame === undefined || plot === undefined) return undefined
+    return { insetLeft: frame.left - plot.left, insetBottom: plot.bottom - frame.bottom }
+  })
+
+  // Inset on both axis sides, so the labels sit outside the box (BU-130).
+  expect(box?.insetLeft ?? 0).toBeGreaterThan(20)
+  expect(box?.insetBottom ?? 0).toBeGreaterThan(10)
+})

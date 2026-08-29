@@ -329,3 +329,30 @@ test('the View menu reaches the layouts through a flyout, and can reset the page
   await expect(window.locator('.pane')).toHaveCount(1)
   await expect(window.getByText(/Nothing open here yet/)).toBeVisible()
 })
+
+test('the price table takes the height the pane gives it', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openIn(window, 0, 'Prices')
+  await window.locator('[data-pane="0"]').getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+  await window.locator('.tbl-row').first().waitFor()
+
+  const measure = async (): Promise<{ body: number; pane: number }> =>
+    window.evaluate(() => {
+      const body = document.querySelector('[data-pane="0"] .tbl-body')?.getBoundingClientRect()
+      const pane = document.querySelector('[data-pane="0"]')?.getBoundingClientRect()
+      return { body: body?.height ?? 0, pane: pane?.height ?? 0 }
+    })
+
+  const full = await measure()
+  expect(full.body).toBeLessThan(full.pane)
+
+  await chooseLayout(window, 'Two rows')
+  const half = await measure()
+
+  // Shrinks with the pane rather than overflowing it, and never below five
+  // rows of 28px (BU-127).
+  expect(half.body).toBeLessThan(full.body)
+  expect(half.body).toBeLessThan(half.pane)
+  expect(half.body).toBeGreaterThanOrEqual(140)
+})

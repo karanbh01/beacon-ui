@@ -49,10 +49,10 @@
 }
 
 /* "VOLUME · AAPL" over the subpanel divider (Figma 289:2870). */
+/* `bottom` is set inline, from the subpanel's real share of the frame. */
 .level-chart-sublabel {
   position: absolute;
   left: 16px;
-  bottom: 34%;
   /*
    * Above the chart's own canvases, which are absolute at z-index 1 and 2.
    * Anything lower is painted over — a legend at z-index 1 disappears
@@ -64,4 +64,29 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/*
+ * The plot's own outline (BU-130).
+ *
+ * Positioned rather than a border on the canvas host, because the host
+ * INCLUDES the axes — a border there would put the price labels inside the
+ * box. Inset by what the chart reports its axes to be, so the frame tracks
+ * a five-figure price becoming a six-figure one.
+ */
+.level-chart-plot {
+  position: relative;
+  height: 100%;
+}
+
+.level-chart-frame {
+  position: absolute;
+  top: 0;
+  right: 0;
+  /* Above the chart's own canvases, which are absolute at z-index 1 and 2 —
+     the same trap the legend documents. Without this the frame is drawn and
+     then painted over, which looks exactly like it was never drawn. */
+  z-index: 3;
+  pointer-events: none;
+  border: 1px solid var(--border);
 }

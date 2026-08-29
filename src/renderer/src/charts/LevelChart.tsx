@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import {
   AreaSeries,
   HistogramSeries,
@@ -87,6 +87,19 @@ export function LevelChart({
 
     const panel = subPanel === undefined ? undefined : addSubPanel(created, subPanel, mode)
 
+    /*
+     * Volume is a tenth of the frame (BU-128).
+     *
+     * Left at their defaults the two panes come out near enough equal, which
+     * makes volume look like a second subject rather than context for the
+     * line. Stretch factors are relative, so 9 and 1 is the whole rule.
+     */
+    if (panel !== undefined) {
+      const panes = created.panes()
+      panes[0]?.setStretchFactor(SUBPANEL_SHARE.main)
+      panes[1]?.setStretchFactor(SUBPANEL_SHARE.panel)
+    }
+
     created.timeScale().fitContent()
 
     return () => {
@@ -105,6 +118,32 @@ export function LevelChart({
     }
   }, [series, subPanel, mode])
 
+  /*
+   * The frame around the plot, with the axes outside it.
+   *
+   * lightweight-charts draws borders BETWEEN the plot and each axis, which
+   * gives two sides of a rectangle at most. The other two are this overlay,
+   * inset by the axis widths the chart reports — so the box stays on the
+   * plot when the price labels get wider.
+   */
+  const [axes, setAxes] = useState({ left: 0, bottom: 0 })
+  useEffect(() => {
+    const created = chart.current
+    if (created === null) return undefined
+
+    const measure = (): void => {
+      setAxes({ left: created.priceScale('left').width(), bottom: created.timeScale().height() })
+    }
+    measure()
+
+    created.timeScale().subscribeSizeChange(measure)
+    return () => {
+      // Already gone: the create effect's cleanup runs first on unmount.
+      if (chart.current === null) return
+      created.timeScale().unsubscribeSizeChange(measure)
+    }
+  }, [series, subPanel, height, mode])
+
   return (
     <div className="level-chart" style={{ height }}>
       <div className="level-chart-legend type-11">
@@ -120,9 +159,24 @@ export function LevelChart({
         ))}
         {note !== undefined && <span className="level-chart-note">{note}</span>}
       </div>
-      <div className="level-chart-canvas" ref={host} />
+      <div className="level-chart-plot">
+        <div className="level-chart-canvas" ref={host} />
+        <div
+          className="level-chart-frame"
+          style={{ left: axes.left, bottom: axes.bottom }}
+          aria-hidden="true"
+        />
+      </div>
       {subPanel !== undefined && (
-        <span className="level-chart-sublabel type-11">{subPanel.label}</span>
+        <span
+          className="level-chart-sublabel type-11"
+          // Sits on the subpanel's top edge, which moved when the pane became
+          // a tenth of the frame (BU-128): a fixed percentage left it
+          // floating in the middle of the price line.
+          style={{ bottom: axes.bottom + (height - axes.bottom) * subPanelShare() }}
+        >
+          {subPanel.label}
+        </span>
       )}
     </div>
   )
@@ -135,6 +189,14 @@ export function LevelChart({
  * meant a second chart with its time scales manually kept in sync, which
  * drifts the moment either one is panned.
  */
+/** Relative pane heights when there is a subpanel: nine parts to one. */
+const SUBPANEL_SHARE = { main: 9, panel: 1 }
+
+/** The subpanel's share of the panes, as a fraction. */
+function subPanelShare(): number {
+  return SUBPANEL_SHARE.panel / (SUBPANEL_SHARE.main + SUBPANEL_SHARE.panel)
+}
+
 function addSubPanel(chart: IChartApi, panel: SubPanel, mode: ThemeMode) {
   if (panel.kind === 'histogram') {
     const api = chart.addSeries(HistogramSeries, histogramOptions(mode), 1)
