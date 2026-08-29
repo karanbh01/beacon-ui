@@ -221,3 +221,39 @@ describe('suggestions (BU-68)', () => {
     expect(screen.getByRole('listbox')).toBeInTheDocument()
   })
 })
+
+describe('completing (BU-126)', () => {
+  const INDEX: Suggestion[] = [
+    { identifier: 'CMP001', name: 'Company One' },
+    { identifier: 'CMP002', name: 'Company Two' }
+  ]
+
+  it('fills the field with the highlighted suggestion, without committing it', async () => {
+    const onQuery = vi.fn()
+    withIndex(<TickerField subject="" onQuery={onQuery} />, INDEX)
+
+    const field = screen.getByRole('combobox')
+    await userEvent.type(field, 'CMP')
+    expect(await screen.findAllByRole('option')).toHaveLength(2)
+
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}')
+    await userEvent.keyboard('{Tab}')
+
+    // Completed, not committed: the two are separate keystrokes, and on a
+    // linked field committing is what breaks the link.
+    expect(field).toHaveValue('CMP002')
+    expect(onQuery).not.toHaveBeenCalled()
+
+    await userEvent.keyboard('{Enter}')
+    expect(onQuery).toHaveBeenCalledWith('CMP002')
+  })
+
+  it('completes the first suggestion when nothing is highlighted', async () => {
+    withIndex(<TickerField subject="" onQuery={noop} />, INDEX)
+
+    await userEvent.type(screen.getByRole('combobox'), 'CMP')
+    await userEvent.keyboard('{Tab}')
+
+    expect(screen.getByRole('combobox')).toHaveValue('CMP001')
+  })
+})

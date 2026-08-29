@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactElement } from 'react'
 import { ChainIcon } from '../../icons/generated'
 import { useIdentifierIndex } from '../../views/shared/identifierIndex'
@@ -102,7 +102,42 @@ export function TickerField({
     }
   })
 
+  /*
+   * Tab finishes the highlighted suggestion; Enter commits it (BU-126).
+   *
+   * The two are separate on purpose, as they are in the menu bar's search:
+   * completing lets you see what you are about to ask for before asking for
+   * it, and on a linked tab committing is what breaks the link.
+   *
+   * The highlight survives the completion, so Enter straight after takes the
+   * row that was completed rather than falling through to the raw draft
+   * (BU-125).
+   */
+  /*
+   * Follow the highlight (BU-126).
+   *
+   * The list holds more rows than the panel is tall, and a highlight that
+   * walks off the bottom is one the keyboard appears to have lost.
+   */
+  const list = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (typeahead.active < 0) return
+    const rows = list.current?.querySelectorAll<HTMLElement>('[role="option"]')
+    rows?.[typeahead.active]?.scrollIntoView({ block: 'nearest' })
+  }, [typeahead.active])
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    const filling = suggestions[typeahead.active] ?? suggestions[0]
+    if (event.key === 'Tab' && !event.shiftKey && typeahead.open && filling !== undefined) {
+      if (filling.identifier !== draft) {
+        event.preventDefault()
+        setDraft(filling.identifier)
+        typeahead.setActive(suggestions.indexOf(filling))
+        if (linked) onSever?.()
+        return
+      }
+    }
+
     typeahead.onKeyDown(event)
     if (linked && isTypingKey(event)) onSever?.()
   }
@@ -138,7 +173,12 @@ export function TickerField({
         {typeahead.open && (
           <>
             <span className="ticker-rule" aria-hidden="true" />
-            <div className="ticker-suggestions" role="listbox" aria-label="Identifier suggestions">
+            <div
+              className="ticker-suggestions"
+              role="listbox"
+              aria-label="Identifier suggestions"
+              ref={list}
+            >
               {suggestions.map((suggestion, position) => (
                 <button
                   key={suggestion.identifier}
