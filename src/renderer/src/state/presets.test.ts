@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { applied, capture, newPresetId, presetsFor, restore, type Preset } from './presets'
+import {
+  applied,
+  capture,
+  matchesPreset,
+  migratePresets,
+  newPresetId,
+  normaliseCode,
+  presetsFor,
+  restore,
+  suggestCode,
+  type Preset
+} from './presets'
 import { emptyWorkspace, paneKey } from './tabs.logic'
 import type { Tab, WorkspaceState } from './tabs.types'
 
@@ -31,7 +42,13 @@ const ARRANGED: WorkspaceState = {
   }
 }
 
-const NAMED = { id: 'preset-1', name: 'Research', page: 'data-explorer', layout: 'columns' }
+const NAMED = {
+  id: 'preset-1',
+  name: 'Research',
+  code: 'DE001',
+  page: 'data-explorer',
+  layout: 'columns'
+}
 
 describe('capture', () => {
   it('takes the page it names and nothing else', () => {
@@ -156,5 +173,48 @@ describe('the collection', () => {
   it('mints ids nothing else has taken', () => {
     const taken: Preset[] = [{ ...NAMED, tabs: [] }]
     expect(newPresetId(taken)).toBe('preset-2')
+  })
+})
+
+describe('codes', () => {
+  it('numbers per page, so one page does not push another along', () => {
+    const mine: Preset = { ...NAMED, tabs: [] }
+    const theirs: Preset = { ...NAMED, id: 'preset-2', code: 'RP001', page: 'reports', tabs: [] }
+
+    expect(suggestCode('data-explorer', [mine, theirs])).toBe('DE002')
+    expect(suggestCode('reports', [mine, theirs])).toBe('RP002')
+    expect(suggestCode('beacon-view', [mine, theirs])).toBe('BV001')
+  })
+
+  it('is typed into a search field, so it is uppercase and unspaced', () => {
+    expect(normaliseCode(' de 001 ')).toBe('DE001')
+  })
+
+  it('matches by code or by name, from any page', () => {
+    const preset: Preset = { ...NAMED, tabs: [] }
+
+    expect(matchesPreset(preset, 'de00')).toBe(true)
+    expect(matchesPreset(preset, 'resea')).toBe(true)
+    expect(matchesPreset(preset, 'rp')).toBe(false)
+  })
+})
+
+describe('migratePresets', () => {
+  it('gives presets saved before codes existed one each', () => {
+    const stored = {
+      presets: [
+        { id: 'preset-1', name: 'Research', page: 'data-explorer', layout: 'columns', tabs: [] },
+        { id: 'preset-2', name: 'Monitoring', page: 'data-explorer', layout: 'grid', tabs: [] }
+      ]
+    }
+
+    expect(migratePresets(stored).presets.map((preset) => preset.code)).toEqual(['DE001', 'DE002'])
+  })
+
+  it('drops an entry too damaged to restore rather than taking the app down', () => {
+    // Bytes off disk, hand-edited or written by a version that did not have
+    // these keys. A preset with no page cannot be applied to one.
+    const stored = { presets: [{ id: 'preset-1', name: 'Half' }] }
+    expect(migratePresets(stored).presets).toEqual([])
   })
 })

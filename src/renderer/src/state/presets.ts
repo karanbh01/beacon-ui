@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { layoutFor, useChrome } from './chrome'
+import { pageCode } from '../shell/pages'
 import { newTabId, paneKey, replacePage } from './tabs.logic'
 import { useWorkspace } from './tabs.store'
 import type { Archetype, Tab, WorkspaceState } from './tabs.types'
@@ -36,6 +37,12 @@ export interface Preset {
   id: string
   name: string
   /**
+   * Short, typed, and the point of it (BU-120): `DE001` reaches a Data
+   * Explorer arrangement from the search bar on any page. The name is what
+   * you call it; the code is what you can type without thinking.
+   */
+  code: string
+  /**
    * Presets belong to a page.
    *
    * A view that exists on Data Explorer may not exist on Reports, so a preset
@@ -44,6 +51,26 @@ export interface Preset {
   page: string
   layout: string
   tabs: readonly PresetTab[]
+}
+
+/**
+ * The next free code for a page: DE001, DE002, and so on.
+ *
+ * Numbered per prefix rather than globally, so the numbers on one page do not
+ * jump because another page was busy.
+ */
+export function suggestCode(page: string, existing: readonly Preset[]): string {
+  const prefix = pageCode(page)
+  const taken = new Set(existing.map((preset) => preset.code.toUpperCase()))
+  for (let n = 1; ; n++) {
+    const code = `${prefix}${String(n).padStart(3, '0')}`
+    if (!taken.has(code)) return code
+  }
+}
+
+/** Uppercase and unspaced: it is meant to be typed into a search field. */
+export function normaliseCode(code: string): string {
+  return code.replace(/\s+/g, '').toUpperCase()
 }
 
 /** Deterministic, for the same reasons tab ids are. */
@@ -62,7 +89,7 @@ export function newPresetId(existing: readonly Preset[]): string {
  * draw: `tabsForPane` filters the same array.
  */
 export function capture(
-  input: { id: string; name: string; page: string; layout: string },
+  input: { id: string; name: string; code: string; page: string; layout: string },
   tabs: readonly Tab[],
   activeByPane: Record<string, string | undefined>
 ): Preset {
@@ -146,10 +173,48 @@ export function presetsFor(presets: readonly Preset[], page: string): Preset[] {
   return presets.filter((preset) => preset.page === page)
 }
 
+/** By code or by name, from anywhere: search is app-wide, presets are not. */
+export function matchesPreset(preset: Preset, needle: string): boolean {
+  return preset.code.toLowerCase().includes(needle) || preset.name.toLowerCase().includes(needle)
+}
+
+/**
+ * Give every stored preset a code (BU-120).
+ *
+ * Presets saved by BU-119 have none, and one without a code cannot be
+ * searched for — which is now the main way they are reached.
+ */
+export function migratePresets(persisted: unknown): { presets: Preset[] } {
+  const stored = persisted as { presets?: (Partial<Preset> & { id: string })[] } | undefined
+  const presets: Preset[] = []
+
+  for (const saved of stored?.presets ?? []) {
+    if (saved.page === undefined || saved.layout === undefined) continue
+    presets.push({
+      id: saved.id,
+      name: saved.name ?? saved.id,
+      // Numbered against what this pass has already assigned, so a store of
+      // five Data Explorer presets comes out DE001…DE005.
+      code: normaliseCode(saved.code ?? '') || suggestCode(saved.page, presets),
+      page: saved.page,
+      layout: saved.layout,
+      tabs: saved.tabs ?? []
+    })
+  }
+
+  return { presets }
+}
+
 interface PresetsStore {
   presets: Preset[]
-  /** Saves the page's current arrangement. A name already in use is replaced. */
-  save: (name: string, page: string) => void
+  /**
+   * Saves the page's current arrangement, and answers with the preset saved.
+   *
+   * A name already in use on that page is replaced rather than duplicated.
+   * The result comes back so the caller can confirm the code — one assigned
+   * and never shown is one nobody can search for.
+   */
+  save: (name: string, page: string, code?: string) => Preset | undefined
   apply: (id: string) => void
   forget: (id: string) => void
 }
@@ -167,33 +232,46 @@ export const usePresets = create<PresetsStore>()(
     (set, get) => ({
       presets: [],
 
-      save: (name, page) => {
+      save: (name, page, code) => {
         const trimmed = name.trim()
-        if (trimmed === '') return
+        if (trimmed === '') return undefined
 
         const workspace = useWorkspace.getState()
         const layout = layoutFor(useChrome.getState().layoutByPage, page)
+        const state = get()
 
-        set((state) => {
-          // Same name on the same page is the same preset, re-saved. Two
-          // entries reading "Research" would be indistinguishable in a menu.
-          const replacing = state.presets.find(
-            (preset) => preset.page === page && preset.name === trimmed
-          )
-          const id = replacing?.id ?? newPresetId(state.presets)
-          const saved = capture(
-            { id, name: trimmed, page, layout },
-            workspace.tabs,
-            workspace.activeByPane
-          )
+        // Same name on the same page is the same preset, re-saved. Two
+        // entries reading "Research" would be indistinguishable in a menu.
+        const replacing = state.presets.find(
+          (preset) => preset.page === page && preset.name === trimmed
+        )
+        const others = state.presets.filter((preset) => preset.id !== replacing?.id)
+        const asked = normaliseCode(code ?? '')
+        const free = asked !== '' && !others.some((preset) => preset.code === asked)
 
-          return {
-            presets:
-              replacing === undefined
-                ? [...state.presets, saved]
-                : state.presets.map((preset) => (preset.id === id ? saved : preset))
-          }
+        const saved = capture(
+          {
+            id: replacing?.id ?? newPresetId(state.presets),
+            name: trimmed,
+            // A code already spoken for falls back to a fresh one rather than
+            // refusing: saving the arrangement is the point, and two presets
+            // answering to DE001 would make searching it a coin toss.
+            code: free ? asked : suggestCode(page, others),
+            page,
+            layout
+          },
+          workspace.tabs,
+          workspace.activeByPane
+        )
+
+        set({
+          presets:
+            replacing === undefined
+              ? [...others, saved]
+              : state.presets.map((preset) => (preset.id === saved.id ? saved : preset))
         })
+
+        return saved
       },
 
       apply: (id) => {
@@ -213,6 +291,10 @@ export const usePresets = create<PresetsStore>()(
         set((state) => ({ presets: state.presets.filter((preset) => preset.id !== id) }))
       }
     }),
-    { name: 'beacon.presets', version: 1 }
+    {
+      name: 'beacon.presets',
+      version: 2,
+      migrate: (persisted) => migratePresets(persisted)
+    }
   )
 )

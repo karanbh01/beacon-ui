@@ -27,11 +27,6 @@ function subject(window: Page, pane: number) {
   return window.locator(`[data-pane="${String(pane)}"]`).getByRole('combobox', { name: 'Subject' })
 }
 
-/** Items in the open View menu with these exact words. */
-function inView(window: Page, label: string) {
-  return window.getByRole('menu', { name: 'View' }).getByText(label, { exact: true })
-}
-
 async function openIn(window: Page, pane: number, title: string): Promise<void> {
   await window
     .locator(`[data-pane="${String(pane)}"]`)
@@ -44,6 +39,12 @@ async function savePreset(window: Page, name: string): Promise<void> {
   await view(window, 'Save layout as preset…')
   await window.getByRole('textbox', { name: 'Preset name' }).fill(name)
   await window.getByRole('button', { name: 'Save' }).click()
+}
+
+/** Apply a saved arrangement from the layout dropdown, where they live. */
+async function applyPreset(window: Page, name: string): Promise<void> {
+  await window.getByRole('button', { name: 'Layout' }).click()
+  await window.getByRole('dialog', { name: 'Layout' }).getByText(name, { exact: true }).click()
 }
 
 test('an arrangement comes back by name, tabs and layout together', async ({ window }) => {
@@ -63,7 +64,7 @@ test('an arrangement comes back by name, tabs and layout together', async ({ win
   await view(window, 'Single pane')
   await expect(window.locator('.pane')).toHaveCount(1)
 
-  await view(window, 'Research')
+  await applyPreset(window, 'Research')
 
   await expect(window.locator('.pane')).toHaveCount(2)
   await expect(window.locator('[data-pane="0"] .prices-view')).toBeVisible()
@@ -72,20 +73,50 @@ test('an arrangement comes back by name, tabs and layout together', async ({ win
   await expect(subject(window, 0)).toHaveValue('CMP002')
 })
 
-test('a preset belongs to its page, and is offered on no other', async ({ window }) => {
+test('the layout dropdown offers this page and no other', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await openIn(window, 0, 'Prices')
   await savePreset(window, 'Explorer work')
 
   await openPage(window, 'Reports')
-  await window.getByRole('button', { name: 'View', exact: true }).click()
-  await expect(inView(window, 'Explorer work')).toHaveCount(0)
+  await window.getByRole('button', { name: 'Layout' }).click()
+  const menu = window.getByRole('dialog', { name: 'Layout' })
+  await expect(menu.getByText('Explorer work', { exact: true })).toHaveCount(0)
+  await expect(menu.getByText(/None for this page yet/)).toBeVisible()
   await window.keyboard.press('Escape')
 
   await openPage(window, 'Data Explorer')
-  await window.getByRole('button', { name: 'View', exact: true }).click()
-  await expect(inView(window, 'Explorer work')).toBeVisible()
+  await window.getByRole('button', { name: 'Layout' }).click()
+  await expect(menu.getByText('Explorer work', { exact: true })).toBeVisible()
   await window.keyboard.press('Escape')
+})
+
+test('a saved preset says what it was called and what to type', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openIn(window, 0, 'Prices')
+  await savePreset(window, 'Screening')
+
+  // Confirmed with the code, since a code nobody is shown is one nobody can
+  // search for. DE001: first Data Explorer preset on a clean profile.
+  const said = window.getByRole('status', { name: 'Preset saved' })
+  await expect(said).toContainText('Screening saved as')
+  await expect(said).toContainText('DE001')
+})
+
+test('a preset is reached from another page by its code', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await view(window, 'Two columns')
+  await openIn(window, 0, 'Prices')
+  await savePreset(window, 'Screening')
+
+  await openPage(window, 'Reports')
+  await window.getByRole('combobox', { name: 'Search' }).fill('DE001')
+  await window.getByRole('option', { name: /Screening/ }).click()
+
+  // Applied AND travelled: restoring an arrangement on a page you cannot see
+  // would look like nothing happened.
+  await expect(window.locator('.pane')).toHaveCount(2)
+  await expect(window.locator('[data-pane="0"] .prices-view')).toBeVisible()
 })
 
 test('a name saved twice is one preset, and forgetting removes it', async ({ window }) => {
@@ -100,16 +131,20 @@ test('a name saved twice is one preset, and forgetting removes it', async ({ win
   await expect(window.getByRole('button', { name: 'Replace' })).toBeVisible()
   await window.getByRole('button', { name: 'Replace' }).click()
 
-  await window.getByRole('button', { name: 'View', exact: true }).click()
-  await expect(inView(window, 'Daily')).toHaveCount(1)
+  await window.getByRole('button', { name: 'Layout' }).click()
+  await expect(
+    window.getByRole('dialog', { name: 'Layout' }).getByText('Daily', { exact: true })
+  ).toHaveCount(1)
   await window.keyboard.press('Escape')
 
   await view(window, 'Save layout as preset…')
   await window.getByRole('button', { name: 'Forget Daily' }).click()
   await window.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
 
-  await window.getByRole('button', { name: 'View', exact: true }).click()
-  await expect(inView(window, 'Daily')).toHaveCount(0)
+  await window.getByRole('button', { name: 'Layout' }).click()
+  await expect(
+    window.getByRole('dialog', { name: 'Layout' }).getByText('Daily', { exact: true })
+  ).toHaveCount(0)
   await window.keyboard.press('Escape')
 })
 
@@ -148,7 +183,9 @@ test('presets outlive the app that saved them', async ({ engine }, testInfo) => 
 
   const second = await launch()
   await openPage(second.window, 'Data Explorer')
-  await second.window.getByRole('button', { name: 'View', exact: true }).click()
-  await expect(inView(second.window, 'Overnight')).toBeVisible()
+  await second.window.getByRole('button', { name: 'Layout' }).click()
+  await expect(
+    second.window.getByRole('dialog', { name: 'Layout' }).getByText('Overnight', { exact: true })
+  ).toBeVisible()
   await second.app.close()
 })

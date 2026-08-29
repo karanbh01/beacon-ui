@@ -50,6 +50,29 @@ export const GUIDES_PAGE: SidebarPage = { id: 'guides', label: 'Guides', Icon: O
 
 export const HOME_PAGE_ID = 'home'
 
+/**
+ * Two letters per page, for preset codes (BU-120).
+ *
+ * A table rather than initials of the label: Data Explorer and Derivatives
+ * both start "De", and a code that cannot be read back to one page is worse
+ * than no code. Fixed for the same reason a slug is — a code someone has
+ * written down must not change because a label was reworded.
+ */
+const PAGE_CODES: Record<string, string> = {
+  home: 'HM',
+  'data-explorer': 'DE',
+  'beacon-view': 'BV',
+  optimiser: 'OP',
+  'strategy-builder': 'SB',
+  derivatives: 'DV',
+  reports: 'RP',
+  guides: 'GD'
+}
+
+export function pageCode(id: string): string {
+  return PAGE_CODES[id] ?? id.slice(0, 2).toUpperCase()
+}
+
 /** A page's name as the sidebar says it. Falls back to the id, which is readable. */
 export function pageLabel(id: string): string {
   if (id === HOME_PAGE_ID) return 'Home'

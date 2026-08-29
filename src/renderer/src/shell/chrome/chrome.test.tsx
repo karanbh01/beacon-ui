@@ -50,6 +50,28 @@ describe('searchRows', () => {
     expect(searchRows('tech10', TABS).map((r) => r.label)).toContain('Weights')
   })
 
+  it('finds a preset by its code, from any page', () => {
+    // The code exists to be typed: DE001 reaches a Data Explorer arrangement
+    // from wherever you are, which a per-page dropdown cannot.
+    const preset = {
+      id: 'preset-1',
+      name: 'Screening',
+      code: 'DE001',
+      page: 'data-explorer',
+      layout: 'columns',
+      tabs: []
+    }
+
+    const byCode = searchRows('de001', TABS, { presets: [preset] })
+    expect(byCode.find((row) => row.kind === 'preset')?.label).toBe('Screening')
+
+    const byName = searchRows('screen', TABS, { presets: [preset] })
+    const row = byName.find((entry) => entry.kind === 'preset')
+    expect(row?.subject).toBe('preset-1')
+    // The meta says both what to type and where it lands.
+    expect(row?.meta).toBe('DE001 · Data Explorer')
+  })
+
   it('always offers the action, even when nothing matches', () => {
     // A query with no results still has somewhere to go; an empty panel
     // would be a dead end.

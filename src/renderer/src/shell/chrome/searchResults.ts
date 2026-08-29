@@ -1,4 +1,6 @@
 import type { Suggestion } from '../../components/TickerField/suggestions'
+import { matchesPreset, type Preset } from '../../state/presets'
+import { pageLabel } from '../pages'
 import type { Tab } from '../../state/tabs.types'
 import type { ViewOption } from '../viewRegistry'
 import { namesView, parseIntent } from './intent'
@@ -11,9 +13,10 @@ export interface SearchRow {
   /**
    * `tab` selects an open tab, `identifier` opens one on that subject,
    * `view` opens a view (optionally pinned to a subject), `index` opens an
-   * index, and `action` is a command keyed to the query.
+   * index, `preset` applies a saved arrangement, and `action` is a command
+   * keyed to the query.
    */
-  kind: 'tab' | 'identifier' | 'view' | 'index' | 'action'
+  kind: 'tab' | 'identifier' | 'view' | 'index' | 'preset' | 'action'
   /** The symbol, index id or subject this row opens with. */
   subject?: string
   /** Set on `view`: which view to open, and where it lives. */
@@ -45,6 +48,9 @@ const MAX_IDENTIFIERS = 5
 const MAX_INDICES = 4
 const MAX_VIEWS = 4
 
+/** Codes are typed exactly; nobody needs a list of near misses. */
+const MAX_PRESETS = 4
+
 /** An index the engine knows about. */
 export interface IndexRef {
   id: string
@@ -57,6 +63,14 @@ export interface SearchSources {
   identifiers?: readonly Suggestion[]
   indices?: readonly IndexRef[]
   views?: readonly ViewOption[]
+  /**
+   * Every page's, not just the one being shown (BU-120).
+   *
+   * The dropdown that arranges a page offers that page's presets; search is
+   * how you reach one from somewhere else, which is most of why a preset has
+   * a code at all.
+   */
+  presets?: readonly Preset[]
 }
 
 /**
@@ -98,7 +112,7 @@ export function searchRows(
   const needle = query.trim().toLowerCase()
   if (needle === '') return []
 
-  const { identifiers = [], indices = [], views = [] } = sources
+  const { identifiers = [], indices = [], views = [], presets = [] } = sources
 
   const rows: SearchRow[] = tabs
     .filter((tab) => matches(tab, needle))
@@ -110,6 +124,21 @@ export function searchRows(
       meta: describe(tab),
       kind: 'tab'
     }))
+
+  // Above indices and assets: a code is typed deliberately, and a name that
+  // matches a preset was almost certainly meant as one.
+  for (const preset of presets
+    .filter((entry) => matchesPreset(entry, needle))
+    .slice(0, MAX_PRESETS)) {
+    rows.push({
+      id: `preset:${preset.id}`,
+      group: 'PRESETS',
+      label: preset.name,
+      meta: `${preset.code} · ${pageLabel(preset.page)}`,
+      kind: 'preset',
+      subject: preset.id
+    })
+  }
 
   // The most specific reading of the query, when there is one.
   const intent = parseIntent(query, views)

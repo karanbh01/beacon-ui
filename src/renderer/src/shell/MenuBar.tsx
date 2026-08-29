@@ -28,6 +28,14 @@ export interface MenuBarProps {
   onOpenView?: (view: ViewOption, subject?: string) => void
   /** An index picked from search: open its overview. */
   onOpenIndex?: (id: string) => void
+  /**
+   * A preset picked from search (BU-120).
+   *
+   * Routed through the app rather than applied here, because applying one
+   * means GOING to the page it belongs to, and the bar does not own which
+   * page is showing.
+   */
+  onApplyPreset?: (id: string) => void
   onCreateIndex?: (name: string) => void
   /** The logo is how Home is reached — see HomeView. */
   onGoHome?: () => void
@@ -71,6 +79,7 @@ export function MenuBar({
   onOpenIdentifier,
   onOpenView,
   onOpenIndex,
+  onApplyPreset,
   onCreateIndex,
   onGoHome,
   onSavePreset,
@@ -105,7 +114,7 @@ export function MenuBar({
     setPanel('none')
   }
 
-  const menus = buildMenus({ theme: theme.preference, layout, presets })
+  const menus = buildMenus({ theme: theme.preference, layout })
 
   /*
    * Dismissal is owned by the bar, not by each menu.
@@ -141,7 +150,6 @@ export function MenuBar({
     else if (action === 'theme-dark') theme.setPreference('dark')
     else if (action === 'theme-system') theme.setPreference('system')
     else if (action === 'preset-save') onSavePreset?.()
-    else if (action.startsWith('preset-apply-')) applyPreset(action.slice('preset-apply-'.length))
     else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
   }
 
@@ -194,6 +202,7 @@ export function MenuBar({
         {...(onOpenIdentifier === undefined ? {} : { onOpenIdentifier })}
         {...(onOpenView === undefined ? {} : { onOpenView })}
         {...(onOpenIndex === undefined ? {} : { onOpenIndex })}
+        {...(onApplyPreset === undefined ? {} : { onApplyPreset })}
         {...(onCreateIndex === undefined ? {} : { onCreateIndex })}
       />
 
@@ -245,6 +254,8 @@ export function MenuBar({
             onSelect={(id) => {
               setLayout(page, id)
             }}
+            presets={presets}
+            onApplyPreset={applyPreset}
           />
         </span>
 

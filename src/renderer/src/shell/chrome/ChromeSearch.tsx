@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ReactElement } from 'react'
 import { ChevronIcon } from '../../icons/generated'
 import { useTypeahead } from '../../components/Typeahead/useTypeahead'
+import { usePresets } from '../../state/presets'
 import { recentTabs } from '../../state/tabs.logic'
 import { useWorkspace } from '../../state/tabs.store'
 import { useIdentifierSearch } from '../../views/shared/useIdentifierSearch'
@@ -22,6 +23,8 @@ export interface ChromeSearchProps {
   onOpenView?: (view: ViewOption, subject?: string) => void
   /** An index row: open it in its overview. */
   onOpenIndex?: (id: string) => void
+  /** A preset row: apply it, and go to the page it belongs to (BU-120). */
+  onApplyPreset?: (id: string) => void
   onCreateIndex?: (name: string) => void
 }
 
@@ -38,6 +41,7 @@ export function ChromeSearch({
   onOpenIdentifier,
   onOpenView,
   onOpenIndex,
+  onApplyPreset,
   onCreateIndex
 }: ChromeSearchProps): ReactElement {
   const [query, setQuery] = useState('')
@@ -55,6 +59,7 @@ export function ChromeSearch({
   // Identifiers arrive already ranked (BN-127); searchRows keeps that order.
   const found = useIdentifierSearch(query)
   const indices = usePaletteIndices()
+  const presets = usePresets((state) => state.presets)
   // Both selections are stable references; the sort is memoised because it
   // is not — see recentTabs.
   const activatedAt = useWorkspace((state) => state.activatedAt)
@@ -66,7 +71,12 @@ export function ChromeSearch({
       ? focused
         ? recentRows(recent)
         : []
-      : searchRows(query, tabs, { identifiers: found.suggestions, indices, views: allViews() })
+      : searchRows(query, tabs, {
+          identifiers: found.suggestions,
+          indices,
+          views: allViews(),
+          presets
+        })
 
   const activate = (row: SearchRow): void => {
     if (row.kind === 'tab') onSelectTab?.(row.id)
@@ -76,6 +86,8 @@ export function ChromeSearch({
       onOpenView?.(row.view, row.subject)
     } else if (row.kind === 'index' && row.subject !== undefined) {
       onOpenIndex?.(row.subject)
+    } else if (row.kind === 'preset' && row.subject !== undefined) {
+      onApplyPreset?.(row.subject)
     } else onCreateIndex?.(query.trim())
 
     setQuery('')

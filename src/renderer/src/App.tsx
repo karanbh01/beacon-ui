@@ -9,6 +9,7 @@ import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
 import { PaneHost } from './shell/PaneHost'
 import { PresetDialog } from './shell/PresetDialog'
+import { PresetSaved } from './shell/PresetSaved'
 import { StaleStoreNotice } from './shell/StaleStoreNotice'
 import { useJobs } from './api/jobs'
 import { HomeView } from './views/home/HomeView'
@@ -16,6 +17,7 @@ import { activityRows } from './views/home/activityRows'
 import { useEngine } from './state/engine'
 import { useTheme } from './state/theme'
 import { runUpdateAction, useUpdate } from './state/update'
+import { usePresets, type Preset } from './state/presets'
 import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
 import type { ViewOption } from './shell/viewRegistry'
@@ -56,12 +58,15 @@ function AppBody(): ReactElement {
   const [page, setPage] = useState(HOME_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [namingPreset, setNamingPreset] = useState(false)
+  const [justSaved, setJustSaved] = useState<Preset | undefined>(undefined)
   const engine = useEngine()
   const update = useUpdate()
   const dataAge = useDataAge()
   const selectTab = useWorkspace((state) => state.selectTab)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
   const jobs = useJobs((state) => state.jobs)
+  const applyPreset = usePresets((state) => state.apply)
+  const presets = usePresets((state) => state.presets)
 
   // Fixed at mount rather than recomputed each render, so Home's date and its
   // relative timestamps agree with each other and nothing re-renders on a tick.
@@ -176,6 +181,15 @@ function AppBody(): ReactElement {
         onSavePreset: () => {
           setNamingPreset(true)
         },
+        // Applying from search has to travel: the arrangement is on another
+        // page as often as not, and restoring it out of sight would look
+        // like nothing happened (BU-120).
+        onApplyPreset: (id: string) => {
+          const preset = presets.find((entry) => entry.id === id)
+          if (preset === undefined) return
+          applyPreset(id)
+          setPage(preset.page)
+        },
         ...(bridge.status === 'ok' ? { platform: bridge.info.platform } : {})
       }}
       footer={{
@@ -232,8 +246,18 @@ function AppBody(): ReactElement {
       {namingPreset && (
         <PresetDialog
           page={page}
+          onSaved={setJustSaved}
           onClose={() => {
             setNamingPreset(false)
+          }}
+        />
+      )}
+
+      {justSaved !== undefined && (
+        <PresetSaved
+          preset={justSaved}
+          onDismiss={() => {
+            setJustSaved(undefined)
           }}
         />
       )}

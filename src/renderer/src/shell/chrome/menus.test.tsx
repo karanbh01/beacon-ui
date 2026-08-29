@@ -47,17 +47,11 @@ describe('buildMenus', () => {
     expect(view?.items.some((item) => item.action === 'preset-save')).toBe(true)
   })
 
-  it('lists the presets it is given, and applies by id', () => {
-    // The caller has already filtered these to the page being shown: a
-    // preset names views by kind, and the kinds a page can open are its own.
-    const view = buildMenus({
-      ...CONTEXT,
-      presets: [{ id: 'preset-2', name: 'Research' }]
-    }).find((menu) => menu.label === 'View')
-
-    const preset = view?.items.find((item) => item.label === 'Research')
-    expect(preset?.action).toBe('preset-apply-preset-2')
-    expect(preset?.enabled).toBe(true)
+  it('offers no way to APPLY one, which the layout dropdown does instead', () => {
+    // BU-120 moved applying to the control that arranges the page. Two routes
+    // to the same act, in two different menus, is one more than needed.
+    const view = buildMenus(CONTEXT).find((menu) => menu.label === 'View')
+    expect(view?.items.some((item) => item.action.startsWith('preset-apply'))).toBe(false)
   })
 
   it('ticks the theme and layout in force', () => {

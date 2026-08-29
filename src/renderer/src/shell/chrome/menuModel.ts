@@ -50,14 +50,6 @@ export interface MenuContext {
   theme: 'light' | 'dark' | 'system'
   /** The current page's layout, so View can tick it. */
   layout: string
-  /**
-   * Saved arrangements for the page being shown (BU-119).
-   *
-   * Already filtered by the caller: a preset names views by kind, and the
-   * kinds a page can open are its own, so offering another page's here would
-   * offer something that cannot be applied.
-   */
-  presets?: readonly { id: string; name: string }[]
 }
 
 /**
@@ -108,17 +100,20 @@ export function buildMenus(context: MenuContext): Menu[] {
         checked: context.layout === option.id,
         ...(index === 0 ? { separatorBefore: true } : {})
       })),
+      /*
+       * Saving only (BU-120).
+       *
+       * Applying moved to the layout dropdown, which is the control that
+       * arranges the page — a saved arrangement belongs beside the six that
+       * are not saved. Saving stays here because it is an action on the
+       * layout this menu already owns.
+       */
       {
         label: 'Save layout as preset…',
         action: 'preset-save',
         enabled: true,
         separatorBefore: true
-      },
-      ...(context.presets ?? []).map((preset) => ({
-        label: preset.name,
-        action: `preset-apply-${preset.id}` as MenuAction,
-        enabled: true
-      }))
+      }
     ],
     Data: [soon('Refresh all'), soon('Manage sources…'), soon('Import CSV…')],
     Analysis: [soon('Run backtest…'), soon('Run optimisation…'), soon('Risk model…')],
