@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applied,
   capture,
+  loadableTabs,
   matchesPreset,
   migratePresets,
   newPresetId,
@@ -216,5 +217,55 @@ describe('migratePresets', () => {
     // these keys. A preset with no page cannot be applied to one.
     const stored = { presets: [{ id: 'preset-1', name: 'Half' }] }
     expect(migratePresets(stored).presets).toEqual([])
+  })
+})
+
+describe('loading an instrument into an arrangement (BU-122)', () => {
+  it('points every loadable tab at it, and leaves the rest alone', () => {
+    const linked: WorkspaceState = {
+      ...ARRANGED,
+      tabs: [
+        tab({ id: 'tab-prices', subject: 'CMP001' }),
+        tab({
+          id: 'tab-charting',
+          pane: 1,
+          viewKind: 'charting',
+          title: 'Charting',
+          archetype: 'linked',
+          linkSourceId: 'tab-prices'
+        }),
+        tab({
+          id: 'tab-coverage',
+          pane: 1,
+          viewKind: 'coverage',
+          archetype: 'global',
+          title: 'Data Coverage'
+        })
+      ]
+    }
+    const preset = capture(NAMED, linked.tabs, linked.activeByPane)
+
+    const next = applied(linked, preset, 'CMP002')
+    const restored = next.tabs.filter((entry) => entry.page === 'data-explorer')
+
+    expect(restored[0]?.subject).toBe('CMP002')
+    // A linked tab follows its source; writing a subject onto it would sever
+    // the link the preset just restored.
+    expect(restored[1]?.subject).toBeUndefined()
+    expect(restored[1]?.linkSourceId).toBe(restored[0]?.id)
+    // A global view has no subject to point.
+    expect(restored[2]?.subject).toBeUndefined()
+  })
+
+  it('counts what a subject could be loaded into, before applying', () => {
+    const preset = capture(NAMED, ARRANGED.tabs, ARRANGED.activeByPane)
+    expect(loadableTabs(preset)).toBe(3)
+    expect(loadableTabs({ ...NAMED, tabs: [] })).toBe(0)
+  })
+
+  it('leaves the saved subjects alone when nothing is being loaded', () => {
+    const preset = capture(NAMED, ARRANGED.tabs, ARRANGED.activeByPane)
+    const next = applied(ARRANGED, preset)
+    expect(next.tabs.find((entry) => entry.viewKind === 'prices')?.subject).toBe('CMP001')
   })
 })

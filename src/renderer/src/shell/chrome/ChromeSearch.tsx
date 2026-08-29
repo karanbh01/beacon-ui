@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactElement } from 'react'
+import { useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react'
 import { ChevronIcon } from '../../icons/generated'
 import { useTypeahead } from '../../components/Typeahead/useTypeahead'
 import { usePresets } from '../../state/presets'
@@ -23,8 +23,13 @@ export interface ChromeSearchProps {
   onOpenView?: (view: ViewOption, subject?: string) => void
   /** An index row: open it in its overview. */
   onOpenIndex?: (id: string) => void
-  /** A preset row: apply it, and go to the page it belongs to (BU-120). */
-  onApplyPreset?: (id: string) => void
+  /**
+   * A preset row: apply it, and go to the page it belongs to (BU-120).
+   *
+   * `subject` is set when the query named an instrument first — every
+   * loadable tab in the arrangement opens on it (BU-122).
+   */
+  onApplyPreset?: (id: string, subject?: string) => void
   onCreateIndex?: (name: string) => void
 }
 
@@ -86,8 +91,8 @@ export function ChromeSearch({
       onOpenView?.(row.view, row.subject)
     } else if (row.kind === 'index' && row.subject !== undefined) {
       onOpenIndex?.(row.subject)
-    } else if (row.kind === 'preset' && row.subject !== undefined) {
-      onApplyPreset?.(row.subject)
+    } else if (row.kind === 'preset' && row.preset !== undefined) {
+      onApplyPreset?.(row.preset, row.subject)
     } else onCreateIndex?.(query.trim())
 
     setQuery('')
@@ -108,6 +113,37 @@ export function ChromeSearch({
   })
 
   const open = typeahead.open
+
+  /*
+   * Tab finishes what is highlighted, in the field (BU-122).
+   *
+   * Completion is not activation: finishing "CMP0" into "CMP001" is how the
+   * second half of `CMP001 DE001` gets typed at all, and opening the row
+   * instead would take the query away before it could be finished. Falls back
+   * to the first row, which is what every shell does with nothing selected.
+   */
+  const completion = (): string | undefined => {
+    const row = rows[typeahead.active] ?? rows[0]
+    if (row === undefined) return undefined
+    if (row.kind === 'identifier' || row.kind === 'index') return row.subject
+    if (row.kind === 'preset' && row.subject === undefined) return row.label
+    return undefined
+  }
+
+  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === 'Tab' && !event.shiftKey && open) {
+      const filled = completion()
+      if (filled !== undefined && filled !== query) {
+        event.preventDefault()
+        // A trailing space, because what follows a completed instrument is
+        // usually the preset to load it into.
+        setQuery(`${filled} `)
+        typeahead.onInput()
+        return
+      }
+    }
+    typeahead.onKeyDown(event)
+  }
 
   return (
     <div className="menu-bar-search">
@@ -133,7 +169,7 @@ export function ChromeSearch({
               setQuery(event.target.value)
               typeahead.onInput()
             }}
-            onKeyDown={typeahead.onKeyDown}
+            onKeyDown={onKeyDown}
             onFocus={() => {
               setFocused(true)
             }}

@@ -201,3 +201,42 @@ test('presets outlive the app that saved them', async ({ engine }, testInfo) => 
   ).toBeVisible()
   await second.app.close()
 })
+
+test('a ticker completes with Tab, then loads into a preset by code', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await chooseLayout(window, 'Two columns')
+  await openIn(window, 0, 'Prices')
+  await openIn(window, 1, 'Reference Data')
+  await savePreset(window, 'Screening')
+
+  await openPage(window, 'Reports')
+  const search = window.getByRole('combobox', { name: 'Search' })
+
+  // Tab finishes the highlighted suggestion in the field rather than opening
+  // it — which is how the second half of `CMP001 DE001` gets typed at all.
+  await search.fill('CMP00')
+  // Waits for a real ASSETS row rather than any row matching the text: the
+  // action row reads `Create index “CMP00”`, and arriving before the
+  // identifiers do would leave the highlight on something with nothing to
+  // complete.
+  await window
+    .getByRole('option', { name: /CMP001/ })
+    .first()
+    .waitFor()
+  await search.press('ArrowDown')
+  await search.press('Tab')
+  // Whichever row the arrow reached, finished in the field with a space after
+  // it — because what usually follows a completed instrument is the preset.
+  await expect(search).toHaveValue(/^CMP00\d $/)
+
+  // A completed instrument offers the arrangements it can go into.
+  await expect(window.getByRole('option', { name: /Screening/ })).toBeVisible()
+
+  await search.fill('CMP001 DE001')
+  await window.getByRole('option', { name: /CMP001 → Screening/ }).click()
+
+  // Applied, travelled, and every loadable tab pointed at the instrument.
+  await expect(window.locator('.pane')).toHaveCount(2)
+  await expect(subject(window, 0)).toHaveValue('CMP001')
+  await expect(subject(window, 1)).toHaveValue('CMP001')
+})

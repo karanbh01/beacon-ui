@@ -1,5 +1,5 @@
 import type { Suggestion } from '../../components/TickerField/suggestions'
-import { matchesPreset, type Preset } from '../../state/presets'
+import { loadableTabs, matchesPreset, type Preset } from '../../state/presets'
 import { pageLabel } from '../pages'
 import type { Tab } from '../../state/tabs.types'
 import type { ViewOption } from '../viewRegistry'
@@ -21,6 +21,8 @@ export interface SearchRow {
   subject?: string
   /** Set on `view`: which view to open, and where it lives. */
   view?: ViewOption
+  /** Set on `preset`: which arrangement, when `subject` is the instrument. */
+  preset?: string
 }
 
 /** Where a matched tab lives, so a row says more than its own title. */
@@ -125,19 +127,46 @@ export function searchRows(
       kind: 'tab'
     }))
 
+  /*
+   * `<ticker> <preset>` — an instrument, then where to put it (BU-122).
+   *
+   * Read before the plain groups because it is the most specific reading of
+   * what was typed, the same reason the intent row outranks them. A bare
+   * instrument with nothing after it offers every preset it could go into,
+   * so the second half never has to be remembered.
+   */
+  const loading = parseLoad(query, identifiers, presets)
+  for (const preset of loading.presets.slice(0, MAX_PRESETS)) {
+    const loadable = loadableTabs(preset)
+    rows.push({
+      id: `load:${preset.id}:${loading.subject}`,
+      group: 'LOAD INTO',
+      label: `${loading.subject} → ${preset.name}`,
+      meta:
+        loadable === 0
+          ? `${preset.code} · nothing to load`
+          : `${preset.code} · ${String(loadable)} ${loadable === 1 ? 'tab' : 'tabs'}`,
+      kind: 'preset',
+      subject: loading.subject,
+      preset: preset.id
+    })
+  }
+
   // Above indices and assets: a code is typed deliberately, and a name that
   // matches a preset was almost certainly meant as one.
-  for (const preset of presets
-    .filter((entry) => matchesPreset(entry, needle))
-    .slice(0, MAX_PRESETS)) {
-    rows.push({
-      id: `preset:${preset.id}`,
-      group: 'PRESETS',
-      label: preset.name,
-      meta: `${preset.code} · ${pageLabel(preset.page)}`,
-      kind: 'preset',
-      subject: preset.id
-    })
+  if (loading.presets.length === 0) {
+    for (const preset of presets
+      .filter((entry) => matchesPreset(entry, needle))
+      .slice(0, MAX_PRESETS)) {
+      rows.push({
+        id: `preset:${preset.id}`,
+        group: 'PRESETS',
+        label: preset.name,
+        meta: `${preset.code} · ${pageLabel(preset.page)}`,
+        kind: 'preset',
+        preset: preset.id
+      })
+    }
   }
 
   // The most specific reading of the query, when there is one.
@@ -212,6 +241,33 @@ export function searchRows(
   })
 
   return rows
+}
+
+/**
+ * Split "CMP001 screen" into the instrument and the presets it could go into.
+ *
+ * The instrument has to be RECOGNISED, not merely first: "prices tech10"
+ * reads as a view and a subject, and treating any leading word as an
+ * instrument would take that away from the intent row. What counts as
+ * recognised is the identifier search's own answer — the engine's ranking,
+ * not a guess about what a symbol looks like.
+ */
+export function parseLoad(
+  query: string,
+  identifiers: readonly Suggestion[],
+  presets: readonly Preset[]
+): { subject: string; presets: Preset[] } {
+  const words = query.trim().split(/\s+/)
+  const head = (words[0] ?? '').toUpperCase()
+  const known = identifiers.some((entry) => entry.identifier.toUpperCase() === head)
+  if (!known || presets.length === 0) return { subject: '', presets: [] }
+
+  const rest = words.slice(1).join(' ').trim().toLowerCase()
+  // Nothing after the instrument: offer everywhere it could go, which is the
+  // "I have typed a ticker, now what" case.
+  const matching = rest === '' ? [...presets] : presets.filter((p) => matchesPreset(p, rest))
+
+  return { subject: head, presets: matching }
 }
 
 function nameMatches(index: IndexRef, needle: string): boolean {

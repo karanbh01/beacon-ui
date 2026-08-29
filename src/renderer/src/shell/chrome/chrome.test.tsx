@@ -67,9 +67,48 @@ describe('searchRows', () => {
 
     const byName = searchRows('screen', TABS, { presets: [preset] })
     const row = byName.find((entry) => entry.kind === 'preset')
-    expect(row?.subject).toBe('preset-1')
+    // `preset` carries which arrangement; `subject` is free for the
+    // instrument to load into it (BU-122).
+    expect(row?.preset).toBe('preset-1')
+    expect(row?.subject).toBeUndefined()
     // The meta says both what to type and where it lands.
     expect(row?.meta).toBe('DE001 · Data Explorer')
+  })
+
+  it('offers to load a typed instrument into an arrangement', () => {
+    // BU-122. The instrument has to be recognised rather than merely first,
+    // so the identifier search's own answer is what makes this a load.
+    const preset = {
+      id: 'preset-1',
+      name: 'Screening',
+      code: 'DE001',
+      page: 'data-explorer',
+      layout: 'columns',
+      tabs: [
+        { pane: 0, viewKind: 'prices', archetype: 'query' as const, title: 'Prices' },
+        { pane: 1, viewKind: 'coverage', archetype: 'global' as const, title: 'Data Coverage' }
+      ]
+    }
+    const identifiers = [{ identifier: 'CMP001', name: 'Company One' }]
+
+    const typed = searchRows('CMP001 DE001', TABS, { presets: [preset], identifiers })
+    const row = typed.find((entry) => entry.group === 'LOAD INTO')
+
+    expect(row?.label).toBe('CMP001 → Screening')
+    expect(row?.subject).toBe('CMP001')
+    expect(row?.preset).toBe('preset-1')
+    // One of the two tabs owns a subject; the global one does not.
+    expect(row?.meta).toBe('DE001 · 1 tab')
+
+    // A bare instrument offers everywhere it could go, so the second half
+    // never has to be remembered.
+    const bare = searchRows('CMP001', TABS, { presets: [preset], identifiers })
+    expect(bare.some((entry) => entry.group === 'LOAD INTO')).toBe(true)
+
+    // An unrecognised leading word is not an instrument, and must not take
+    // the query away from the view-and-subject reading.
+    const other = searchRows('prices CMP001', TABS, { presets: [preset], identifiers })
+    expect(other.some((entry) => entry.group === 'LOAD INTO')).toBe(false)
   })
 
   it('always offers the action, even when nothing matches', () => {

@@ -184,10 +184,10 @@ function AppBody(): ReactElement {
         // Applying from search has to travel: the arrangement is on another
         // page as often as not, and restoring it out of sight would look
         // like nothing happened (BU-120).
-        onApplyPreset: (id: string) => {
+        onApplyPreset: (id: string, subject?: string) => {
           const preset = presets.find((entry) => entry.id === id)
           if (preset === undefined) return
-          applyPreset(id)
+          applyPreset(id, subject)
           setPage(preset.page)
         },
         ...(bridge.status === 'ok' ? { platform: bridge.info.platform } : {})

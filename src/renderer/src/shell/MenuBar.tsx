@@ -34,9 +34,10 @@ export interface MenuBarProps {
    *
    * Routed through the app rather than applied here, because applying one
    * means GOING to the page it belongs to, and the bar does not own which
-   * page is showing.
+   * page is showing. `subject` arrives when the query named an instrument
+   * to load into it (BU-122).
    */
-  onApplyPreset?: (id: string) => void
+  onApplyPreset?: (id: string, subject?: string) => void
   onCreateIndex?: (name: string) => void
   /** The logo is how Home is reached — see HomeView. */
   onGoHome?: () => void

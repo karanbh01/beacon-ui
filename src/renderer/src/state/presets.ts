@@ -162,11 +162,29 @@ export function restore(
   return { tabs: minted, actives }
 }
 
-/** Applying a preset, as one workspace transition. */
-export function applied(state: WorkspaceState, preset: Preset): WorkspaceState {
+/**
+ * Applying a preset, as one workspace transition.
+ *
+ * `subject` points every LOADABLE tab at one instrument (BU-122) — the ones
+ * that own a subject, which is what `query` means. A linked tab is left
+ * alone deliberately: it follows its source, and writing a subject onto it
+ * would sever the link the preset went to the trouble of restoring. Pinned
+ * and document tabs have no subject to point.
+ */
+export function applied(state: WorkspaceState, preset: Preset, subject?: string): WorkspaceState {
   const keeping = state.tabs.filter((tab) => tab.page !== preset.page)
   const { tabs, actives } = restore(preset, keeping)
-  return replacePage(state, preset.page, tabs, actives)
+  const loaded =
+    subject === undefined || subject === ''
+      ? tabs
+      : tabs.map((tab) => (tab.archetype === 'query' ? { ...tab, subject } : tab))
+
+  return replacePage(state, preset.page, loaded, actives)
+}
+
+/** Tabs a subject can be loaded into: enough to say so before applying. */
+export function loadableTabs(preset: Preset): number {
+  return preset.tabs.filter((tab) => tab.archetype === 'query').length
 }
 
 export function presetsFor(presets: readonly Preset[], page: string): Preset[] {
@@ -215,7 +233,8 @@ interface PresetsStore {
    * and never shown is one nobody can search for.
    */
   save: (name: string, page: string, code?: string) => Preset | undefined
-  apply: (id: string) => void
+  /** `subject` points every loadable tab at one instrument (BU-122). */
+  apply: (id: string, subject?: string) => void
   forget: (id: string) => void
 }
 
@@ -274,7 +293,7 @@ export const usePresets = create<PresetsStore>()(
         return saved
       },
 
-      apply: (id) => {
+      apply: (id, subject) => {
         const preset = get().presets.find((entry) => entry.id === id)
         if (preset === undefined) return
 
@@ -284,7 +303,7 @@ export const usePresets = create<PresetsStore>()(
         // zustand modules importing each other is a cycle, and a cycle
         // between two PERSISTED stores is one that shows up as state
         // quietly not being there.
-        useWorkspace.setState((state) => applied(state, preset))
+        useWorkspace.setState((state) => applied(state, preset, subject))
       },
 
       forget: (id) => {
