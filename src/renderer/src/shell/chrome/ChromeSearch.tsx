@@ -117,7 +117,7 @@ export function ChromeSearch({
       if (row !== undefined) activate(row)
     },
     onSubmit: () => {
-      onSubmit?.(query)
+      onSubmit?.(query.trim())
     }
   })
 
@@ -142,6 +142,16 @@ export function ChromeSearch({
         // usually the preset to load it into.
         setQuery(`${filled} `)
         typeahead.onInput()
+        /*
+         * And the completed row stays highlighted (BU-125).
+         *
+         * Typing drops the highlight on purpose — Enter has to stay a plain
+         * submit for a symbol nothing has heard of. Completing is not typing:
+         * it is a row being chosen, so Enter after it has to act on that row.
+         * Without this, Tab then Enter did nothing at all, which read as the
+         * trailing space breaking the query.
+         */
+        typeahead.setActive(0)
         return
       }
     }

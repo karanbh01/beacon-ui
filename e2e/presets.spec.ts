@@ -241,7 +241,10 @@ test('a ticker completes with Tab, then loads into a preset by code', async ({ w
   await search.press('Tab')
   await expect(search).toHaveValue('CMP001 DE001 ')
 
-  await window.getByRole('option', { name: /CMP001 · Screening/ }).click()
+  // Enter, on what Tab just completed. The trailing space it leaves is not a
+  // reason for the row to stop being the answer (BU-125).
+  await expect(load).toHaveAttribute('aria-selected', 'true')
+  await search.press('Enter')
 
   // Applied, travelled, and every loadable tab pointed at the instrument.
   await expect(window.locator('.pane')).toHaveCount(2)
