@@ -199,7 +199,7 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
             columns={columns}
             rows={summary.rows}
             getRowId={(row) => String(row.index)}
-            maxBodyHeight={520}
+            fillHeight
           />
           <p className="prices-footnote type-11">
             {summary.rows.length.toLocaleString('en-US')} rows · {summary.firstDate} →{' '}

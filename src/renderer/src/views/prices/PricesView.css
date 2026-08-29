@@ -5,6 +5,21 @@
   flex-direction: column;
   gap: 16px;
   align-items: flex-start;
+  /* The chain the table's `fillHeight` needs: a column that owns the pane's
+     height, and is allowed to shrink below its content (BU-127). */
+  height: 100%;
+  min-height: 0;
+}
+
+/*
+ * Only the table gives ground.
+ *
+ * Without this the flex column shares the shortfall out among all its
+ * children, and the range control is the one that visibly loses — it went
+ * from a row of buttons to a 4px strip in a short pane.
+ */
+.prices-view > *:not(.tbl) {
+  flex: none;
 }
 
 /* Footnote provenance line: 11px muted, counts and spans (taxonomy 9). */

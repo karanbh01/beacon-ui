@@ -91,6 +91,25 @@
   position: relative;
 }
 
+/*
+ * A table that fills its pane (BU-127).
+ *
+ * `min-height: 0` on the card is the load-bearing line: without it a flex
+ * item refuses to shrink below its content, so the body would never scroll
+ * and the pane would.
+ */
+.tbl-fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.tbl-fill .tbl-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 /* Weight bar: 8px tall in a 12px lane, accent, 1.5px radius. */
 .tbl-bar {
   position: relative;

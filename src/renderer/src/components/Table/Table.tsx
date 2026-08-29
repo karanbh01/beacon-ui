@@ -33,6 +33,17 @@ export interface TableProps<T> {
   totalRow?: Partial<Record<string, ReactNode>>
   /** Caps the body and turns on scrolling. Omit to render at full height. */
   maxBodyHeight?: number
+  /**
+   * Take the height the parent gives, down to `minRows` (BU-127).
+   *
+   * For a table in a pane rather than on a page: a fixed cap is either taller
+   * than a short pane — so the pane scrolls instead of the table — or shorter
+   * than a tall one, wasting the space below. The parent has to be a flex
+   * column with `min-height: 0`; everything else is here.
+   */
+  fillHeight?: boolean
+  /** Floor for `fillHeight`. Below this there is not enough table to read. */
+  minRows?: number
   caption?: string
   className?: string
 }
@@ -63,6 +74,8 @@ export function Table<T>({
   onSelectRow,
   totalRow,
   maxBodyHeight,
+  fillHeight = false,
+  minRows = 5,
   caption,
   className
 }: TableProps<T>): ReactElement {
@@ -131,7 +144,11 @@ export function Table<T>({
   }
 
   return (
-    <div className={['tbl', className].filter(Boolean).join(' ')} style={{ width }} role="table">
+    <div
+      className={['tbl', fillHeight && 'tbl-fill', className].filter(Boolean).join(' ')}
+      style={{ width }}
+      role="table"
+    >
       {caption !== undefined && <span className="tbl-caption">{caption}</span>}
 
       <div className="tbl-head" role="row">
@@ -151,7 +168,11 @@ export function Table<T>({
         className="tbl-body"
         ref={bodyRef}
         style={
-          maxBodyHeight === undefined ? undefined : { maxHeight: maxBodyHeight, overflowY: 'auto' }
+          fillHeight
+            ? { minHeight: minRows * ROW_HEIGHT, overflowY: 'auto' }
+            : maxBodyHeight === undefined
+              ? undefined
+              : { maxHeight: maxBodyHeight, overflowY: 'auto' }
         }
       >
         {virtualize ? (
