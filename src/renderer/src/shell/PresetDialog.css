@@ -83,12 +83,17 @@
   color: var(--text-muted);
 }
 
+.preset-overwrite,
 .preset-forget {
   padding: 0;
   color: var(--text-muted);
   background: none;
   border: 0;
   cursor: pointer;
+}
+
+.preset-overwrite:hover {
+  color: var(--accent);
 }
 
 .preset-forget:hover {

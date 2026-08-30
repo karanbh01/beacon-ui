@@ -251,3 +251,27 @@ test('a ticker completes with Tab, then loads into a preset by code', async ({ w
   await expect(subject(window, 0)).toHaveValue('CMP001')
   await expect(subject(window, 1)).toHaveValue('CMP001')
 })
+
+test('an arrangement can be overwritten in place, keeping its code', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openIn(window, 0, 'Prices')
+  await savePreset(window, 'Daily')
+
+  // A different arrangement, saved over the same preset from its own row.
+  await chooseLayout(window, 'Two columns')
+  await openIn(window, 1, 'Reference Data')
+
+  await view(window, 'Save layout as preset…')
+  await window.getByRole('button', { name: 'Overwrite Daily' }).click()
+
+  const said = window.getByRole('status', { name: 'Preset saved' })
+  await expect(said).toContainText('DE001')
+
+  // Wreck it, then bring the overwritten version back by its code.
+  await view(window, 'Reset window')
+  await expect(window.locator('.pane')).toHaveCount(1)
+
+  await applyPreset(window, 'Daily')
+  await expect(window.locator('.pane')).toHaveCount(2)
+  await expect(window.locator('[data-pane="1"] .reference-view')).toBeVisible()
+})

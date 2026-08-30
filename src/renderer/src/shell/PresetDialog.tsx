@@ -30,6 +30,7 @@ export function PresetDialog({ page, onSaved, onClose }: PresetDialogProps): Rea
   const saved = usePresets((state) => state.presets)
   const save = usePresets((state) => state.save)
   const forget = usePresets((state) => state.forget)
+  const overwrite = usePresets((state) => state.overwrite)
 
   const mine = presetsFor(saved, page)
   const trimmed = name.trim()
@@ -135,7 +136,8 @@ export function PresetDialog({ page, onSaved, onClose }: PresetDialogProps): Rea
             <div className="preset-rule" />
             <p className="preset-note type-11">
               Saved for this page. Apply one from Presets in the layout menu, or by searching its
-              code — either replaces whatever is open here.
+              code — either replaces whatever is open here. Overwrite takes what is open now into
+              that preset, keeping its name and code.
             </p>
             <ul className="preset-list">
               {mine.map((preset) => (
@@ -146,6 +148,23 @@ export function PresetDialog({ page, onSaved, onClose }: PresetDialogProps): Rea
                     {preset.tabs.length} {preset.tabs.length === 1 ? 'tab' : 'tabs'} ·{' '}
                     {layoutById(preset.layout).label}
                   </span>
+                  {/*
+                    Overwriting by name works (BU-119) but means remembering
+                    what you called it and spelling it the same. This is the
+                    same act, aimed at the row rather than at the text field.
+                  */}
+                  <button
+                    type="button"
+                    className="preset-overwrite type-11"
+                    aria-label={`Overwrite ${preset.name}`}
+                    onClick={() => {
+                      const stored = overwrite(preset.id)
+                      if (stored !== undefined) onSaved?.(stored)
+                      onClose()
+                    }}
+                  >
+                    Overwrite
+                  </button>
                   <button
                     type="button"
                     className="preset-forget type-11"

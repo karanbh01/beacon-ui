@@ -163,6 +163,25 @@ describe('applied', () => {
   })
 })
 
+describe('overwriting (BU-136)', () => {
+  it('keeps the name and the code, and takes what is open now', () => {
+    // The code especially: it is what anybody who wrote it down will type,
+    // so an overwrite that reissued one would break the note on their desk.
+    const before = capture(NAMED, ARRANGED.tabs, ARRANGED.activeByPane)
+    const after = capture(
+      { id: before.id, name: before.name, code: before.code, page: before.page, layout: 'grid' },
+      [tab({ id: 'tab-actions', viewKind: 'actions', title: 'Corporate Actions' })],
+      {}
+    )
+
+    expect(after.id).toBe(before.id)
+    expect(after.code).toBe('DE001')
+    expect(after.name).toBe('Research')
+    expect(after.layout).toBe('grid')
+    expect(after.tabs.map((entry) => entry.viewKind)).toEqual(['actions'])
+  })
+})
+
 describe('the collection', () => {
   it('offers only the page being looked at', () => {
     const mine: Preset = { ...NAMED, tabs: [] }

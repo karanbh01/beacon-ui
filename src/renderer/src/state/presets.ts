@@ -234,6 +234,12 @@ interface PresetsStore {
    */
   save: (name: string, page: string, code?: string) => Preset | undefined
   /** `subject` points every loadable tab at one instrument (BU-122). */
+  /**
+   * Take the page's current arrangement into a preset that already exists
+   * (BU-136), keeping its name and its code — the code especially, since it
+   * is what anybody who wrote it down will type.
+   */
+  overwrite: (id: string) => Preset | undefined
   apply: (id: string, subject?: string) => void
   forget: (id: string) => void
 }
@@ -289,6 +295,30 @@ export const usePresets = create<PresetsStore>()(
               ? [...others, saved]
               : state.presets.map((preset) => (preset.id === saved.id ? saved : preset))
         })
+
+        return saved
+      },
+
+      overwrite: (id) => {
+        const existing = get().presets.find((entry) => entry.id === id)
+        if (existing === undefined) return undefined
+
+        const workspace = useWorkspace.getState()
+        const saved = capture(
+          {
+            id: existing.id,
+            name: existing.name,
+            code: existing.code,
+            page: existing.page,
+            layout: layoutFor(useChrome.getState().layoutByPage, existing.page)
+          },
+          workspace.tabs,
+          workspace.activeByPane
+        )
+
+        set((state) => ({
+          presets: state.presets.map((preset) => (preset.id === id ? saved : preset))
+        }))
 
         return saved
       },
