@@ -259,7 +259,8 @@ describe('chrome popovers in the bar', () => {
     const user = userEvent.setup()
     render(
       <WithQueries>
-        <MenuBar engine="connected" />
+        {/* A page with panes: the layout control is inert on Home (BU-135). */}
+        <MenuBar engine="connected" page="data-explorer" />
       </WithQueries>
     )
 
@@ -274,7 +275,7 @@ describe('chrome popovers in the bar', () => {
     const user = userEvent.setup()
     render(
       <WithQueries>
-        <MenuBar engine="connected" />
+        <MenuBar engine="connected" page="data-explorer" />
       </WithQueries>
     )
     const trigger = screen.getByRole('button', { name: 'Layout' })
@@ -578,5 +579,43 @@ describe('recentRows', () => {
 
   it('says nothing about an empty workspace', () => {
     expect(recentRows([])).toEqual([])
+  })
+})
+
+describe('a page with no panes (BU-135)', () => {
+  it('offers no layout control on Home', async () => {
+    const user = userEvent.setup()
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" page="home" />
+      </WithQueries>
+    )
+
+    // Home is a page of its own rather than a pane host, so a layout chosen
+    // there would be stored and never drawn.
+    const trigger = screen.getByRole('button', { name: 'Layout' })
+    expect(trigger).toBeDisabled()
+
+    await user.click(trigger)
+    expect(screen.queryByRole('dialog', { name: 'Layout' })).toBeNull()
+  })
+
+  it('greys out everything in View that would arrange it', async () => {
+    const user = userEvent.setup()
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" page="home" />
+      </WithQueries>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'View' }))
+
+    expect(screen.getByRole('menuitem', { name: /Window layout/ })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: /Reset window/ })).toBeDisabled()
+    // A preset saved on Home would restore an arrangement that never existed.
+    expect(screen.getByRole('menuitem', { name: /Save layout as preset/ })).toBeDisabled()
+
+    // The theme is not about panes, so it stays live.
+    expect(screen.getByRole('menuitemradio', { name: /Dark theme/ })).toBeEnabled()
   })
 })

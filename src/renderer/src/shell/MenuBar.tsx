@@ -117,7 +117,15 @@ export function MenuBar({
     setPanel('none')
   }
 
-  const menus = buildMenus({ theme: theme.preference, layout })
+  /*
+   * Home has no panes (BU-135).
+   *
+   * It is a page of its own rather than a pane host, so a layout chosen
+   * there is stored and never drawn — the control has to say so rather than
+   * accept the click and do nothing.
+   */
+  const arrangeable = page !== HOME_PAGE_ID
+  const menus = buildMenus({ theme: theme.preference, layout, arrangeable })
 
   /*
    * Dismissal is owned by the bar, not by each menu.
@@ -251,6 +259,8 @@ export function MenuBar({
             aria-label="Layout"
             aria-expanded={panel === 'layout'}
             aria-haspopup="dialog"
+            disabled={!arrangeable}
+            title={arrangeable ? undefined : 'Home has no panes to arrange'}
             onClick={toggle('layout')}
           >
             <WindowFormatIcon size={22} />

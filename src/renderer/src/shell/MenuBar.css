@@ -357,3 +357,14 @@
 
 /* The 31px rule in 81:2 belongs to the search field's chevron section, which
    now owns it as .menu-bar-search-divider. Nothing in the cluster is tall. */
+
+/*
+ * A chrome control that cannot act on the page being shown (BU-135). Muted
+ * and inert, in the same idiom as a disabled menu item, rather than hidden —
+ * a control that vanishes leaves you wondering where it went.
+ */
+.menu-bar-icon:disabled {
+  color: var(--text-muted);
+  cursor: default;
+  opacity: 0.45;
+}

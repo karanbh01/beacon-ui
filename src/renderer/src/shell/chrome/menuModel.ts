@@ -58,6 +58,15 @@ export interface MenuContext {
   theme: 'light' | 'dark' | 'system'
   /** The current page's layout, so View can tick it. */
   layout: string
+  /**
+   * Whether the page being shown has panes at all (BU-135).
+   *
+   * Home is a page of its own rather than a pane host, so a layout there is
+   * written and never drawn, Reset window has nothing to reset, and a preset
+   * would save an arrangement that does not exist. Disabled rather than
+   * hidden, which is this menu bar's convention for anything that cannot act.
+   */
+  arrangeable?: boolean
 }
 
 /**
@@ -68,6 +77,7 @@ export interface MenuContext {
  * have somewhere to write to.
  */
 export function buildMenus(context: MenuContext): Menu[] {
+  const arrangeable = context.arrangeable ?? true
   const byLabel: Record<string, readonly MenuItem[]> = {
     File: [
       soon('New index…', 'Ctrl+N'),
@@ -112,19 +122,19 @@ export function buildMenus(context: MenuContext): Menu[] {
       {
         label: 'Window layout',
         action: 'none',
-        enabled: true,
+        enabled: arrangeable,
         separatorBefore: true,
         submenu: LAYOUT_OPTIONS.map((option) => ({
           label: option.label,
           action: `layout-${option.id}` as MenuAction,
-          enabled: true,
+          enabled: arrangeable,
           checked: context.layout === option.id
         }))
       },
       {
         label: 'Reset window',
         action: 'layout-reset',
-        enabled: true
+        enabled: arrangeable
       },
       /*
        * Saving only (BU-120).
@@ -137,7 +147,7 @@ export function buildMenus(context: MenuContext): Menu[] {
       {
         label: 'Save layout as preset…',
         action: 'preset-save',
-        enabled: true,
+        enabled: arrangeable,
         separatorBefore: true
       }
     ],
