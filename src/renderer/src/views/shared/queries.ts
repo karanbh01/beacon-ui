@@ -1,5 +1,11 @@
 import { useMemo } from 'react'
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient
+} from '@tanstack/react-query'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
 
@@ -205,16 +211,45 @@ export function useFeatureCatalogue() {
  * `identifiers` filter is what makes it a per-instrument view.
  */
 export function useTable(dataset: string, identifier: string, limit = REFERENCE_BATCH_LIMIT) {
+  return useTablePage(dataset, {
+    identifiers: identifier === '' ? [] : [identifier],
+    limit,
+    enabled: identifier !== ''
+  })
+}
+
+export interface TablePageRequest {
+  /** Empty asks for the whole dataset, which is what the endpoint answers. */
+  identifiers?: readonly string[]
+  offset?: number
+  limit?: number
+  enabled?: boolean
+}
+
+/**
+ * One page of a stored dataset (BU-138).
+ *
+ * The identifier is a FILTER here, not a prerequisite. The Database view was
+ * built when the only way in was per-instrument, so it asked for a name
+ * before it would show anything; BN-147 added the paged endpoint and BN-150
+ * its `identifiers` filter, and this is what makes "show me the table" a
+ * question the app can ask.
+ *
+ * `keepPreviousData` so paging does not blank the table between pages — the
+ * rows that are there stay readable while the next ones arrive.
+ */
+export function useTablePage(dataset: string, request: TablePageRequest = {}) {
   const client = useBeacon()
-  const identifiers = identifier === '' ? [] : [identifier]
+  const { identifiers = [], offset = 0, limit = REFERENCE_BATCH_LIMIT, enabled = true } = request
 
   return useQuery({
-    queryKey: keys.data.table(dataset, identifiers, 0, limit),
+    queryKey: keys.data.table(dataset, identifiers, offset, limit),
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.data.table(dataset, { identifiers, limit }, signal)
+      return client.data.table(dataset, { identifiers, offset, limit }, signal)
     },
-    enabled: client !== null && identifier !== ''
+    enabled: client !== null && enabled,
+    placeholderData: keepPreviousData
   })
 }
 

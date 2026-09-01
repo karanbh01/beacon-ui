@@ -125,6 +125,7 @@
  * from the day the card became a flex column in BU-127.
  */
 .tbl-fill .tbl-head,
+.tbl-fill .tbl-filters,
 .tbl-fill .tbl-total {
   flex: none;
 }
@@ -152,4 +153,41 @@
 
 .num-neg {
   color: var(--danger);
+}
+
+/*
+ * The filter row (BU-138): the header's geometry, an input in each cell.
+ *
+ * Its own flex row rather than inheriting the head's, because it sits under
+ * the labels and has to line up with them cell for cell — including the
+ * scrollbar gutter, which is why the padding is set inline from the same
+ * measurement the head uses.
+ */
+.tbl-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.tbl-filter {
+  width: 100%;
+  padding: 2px 6px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  outline: none;
+}
+
+.tbl-filter:focus {
+  border-color: var(--accent);
+}
+
+.tbl-filter::placeholder {
+  color: var(--text-muted);
 }

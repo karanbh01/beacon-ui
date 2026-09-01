@@ -1,28 +1,30 @@
 import { useMemo, useState, type ReactElement } from 'react'
+import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
 import { MenuButton } from '../../components/MenuButton/MenuButton'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
 import { Table, type Column } from '../../components/Table/Table'
 import { useWorkspace } from '../../state/tabs.store'
+import type { TableFrame } from '../../api/frame'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { useExport } from '../../export/useExport'
 import type { Sheet } from '../../export/sheet'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
-import { useCorporateActions, useFeatures, useReference } from '../shared/queries'
-import { usePrices } from '../prices/usePrices'
+import { useTablePage } from '../shared/queries'
 import {
   DATASETS,
-  asPairs,
+  applyFilters,
   fromFrame,
-  fromRecords,
   isNumericColumn,
   withoutHidden,
   type DatasetId,
-  type RawRow,
-  type RawTable
+  type RawRow
 } from './database'
 import './DatabaseView.css'
+
+/** The engine caps a page at 1,000 rows, which is also plenty to scroll. */
+const PAGE = 1_000
 
 /**
  * Data Explorer → Database. The stored data, before any view shapes it.
@@ -36,47 +38,53 @@ import './DatabaseView.css'
  * from the response rather than from a list here. A column that appears in
  * py-beacon tomorrow appears here tomorrow.
  *
- * **Per identifier, because that is what is addressable.** There is no
- * whole-table endpoint — see `docs/engine-requests/data-gaps.md`, where a
- * paged one is asked for. Market data alone is millions of rows, so an
- * unbounded dump is not something to add without paging.
+ * **The whole table, not one instrument (BU-138).** It used to require an
+ * identifier, because when it was written the per-identifier endpoints were
+ * the only way in. BN-147 added the paged table endpoint and BN-150 its
+ * `identifiers` filter, so the name is one filter among several now and the
+ * view opens with data in it.
  */
 export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   const [dataset, setDataset] = useState<DatasetId>('market')
+  const [offset, setOffset] = useState(0)
+  const [filters, setFilters] = useState<Record<string, string>>({})
   const setSubject = useWorkspace((state) => state.setSubject)
   const exporter = useExport()
 
-  // All four run, so switching dataset is instant on a name already read.
-  // They are the same queries the shaped views use, so the cache is shared
-  // rather than duplicated.
-  const prices = usePrices(identifier, {})
-  const reference = useReference(identifier, { noRetry: true })
-  const actions = useCorporateActions(identifier)
-  const features = useFeatures(identifier)
+  const page = useTablePage(dataset, {
+    identifiers: identifier === '' ? [] : [identifier],
+    offset,
+    limit: PAGE
+  })
 
-  const active = {
-    market: prices,
-    reference,
-    corporate_actions: actions,
-    features
-  }[dataset]
-
-  const table = useMemo((): RawTable => {
+  const table = useMemo(
     // RATE is the FX dataset's column; on a market bar it says nothing
     // (BU-139).
-    if (dataset === 'market') return withoutHidden('market', fromFrame(prices.data?.prices, 'Date'))
-    if (dataset === 'reference') return asPairs(reference.data?.fields ?? undefined)
-    if (dataset === 'corporate_actions') {
-      return fromRecords(actions.data?.actions ?? [])
-    }
-    return fromRecords(features.data?.features ?? [])
-  }, [dataset, prices.data, reference.data, actions.data, features.data])
+    /*
+     * `rows` is typed as a bare object on the wire — the schema documents it
+     * as "the {index, columns, data} frame shape used elsewhere" without
+     * saying so in types, which is the same cast the Features view makes.
+     */
+    () => withoutHidden(dataset, fromFrame(page.data?.rows as TableFrame | undefined, 'Index')),
+    [dataset, page.data]
+  )
+
+  /*
+   * Filtering happens HERE, on the page (BU-138).
+   *
+   * The endpoint takes offset, limit and identifiers and nothing else — its
+   * own documentation says a client wanting predicates wants a query
+   * language and that this is the wrong place to grow one. So the column
+   * boxes narrow what has been fetched, and the footnote says as much rather
+   * than implying the whole table was searched.
+   */
+  const shown = useMemo(() => applyFilters(table, filters), [table, filters])
 
   const columns = useMemo(
     (): Column<RawRow>[] =>
       table.columns.map((header, index) => ({
-        key: `${header}-${String(index)}`,
+        key: header,
         header,
         width: index === 0 ? 150 : 130,
         emphasis: index === 0,
@@ -93,12 +101,18 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
   )
 
   const spec = DATASETS.find((entry) => entry.id === dataset)
+  const total = page.data?.total ?? 0
+  const filtering = Object.values(filters).some((expression) => expression.trim() !== '')
 
   const sheet = (): Sheet => ({
-    name: `${dataset} ${identifier}`,
-    columns: table.columns,
-    rows: table.rows.map((row) => row.cells)
+    name: `${dataset}${identifier === '' ? '' : ` ${identifier}`}`,
+    columns: shown.columns,
+    rows: shown.rows.map((row) => row.cells)
   })
+
+  const move = (by: number): void => {
+    setOffset((current) => Math.max(0, Math.min(current + by, Math.max(total - PAGE, 0))))
+  }
 
   return (
     <div className="database-view">
@@ -107,7 +121,7 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
         controls={
           <MenuButton
             label="Export"
-            disabled={table.rows.length === 0 || exporter.busy}
+            disabled={shown.rows.length === 0 || exporter.busy}
             choices={[
               { value: 'csv', label: 'CSV' },
               { value: 'xlsx', label: 'Excel' }
@@ -118,35 +132,40 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
           />
         }
       >
-        <Field label="Identifier" width={150}>
-          <input
-            className="database-input"
-            value={identifier}
-            aria-label="Identifier"
-            spellCheck={false}
-            onChange={(event) => {
-              setSubject(tab.id, event.target.value.toUpperCase())
-            }}
-          />
-        </Field>
         <Select
           label="Dataset"
           value={dataset}
           options={DATASETS.map((entry) => ({ value: entry.id, label: entry.label }))}
           onChange={(value) => {
             setDataset(value as DatasetId)
+            // A filter names a column, and the columns change with the
+            // dataset — carrying them over would hide rows for a reason
+            // nothing on screen still explains.
+            setFilters({})
+            setOffset(0)
           }}
         />
+        <Field label="Identifier" width={150}>
+          <input
+            className="database-input"
+            value={identifier}
+            aria-label="Identifier"
+            placeholder="all"
+            spellCheck={false}
+            onChange={(event) => {
+              setSubject(tab.id, event.target.value.toUpperCase())
+              setOffset(0)
+            }}
+          />
+        </Field>
       </PaneHeader>
 
-      {identifier === '' && <ViewEmpty>Name an instrument to read its stored rows.</ViewEmpty>}
+      {page.isPending && <ViewLoading what={dataset} />}
+      {page.isError && <ViewError error={page.error} />}
 
-      {identifier !== '' && active.isPending && <ViewLoading what={dataset} />}
-      {active.isError && <ViewError error={active.error} />}
-
-      {active.isSuccess && table.rows.length === 0 && (
+      {page.isSuccess && table.rows.length === 0 && (
         <ViewEmpty>
-          The {dataset} dataset holds nothing for {identifier}.
+          The {dataset} dataset holds nothing{identifier === '' ? '' : ` for ${identifier}`}.
         </ViewEmpty>
       )}
 
@@ -154,15 +173,49 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
         <>
           <Table
             columns={columns}
-            rows={table.rows}
+            rows={shown.rows}
             getRowId={(row) => row.key}
-            maxBodyHeight={560}
+            filters={filters}
+            onFilter={(key, value) => {
+              setFilters((current) => ({ ...current, [key]: value }))
+            }}
+            fillHeight
+            fillWidth
           />
-          <p className="database-footnote type-11">
-            {table.rows.length.toLocaleString('en-US')} {spec?.unit ?? 'rows'} ·{' '}
-            {table.columns.length} columns, exactly as py-beacon sent them · one identifier at a
-            time, because there is no whole-table endpoint
-          </p>
+
+          <div className="database-paging">
+            <Button
+              disabled={offset === 0 || page.isFetching}
+              onClick={() => {
+                move(-PAGE)
+              }}
+            >
+              Previous
+            </Button>
+            <Button
+              disabled={offset + PAGE >= total || page.isFetching}
+              onClick={() => {
+                move(PAGE)
+              }}
+            >
+              Next
+            </Button>
+
+            {/*
+              What is on screen against what exists (BU-138). A page out of a
+              million rows that says only "1,000 rows" reads as the whole
+              table, which is the one thing this view must never do.
+            */}
+            <p className="database-footnote type-11">
+              {shown.rows.length.toLocaleString('en-US')}
+              {filtering && ` of ${table.rows.length.toLocaleString('en-US')}`}{' '}
+              {spec?.unit ?? 'rows'}
+              {filtering && ' on this page'} · showing {(offset + 1).toLocaleString('en-US')}–
+              {Math.min(offset + table.rows.length, total).toLocaleString('en-US')} of{' '}
+              {total.toLocaleString('en-US')} · {table.columns.length} columns, exactly as py-beacon
+              sent them
+            </p>
+          </div>
         </>
       )}
     </div>

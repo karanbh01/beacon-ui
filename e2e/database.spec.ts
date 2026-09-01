@@ -1,35 +1,68 @@
 import { expect, openPage, openView, test } from './fixtures'
 
 /**
- * Data Explorer → Database (BU-102): the stored rows, unshaped.
+ * Data Explorer → Database (BU-138).
+ *
+ * The stored table, filterable from its own columns. It used to need an
+ * identifier before it would show anything at all.
  */
-
-test('shows the engine’s own column names, not the view’s', async ({ window }) => {
+test('opens with the whole dataset, no identifier typed', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await openView(window, 'Database')
-  await window.getByRole('textbox', { name: 'Identifier' }).fill('CMP001')
 
-  // Prices renders these as "Open" and "Close"; here they are what came.
-  await expect(window.getByRole('columnheader', { name: 'open' })).toBeVisible()
-  await expect(window.getByRole('columnheader', { name: 'volume' })).toBeVisible()
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
+  await expect(window.getByRole('textbox', { name: 'Identifier', exact: true })).toHaveValue('')
+  // What is on screen against what exists, never one implying the other.
+  await expect(window.getByText(/showing 1–\d+ of \d+/)).toBeVisible()
 })
 
-test('switches dataset without reloading the identifier', async ({ window }) => {
+test('filters from the columns, and the filters combine', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await openView(window, 'Database')
-  await window.getByRole('textbox', { name: 'Identifier' }).fill('CMP001')
-  await window.locator('.tbl-row').first().waitFor()
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
 
-  await window.getByRole('combobox', { name: 'Dataset' }).selectOption('features')
-  await expect(window.getByRole('columnheader', { name: 'field' })).toBeVisible()
-  await expect(window.getByText('x_sentiment')).toBeVisible()
+  const rows = window.locator('.tbl-row')
+  const all = await rows.count()
+
+  await window.getByRole('textbox', { name: 'Filter IDENTIFIER' }).fill('CMP001')
+  await expect(rows).toHaveCount(2)
+
+  // A second filter narrows further rather than replacing the first.
+  await window.getByRole('textbox', { name: 'Filter CLOSE' }).fill('>0')
+  await expect(rows).toHaveCount(2)
+  await window.getByRole('textbox', { name: 'Filter CLOSE' }).fill('<0')
+  await expect(rows).toHaveCount(0)
+
+  // Clearing them puts the page back.
+  await window.getByRole('textbox', { name: 'Filter CLOSE' }).fill('')
+  await window.getByRole('textbox', { name: 'Filter IDENTIFIER' }).fill('')
+  await expect(rows).toHaveCount(all)
 })
 
-test('writes null as the word, since a dash could be a real value', async ({ window }) => {
+test('the identifier is a filter on the request, not a prerequisite', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await openView(window, 'Database')
-  await window.getByRole('textbox', { name: 'Identifier' }).fill('CMP001')
-  await window.getByRole('combobox', { name: 'Dataset' }).selectOption('features')
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
 
-  await expect(window.locator('.database-null').first()).toBeVisible()
+  const before = await window.locator('.tbl-row').count()
+  await window.getByRole('textbox', { name: 'Identifier', exact: true }).fill('CMP002')
+
+  // Narrowed at the engine: the total falls, which a client-side filter
+  // could not do.
+  await expect(window.getByText(/showing 1–2 of 2/)).toBeVisible()
+  expect(await window.locator('.tbl-row').count()).toBeLessThan(before)
+})
+
+test('reads every dataset the engine serves', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Database')
+
+  for (const dataset of ['Reference', 'Corporate actions', 'Features']) {
+    await window.getByLabel('Dataset').selectOption({ label: dataset })
+    await expect(window.locator('.tbl-row').first()).toBeVisible()
+  }
+
+  // RATE belongs to FX, not to market bars (BU-139).
+  await window.getByLabel('Dataset').selectOption({ label: 'Market' })
+  await expect(window.getByRole('columnheader', { name: 'RATE' })).toHaveCount(0)
 })

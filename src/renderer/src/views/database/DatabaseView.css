@@ -30,3 +30,11 @@
   max-width: 900px;
   color: var(--text-muted);
 }
+
+/* Paging sits with the footnote, since the two answer the same question. */
+.database-paging {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex: none;
+}

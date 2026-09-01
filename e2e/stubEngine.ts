@@ -153,6 +153,59 @@ function backtestResult(withBenchmark: boolean): Record<string, unknown> {
   }
 }
 
+/**
+ * A page of a stored dataset, long-form, as the engine sends it.
+ *
+ * Every row carries its identifier, because the table endpoint answers the
+ * whole dataset and the column is the only thing saying which name a row
+ * belongs to.
+ */
+function tablePage(dataset: string, url: URL): unknown {
+  const wanted = url.searchParams.getAll('identifiers').flatMap((value) => value.split(','))
+  const names = wanted.length > 0 ? IDENTIFIERS.filter((id) => wanted.includes(id)) : IDENTIFIERS
+
+  const columns =
+    dataset === 'market'
+      ? ['IDENTIFIER', 'DATE', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME']
+      : dataset === 'reference'
+        ? ['IDENTIFIER', 'NAME', 'CURRENCY', 'EXCHANGE', 'GICS_SECTOR']
+        : ['IDENTIFIER', 'DATE', 'TYPE', 'VALUE']
+
+  const rows: unknown[][] = []
+  for (const [position, identifier] of names.entries()) {
+    if (dataset === 'reference') {
+      const fields = referenceEntry(identifier, position).fields as Record<string, unknown>
+      rows.push([identifier, fields.NAME, fields.CURRENCY, fields.EXCHANGE, fields.GICS_SECTOR])
+      continue
+    }
+    // Two rows each: enough for a filter to have something to remove.
+    for (const [step, date] of PRICES.index.slice(-2).entries()) {
+      const bar = PRICES.data[PRICES.data.length - 2 + step] ?? []
+      rows.push(
+        dataset === 'market'
+          ? [identifier, `${date}T00:00:00`, bar[0], bar[1], bar[2], bar[3], bar[4]]
+          : [identifier, `${date}T00:00:00`, 'DIVIDEND', 0.24 + position / 100]
+      )
+    }
+  }
+
+  const offset = Number(url.searchParams.get('offset') ?? '0')
+  const limit = Math.min(Number(url.searchParams.get('limit') ?? '1000'), 1000)
+  const page = rows.slice(offset, offset + limit)
+
+  return {
+    dataset,
+    offset,
+    limit,
+    total: rows.length,
+    rows: {
+      index: page.map((_row, position) => offset + position),
+      columns,
+      data: page
+    }
+  }
+}
+
 /** Computed on request rather than stored, so it is legal in `fields`. */
 const DERIVED_COLUMNS = ['adv_3m', 'market_cap', 'free_float_market_cap']
 
@@ -509,7 +562,24 @@ function body(url: URL): unknown {
    */
   if (path.startsWith('/data/tables/')) {
     const dataset = decodeURIComponent(path.slice('/data/tables/'.length))
-    if (dataset !== 'features') return undefined
+
+    /*
+     * Every dataset the engine's table endpoint serves (BU-138).
+     *
+     * It answered `features` alone, because that was the only caller. The
+     * Database view reads all four now, and a stub that 404s three of them
+     * would have the view look broken against a stub and work against an
+     * engine — which is the wrong way round for a test to fail.
+     */
+    if (dataset === 'market' || dataset === 'reference' || dataset === 'corporate_actions') {
+      return tablePage(dataset, url)
+    }
+    if (dataset !== 'features') {
+      return notFound(
+        `dataset '${dataset}'`,
+        'expected one of corporate_actions, features, market, reference'
+      )
+    }
 
     const wanted = url.searchParams.getAll('identifiers').flatMap((value) => value.split(','))
     const limit = Math.min(Number(url.searchParams.get('limit') ?? '1000'), 1000)

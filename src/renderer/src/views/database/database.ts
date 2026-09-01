@@ -126,3 +126,59 @@ export function isNumericColumn(table: RawTable, index: number): boolean {
   const seen = table.rows.map((row) => row.cells[index]).filter((value) => value !== null)
   return seen.length > 0 && seen.every((value) => typeof value === 'number')
 }
+
+/**
+ * A filter expression, as typed into a column (BU-138).
+ *
+ * Text contains; numbers compare. `>100` and `<=0` mean what they look like,
+ * a bare number on a numeric column means equals, and anything else is a
+ * case-insensitive substring — which is what a spreadsheet's filter box does
+ * and what a reader will expect without being told.
+ */
+const COMPARISON = /^(>=|<=|>|<|=)\s*(-?\d+(?:\.\d+)?)$/
+
+export function matchesFilter(cell: string | number | boolean | null, expression: string): boolean {
+  const wanted = expression.trim()
+  if (wanted === '') return true
+
+  const comparison = COMPARISON.exec(wanted)
+  if (comparison !== null && typeof cell === 'number') {
+    const value = Number(comparison[2])
+    switch (comparison[1]) {
+      case '>':
+        return cell > value
+      case '<':
+        return cell < value
+      case '>=':
+        return cell >= value
+      case '<=':
+        return cell <= value
+      default:
+        return cell === value
+    }
+  }
+
+  // A comparison against a cell that is not a number matches nothing, rather
+  // than falling through to a substring search for ">100".
+  if (comparison !== null) return false
+
+  return String(cell ?? '')
+    .toLowerCase()
+    .includes(wanted.toLowerCase())
+}
+
+/** Every filter has to pass: they narrow, they do not compete. */
+export function applyFilters(table: RawTable, filters: Record<string, string>): RawTable {
+  const active = table.columns
+    .map((name, index) => ({ index, expression: filters[name] ?? '' }))
+    .filter((column) => column.expression.trim() !== '')
+
+  if (active.length === 0) return table
+
+  return {
+    columns: table.columns,
+    rows: table.rows.filter((row) =>
+      active.every((column) => matchesFilter(row.cells[column.index] ?? null, column.expression))
+    )
+  }
+}
