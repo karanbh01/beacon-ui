@@ -28,7 +28,9 @@ const COLUMNS: readonly Column<UniverseSummary>[] = [
     key: 'source',
     header: 'Source',
     width: 90,
-    render: (row) => (row.source === 'seeded' ? <Badge>Seeded</Badge> : <Badge>Mine</Badge>)
+    // `mine` is the engine's word for "not seeded", and it reads as a note
+    // to self rather than a description of the row (BU-147).
+    render: (row) => (row.source === 'seeded' ? <Badge>Seeded</Badge> : <Badge>User created</Badge>)
   },
   {
     key: 'constituents',
