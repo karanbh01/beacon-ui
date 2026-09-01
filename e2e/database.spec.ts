@@ -16,7 +16,7 @@ test('opens with the whole dataset, no identifier typed', async ({ window }) => 
   await expect(window.getByText(/showing 1–\d+ of \d+/)).toBeVisible()
 })
 
-test('filters from the columns, and the filters combine', async ({ window }) => {
+test('filters from a menu on the column, and the filters combine', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await openView(window, 'Database')
   await expect(window.locator('.tbl-row').first()).toBeVisible()
@@ -24,19 +24,51 @@ test('filters from the columns, and the filters combine', async ({ window }) => 
   const rows = window.locator('.tbl-row')
   const all = await rows.count()
 
-  await window.getByRole('textbox', { name: 'Filter IDENTIFIER' }).fill('CMP001')
-  await expect(rows).toHaveCount(2)
-
-  // A second filter narrows further rather than replacing the first.
-  await window.getByRole('textbox', { name: 'Filter CLOSE' }).fill('>0')
-  await expect(rows).toHaveCount(2)
+  // The menu hangs off the label rather than sitting in a row of boxes
+  // beneath it (BU-148).
+  await window.getByRole('button', { name: /^CLOSE/ }).click()
   await window.getByRole('textbox', { name: 'Filter CLOSE' }).fill('<0')
   await expect(rows).toHaveCount(0)
 
-  // Clearing them puts the page back.
-  await window.getByRole('textbox', { name: 'Filter CLOSE' }).fill('')
-  await window.getByRole('textbox', { name: 'Filter IDENTIFIER' }).fill('')
+  await window.getByRole('textbox', { name: 'Filter CLOSE' }).fill('>0')
   await expect(rows).toHaveCount(all)
+
+  await window.getByRole('button', { name: 'Clear' }).click()
+  await expect(rows).toHaveCount(all)
+})
+
+test('sorts a column, and sorting off returns the engine order', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Database')
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
+
+  const first = async (): Promise<string> =>
+    (await window.locator('.tbl-row').first().textContent()) ?? ''
+
+  const engineOrder = await first()
+
+  await window.getByRole('button', { name: /^IDENTIFIER/ }).click()
+  await window.getByRole('button', { name: 'Sort ↓' }).click()
+  const descending = await first()
+  expect(descending).not.toBe(engineOrder)
+
+  // Pressing the active direction again is the third state: off.
+  await window.getByRole('button', { name: 'Sort ↓' }).click()
+  expect(await first()).toBe(engineOrder)
+})
+
+test('a date column offers a range rather than one expression', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Database')
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
+
+  await window.getByRole('button', { name: /^DATE/ }).click()
+  await expect(window.getByRole('textbox', { name: 'DATE from' })).toBeVisible()
+
+  // A window before the data starts leaves nothing, which is the honest
+  // answer rather than an unchanged table (BU-148).
+  await window.getByRole('textbox', { name: 'DATE to' }).fill('2000-01-01')
+  await expect(window.locator('.tbl-row')).toHaveCount(0)
 })
 
 test('the identifier is a filter on the request, not a prerequisite', async ({ window }) => {
@@ -45,7 +77,15 @@ test('the identifier is a filter on the request, not a prerequisite', async ({ w
   await expect(window.locator('.tbl-row').first()).toBeVisible()
 
   const before = await window.locator('.tbl-row').count()
-  await window.getByRole('textbox', { name: 'Identifier', exact: true }).fill('CMP002')
+
+  // Typed into the column's own menu, which for THIS column reaches the
+  // engine rather than the page (BU-148).
+  await window.getByRole('button', { name: /^IDENTIFIER/ }).click()
+  await window.getByRole('textbox', { name: 'Filter IDENTIFIER' }).fill('CMP002')
+  await window.keyboard.press('Escape')
+  await expect(window.getByRole('textbox', { name: 'Identifier', exact: true })).toHaveValue(
+    'CMP002'
+  )
 
   // Narrowed at the engine: the total falls, which a client-side filter
   // could not do.
@@ -62,7 +102,9 @@ test('reads every dataset the engine serves', async ({ window }) => {
     await expect(window.locator('.tbl-row').first()).toBeVisible()
   }
 
-  // RATE belongs to FX, not to market bars (BU-139).
+  // RATE belongs to FX, not to market bars (BU-139), and the index column is
+  // a row counter the endpoint resets before paging (BU-149).
   await window.getByLabel('Dataset').selectOption({ label: 'Market' })
   await expect(window.getByRole('columnheader', { name: 'RATE' })).toHaveCount(0)
+  await expect(window.getByRole('columnheader', { name: 'Index' })).toHaveCount(0)
 })

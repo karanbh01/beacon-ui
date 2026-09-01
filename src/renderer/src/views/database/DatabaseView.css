@@ -38,3 +38,17 @@
   align-items: baseline;
   flex: none;
 }
+
+/* A header label that opens its own menu (BU-148). */
+.database-column-button {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.database-column-active {
+  color: var(--accent);
+}

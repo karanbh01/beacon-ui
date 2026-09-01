@@ -12,12 +12,16 @@ import { useExport } from '../../export/useExport'
 import type { Sheet } from '../../export/sheet'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useTablePage } from '../shared/queries'
+import { ColumnMenu } from './ColumnMenu'
 import {
   DATASETS,
-  applyFilters,
+  applyQueries,
   fromFrame,
+  isNarrowing,
   isNumericColumn,
+  readNumber,
   withoutHidden,
+  type ColumnQueries,
   type DatasetId,
   type RawRow
 } from './database'
@@ -48,7 +52,9 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   const [dataset, setDataset] = useState<DatasetId>('market')
   const [offset, setOffset] = useState(0)
-  const [filters, setFilters] = useState<Record<string, string>>({})
+  const [queries, setQueries] = useState<ColumnQueries>({})
+  /** Which column's menu is open, if any. */
+  const [menu, setMenu] = useState<string | undefined>(undefined)
   const setSubject = useWorkspace((state) => state.setSubject)
   const exporter = useExport()
 
@@ -59,14 +65,19 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
   })
 
   const table = useMemo(
-    // RATE is the FX dataset's column; on a market bar it says nothing
-    // (BU-139).
     /*
-     * `rows` is typed as a bare object on the wire — the schema documents it
-     * as "the {index, columns, data} frame shape used elsewhere" without
-     * saying so in types, which is the same cast the Features view makes.
+     * No index column (BU-149).
+     *
+     * The endpoint resets the frame before paging, so its `index` is
+     * `[0, 1, 2, …]` — a row counter, and the widest thing on the left of
+     * every dataset. `rows` itself is typed as a bare object on the wire;
+     * the schema documents it as "the {index, columns, data} frame shape
+     * used elsewhere" without saying so in types, which is the same cast
+     * the Features view makes.
+     *
+     * RATE goes too, on market: it is the FX dataset's column (BU-139).
      */
-    () => withoutHidden(dataset, fromFrame(page.data?.rows as TableFrame | undefined, 'Index')),
+    () => withoutHidden(dataset, fromFrame(page.data?.rows as TableFrame | undefined)),
     [dataset, page.data]
   )
 
@@ -79,7 +90,7 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
    * boxes narrow what has been fetched, and the footnote says as much rather
    * than implying the whole table was searched.
    */
-  const shown = useMemo(() => applyFilters(table, filters), [table, filters])
+  const shown = useMemo(() => applyQueries(table, queries), [table, queries])
 
   const columns = useMemo(
     (): Column<RawRow>[] =>
@@ -94,7 +105,9 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
           // Verbatim: `null` is written as the word, because a dash would be
           // indistinguishable from a string that is genuinely "—".
           if (value === null) return <span className="database-null">null</span>
-          return String(value)
+          // Numbers read to a common precision, so a price column looks like
+          // prices rather than like the floats behind them (BU-149).
+          return typeof value === 'number' ? readNumber(value) : String(value)
         }
       })),
     [table]
@@ -102,7 +115,7 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
 
   const spec = DATASETS.find((entry) => entry.id === dataset)
   const total = page.data?.total ?? 0
-  const filtering = Object.values(filters).some((expression) => expression.trim() !== '')
+  const filtering = Object.values(queries).some(isNarrowing)
 
   const sheet = (): Sheet => ({
     name: `${dataset}${identifier === '' ? '' : ` ${identifier}`}`,
@@ -141,7 +154,8 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
             // A filter names a column, and the columns change with the
             // dataset — carrying them over would hide rows for a reason
             // nothing on screen still explains.
-            setFilters({})
+            setQueries({})
+            setMenu(undefined)
             setOffset(0)
           }}
         />
@@ -175,10 +189,54 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
             columns={columns}
             rows={shown.rows}
             getRowId={(row) => row.key}
-            filters={filters}
-            onFilter={(key, value) => {
-              setFilters((current) => ({ ...current, [key]: value }))
-            }}
+            renderHeader={(column) => (
+              <>
+                <button
+                  type="button"
+                  className={`database-column-button${
+                    isNarrowing(queries[column.key]) || queries[column.key]?.sort !== undefined
+                      ? ' database-column-active'
+                      : ''
+                  }`}
+                  aria-haspopup="dialog"
+                  aria-expanded={menu === column.key}
+                  onClick={() => {
+                    setMenu((current) => (current === column.key ? undefined : column.key))
+                  }}
+                >
+                  {column.header}
+                  <span aria-hidden="true">
+                    {queries[column.key]?.sort === 'asc'
+                      ? ' ↑'
+                      : queries[column.key]?.sort === 'desc'
+                        ? ' ↓'
+                        : ' ⌄'}
+                  </span>
+                </button>
+
+                {menu === column.key && (
+                  <ColumnMenu
+                    column={column.key}
+                    query={queries[column.key] ?? {}}
+                    // The one column the engine itself can narrow.
+                    narrowsRequest={column.key.toUpperCase() === 'IDENTIFIER'}
+                    onChange={(next) => {
+                      setQueries((current) => ({ ...current, [column.key]: next }))
+                      if (column.key.toUpperCase() === 'IDENTIFIER') {
+                        // Straight to the request: `identifiers` is the only
+                        // predicate the endpoint takes, and filtering a page
+                        // of eleven million rows client-side finds nothing.
+                        setSubject(tab.id, (next.filter ?? '').trim().toUpperCase())
+                        setOffset(0)
+                      }
+                    }}
+                    onClose={() => {
+                      setMenu(undefined)
+                    }}
+                  />
+                )}
+              </>
+            )}
             fillHeight
             fillWidth
           />

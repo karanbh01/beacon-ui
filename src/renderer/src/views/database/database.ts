@@ -80,8 +80,24 @@ function cell(value: unknown): string | number | boolean | null {
  * point of the view. The index becomes a first column because it is data the
  * frame carries and hiding it would be shaping.
  */
-export function fromFrame(frame: TableFrame | undefined, indexHeader = 'Index'): RawTable {
+/**
+ * A frame as a table.
+ *
+ * `indexHeader` names the frame's index as a first column. Omit it where the
+ * index carries nothing — the table endpoint resets its frames before paging,
+ * so its index is a row counter and a column of those is noise (BU-149).
+ */
+export function fromFrame(frame: TableFrame | undefined, indexHeader?: string): RawTable {
   if (frame === undefined) return { columns: [], rows: [] }
+  if (indexHeader === undefined) {
+    return {
+      columns: [...frame.columns],
+      rows: frame.data.map((values, row) => ({
+        key: `${String(frame.index[row])}-${String(row)}`,
+        cells: values.map(cell)
+      }))
+    }
+  }
 
   return {
     columns: [indexHeader, ...frame.columns],
@@ -181,4 +197,105 @@ export function applyFilters(table: RawTable, filters: Record<string, string>): 
       active.every((column) => matchesFilter(row.cells[column.index] ?? null, column.expression))
     )
   }
+}
+
+/**
+ * What a column's menu is currently asking for (BU-148).
+ *
+ * All optional: a column nobody has touched carries an empty object, which
+ * is what makes "is anything filtering?" a cheap question.
+ */
+export interface ColumnQuery {
+  /** Text contains, or a comparison — see `matchesFilter`. */
+  filter?: string
+  /** Inclusive, on a date column. Either end alone is a bound. */
+  from?: string
+  to?: string
+  sort?: 'asc' | 'desc'
+}
+
+export type ColumnQueries = Record<string, ColumnQuery>
+
+/** py-beacon names date columns plainly, and they are the ones worth ranging. */
+export function isDateColumn(name: string): boolean {
+  return /(^|_)date(_|$)|_date$|^date/i.test(name)
+}
+
+/** The ten characters of an ISO date, from whatever the cell holds. */
+function isoDate(cell: string | number | boolean | null): string {
+  return typeof cell === 'string' ? cell.slice(0, 10) : ''
+}
+
+function inRange(cell: string | number | boolean | null, from: string, to: string): boolean {
+  const date = isoDate(cell)
+  if (date === '') return false
+  if (from !== '' && date < from) return false
+  if (to !== '' && date > to) return false
+  return true
+}
+
+/** Does this cell satisfy everything the column's menu is asking? */
+export function matchesQuery(cell: string | number | boolean | null, query: ColumnQuery): boolean {
+  const from = query.from ?? ''
+  const to = query.to ?? ''
+  if ((from !== '' || to !== '') && !inRange(cell, from, to)) return false
+  return matchesFilter(cell, query.filter ?? '')
+}
+
+/** True when a column is narrowing anything, which is not the same as sorting. */
+export function isNarrowing(query: ColumnQuery | undefined): boolean {
+  if (query === undefined) return false
+  return (query.filter ?? '').trim() !== '' || (query.from ?? '') !== '' || (query.to ?? '') !== ''
+}
+
+/**
+ * Narrow and order a page (BU-148).
+ *
+ * One sort at a time: the first column asking for one wins, because two
+ * competing orders on a page of a million-row table is a question nobody
+ * asked and a rule nobody could predict.
+ */
+export function applyQueries(table: RawTable, queries: ColumnQueries): RawTable {
+  const columns = table.columns.map((name, index) => ({ name, index, query: queries[name] ?? {} }))
+  const narrowing = columns.filter((column) => isNarrowing(column.query))
+
+  const rows =
+    narrowing.length === 0
+      ? table.rows
+      : table.rows.filter((row) =>
+          narrowing.every((column) => matchesQuery(row.cells[column.index] ?? null, column.query))
+        )
+
+  const sorted = columns.find((column) => column.query.sort !== undefined)
+  if (sorted === undefined) return narrowing.length === 0 ? table : { columns: table.columns, rows }
+
+  const direction = sorted.query.sort === 'desc' ? -1 : 1
+  const ordered = [...rows].sort((a, b) => {
+    const left = a.cells[sorted.index] ?? null
+    const right = b.cells[sorted.index] ?? null
+    // Nulls last whichever way the column is sorted: they are the absence of
+    // a value, not the smallest one.
+    if (left === null) return right === null ? 0 : 1
+    if (right === null) return -1
+    if (typeof left === 'number' && typeof right === 'number') return (left - right) * direction
+    return String(left).localeCompare(String(right)) * direction
+  })
+
+  return { columns: table.columns, rows: ordered }
+}
+
+/**
+ * A number as it should READ, which is not always as it was sent (BU-149).
+ *
+ * This view renames nothing, reorders nothing and drops nothing — but
+ * `157.47000000000003` beside `156.85` is the float that produced it rather
+ * than the price it means, and the two have to look alike to be compared.
+ * Rounding is a display decision and stops here: the export writes what the
+ * engine sent.
+ */
+const MAX_DECIMALS = 4
+
+export function readNumber(value: number): string {
+  if (Number.isInteger(value)) return value.toLocaleString('en-US')
+  return String(Number(value.toFixed(MAX_DECIMALS)))
 }

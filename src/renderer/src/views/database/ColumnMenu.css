@@ -1,0 +1,81 @@
+@import '../../tokens/surface.css';
+
+/*
+ * A column's menu (BU-148). The dropdown surface the menu bar uses, so a
+ * panel hanging off a table header and one hanging off the bar are the same
+ * object to look at.
+ */
+.column-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 292px;
+  padding: 12px;
+  text-align: left;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+
+.column-menu-title {
+  margin: 0;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.column-menu-sort {
+  display: flex;
+  gap: 6px;
+}
+
+.column-menu-sort-button {
+  padding: 3px 10px;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.column-menu-sort-active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.column-menu-range {
+  display: flex;
+  gap: 8px;
+}
+
+.column-menu-input {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.column-menu-note {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.column-menu-clear {
+  align-self: flex-start;
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.column-menu-clear:hover {
+  color: var(--danger);
+}

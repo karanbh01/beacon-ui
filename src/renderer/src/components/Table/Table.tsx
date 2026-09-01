@@ -53,15 +53,13 @@ export interface TableProps<T> {
    */
   fillWidth?: boolean
   /**
-   * A filter box under each label, the way a spreadsheet has one (BU-138).
+   * Something in each header cell besides its label (BU-148).
    *
-   * Opt-in: most tables here show a shaped answer to a question already
-   * asked, and a filter row on those would be furniture. The Database view
-   * is the exception — it shows a stored table, which is the thing people
-   * filter.
+   * A render prop rather than filter semantics baked in here: the Database
+   * view hangs a filter-and-sort menu off its labels, and every other table
+   * in the app wants nothing there at all. The table stays a table.
    */
-  filters?: Record<string, string>
-  onFilter?: (key: string, value: string) => void
+  renderHeader?: (column: Column<T>) => ReactNode
   caption?: string
   className?: string
 }
@@ -104,8 +102,7 @@ export function Table<T>({
   fillHeight = false,
   minRows = 5,
   fillWidth = false,
-  filters,
-  onFilter,
+  renderHeader,
   caption,
   className
 }: TableProps<T>): ReactElement {
@@ -215,31 +212,10 @@ export function Table<T>({
             style={cellStyle(column, fillWidth)}
             role="columnheader"
           >
-            {column.header}
+            {renderHeader === undefined ? column.header : renderHeader(column)}
           </div>
         ))}
       </div>
-
-      {filters !== undefined && (
-        <div className="tbl-filters" role="row" style={{ paddingRight: HEAD_PADDING + gutter }}>
-          {columns.map((column) => (
-            <div key={column.key} className="tbl-cell" style={cellStyle(column, fillWidth)}>
-              <input
-                className="tbl-filter"
-                value={filters[column.key] ?? ''}
-                // The key, not the header: a header may be a node, and
-                // "[object Object]" is not a label anybody can act on.
-                aria-label={`Filter ${typeof column.header === 'string' ? column.header : column.key}`}
-                placeholder="filter"
-                spellCheck={false}
-                onChange={(event) => {
-                  onFilter?.(column.key, event.target.value)
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
 
       <div
         className="tbl-body"
