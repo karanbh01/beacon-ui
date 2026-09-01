@@ -414,6 +414,9 @@ test('the label row keeps its height when the table fills the pane', async ({ wi
   // A flex item shrinks below its height unless told not to, and in a
   // height-constrained card the label row was squashed to the 13px its text
   // needed (BU-140).
-  expect(rows.head).toBe(rows.row)
-  expect(rows.head).toBeGreaterThanOrEqual(28)
+  // Taller than a row, not merely equal to it: the frame gives the labels
+  // more air than the numbers, and squashed to their text they read as a
+  // first row that lost its values (BU-140).
+  expect(rows.head).toBeGreaterThan(rows.row)
+  expect(rows.head).toBeGreaterThanOrEqual(32)
 })

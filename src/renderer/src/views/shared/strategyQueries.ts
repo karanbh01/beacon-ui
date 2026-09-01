@@ -111,6 +111,27 @@ export function useCreateUniverse() {
   })
 }
 
+/**
+ * Delete a universe (BU-144).
+ *
+ * Seeded ones refuse server-side, which is where the rule belongs — the
+ * button being hidden is a courtesy, not the guarantee.
+ */
+export function useDeleteUniverse() {
+  const client = useBeacon()
+  const queries = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => {
+      if (client === null) throw new Error('No engine')
+      return client.universes.remove(id)
+    },
+    onSuccess: () => {
+      void queries.invalidateQueries({ queryKey: keys.strategy.universes() })
+    }
+  })
+}
+
 /** Rename a universe or change its members. Seeded ones refuse server-side. */
 export function useSaveUniverse() {
   const client = useBeacon()

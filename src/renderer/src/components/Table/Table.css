@@ -26,7 +26,13 @@
 }
 
 .tbl-head {
-  height: 28px;
+  /*
+   * Taller than a row, as Figma 266:2881 has it: the frame's head is 28
+   * against 24px rows, and the labels need the air to read as a heading
+   * rather than as a first row that lost its numbers (BU-140). Our rows are
+   * the taxonomy's 28, so the head takes the same proportion above them.
+   */
+  height: 32px;
   border-bottom: 1px solid var(--divider);
   font-family: var(--font-ui);
   font-size: 10px;

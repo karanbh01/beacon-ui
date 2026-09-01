@@ -155,6 +155,18 @@ export interface IpcContract {
     request: undefined
     response: undefined
   }
+  /**
+   * Ask before something unreversible (BU-144).
+   *
+   * Through the OS dialog rather than a renderer modal, for the reason
+   * BU-107 gives about replacing the data store: a div asking "are you sure"
+   * is a div, and deleting somebody's work deserves the platform's own
+   * question.
+   */
+  'dialog:confirm': {
+    request: { title: string; message: string; detail?: string; confirmLabel?: string }
+    response: boolean
+  }
   /** Force a restart, e.g. from a footer action. */
   'engine:restart': {
     request: undefined
@@ -314,6 +326,13 @@ export interface BeaconBridge {
     /** Returns an unsubscribe function. */
     onChange: (listener: (state: EngineState) => void) => () => void
   }
+  /** Ask before something unreversible; true means go ahead (BU-144). */
+  confirm: (request: {
+    title: string
+    message: string
+    detail?: string
+    confirmLabel?: string
+  }) => Promise<boolean>
   update: {
     state: () => Promise<UpdateState>
     check: () => Promise<void>

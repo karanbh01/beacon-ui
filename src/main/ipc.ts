@@ -111,6 +111,31 @@ export function registerIpcHandlers(
     return undefined
   })
 
+  /*
+   * One confirmation, asked the way the platform asks (BU-144).
+   *
+   * Cancel is the default and the escape key, so a stray Enter cannot delete
+   * anything — the same shape as the regenerate dialog above.
+   */
+  handle('dialog:confirm', async (event, request): Promise<boolean> => {
+    const window = senderWindow(event)
+    const message = {
+      type: 'warning' as const,
+      buttons: [request.confirmLabel ?? 'Delete', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      title: request.title,
+      message: request.message,
+      ...(request.detail === undefined ? {} : { detail: request.detail })
+    }
+
+    const answer =
+      window === null
+        ? await dialog.showMessageBox(message)
+        : await dialog.showMessageBox(window, message)
+    return answer.response === 0
+  })
+
   handle('engine:restart', () => {
     engine.restart()
     return undefined
