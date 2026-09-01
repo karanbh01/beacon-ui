@@ -10,6 +10,7 @@ import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import {
   isUnsupported,
   useCreateUniverse,
+  useDeleteUniverse,
   useSaveUniverse,
   useUniverseMembers,
   useUniverses
@@ -87,6 +88,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
   const [mode, setMode] = useState<'create' | 'edit'>('create')
   const create = useCreateUniverse()
   const save = useSaveUniverse()
+  const deleteUniverse = useDeleteUniverse()
 
   // Only while the builder is open: the pool is the whole dataset.
   const pool = useCandidatePool(draft !== undefined, asOf)
@@ -316,6 +318,25 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
           asOf={dataAsOf}
           onOpen={(id) => {
             setSubject(tab.id, id)
+          }}
+          onDelete={(universe) => {
+            /*
+             * Asked through the OS dialog (BU-144).
+             *
+             * Deleting a universe is unreversible — the engine keeps no bin —
+             * and this app's precedent for that is the platform's own
+             * question rather than a div of our own (BU-107).
+             */
+            void window.beacon
+              ?.confirm({
+                title: 'Delete universe',
+                message: `Delete “${universe.name}”?`,
+                detail:
+                  'The universe is removed from the engine. Indices that reference it keep the members they resolved, but will not find it again.'
+              })
+              .then((confirmed) => {
+                if (confirmed) deleteUniverse.mutate(universe.id)
+              })
           }}
         />
       )}

@@ -6,3 +6,21 @@
   gap: 8px;
   align-items: flex-start;
 }
+
+/* Quiet until wanted: deleting is not what this table is for. */
+.universe-delete {
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.universe-delete:hover {
+  color: var(--danger);
+}
+
+.universe-delete:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}

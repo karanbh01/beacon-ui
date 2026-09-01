@@ -20,6 +20,8 @@ export interface UniverseOverviewProps {
   /** The latest date the data reaches, which is what the counts are stated at. */
   asOf: string | undefined
   onOpen: (id: string) => void
+  /** Omitted while a delete is in flight, or where deleting is not offered. */
+  onDelete?: (universe: UniverseSummary) => void
 }
 
 const COLUMNS: readonly Column<UniverseSummary>[] = [
@@ -42,8 +44,42 @@ const COLUMNS: readonly Column<UniverseSummary>[] = [
 ]
 
 /** The as-of column is the same date in every row, so it is built per render. */
-function columns(asOf: string | undefined): readonly Column<UniverseSummary>[] {
-  return [...COLUMNS, { key: 'asOf', header: 'As of', width: 110, render: () => asOf ?? '—' }]
+function columns(
+  asOf: string | undefined,
+  onDelete: ((universe: UniverseSummary) => void) | undefined
+): readonly Column<UniverseSummary>[] {
+  return [
+    ...COLUMNS,
+    { key: 'asOf', header: 'As of', width: 110, render: () => asOf ?? '—' },
+    {
+      key: 'delete',
+      header: '',
+      width: 60,
+      align: 'right',
+      /*
+       * Nothing on a seeded row (BU-144).
+       *
+       * The engine refuses those, which is where the rule belongs — this is
+       * a courtesy, so the button is not offered for something that will be
+       * turned down.
+       */
+      render: (row) =>
+        onDelete === undefined || row.source === 'seeded' ? null : (
+          <button
+            type="button"
+            className="universe-delete type-11"
+            aria-label={`Delete ${row.name}`}
+            onClick={(event) => {
+              // The row opens the universe; the button must not.
+              event.stopPropagation()
+              onDelete(row)
+            }}
+          >
+            Delete
+          </button>
+        )
+    }
+  ]
 }
 
 /**
@@ -69,13 +105,18 @@ function columns(asOf: string | undefined): readonly Column<UniverseSummary>[] {
  * `useReferenceValidity` deduplicates across universes and chunks to the
  * engine's 1,000-per-call cap rather than asking once per universe.
  */
-export function UniverseOverview({ universes, asOf, onOpen }: UniverseOverviewProps): ReactElement {
+export function UniverseOverview({
+  universes,
+  asOf,
+  onOpen,
+  onDelete
+}: UniverseOverviewProps): ReactElement {
   const total = universes.reduce((sum, universe) => sum + (universe.constituents ?? 0), 0)
 
   return (
     <div className="universe-overview">
       <Table
-        columns={columns(asOf)}
+        columns={columns(asOf, onDelete)}
         rows={universes}
         getRowId={(row) => row.id}
         onSelectRow={(row) => {

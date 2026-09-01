@@ -204,3 +204,39 @@ test('market cap fills its column and becomes a filter', async ({ window }) => {
     .toContain('Market cap')
   expect(await dimensions.locator('option').allTextContents()).toContain('Free float market cap')
 })
+
+test('a universe made here can be deleted, and a seeded one cannot', async ({ app, window }) => {
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+
+  await window.getByRole('button', { name: 'New universe…' }).click()
+  await window.getByRole('textbox', { name: 'Universe name' }).fill('Disposable')
+  await window.getByRole('textbox', { name: 'Paste identifiers' }).fill('CMP010 CMP011')
+  await window.getByRole('button', { name: 'Add pasted' }).click()
+  await window.getByRole('button', { name: 'Create universe' }).click()
+  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveValue('DISPOSABLE')
+
+  // Back to the list: the overview is what the tab shows with nothing
+  // selected (BU-93).
+  await window.getByRole('combobox', { name: 'Universe' }).selectOption('')
+  const row = window.locator('.universe-overview .tbl-row', { hasText: 'Disposable' })
+  await expect(row).toBeVisible()
+
+  // The seeded one offers nothing to press: the engine refuses it, and a
+  // button for something that will be turned down is a lie (BU-144).
+  await expect(
+    window
+      .locator('.universe-overview .tbl-row', { hasText: 'All loaded assets' })
+      .getByRole('button')
+  ).toHaveCount(0)
+
+  // Answer the platform's own question in main, since that is where it is asked.
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false })
+  })
+
+  await row.getByRole('button', { name: 'Delete Disposable' }).click()
+  await expect(
+    window.locator('.universe-overview .tbl-row', { hasText: 'Disposable' })
+  ).toHaveCount(0)
+})

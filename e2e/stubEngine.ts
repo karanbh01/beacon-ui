@@ -853,6 +853,9 @@ export function startStubEngine(): Promise<StubEngine> {
     // BN-122 removed.
     response.setHeader('access-control-allow-origin', '*')
     response.setHeader('access-control-allow-headers', 'authorization, content-type')
+    // DELETE is preflighted, and a preflight that does not name it fails the
+    // request before the stub ever sees it (BU-144).
+    response.setHeader('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS')
     response.setHeader('content-type', 'application/json')
 
     if (request.method === 'OPTIONS') {
@@ -905,6 +908,37 @@ export function startStubEngine(): Promise<StubEngine> {
           })
         )
       })
+      return
+    }
+
+    /*
+     * Deleting a universe (BU-144).
+     *
+     * The engine refuses a seeded one, and so does this: a client that only
+     * ever hides the button would pass a test against a stub that accepted
+     * the call anyway.
+     */
+    if (method === 'DELETE' && url.pathname.startsWith('/universes/')) {
+      const id = decodeURIComponent(url.pathname.slice('/universes/'.length))
+      const universe = universes.find((entry) => entry.id === id)
+
+      if (universe === undefined) {
+        response
+          .writeHead(404)
+          .end(JSON.stringify(notFound(`universe '${id}'`, 'DocumentStore').payload))
+        return
+      }
+      if (universe.source === 'seeded') {
+        response.writeHead(422).end(
+          JSON.stringify({
+            error: { code: 'VALIDATION_ERROR', message: 'a seeded universe cannot be deleted' }
+          })
+        )
+        return
+      }
+
+      universes = universes.filter((entry) => entry.id !== id)
+      response.writeHead(204).end()
       return
     }
 
