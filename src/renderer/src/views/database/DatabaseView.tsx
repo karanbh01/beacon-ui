@@ -17,6 +17,7 @@ import {
   fromFrame,
   fromRecords,
   isNumericColumn,
+  withoutHidden,
   type DatasetId,
   type RawRow,
   type RawTable
@@ -62,7 +63,9 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
   }[dataset]
 
   const table = useMemo((): RawTable => {
-    if (dataset === 'market') return fromFrame(prices.data?.prices, 'Date')
+    // RATE is the FX dataset's column; on a market bar it says nothing
+    // (BU-139).
+    if (dataset === 'market') return withoutHidden('market', fromFrame(prices.data?.prices, 'Date'))
     if (dataset === 'reference') return asPairs(reference.data?.fields ?? undefined)
     if (dataset === 'corporate_actions') {
       return fromRecords(actions.data?.actions ?? [])

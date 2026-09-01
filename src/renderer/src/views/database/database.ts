@@ -36,6 +36,33 @@ export interface RawTable {
   rows: RawRow[]
 }
 
+/**
+ * Columns a dataset should not show, by dataset (BU-139).
+ *
+ * RATE is the FX dataset's column. On a market bar it is either empty or
+ * meaningless, and a column that is never useful is worse than no column —
+ * the reader has to work out for themselves that it is noise.
+ */
+const HIDDEN: Record<string, readonly string[]> = { market: ['RATE'] }
+
+export function withoutHidden(dataset: string, table: RawTable): RawTable {
+  const hidden = new Set((HIDDEN[dataset] ?? []).map((name) => name.toUpperCase()))
+  if (hidden.size === 0) return table
+
+  const keep = table.columns
+    .map((name, index) => ({ name, index }))
+    .filter((column) => !hidden.has(column.name.toUpperCase()))
+  if (keep.length === table.columns.length) return table
+
+  return {
+    columns: keep.map((column) => column.name),
+    rows: table.rows.map((row) => ({
+      key: row.key,
+      cells: keep.map((column) => row.cells[column.index] ?? null)
+    }))
+  }
+}
+
 /** A cell as it came, only trimmed of the midnight on a plain date. */
 function cell(value: unknown): string | number | boolean | null {
   if (value === null || value === undefined) return null

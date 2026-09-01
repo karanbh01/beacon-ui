@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { asPairs, fromFrame, fromRecords, isNumericColumn } from './database'
+import { asPairs, fromFrame, fromRecords, isNumericColumn, withoutHidden } from './database'
 
 describe('fromFrame', () => {
   const FRAME = {
@@ -69,5 +69,30 @@ describe('isNumericColumn', () => {
 
   it('does not call an all-null column numeric', () => {
     expect(isNumericColumn(table, 2)).toBe(false)
+  })
+})
+
+describe('withoutHidden (BU-139)', () => {
+  const FRAME = {
+    index: ['2026-08-19T00:00:00'],
+    columns: ['CLOSE', 'RATE'],
+    data: [[288.03, 1.08]]
+  }
+
+  it('drops RATE from a market table, cells and all', () => {
+    // RATE is the FX dataset's column. On a market bar it is empty or
+    // meaningless, and the reader should not have to work that out.
+    const table = fromFrame(FRAME, 'Date')
+    const shown = withoutHidden('market', table)
+
+    expect(shown.columns).toEqual(['Date', 'CLOSE'])
+    expect(shown.rows[0]?.cells).toHaveLength(2)
+    expect(shown.rows[0]?.cells[1]).toBe(table.rows[0]?.cells[1])
+  })
+
+  it('leaves every other dataset alone, including the one RATE belongs to', () => {
+    const table = fromFrame(FRAME, 'Date')
+    expect(withoutHidden('fx', table)).toBe(table)
+    expect(withoutHidden('reference', table).columns).toEqual(['Date', 'CLOSE', 'RATE'])
   })
 })
