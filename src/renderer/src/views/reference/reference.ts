@@ -82,19 +82,22 @@ export const REFERENCE_CARDS: readonly ReferenceCard[] = [
       { label: 'Dividend Frequency', keys: ['dividend_frequency'] },
       { label: 'Next Earnings', keys: ['next_earnings', 'earnings_date'] }
     ]
-  },
-  {
-    title: 'Universe membership',
-    rows: [
-      { label: 'S&P 500', keys: ['sp500', 'in_sp500'] },
-      { label: 'NASDAQ-100', keys: ['nasdaq100', 'in_nasdaq100'] },
-      { label: 'Dow Jones Industrial Average', keys: ['djia', 'in_djia'] },
-      { label: 'MSCI World', keys: ['msci_world', 'in_msci_world'] },
-      { label: 'Restricted Lists', keys: ['restricted_lists', 'restricted'] },
-      { label: 'Sanctions Flags', keys: ['sanctions_flags', 'sanctioned'] }
-    ]
   }
 ]
+
+/*
+ * The `Universe membership` card that used to sit here listed S&P 500,
+ * NASDAQ-100, the Dow, MSCI World, restricted lists and sanctions flags —
+ * read off the Figma frame and looked up in reference fields py-beacon does
+ * not carry, so every row was a dash and none of them named a universe this
+ * app knows about.
+ *
+ * The engine answers the real question: `/data/reference/{identifier}`
+ * returns `universes`, added in BN-132 so a client can ask "where is this
+ * used?" without reading every universe and searching it. The view renders
+ * that list (BU-143), which is why there is no card definition for it — the
+ * rows are data, not a fixed set of labels.
+ */
 
 /** Every key the cards claim, for the "not shown" count in the footnote. */
 export function claimedKeys(): Set<string> {

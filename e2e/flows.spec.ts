@@ -455,3 +455,21 @@ test('a view query bar completes with Tab', async ({ window }) => {
   await field.press('Enter')
   await expect(window.locator('.tbl-row').first()).toBeVisible()
 })
+
+test('reference data lists the universes an instrument is actually in', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Reference Data', exact: true }).click()
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+
+  const card = window.locator('.reference-card', { hasText: 'Universe membership' })
+  await expect(card).toBeVisible()
+
+  // The engine's answer (BN-132), not six invented index names read from
+  // reference fields py-beacon has never carried (BU-143).
+  await expect(card).toContainText('All loaded assets')
+  await expect(card).toContainText('seeded')
+  await expect(card).not.toContainText('S&P 500')
+  await expect(card).not.toContainText('MSCI World')
+})

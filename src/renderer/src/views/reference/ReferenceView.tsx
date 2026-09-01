@@ -24,6 +24,9 @@ export function ReferenceView({ tab, subject }: ViewProps): ReactElement {
 
   const fields = query.data?.fields
   const index = useMemo(() => indexFields(fields), [fields])
+  // Answered by the engine since BN-132, so the card is data rather than a
+  // fixed set of labels (BU-143).
+  const memberships = query.data?.universes ?? []
   const extras = useMemo(() => unclaimedCount(fields), [fields])
   const name = readField(index, ['name', 'long_name', 'longname'])
 
@@ -57,6 +60,31 @@ export function ReferenceView({ tab, subject }: ViewProps): ReactElement {
                 </KVList>
               </Card>
             ))}
+
+            {/*
+              The universes this instrument is actually in (BU-143).
+
+              Data rather than a fixed set of labels, so a universe created
+              in this app shows up here the moment the engine agrees it
+              contains the name.
+            */}
+            <Card title="Universe membership" className="reference-card">
+              {memberships.length === 0 ? (
+                <p className="reference-none type-11">
+                  In none of your universes. Add it from Universe Set.
+                </p>
+              ) : (
+                <KVList>
+                  {memberships.map((universe) => (
+                    <KV
+                      key={universe.id}
+                      label={universe.name}
+                      value={universe.source === 'seeded' ? 'seeded' : 'user created'}
+                    />
+                  ))}
+                </KVList>
+              )}
+            </Card>
           </div>
           <p className="reference-footnote type-11">
             {index.size} field{index.size === 1 ? '' : 's'} returned · source: py-beacon reference

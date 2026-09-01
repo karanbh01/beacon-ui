@@ -46,13 +46,22 @@ describe('indexFields and readField', () => {
 })
 
 describe('REFERENCE_CARDS', () => {
-  it('is the four cards of Figma 234:4680, in frame order', () => {
+  it('is the fixed cards of Figma 234:4680, in frame order', () => {
+    // Universe membership left this list in BU-143: its rows are the
+    // engine's answer to "where is this used?", not a set of labels, so the
+    // view renders them from the payload rather than from here.
     expect(REFERENCE_CARDS.map((card) => card.title)).toEqual([
       'Identifiers',
       'Classification',
-      'Corporate profile',
-      'Universe membership'
+      'Corporate profile'
     ])
+  })
+
+  it('claims no field for a universe, which is not reference data', () => {
+    // The old card looked up `sp500`, `in_djia` and four more that py-beacon
+    // has never carried — every row was a dash on every instrument.
+    const keys = [...claimedKeys()]
+    expect(keys.filter((key) => key.includes('sp500') || key.includes('djia'))).toEqual([])
   })
 
   it('never lists the same label twice, which would render two identical rows', () => {

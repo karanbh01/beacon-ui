@@ -42,3 +42,9 @@
   margin: 0;
   color: var(--text-muted);
 }
+
+/* The card says its own emptiness rather than showing rows of dashes. */
+.reference-none {
+  margin: 0;
+  color: var(--text-muted);
+}

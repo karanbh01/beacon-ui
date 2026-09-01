@@ -618,7 +618,22 @@ function body(url: URL): unknown {
 
     return {
       identifier,
-      fields: referenceEntry(identifier, Math.max(index, 0)).fields
+      fields: referenceEntry(identifier, Math.max(index, 0)).fields,
+      /*
+       * Where this instrument is used (BN-132, BU-143).
+       *
+       * The engine answers this so a client does not have to read every
+       * universe and search it — and a stub that omitted it would let a
+       * view go on inventing memberships from reference fields that do not
+       * exist, which is exactly what BU-143 removed.
+       */
+      universes: universes
+        .filter((universe) => universe.identifiers.includes(identifier))
+        .map((universe) => ({
+          id: universe.id,
+          name: universe.name,
+          source: universe.source === 'seeded' ? 'seeded' : 'user'
+        }))
     }
   }
 
