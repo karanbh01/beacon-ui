@@ -3,6 +3,7 @@ import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
 import { layoutFor, SINGLE_PANE, useChrome } from '../state/chrome'
 import { presetsFor, usePresets } from '../state/presets'
+import { useCoverage } from '../views/shared/queries'
 import { useWorkspace } from '../state/tabs.store'
 import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
@@ -125,7 +126,23 @@ export function MenuBar({
    * accept the click and do nothing.
    */
   const arrangeable = page !== HOME_PAGE_ID
-  const menus = buildMenus({ theme: theme.preference, layout, arrangeable })
+  /*
+   * The engine's datasets, for the Data menu's import rows (BU-146).
+   *
+   * The same query Data Coverage reads, so the menu and the pane cannot
+   * disagree about what this engine carries.
+   */
+  const coverage = useCoverage()
+  const datasets = useMemo(
+    () =>
+      (coverage.data?.datasets ?? []).map((entry) => ({
+        id: entry.dataset,
+        label: entry.dataset.replace(/[_-]/g, ' ')
+      })),
+    [coverage.data]
+  )
+
+  const menus = buildMenus({ theme: theme.preference, layout, arrangeable, datasets })
 
   /*
    * Dismissal is owned by the bar, not by each menu.
@@ -161,6 +178,7 @@ export function MenuBar({
     else if (action === 'theme-dark') theme.setPreference('dark')
     else if (action === 'theme-system') theme.setPreference('system')
     else if (action === 'preset-save') onSavePreset?.()
+    else if (action === 'manage-sources') void window.beacon?.data.openSettingsWindow()
     else if (action === 'layout-reset') {
       // Both halves, or it is not a reset: a single pane still holding six
       // tabs is the arrangement you were trying to get out of.
@@ -238,7 +256,14 @@ export function MenuBar({
             open={panel === 'sources'}
             onClose={close}
             engine={engine}
-            onManage={() => onManageSources?.()}
+            onManage={() => {
+              // The settings window, not Data Coverage (BU-145). Coverage was
+              // the nearest true answer when nothing else existed; the store
+              // location and the synthetic-data choice live here.
+              void window.beacon?.data.openSettingsWindow()
+              onManageSources?.()
+              close()
+            }}
           />
         </span>
 

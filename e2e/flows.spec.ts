@@ -473,3 +473,41 @@ test('reference data lists the universes an instrument is actually in', async ({
   await expect(card).not.toContainText('S&P 500')
   await expect(card).not.toContainText('MSCI World')
 })
+
+test('the Data menu offers what this app imports, and where it comes from', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await window.getByRole('button', { name: 'Data', exact: true }).click()
+
+  const menu = window.getByRole('menu', { name: 'Data' })
+  const items = await menu.getByRole('menuitem').allTextContents()
+
+  // Everything at once, then the data, then the documents describing it,
+  // then where it comes from (BU-146).
+  expect(items[0]).toContain('Refresh all')
+  expect(items.at(-1)).toContain('Manage sources')
+  // One row per dataset the ENGINE reports, so a dataset py-beacon adds
+  // appears without a change in the renderer.
+  expect(items.some((label) => label.includes('Import market data'))).toBe(true)
+  expect(items.some((label) => label.includes('Import index definition'))).toBe(true)
+
+  // Import is not wired yet, and says so rather than hiding.
+  await expect(menu.getByRole('menuitem', { name: /Import market data/ })).toBeDisabled()
+  await expect(menu.getByRole('menuitem', { name: /Manage sources/ })).toBeEnabled()
+})
+
+test('Manage sources opens the data settings window', async ({ app, window }) => {
+  await openPage(window, 'Data Explorer')
+  await window.getByRole('button', { name: 'Data', exact: true }).click()
+  await window.getByRole('menuitem', { name: /Manage sources/ }).click()
+
+  // The window the splash opens (BU-111), not a second copy of it and not
+  // Data Coverage, which was the nearest true answer before it existed.
+  await expect
+    .poll(() => app.windows().some((candidate) => candidate.url().includes('#settings')), {
+      timeout: 30_000
+    })
+    .toBe(true)
+
+  const settings = app.windows().find((candidate) => candidate.url().includes('#settings'))
+  await expect(settings?.getByRole('textbox', { name: 'Store location' })).toBeVisible()
+})

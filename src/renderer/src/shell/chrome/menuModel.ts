@@ -20,6 +20,7 @@ export type MenuAction =
   | `layout-${string}`
   | 'layout-reset'
   | 'preset-save'
+  | 'manage-sources'
   | `preset-apply-${string}`
   | 'none'
 
@@ -58,6 +59,13 @@ export interface MenuContext {
   theme: 'light' | 'dark' | 'system'
   /** The current page's layout, so View can tick it. */
   layout: string
+  /**
+   * Datasets the engine reports, for the Data menu's import rows (BU-146).
+   *
+   * From the coverage response rather than a list here, so a dataset
+   * py-beacon adds appears without a change in this file.
+   */
+  datasets?: readonly { id: string; label: string }[]
   /**
    * Whether the page being shown has panes at all (BU-135).
    *
@@ -151,7 +159,31 @@ export function buildMenus(context: MenuContext): Menu[] {
         separatorBefore: true
       }
     ],
-    Data: [soon('Refresh all'), soon('Manage sources…'), soon('Import CSV…')],
+    /*
+     * What this app imports, grouped so the shape says what the groups are
+     * (BU-146): everything at once, then the data itself, then the documents
+     * that describe it, then where it all comes from.
+     *
+     * The dataset rows are the engine's own list. Import is not wired yet, so
+     * the rows are rendered and visibly inert — the convention this menu bar
+     * has kept since BU-76, because a menu that hides what it cannot do reads
+     * as a menu that was never going to do it.
+     */
+    Data: [
+      soon('Refresh all'),
+      ...(context.datasets ?? []).map((dataset, index) => ({
+        ...soon(`Import ${dataset.label.toLowerCase()} data`),
+        ...(index === 0 ? { separatorBefore: true } : {})
+      })),
+      soon('Import index definition'),
+      soon('Import universe'),
+      {
+        label: 'Manage sources…',
+        action: 'manage-sources',
+        enabled: true,
+        separatorBefore: true
+      }
+    ],
     Analysis: [soon('Run backtest…'), soon('Run optimisation…'), soon('Risk model…')],
     Asset: [soon('Add to watchlist'), soon('Corporate actions'), soon('Reference data')],
     Portfolio: [soon('New portfolio…'), soon('Rebalance…'), soon('Attribution…')],
