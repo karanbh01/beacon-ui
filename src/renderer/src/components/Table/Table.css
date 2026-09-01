@@ -110,6 +110,19 @@
   min-height: 0;
 }
 
+/*
+ * Only the body gives ground (BU-140).
+ *
+ * A flex item shrinks below its `height` unless told not to, so in a
+ * height-constrained card the 28px label row was squashed to the 13px its
+ * text needed — visibly shorter than the rows under it, and a regression
+ * from the day the card became a flex column in BU-127.
+ */
+.tbl-fill .tbl-head,
+.tbl-fill .tbl-total {
+  flex: none;
+}
+
 /* Weight bar: 8px tall in a 12px lane, accent, 1.5px radius. */
 .tbl-bar {
   position: relative;

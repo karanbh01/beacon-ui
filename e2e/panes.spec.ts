@@ -398,3 +398,22 @@ test('the table fills the width it is given, and the chart the height', async ({
   expect(short).toBeLessThan(tall)
   expect(short).toBeGreaterThanOrEqual(240)
 })
+
+test('the label row keeps its height when the table fills the pane', async ({ window }) => {
+  await openPage(window, 'Data Explorer')
+  await openIn(window, 0, 'Prices')
+  await window.locator('[data-pane="0"]').getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+  await window.locator('.tbl-row').first().waitFor()
+
+  const rows = await window.evaluate(() => ({
+    head: document.querySelector('.tbl-head')?.getBoundingClientRect().height ?? 0,
+    row: document.querySelector('.tbl-row')?.getBoundingClientRect().height ?? 0
+  }))
+
+  // A flex item shrinks below its height unless told not to, and in a
+  // height-constrained card the label row was squashed to the 13px its text
+  // needed (BU-140).
+  expect(rows.head).toBe(rows.row)
+  expect(rows.head).toBeGreaterThanOrEqual(28)
+})
