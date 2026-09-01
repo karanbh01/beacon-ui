@@ -5,6 +5,7 @@ import { MenuButton } from '../../components/MenuButton/MenuButton'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { Stat, StatStrip } from '../../components/Stat/Stat'
+import { Sparkline } from './Sparkline'
 import { Table, type Column } from '../../components/Table/Table'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
@@ -92,6 +93,9 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
   const [interval, setInterval] = useState<Interval>('native')
   const [adjusted, setAdjusted] = useState(false)
   const setSubject = useWorkspace((state) => state.setSubject)
+  // Opening Charting is a workspace act, not a view one — the same route a
+  // watchlist row takes, so a tab already on this instrument is reused.
+  const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
   const exporter = useExport()
 
   const start = useMemo(() => rangeStart(range), [range])
@@ -102,6 +106,25 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
   const columns = useMemo(() => buildColumns(summary.columns), [summary.columns])
 
   const meta = reference.data === undefined ? undefined : describeInstrument(reference.data)
+
+  /*
+   * The closes already on screen, in date order (BU-141).
+   *
+   * The adjusted column when that is what the table is showing, so the
+   * sparkline agrees with the numbers beside it rather than quietly drawing
+   * the other series.
+   */
+  const closes = useMemo(() => {
+    const column = adjusted
+      ? (summary.columns.adjClose ?? summary.columns.close)
+      : summary.columns.close
+    if (column === undefined) return []
+    return summary.rows
+      .map((row) => row[column])
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  }, [summary, adjusted])
+
+  const rangeLabel = RANGES.find((option) => option.value === range)?.label ?? range
 
   // Built on demand: serialising a 5,000-row frame on every render to serve a
   // button most sessions never press is work for nothing.
@@ -187,6 +210,34 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
           }
         />
         <Stat label="AVG VOLUME · 3M" value={compactVolume(summary.avgVolume3M)} />
+
+        {/*
+          The series as a shape, beside the numbers it summarises (BU-141).
+
+          Drawn from the rows already loaded, so it follows the range and the
+          adjusted choice without asking the engine for anything, and says
+          nothing when there is nothing to draw rather than framing an empty
+          box.
+        */}
+        {closes.length > 1 && (
+          <div className="prices-spark">
+            <Sparkline values={closes} label={`${identifier} over ${rangeLabel.toLowerCase()}`} />
+            <button
+              type="button"
+              className="prices-spark-link type-11"
+              onClick={() => {
+                openOrRetarget({
+                  page: 'data-explorer',
+                  viewKind: 'charting',
+                  title: 'Charting',
+                  subject: identifier
+                })
+              }}
+            >
+              {rangeLabel} · open in Charting ↗
+            </button>
+          </div>
+        )}
       </StatStrip>
 
       <SegmentedControl segments={RANGES} value={range} onChange={setRange} label="Range" />

@@ -512,3 +512,36 @@ test('Manage sources opens the data settings window', async ({ app, window }) =>
   if (settings === undefined) throw new Error('the settings window did not open')
   await expect(settings.getByRole('textbox', { name: 'Store location' })).toBeVisible()
 })
+
+test('Prices carries a mini chart that follows the range and opens Charting', async ({
+  window
+}) => {
+  await openPage(window, 'Data Explorer')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
+
+  // Nothing loaded: no empty box (BU-141).
+  await expect(window.locator('.sparkline')).toHaveCount(0)
+
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+  await expect(window.locator('.sparkline')).toBeVisible()
+
+  const points = async (): Promise<number> =>
+    window.evaluate(
+      () =>
+        (document.querySelector('.sparkline polyline')?.getAttribute('points') ?? '').split(' ')
+          .length
+    )
+
+  const year = await points()
+  // The range control is a radiogroup, not a row of buttons.
+  await window.getByRole('radio', { name: '1M', exact: true }).click()
+  await expect(window.getByRole('button', { name: /open in Charting/ })).toContainText('1M')
+  // Drawn from the rows on screen, so a shorter range is a shorter line.
+  expect(await points()).toBeLessThan(year)
+
+  await window.getByRole('button', { name: /open in Charting/ }).click()
+  await expect(window.locator('.charting-view')).toBeVisible()
+  await expect(window.getByRole('combobox', { name: 'Subject' }).last()).toHaveValue('CMP001')
+})

@@ -20,10 +20,12 @@ test('the interval control reaches the engine, and Export writes a workbook', as
   await window.keyboard.press('Enter')
   await window.locator('.tbl-row').first().waitFor()
 
-  await expect(window.getByText(/interval: native/)).toBeVisible()
-  await window.getByRole('button', { name: 'Native' }).click()
+  // The control names the FREQUENCY since BU-142 — `native` is what the
+  // parameter is called, and the loaded data is daily.
+  await expect(window.getByText(/· daily ·/)).toBeVisible()
+  await window.getByRole('button', { name: 'Daily' }).click()
   await window.getByRole('menuitem', { name: 'Monthly' }).click()
-  await expect(window.getByText(/interval: monthly/)).toBeVisible()
+  await expect(window.getByText(/· monthly ·/)).toBeVisible()
 
   // Answer the save dialog in the main process, so the write is real.
   const target = testInfo.outputPath('prices.xlsx')

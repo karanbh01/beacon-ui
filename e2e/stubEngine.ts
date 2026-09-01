@@ -166,9 +166,19 @@ const DERIVED_COLUMNS = ['adv_3m', 'market_cap', 'free_float_market_cap']
  * with no error anywhere.
  */
 const PRICE_COLUMNS = ['open', 'high', 'low', 'close', 'volume']
+/*
+ * 240 sessions ENDING TODAY, not at a fixed date in 2025.
+ *
+ * Anchored to the past, every range control eventually pointed at a window
+ * with no data in it — a `1M` that starts after the last bar is empty, and a
+ * view that draws nothing is indistinguishable from a view that is broken.
+ * py-beacon's synthetic data ends today for the same reason (BU-141).
+ */
+const LAST_SESSION = new Date()
+
 const PRICES = {
   index: Array.from({ length: 240 }, (_, i) =>
-    new Date(Date.UTC(2025, 0, 6 + i)).toISOString().slice(0, 10)
+    new Date(LAST_SESSION.getTime() - (239 - i) * 86_400_000).toISOString().slice(0, 10)
   ),
   columns: PRICE_COLUMNS,
   data: Array.from({ length: 240 }, (_, i) => {
@@ -458,16 +468,34 @@ function body(url: URL): unknown {
     // client that never sent the parameter looked identical to one that did.
     const interval = url.searchParams.get('interval') ?? 'native'
 
+    /*
+     * `start` and `end` narrow the window (BU-141).
+     *
+     * Ignored until now, so every range control on every view got the same
+     * 240 bars and a client that never sent a date looked identical to one
+     * that did — the same shape of blindness `interval` had before BU-88.
+     */
+    const from = url.searchParams.get('start') ?? ''
+    const to = url.searchParams.get('end') ?? ''
+    const within = PRICES.index
+      .map((date, position) => ({ date, position }))
+      .filter((row) => (from === '' || row.date >= from) && (to === '' || row.date <= to))
+    const windowed = {
+      ...PRICES,
+      index: within.map((row) => row.date),
+      data: within.map((row) => PRICES.data[row.position] ?? [])
+    }
+
     // `adjusted` ADDS a column rather than replacing one (BN-146), so a client
     // that never sends it must see no ADJ_CLOSE at all.
     const adjusted = url.searchParams.get('adjusted') === 'true'
     const prices = adjusted
       ? {
-          ...PRICES,
-          columns: [...PRICES.columns, 'ADJ_CLOSE'],
-          data: PRICES.data.map((row) => [...row, Number(row[3]) * 0.97])
+          ...windowed,
+          columns: [...windowed.columns, 'ADJ_CLOSE'],
+          data: windowed.data.map((row) => [...row, Number(row[3]) * 0.97])
         }
-      : PRICES
+      : windowed
 
     return { identifier, interval, prices }
   }
