@@ -509,5 +509,6 @@ test('Manage sources opens the data settings window', async ({ app, window }) =>
     .toBe(true)
 
   const settings = app.windows().find((candidate) => candidate.url().includes('#settings'))
-  await expect(settings?.getByRole('textbox', { name: 'Store location' })).toBeVisible()
+  if (settings === undefined) throw new Error('the settings window did not open')
+  await expect(settings.getByRole('textbox', { name: 'Store location' })).toBeVisible()
 })
