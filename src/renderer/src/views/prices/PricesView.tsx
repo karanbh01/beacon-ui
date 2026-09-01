@@ -12,7 +12,15 @@ import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useReference } from '../shared/queries'
 import { useExport } from '../../export/useExport'
 import { sheetFromFrame } from '../../export/sheet'
-import { INTERVALS, RANGES, rangeStart, usePrices, type Interval, type Range } from './usePrices'
+import {
+  INTERVALS,
+  RANGES,
+  intervalLabel,
+  rangeStart,
+  usePrices,
+  type Interval,
+  type Range
+} from './usePrices'
 import { compactVolume, price, signedPercent, summarise } from './summary'
 import './PricesView.css'
 
@@ -115,7 +123,7 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
         controls={
           <>
             <MenuButton
-              label={INTERVALS.find((entry) => entry.value === interval)?.label ?? 'Native'}
+              label={intervalLabel(interval)}
               value={interval}
               choices={INTERVALS.map((entry) => ({ value: entry.value, label: entry.label }))}
               onChoose={(value) => {
@@ -204,7 +212,8 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
           />
           <p className="prices-footnote type-11">
             {summary.rows.length.toLocaleString('en-US')} rows · {summary.firstDate} →{' '}
-            {summary.lastDate} · interval: {prices.data.interval} · {tab.viewKind}
+            {summary.lastDate} · {intervalLabel(prices.data.interval).toLowerCase()} ·{' '}
+            {tab.viewKind}
           </p>
         </>
       )}

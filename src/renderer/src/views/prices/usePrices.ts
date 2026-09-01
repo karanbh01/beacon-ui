@@ -37,11 +37,24 @@ export function rangeStart(range: Range, now = new Date()): string | undefined {
  */
 export type Interval = 'native' | 'weekly' | 'monthly'
 
+/**
+ * Labels name the FREQUENCY, values name the parameter (BU-142).
+ *
+ * `native` means "whatever the source's own frequency is", which is what
+ * py-beacon is being asked; the loaded market data is daily, which is what
+ * the reader is being told. The two differ on purpose — the label follows
+ * the data, the value follows the API.
+ */
 export const INTERVALS: readonly { value: Interval; label: string }[] = [
-  { value: 'native', label: 'Native' },
+  { value: 'native', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'monthly', label: 'Monthly' }
 ]
+
+/** How the engine's answer reads on screen. */
+export function intervalLabel(interval: string): string {
+  return INTERVALS.find((entry) => entry.value === interval)?.label ?? interval
+}
 
 export interface PricesParams {
   start?: string | undefined
