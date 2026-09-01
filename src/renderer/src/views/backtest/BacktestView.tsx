@@ -10,7 +10,13 @@ import { Stat, StatStrip } from '../../components/Stat/Stat'
 import { useThemeMode } from '../../state/theme'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
-import { useCompare, useIndexOverview, useIndices, useRunBacktest } from '../shared/strategyQueries'
+import {
+  useBacktestRun,
+  useCompare,
+  useIndexOverview,
+  useIndices,
+  useRunBacktest
+} from '../shared/strategyQueries'
 import { AnnualReturns } from './AnnualReturns'
 import {
   annualTable,
@@ -58,22 +64,56 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
 
   const running = activeJobs(jobs).find((job) => job.kind.toLowerCase().includes('backtest'))
 
+  /*
+   * The run itself, read from the job (BU-137).
+   *
+   * The overview answers what the INDEX did when recalculated; this answers
+   * what the simulated portfolio did — which is what a backtest pane is for,
+   * and was not on screen before.
+   */
+  const runResult = useBacktestRun(ranAt, ranAt !== undefined && running === undefined)
+  const runData = runResult.data
+
   const { refetch } = overview
   useEffect(() => {
     if (ranAt === undefined || running !== undefined) return
     void refetch()
   }, [ranAt, running, refetch])
 
-  const level = useMemo(() => toPoints(overview.data?.level), [overview.data])
+  /*
+   * The portfolio's NAV where there is one, the index's level otherwise.
+   *
+   * Both are rebased to 100 on the first TRADING day — the run payload
+   * carries no day-zero row, so there is nothing to drop here. Day zero
+   * lives on `portfolio.nav` in the record payload, which has no route yet;
+   * a view that reads it will have to decide, per chart, whether the
+   * starting capital is part of the story.
+   */
+  const nav = useMemo(() => toPoints(runData?.level), [runData])
+  const level = useMemo(
+    () => (nav.length > 0 ? nav : toPoints(overview.data?.level)),
+    [nav, overview.data]
+  )
+  /** The index this portfolio was tracking, from the run (was `benchmark_level`). */
+  const trackedLevel = useMemo(() => toPoints(runData?.indexLevel), [runData])
   const benchmarkLevel = useMemo(() => {
     const entry = compare.data?.entries.find((candidate) => candidate.index_id === benchmark)
     return toPoints(entry?.level)
   }, [compare.data, benchmark])
 
   const annual = useMemo(() => annualTable(level, benchmarkLevel), [level, benchmarkLevel])
-  const metrics = overview.data?.metrics
+  const metrics = runData?.metrics ?? overview.data?.metrics
   const benchmarkCagr = benchmarkLevel.length === 0 ? undefined : cagr(benchmarkLevel)
   const indexCagr = fromFraction(metrics?.annualised_return) ?? cagr(level)
+
+  /*
+   * Not measured, which is not the same as flat (BU-137).
+   *
+   * A run given no benchmark comes back with `benchmark: null`, and saying
+   * "—" for its numbers would read as a measurement that happened to be
+   * nothing. Only a run that HAS one gets the comparison row.
+   */
+  const measuredBenchmark = runData?.benchmark !== undefined
 
   const others = (indices.data?.indices ?? []).filter((index) => index.id !== indexId)
 
@@ -183,8 +223,13 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
                 }
               />
             )}
+            {runData !== undefined && !measuredBenchmark && benchmark === '' && (
+              <Stat label="BENCHMARK" value="not measured" />
+            )}
             <Stat label="VOL" value={signedPercent(fromFraction(metrics?.volatility)).slice(1)} />
-            <Stat label="SHARPE" value={metrics?.sharpe_ratio.toFixed(2) ?? '—'} />
+            {/* Nullable now that this may come from the run, where every
+                metric is optional — the overview's was not. */}
+            <Stat label="SHARPE" value={metrics?.sharpe_ratio?.toFixed(2) ?? '—'} />
             <Stat
               label="MAX DD"
               value={signedPercent(fromFraction(metrics?.max_drawdown))}
@@ -198,7 +243,12 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
             <LevelChart
               mode={mode}
               series={[
-                { label: indexId, points: level },
+                { label: nav.length > 0 ? `${indexId} portfolio` : indexId, points: level },
+                // The tracked index, when the run reported one — the line
+                // that says how closely the portfolio replicated it.
+                ...(trackedLevel.length === 0
+                  ? []
+                  : [{ label: `${indexId} index`, points: trackedLevel }]),
                 ...(benchmarkLevel.length === 0
                   ? []
                   : [{ label: benchmark, points: benchmarkLevel }])
@@ -221,8 +271,12 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
 
           <p className="backtest-footnote type-11">
             {overview.data?.observations.toLocaleString('en-US') ?? '—'} observations · costs{' '}
-            {costBps} bps per side · annual returns and the monthly hit rate are derived from the
-            level series
+            {costBps} bps per side
+            {runData?.totalCosts === undefined
+              ? ''
+              : ` (${Math.round(runData.totalCosts).toLocaleString('en-US')} paid)`}{' '}
+            · {nav.length > 0 ? 'portfolio NAV against the tracked index' : 'index level'} · annual
+            returns and the monthly hit rate are derived from the level series
           </p>
         </>
       )}

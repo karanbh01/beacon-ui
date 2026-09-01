@@ -93,6 +93,66 @@ const REFERENCE_COLUMNS = [
   'SUB_INDUSTRY'
 ]
 
+/**
+ * Jobs this stub has accepted, by id. Submitting a backtest adds one.
+ *
+ * Finished on arrival: the socket the real engine pushes progress over is
+ * not part of this stub, and a job that is already done is the state a
+ * result reader cares about.
+ */
+const jobs = new Map<string, unknown>()
+
+/** Two years of trading days from a fixed start, so runs are comparable. */
+function runSeries(base: number, drift: number): { index: string[]; data: number[] } {
+  const index: string[] = []
+  const data: number[] = []
+  let level = base
+  const day = new Date(Date.UTC(2025, 0, 2))
+
+  for (let n = 0; n < 260; n++) {
+    if (day.getUTCDay() !== 0 && day.getUTCDay() !== 6) {
+      index.push(`${day.toISOString().slice(0, 10)}T00:00:00`)
+      // Deterministic, and shaped enough that a chart is not a straight line.
+      level *= 1 + drift + Math.sin(n / 9) / 400
+      data.push(Number(level.toFixed(4)))
+    }
+    day.setUTCDate(day.getUTCDate() + 1)
+  }
+
+  return { index, data }
+}
+
+/** The result payload of a completed backtest, as `d92e182` sends it. */
+function backtestResult(withBenchmark: boolean): Record<string, unknown> {
+  const level = runSeries(100, 0.0004)
+  const indexLevel = runSeries(100, 0.00042)
+
+  return {
+    level,
+    // Renamed from `benchmark_level` in BN-155: the tracked index, rebased.
+    index_level: indexLevel,
+    returns: { index: level.index.slice(1), data: level.data.slice(1).map(() => 0.0004) },
+    drawdown: { index: level.index, data: level.data.map(() => 0) },
+    annual_returns: { '2025': 0.1042, '2026': 0.0631 },
+    metrics: {
+      total_return: 0.1731,
+      annualised_return: 0.1042,
+      volatility: 0.1183,
+      sharpe_ratio: 0.88,
+      max_drawdown: -0.0642,
+      tracking_error: 0.0019,
+      tracking_difference: -0.0004
+    },
+    // Null when the run had none. Not an empty object.
+    benchmark: withBenchmark
+      ? { tracking_error: 0.0271, tracking_difference: 0.0122, correlation: 0.86 }
+      : null,
+    rebalances: [],
+    total_costs: 8412.5,
+    initial_capital: 1_000_000
+  }
+}
+
 /** Computed on request rather than stored, so it is legal in `fields`. */
 const DERIVED_COLUMNS = ['adv_3m', 'market_cap', 'free_float_market_cap']
 
@@ -323,7 +383,9 @@ const ROUTES: Record<string, unknown> = {
   },
   // Whole documents, as the endpoint returns — the overview reads a
   // universe and a rebalance frequency off each row (BU-95).
-  '/indices': { indices: [indexDocument('TECH10')] },
+  // Two, so a benchmark can be chosen against one of them (BU-137): the
+  // measured and the not-measured readings of a run are different code paths.
+  '/indices': { indices: [indexDocument('TECH10'), indexDocument('EU-VALUE')] },
   '/data/watchlists': { watchlists: [] }
 }
 
@@ -600,6 +662,26 @@ function body(url: URL): unknown {
     }
   }
 
+  /*
+   * A finished backtest job, in the shape BN-155 left (BU-137).
+   *
+   * `index_level` and not `benchmark_level`: the series is the TRACKED
+   * INDEX, and the old name claimed the wrong comparator. A stub still
+   * emitting the old name would green-light a reader that cannot read a
+   * current engine, which is the whole reason this file is as strict as it
+   * is (BU-88).
+   *
+   * `benchmark` is null unless the run was given one — "not measured" is a
+   * different statement from "measured and flat", and the client has to keep
+   * them apart.
+   */
+  if (path.startsWith('/jobs/')) {
+    const jobId = decodeURIComponent(path.slice('/jobs/'.length))
+    const job = jobs.get(jobId)
+    if (job === undefined) return notFound('job', jobId)
+    return job
+  }
+
   if (path === '/universes') return { universes }
 
   if (path.endsWith('/members') && path.startsWith('/universes/')) {
@@ -736,6 +818,53 @@ export function startStubEngine(): Promise<StubEngine> {
     }
 
     const method = request.method ?? 'GET'
+
+    /*
+     * Submitting a backtest (BU-137).
+     *
+     * 202 with a job, as the engine answers — and the job is finished on
+     * arrival, since this stub carries no event socket to push progress
+     * over. Whether a benchmark was asked for decides whether the result
+     * measures one, which is the distinction the client has to keep.
+     */
+    if (method === 'POST' && /^\/beacon\/[^/]+\/backtest$/.test(url.pathname)) {
+      let raw = ''
+      request.on('data', (chunk: Buffer) => {
+        raw += chunk.toString('utf-8')
+      })
+      request.on('end', () => {
+        let parsed: Record<string, unknown> = {}
+        try {
+          parsed = JSON.parse(raw === '' ? '{}' : raw) as Record<string, unknown>
+        } catch {
+          parsed = {}
+        }
+
+        const jobId = `job-${String(jobs.size + 1)}`
+        jobs.set(jobId, {
+          job_id: jobId,
+          kind: 'backtest',
+          status: 'succeeded',
+          progress: 1,
+          message: 'done',
+          result: backtestResult(parsed.benchmark !== undefined && parsed.benchmark !== null),
+          error: null
+        })
+
+        response.writeHead(202).end(
+          JSON.stringify({
+            job_id: jobId,
+            kind: 'backtest',
+            status: 'succeeded',
+            progress: 1,
+            message: 'done',
+            error: null
+          })
+        )
+      })
+      return
+    }
+
     const writesUniverse =
       (method === 'POST' && url.pathname === '/universes') ||
       (method === 'PUT' && url.pathname.startsWith('/universes/'))

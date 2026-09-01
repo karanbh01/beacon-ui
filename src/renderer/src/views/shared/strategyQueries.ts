@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { components } from '@shared/api.generated'
+import { parseRun } from '@shared/backtestRun'
 import { ApiError } from '../../api/errors'
 import { isDocumentId } from '../../api/ids'
 import { keys } from '../../api/keys'
@@ -266,6 +267,33 @@ export interface BacktestOptions {
   end?: string
   transactionCostBps: number
   benchmarkIndexId?: string
+}
+
+/**
+ * The result of a finished backtest job (BU-137).
+ *
+ * Read from the job rather than from `/beacon/{id}/overview`, because they
+ * answer different questions: the overview is the INDEX, recalculated, while
+ * this is what the simulated portfolio actually did — the NAV, the tracked
+ * index beside it, and whether a benchmark was measured at all.
+ *
+ * Enabled only once the job has finished, and never retried: a result that
+ * is not there yet arrives on the event feed, not by asking again.
+ */
+export function useBacktestRun(jobId: string | undefined, ready: boolean) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.jobs.one(jobId ?? ''),
+    queryFn: async ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      if (jobId === undefined) throw new Error('No job')
+      const status = await client.jobs.get(jobId, signal)
+      return parseRun(status.result)
+    },
+    enabled: client !== null && jobId !== undefined && ready,
+    retry: false
+  })
 }
 
 /**

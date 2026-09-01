@@ -1,4 +1,5 @@
 import type { components } from '@shared/api.generated'
+import type { RunSeries } from '@shared/backtestRun'
 import type { Point } from '../../charts/transform'
 
 export type SeriesPayload = components['schemas']['SeriesPayload']
@@ -10,7 +11,7 @@ export type BacktestMetrics = components['schemas']['BacktestMetrics']
  * Nulls are dropped rather than plotted as zero — py-beacon documents NaN
  * arriving as null, and a zero would draw the index falling to nothing.
  */
-export function toPoints(series: SeriesPayload | undefined): Point[] {
+export function toPoints(series: SeriesPayload | RunSeries | undefined): Point[] {
   if (series === undefined) return []
 
   const points: Point[] = []

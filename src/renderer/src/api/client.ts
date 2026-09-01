@@ -223,6 +223,16 @@ export interface BeaconClient {
       body?: BodyOf<'post', '/data/coverage/{dataset}/sync'>
     ) => Promise<WriteResponse<'post', '/data/coverage/{dataset}/sync'>>
   }
+  jobs: {
+    /**
+     * One job, including its result once it has succeeded (BU-137).
+     *
+     * The result is untyped in the contract — one registry carries every
+     * kind of job — so a backtest's payload is read through
+     * `parseRun` rather than through a generated type.
+     */
+    get: (jobId: string, signal?: AbortSignal) => Promise<ResponseOf<'/jobs/{job_id}'>>
+  }
   indices: {
     list: (signal?: AbortSignal) => Promise<ResponseOf<'/indices'>>
     get: (id: string, signal?: AbortSignal) => Promise<ResponseOf<'/indices/{index_id}'>>
@@ -446,6 +456,13 @@ export function createClient(options: ClientOptions): BeaconClient {
         write('delete', '/data/watchlists/{watchlist_id}', { params: { watchlist_id: id } }),
       sync: (dataset, body) =>
         write('post', '/data/coverage/{dataset}/sync', { params: { dataset }, body: body ?? {} })
+    },
+    jobs: {
+      get: (jobId, signal) =>
+        get('/jobs/{job_id}', {
+          params: { job_id: jobId },
+          ...(signal === undefined ? {} : { signal })
+        })
     },
     indices: {
       list: (signal) => get('/indices', { ...(signal === undefined ? {} : { signal }) }),
