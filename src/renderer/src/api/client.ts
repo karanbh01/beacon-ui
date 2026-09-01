@@ -241,6 +241,13 @@ export interface BeaconClient {
       id: string,
       document: BodyOf<'put', '/indices/{index_id}'>
     ) => Promise<WriteResponse<'put', '/indices/{index_id}'>>
+    /**
+     * Delete a definition, and with it the runs keyed to its id (BN-157).
+     *
+     * No refusal case: unlike a universe, no index is seeded, so every
+     * stored definition may be deleted by whoever is looking at it.
+     */
+    remove: (id: string) => Promise<WriteResponse<'delete', '/indices/{index_id}'>>
     validate: (
       document: BodyOf<'post', '/indices/validate'>
     ) => Promise<WriteResponse<'post', '/indices/validate'>>
@@ -472,6 +479,7 @@ export function createClient(options: ClientOptions): BeaconClient {
           ...(signal === undefined ? {} : { signal })
         }),
       create: (document) => write('post', '/indices', { body: document }),
+      remove: (id) => write('delete', '/indices/{index_id}', { params: { index_id: id } }),
       save: (id, document) =>
         write('put', '/indices/{index_id}', { params: { index_id: id }, body: document }),
       validate: (document) => write('post', '/indices/validate', { body: document }),

@@ -364,6 +364,21 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
  * pipeline actually looks. The 404-is-a-new-index path is covered by a unit
  * test, so the stub does not need to reproduce it.
  */
+/**
+ * The catalogue, mutable since indices can be deleted (BN-157, BU-151).
+ *
+ * Two of them, so a benchmark can be chosen against one (BU-137) — the
+ * measured and not-measured readings of a run are different code paths.
+ */
+let indexIds = ['TECH10', 'EU-VALUE']
+
+/** True when there was one to remove, which is the engine's 204 or 404. */
+function deleteIndexDocument(id: string): boolean {
+  if (!indexIds.includes(id)) return false
+  indexIds = indexIds.filter((entry) => entry !== id)
+  return true
+}
+
 function indexDocument(id: string): unknown {
   return {
     id,
@@ -444,11 +459,6 @@ const ROUTES: Record<string, unknown> = {
       }
     ]
   },
-  // Whole documents, as the endpoint returns — the overview reads a
-  // universe and a rebalance frequency off each row (BU-95).
-  // Two, so a benchmark can be chosen against one of them (BU-137): the
-  // measured and the not-measured readings of a run are different code paths.
-  '/indices': { indices: [indexDocument('TECH10'), indexDocument('EU-VALUE')] },
   '/data/watchlists': { watchlists: [] }
 }
 
@@ -494,6 +504,11 @@ function deriveId(name: string): string {
 
 function body(url: URL): unknown {
   const path = url.pathname
+
+  // Whole documents, as the endpoint returns — the overview reads a universe
+  // and a rebalance frequency off each row (BU-95). Ahead of the static map
+  // because the catalogue changes when one is deleted.
+  if (path === '/indices') return { indices: indexIds.map((id) => indexDocument(id)) }
 
   if (Object.hasOwn(ROUTES, path)) return ROUTES[path]
 
@@ -978,6 +993,26 @@ export function startStubEngine(): Promise<StubEngine> {
           })
         )
       })
+      return
+    }
+
+    /*
+     * Deleting an index (BN-157, BU-151).
+     *
+     * 204, or 404 for one that is not there — and no refusal case, because
+     * no index is seeded. The engine drops the runs keyed to the id along
+     * with the definition; this stub has no job registry to drop them from,
+     * which is worth knowing when reading a test that passes here.
+     */
+    if (method === 'DELETE' && url.pathname.startsWith('/indices/')) {
+      const id = decodeURIComponent(url.pathname.slice('/indices/'.length))
+      if (!deleteIndexDocument(id)) {
+        response
+          .writeHead(404)
+          .end(JSON.stringify(notFound(`index '${id}'`, 'DocumentStore').payload))
+        return
+      }
+      response.writeHead(204).end()
       return
     }
 

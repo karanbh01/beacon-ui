@@ -112,6 +112,34 @@ export function useCreateUniverse() {
 }
 
 /**
+ * Delete an index definition, and the runs that belong to it (BU-151).
+ *
+ * The cascade is the engine's (BN-157): results are keyed
+ * `backtest:{index_id}`, and orphaning them would leave records addressable
+ * by an id that no longer resolves. The caller's confirmation has to say so,
+ * because a backtest quietly disappearing is not what "delete this index"
+ * sounds like.
+ */
+export function useDeleteIndex() {
+  const client = useBeacon()
+  const queries = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => {
+      if (client === null) throw new Error('No engine')
+      return client.indices.remove(id)
+    },
+    onSuccess: () => {
+      // The list AND anything read off that index: its overview, its
+      // weights, its comparison rows. Invalidating the branch is cheaper to
+      // reason about than naming them.
+      void queries.invalidateQueries({ queryKey: keys.strategy.all() })
+      void queries.invalidateQueries({ queryKey: keys.beacon.all() })
+    }
+  })
+}
+
+/**
  * Delete a universe (BU-144).
  *
  * Seeded ones refuse server-side, which is where the rule belongs — the

@@ -240,3 +240,32 @@ test('a universe made here can be deleted, and a seeded one cannot', async ({ ap
     window.locator('.universe-overview .tbl-row', { hasText: 'Disposable' })
   ).toHaveCount(0)
 })
+
+test('an index can be deleted, with its backtest results named', async ({ app, window }) => {
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Index Definition')
+
+  const overview = window.locator('.index-overview')
+  await expect(overview.getByText('EU-VALUE').first()).toBeVisible()
+
+  // Every row offers it: no index is seeded, so unlike a universe there is
+  // none the engine would refuse (BN-157, BU-151).
+  const seen: string[] = []
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = (...args: unknown[]) => {
+      const options = (args.length > 1 ? args[1] : args[0]) as { detail?: string }
+      ;(globalThis as { asked?: string[] }).asked ??= []
+      ;(globalThis as { asked?: string[] }).asked?.push(options.detail ?? '')
+      return Promise.resolve({ response: 0, checkboxChecked: false })
+    }
+  })
+
+  await overview.getByRole('button', { name: 'Delete EU-VALUE' }).click()
+  await expect(overview.getByText('EU-VALUE')).toHaveCount(0)
+  await expect(overview.getByText('TECH10').first()).toBeVisible()
+
+  // The confirmation said what else goes, because a run somebody waited for
+  // disappearing unannounced is the app failing to say what it was doing.
+  const asked = await app.evaluate(() => (globalThis as { asked?: string[] }).asked ?? [])
+  expect(seen.concat(asked).join(' ')).toContain('backtest results')
+})

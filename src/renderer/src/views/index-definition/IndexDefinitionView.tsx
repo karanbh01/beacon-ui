@@ -7,6 +7,7 @@ import { isDocumentId } from '../../api/ids'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import {
+  useDeleteIndex,
   useIndices,
   usePreviewDocument,
   useSaveIndex,
@@ -30,6 +31,7 @@ import './IndexDefinitionView.css'
  */
 export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactElement {
   const indices = useIndices()
+  const deleteIndex = useDeleteIndex()
   const catalogue = indices.data?.indices ?? []
 
   /*
@@ -88,7 +90,30 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
   if (chosen === undefined) {
     return (
       <div className="index-definition-view">
-        <IndexOverview indices={catalogue} onOpen={setOpened} />
+        <IndexOverview
+          indices={catalogue}
+          onOpen={setOpened}
+          onDelete={(index) => {
+            /*
+             * The confirmation names what goes with it (BU-151).
+             *
+             * The engine deletes the runs keyed to this id along with the
+             * definition, and a backtest somebody waited two minutes for
+             * disappearing unannounced is the app failing to say what it was
+             * about to do.
+             */
+            void window.beacon
+              ?.confirm({
+                title: 'Delete index',
+                message: `Delete “${index.name}”?`,
+                detail:
+                  'The definition and its backtest results are removed from the engine. Universes and market data are untouched.'
+              })
+              .then((confirmed) => {
+                if (confirmed) deleteIndex.mutate(index.id)
+              })
+          }}
+        />
       </div>
     )
   }

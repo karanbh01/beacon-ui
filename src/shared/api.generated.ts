@@ -473,7 +473,21 @@ export interface paths {
         /** Put Index */
         put: operations["put_index_indices__index_id__put"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Index
+         * @description Remove a stored index definition, and its backtest results.
+         *
+         *     The cascade is deliberate (BN-157): results are keyed
+         *     `backtest:{index_id}`, and orphaning them would leave records
+         *     addressable by an id that no longer resolves -- the overview route
+         *     404s on the definition load before it ever reaches them. The client's
+         *     confirm dialog says "and its backtest results", so nothing goes that
+         *     the user was not told about.
+         *
+         *     No refusal case: unlike universes, no index is seeded -- every stored
+         *     definition was created by somebody, so every one may be deleted.
+         */
+        delete: operations["delete_index_indices__index_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -6737,6 +6751,98 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SavedIndex"];
                 };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_index_indices__index_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
             400: {

@@ -4037,6 +4037,112 @@
           }
         }
       },
+      "delete": {
+        "tags": [
+          "indices"
+        ],
+        "summary": "Delete Index",
+        "description": "Remove a stored index definition, and its backtest results.\n\nThe cascade is deliberate (BN-157): results are keyed\n`backtest:{index_id}`, and orphaning them would leave records\naddressable by an id that no longer resolves -- the overview route\n404s on the definition load before it ever reaches them. The client's\nconfirm dialog says \"and its backtest results\", so nothing goes that\nthe user was not told about.\n\nNo refusal case: unlike universes, no index is seeded -- every stored\ndefinition was created by somebody, so every one may be deleted.",
+        "operationId": "delete_index_indices__index_id__delete",
+        "parameters": [
+          {
+            "name": "index_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "title": "Index Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Requested data does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The path exists but does not accept this method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request or rule failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Library error during processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Endpoint exists but is not implemented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required optional dependency is absent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "tags": [
           "indices"

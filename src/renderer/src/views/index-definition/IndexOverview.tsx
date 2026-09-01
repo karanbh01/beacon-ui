@@ -11,6 +11,8 @@ import './IndexOverview.css'
 export interface IndexOverviewProps {
   indices: readonly IndexDocument[]
   onOpen: (id: string) => void
+  /** Omitted where deleting is not offered — there is no engine, say. */
+  onDelete?: (index: IndexDocument) => void
 }
 
 const COLUMNS: readonly Column<IndexDocument>[] = [
@@ -32,6 +34,42 @@ const COLUMNS: readonly Column<IndexDocument>[] = [
 ]
 
 /**
+ * The same columns, plus a delete (BU-151).
+ *
+ * Every row gets one: no index is seeded, so unlike a universe there is no
+ * row the engine would refuse.
+ */
+function columns(
+  onDelete: ((index: IndexDocument) => void) | undefined
+): readonly Column<IndexDocument>[] {
+  if (onDelete === undefined) return COLUMNS
+
+  return [
+    ...COLUMNS,
+    {
+      key: 'delete',
+      header: '',
+      width: 60,
+      align: 'right',
+      render: (row) => (
+        <button
+          type="button"
+          className="index-overview-delete type-11"
+          aria-label={`Delete ${row.id}`}
+          onClick={(event) => {
+            // The row opens the definition; the button must not.
+            event.stopPropagation()
+            onDelete(row)
+          }}
+        >
+          Delete
+        </button>
+      )
+    }
+  ]
+}
+
+/**
  * What index definitions exist, and the way to make one (BU-95).
  *
  * The create route had been reachable only by accident. Opening the tab from
@@ -43,7 +81,7 @@ const COLUMNS: readonly Column<IndexDocument>[] = [
  * `GET /indices` returns whole documents rather than summaries, so every
  * column here is free.
  */
-export function IndexOverview({ indices, onOpen }: IndexOverviewProps): ReactElement {
+export function IndexOverview({ indices, onOpen, onDelete }: IndexOverviewProps): ReactElement {
   const [naming, setNaming] = useState(false)
   const [id, setId] = useState('')
 
@@ -123,7 +161,7 @@ export function IndexOverview({ indices, onOpen }: IndexOverviewProps): ReactEle
       {indices.length > 0 && (
         <>
           <Table
-            columns={COLUMNS}
+            columns={columns(onDelete)}
             rows={indices}
             getRowId={(row) => row.id}
             onSelectRow={(row) => {
