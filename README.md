@@ -111,6 +111,37 @@ CI runs the drift checks, format check, lint, typecheck, tests and the E2E
 suite on every push to `main` and every PR; the packaging dry-run runs on
 `main` only.
 
+## UI annotations
+
+Feedback on a view travels better as a click than as a sentence.
+[Agentation](https://www.agentation.com/) mounts a toolbar in the bottom-right
+corner in development: click an element and your note leaves with its CSS
+selector, React component path, source file and computed styles attached.
+
+```bash
+pnpm dev        # the toolbar appears bottom-right
+```
+
+It is a `devDependency` behind `import.meta.env.DEV`, so a production build
+contains no trace of the package — `pnpm build` output has none.
+
+Annotations sync to `http://127.0.0.1:4747`, which is `agentation-mcp`. Claude
+Code starts that server itself from `.mcp.json` and reads annotations through
+its MCP tools; to run it by hand:
+
+```bash
+node node_modules/agentation-mcp/dist/cli.js server   # HTTP on 4747, MCP on stdio
+node node_modules/agentation-mcp/dist/cli.js doctor   # what is and is not wired up
+```
+
+The address matters. The renderer's CSP allows `http://127.0.0.1:*`, and
+`localhost` is a different origin as far as a policy is concerned. Annotations
+survive the server being down — they are kept locally and sync when it
+returns — so a dev session without it is degraded rather than broken.
+
+Sessions and their annotations are stored by the server in
+`~/.agentation/store.db`, not in this repo.
+
 ## Layout
 
 ```

@@ -1,6 +1,7 @@
 import React, { type ReactElement } from 'react'
 import ReactDOM from 'react-dom/client'
 import { App } from './App'
+import { Annotations } from './dev/Annotations'
 import { DataSettingsWindow } from './settings/DataSettingsWindow'
 import { Splash } from './splash/Splash'
 import { initTheme } from './state/theme'
@@ -29,7 +30,19 @@ if (root === null) {
 function windowFor(hash: string): ReactElement {
   if (hash === '#splash') return <Splash />
   if (hash === '#settings') return <DataSettingsWindow />
-  return <App />
+
+  /*
+   * The annotation toolbar rides with the main window, in development only
+   * (BU-155). Not the splash: that window is one drag region with two buttons
+   * in it, and a floating control there sits in the way of the only gesture
+   * it exists for.
+   */
+  return (
+    <>
+      <App />
+      <Annotations />
+    </>
+  )
 }
 
 ReactDOM.createRoot(root).render(<React.StrictMode>{windowFor(route)}</React.StrictMode>)
