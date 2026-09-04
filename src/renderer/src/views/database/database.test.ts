@@ -6,6 +6,8 @@ import {
   fromRecords,
   isNumericColumn,
   isDateColumn,
+  isIdentifierColumn,
+  sameQuery,
   matchesFilter,
   readNumber,
   withoutHidden
@@ -211,5 +213,24 @@ describe('readNumber (BU-149)', () => {
 
   it('keeps enough of a small number to tell two apart', () => {
     expect(readNumber(0.6148680575343418)).toBe('0.6149')
+  })
+})
+
+describe('the draft a column menu holds (BU-154)', () => {
+  it('knows the column the engine can narrow, whatever its case', () => {
+    expect(isIdentifierColumn('IDENTIFIER')).toBe(true)
+    expect(isIdentifierColumn('identifier')).toBe(true)
+    expect(isIdentifierColumn('IDENTIFIER_TYPE')).toBe(false)
+    expect(isIdentifierColumn('CLOSE')).toBe(false)
+  })
+
+  it('has nothing to apply when the draft asks what is already asked', () => {
+    expect(sameQuery({}, {})).toBe(true)
+    expect(sameQuery({ filter: 'CMP001' }, { filter: 'CMP001' })).toBe(true)
+    // An absent field and an empty one ask the same question, which is what
+    // stops Apply lighting up over a box that was typed into and emptied.
+    expect(sameQuery({ filter: '' }, {})).toBe(true)
+    expect(sameQuery({ sort: 'asc' }, {})).toBe(false)
+    expect(sameQuery({ from: '2025-01-01' }, { to: '2025-01-01' })).toBe(false)
   })
 })

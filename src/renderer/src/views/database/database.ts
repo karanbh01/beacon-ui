@@ -216,6 +216,24 @@ export interface ColumnQuery {
 
 export type ColumnQueries = Record<string, ColumnQuery>
 
+/**
+ * The one column the ENGINE can narrow (BU-148).
+ *
+ * `identifiers` is the only predicate `/data/tables/{dataset}` takes, so this
+ * column's filter goes into the request while every other column's narrows
+ * the page already fetched. It is also the one column whose values the
+ * engine can suggest (BU-154).
+ */
+export function isIdentifierColumn(name: string): boolean {
+  return name.toUpperCase() === 'IDENTIFIER'
+}
+
+/** Asking for the same thing — which is how a menu knows Apply has work. */
+export function sameQuery(a: ColumnQuery, b: ColumnQuery): boolean {
+  const fields = ['filter', 'from', 'to', 'sort'] as const
+  return fields.every((field) => (a[field] ?? '') === (b[field] ?? ''))
+}
+
 /** py-beacon names date columns plainly, and they are the ones worth ranging. */
 export function isDateColumn(name: string): boolean {
   return /(^|_)date(_|$)|_date$|^date/i.test(name)

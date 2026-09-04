@@ -1,42 +1,50 @@
-import { useEffect, useRef, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
-import { isDateColumn, type ColumnQuery } from './database'
+import { TickerField } from '../../components/TickerField/TickerField'
+import { isDateColumn, isIdentifierColumn, sameQuery, type ColumnQuery } from './database'
 import './ColumnMenu.css'
 
 export interface ColumnMenuProps {
   column: string
+  /** What this column is asking for now — the applied query, not the draft. */
   query: ColumnQuery
-  /**
-   * True for the one column the ENGINE can narrow (BU-148).
-   *
-   * `identifiers` is the only predicate `/data/tables/{dataset}` takes, so
-   * that column's filter changes the request while every other column's
-   * narrows the page already fetched. The menu says which it is doing,
-   * because on an eleven-million-row table the difference is the difference
-   * between a filter that works and one that looks broken.
-   */
-  narrowsRequest: boolean
   onChange: (query: ColumnQuery) => void
   onClose: () => void
 }
 
 /**
+ * A patch, with `undefined` meaning "drop this key".
+ *
+ * Under exactOptionalPropertyTypes a spread cannot express that: the key has
+ * to go rather than hold undefined, or `sameQuery` sees a field that is
+ * present and empty and Apply lights up over nothing.
+ */
+function patched(
+  query: ColumnQuery,
+  patch: { [K in keyof ColumnQuery]?: ColumnQuery[K] | undefined }
+): ColumnQuery {
+  const merged = { ...query, ...patch }
+  return Object.fromEntries(Object.entries(merged).filter(([, value]) => value !== undefined))
+}
+
+/**
  * A column's own menu: filter, range, sort (BU-148).
  *
- * Hung off the label rather than sat in a row of boxes under the header —
- * a row of inputs is furniture the eye has to pass on the way to the data,
- * and it can only ever offer one kind of filtering. A menu can hold the
- * three that matter and say what each of them reaches.
+ * Hung off the label rather than sat in a row of boxes under the header — a
+ * row of inputs is furniture the eye has to pass on the way to the data, and
+ * it can only ever offer one kind of filtering.
+ *
+ * **Nothing takes effect until Apply (BU-154).** It used to apply on every
+ * keystroke, so typing CMP001 asked five questions on the way to the one that
+ * was meant — and on the identifier column each of those is a request to the
+ * engine. The menu holds a draft and hands it over once.
  */
-export function ColumnMenu({
-  column,
-  query,
-  narrowsRequest,
-  onChange,
-  onClose
-}: ColumnMenuProps): ReactElement {
+export function ColumnMenu({ column, query, onChange, onClose }: ColumnMenuProps): ReactElement {
   const box = useRef<HTMLDivElement>(null)
+  const [draft, setDraft] = useState<ColumnQuery>(query)
   const dated = isDateColumn(column)
+  const identifies = isIdentifierColumn(column)
 
   useEffect(() => {
     const onDown = (event: MouseEvent): void => {
@@ -59,12 +67,13 @@ export function ColumnMenu({
     }
   }, [onClose])
 
-  // `undefined` means "drop this", which under exactOptionalPropertyTypes a
-  // plain spread cannot express — the key has to go, not hold undefined.
   const set = (patch: { [K in keyof ColumnQuery]?: ColumnQuery[K] | undefined }): void => {
-    const merged = { ...query, ...patch }
-    const kept = Object.entries(merged).filter(([, value]) => value !== undefined)
-    onChange(Object.fromEntries(kept))
+    setDraft((current) => patched(current, patch))
+  }
+
+  const apply = (next: ColumnQuery): void => {
+    onChange(next)
+    onClose()
   }
 
   return (
@@ -77,13 +86,13 @@ export function ColumnMenu({
             key={direction}
             type="button"
             className={`column-menu-sort-button type-11${
-              query.sort === direction ? ' column-menu-sort-active' : ''
+              draft.sort === direction ? ' column-menu-sort-active' : ''
             }`}
-            aria-pressed={query.sort === direction}
+            aria-pressed={draft.sort === direction}
             onClick={() => {
-              // Pressing the active direction turns sorting off, which is
-              // the third state and the only way back to the engine's order.
-              set({ sort: query.sort === direction ? undefined : direction })
+              // Pressing the active direction turns sorting off, which is the
+              // third state and the only way back to the engine's order.
+              set({ sort: draft.sort === direction ? undefined : direction })
             }}
           >
             {direction === 'asc' ? 'Sort ↑' : 'Sort ↓'}
@@ -98,7 +107,7 @@ export function ColumnMenu({
               className="column-menu-input"
               type="date"
               aria-label={`${column} from`}
-              value={query.from ?? ''}
+              value={draft.from ?? ''}
               onChange={(event) => {
                 set({ from: event.target.value })
               }}
@@ -109,7 +118,7 @@ export function ColumnMenu({
               className="column-menu-input"
               type="date"
               aria-label={`${column} to`}
-              value={query.to ?? ''}
+              value={draft.to ?? ''}
               onChange={(event) => {
                 set({ to: event.target.value })
               }}
@@ -118,34 +127,74 @@ export function ColumnMenu({
         </div>
       )}
 
-      <Field label={dated ? 'Contains' : 'Filter'} width={260}>
-        <input
-          className="column-menu-input"
-          aria-label={`Filter ${column}`}
-          placeholder={dated ? 'text' : 'text, or >100'}
-          spellCheck={false}
-          value={query.filter ?? ''}
-          onChange={(event) => {
-            set({ filter: event.target.value })
+      {identifies ? (
+        /*
+          The query bar's own field, suggestions and all (BU-154).
+
+          This is the one column whose values the engine knows, and the one
+          whose filter becomes a request — a name typed here that does not
+          exist costs a round trip and comes back empty. Enter or a chosen
+          suggestion commits, as everywhere else in the app; `onDraft` is what
+          keeps Apply honest for a value that was only typed.
+        */
+        <div className="column-menu-ticker">
+          <span className="column-menu-label">Filter</span>
+          <TickerField
+            // The APPLIED filter, not the draft: the field suppresses the
+            // suggestion that matches what is already on screen, and a
+            // subject that followed every keystroke would match all of them.
+            subject={query.filter ?? ''}
+            label={`Filter ${column}`}
+            onDraft={(value) => {
+              set({ filter: value })
+            }}
+            onQuery={(value) => {
+              apply(patched(draft, { filter: value }))
+            }}
+          />
+        </div>
+      ) : (
+        <Field label={dated ? 'Contains' : 'Filter'} width={260}>
+          <input
+            className="column-menu-input"
+            aria-label={`Filter ${column}`}
+            placeholder={dated ? 'text' : 'text, or >100'}
+            spellCheck={false}
+            value={draft.filter ?? ''}
+            onChange={(event) => {
+              set({ filter: event.target.value })
+            }}
+            onKeyDown={(event) => {
+              // Enter is Apply, as it is in every form.
+              if (event.key === 'Enter') apply(draft)
+            }}
+          />
+        </Field>
+      )}
+
+      <div className="column-menu-actions">
+        <Button
+          variant="accent"
+          disabled={sameQuery(draft, query)}
+          onClick={() => {
+            apply(draft)
           }}
-        />
-      </Field>
-
-      <p className="column-menu-note type-11">
-        {narrowsRequest
-          ? 'Narrows the request: the engine filters before paging.'
-          : 'Narrows the rows on this page. The engine takes no filter but the identifier.'}
-      </p>
-
-      <button
-        type="button"
-        className="column-menu-clear type-11"
-        onClick={() => {
-          onChange({})
-        }}
-      >
-        Clear
-      </button>
+        >
+          Apply
+        </Button>
+        <button
+          type="button"
+          className="column-menu-clear type-11"
+          onClick={() => {
+            // Clearing is an answer in itself, so it applies rather than
+            // staging an empty draft the reader would then have to confirm.
+            setDraft({})
+            apply({})
+          }}
+        >
+          Clear
+        </button>
+      </div>
     </div>
   )
 }

@@ -18,6 +18,14 @@ export interface TickerFieldProps {
   /** Enter pressed on an edited value, or a suggestion chosen. */
   onQuery: (subject: string) => void
   /**
+   * Every keystroke, for a caller that stages what is being typed (BU-154).
+   *
+   * The Database column menu holds a draft query until Apply is pressed, and
+   * a field that only reports on Enter would have it apply the value before
+   * last. Views that act on a committed subject want `onQuery` alone.
+   */
+  onDraft?: (value: string) => void
+  /**
    * Typing while linked. The tab becomes an independent query view; BU-16's
    * store consumes this. Fires once per link, on the first keystroke.
    */
@@ -55,6 +63,7 @@ export function TickerField({
   subject,
   linkedTo,
   onQuery,
+  onDraft,
   onSever,
   requires,
   label,
@@ -88,6 +97,7 @@ export function TickerField({
     const value = next.trim()
     if (value === '') return
     setDraft(value)
+    onDraft?.(value)
     onQuery(value)
   }
 
@@ -132,6 +142,7 @@ export function TickerField({
       if (filling.identifier !== draft) {
         event.preventDefault()
         setDraft(filling.identifier)
+        onDraft?.(filling.identifier)
         typeahead.setActive(suggestions.indexOf(filling))
         if (linked) onSever?.()
         return
@@ -163,6 +174,7 @@ export function TickerField({
             autoComplete="off"
             onChange={(event) => {
               setDraft(event.target.value)
+              onDraft?.(event.target.value)
               typeahead.onInput()
             }}
             onKeyDown={handleKeyDown}

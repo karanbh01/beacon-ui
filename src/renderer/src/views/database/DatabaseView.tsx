@@ -17,6 +17,7 @@ import {
   DATASETS,
   applyQueries,
   fromFrame,
+  isIdentifierColumn,
   isNarrowing,
   isNumericColumn,
   readNumber,
@@ -218,11 +219,9 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
                   <ColumnMenu
                     column={column.key}
                     query={queries[column.key] ?? {}}
-                    // The one column the engine itself can narrow.
-                    narrowsRequest={column.key.toUpperCase() === 'IDENTIFIER'}
                     onChange={(next) => {
                       setQueries((current) => ({ ...current, [column.key]: next }))
-                      if (column.key.toUpperCase() === 'IDENTIFIER') {
+                      if (isIdentifierColumn(column.key)) {
                         // Straight to the request: `identifiers` is the only
                         // predicate the endpoint takes, and filtering a page
                         // of eleven million rows client-side finds nothing.
