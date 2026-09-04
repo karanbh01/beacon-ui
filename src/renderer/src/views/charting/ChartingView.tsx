@@ -9,6 +9,7 @@ import { RANGES, rangeStart, type Range } from '../prices/usePrices'
 import { useReference } from '../shared/queries'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { ChartToolbar } from './ChartToolbar'
+import { useChartOverlays } from './useChartOverlays'
 import { useChartSeries, type Interval } from './useChartSeries'
 import './ChartingView.css'
 
@@ -34,6 +35,8 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
   const [interval, setInterval] = useState<Interval>('native')
   const [compare, setCompare] = useState<readonly string[]>([])
   const [adjusted, setAdjusted] = useState(false)
+  const [events, setEvents] = useState(false)
+  const [field, setField] = useState('')
 
   const mode = useThemeMode()
   const setSubject = useWorkspace((state) => state.setSubject)
@@ -47,7 +50,22 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   const start = useMemo(() => rangeStart(range), [range])
   const data = useChartSeries({ subject: identifier, compare, start, interval, adjusted })
+  const overlays = useChartOverlays({ subject: identifier, start, events, field })
   const reference = useReference(identifier, { noRetry: true })
+
+  /*
+   * Memoised because the chart rebuilds its series when these change
+   * identity. An object literal in the JSX is a new one every render, which
+   * meant every keystroke elsewhere in the view redrew the chart and reset
+   * whatever the reader had panned to.
+   */
+  const subPanel = useMemo(
+    () =>
+      data.volume.length === 0
+        ? undefined
+        : { label: `volume · ${identifier}`, points: data.volume, kind: 'histogram' as const },
+    [data.volume, identifier]
+  )
 
   const meta = describeInstrument(reference.data?.fields)
   const rangeLabel = RANGES.find((option) => option.value === range)?.label ?? range
@@ -85,6 +103,14 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
         onInterval={setInterval}
         adjusted={adjusted}
         onAdjusted={setAdjusted}
+        events={events}
+        onEvents={setEvents}
+        hasEvents={overlays.hasEvents}
+        // A field the last instrument had and this one does not is not a
+        // choice this instrument can show.
+        field={overlays.fields.includes(field) ? field : ''}
+        onField={setField}
+        fields={overlays.fields}
         compare={compare}
         mode={mode}
         onAdd={(next) => {
@@ -115,15 +141,9 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
         <LevelChart
           mode={mode}
           series={data.series}
-          {...(data.volume.length === 0
-            ? {}
-            : {
-                subPanel: {
-                  label: `volume · ${identifier}`,
-                  points: data.volume,
-                  kind: 'histogram' as const
-                }
-              })}
+          {...(subPanel === undefined ? {} : { subPanel })}
+          events={overlays.events}
+          {...(overlays.overlay === undefined ? {} : { overlay: overlays.overlay })}
           {...(data.rebased && data.baseDate !== undefined
             ? { note: `rebased · 100 = ${data.baseDate}` }
             : {})}
@@ -139,6 +159,9 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
         {rangeLabel} {interval === 'native' ? 'daily' : interval}
         {' · '}
         {adjusted ? 'adjusted' : 'unadjusted'}
+        {overlays.events.length > 0 &&
+          ` · ${String(overlays.events.length)} corporate action${overlays.events.length === 1 ? '' : 's'}`}
+        {overlays.overlay !== undefined && ` · ${overlays.overlay.label} on the right axis`}
         {compare.length > 0 && ` · compare: ${compare.join(', ')} (rebased)`}
       </p>
     </div>

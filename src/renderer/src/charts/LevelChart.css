@@ -42,6 +42,12 @@
   border-radius: 50%;
 }
 
+/* The overlay's key: a dash, because the line it names is dashed (BU-152). */
+.level-chart-dash {
+  width: 10px;
+  height: 2px;
+}
+
 /* "rebased · 100 = 22 Jul 2025" — pushed to the right edge of the plot. */
 .level-chart-note {
   margin-left: auto;

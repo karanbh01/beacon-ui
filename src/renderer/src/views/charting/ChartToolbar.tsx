@@ -1,9 +1,11 @@
 import type { ReactElement } from 'react'
 import { AddValue } from '../../components/AddValue/AddValue'
+import { Checkbox } from '../../components/Checkbox/Checkbox'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { Select } from '../../components/Select/Select'
 import { seriesColor } from '../../charts/theme'
 import type { ThemeMode } from '../../tokens/tokens'
+import { fieldLabel } from '../features/features'
 import { RANGES, type Range } from '../prices/usePrices'
 import { INTERVALS, type Interval } from './useChartSeries'
 import './ChartToolbar.css'
@@ -16,6 +18,15 @@ export interface ChartToolbarProps {
   /** Adjusted or traded, never both at once (BU-129). */
   adjusted: boolean
   onAdjusted: (adjusted: boolean) => void
+  /** Corporate actions as flags on the time axis (BU-152). */
+  events: boolean
+  onEvents: (events: boolean) => void
+  /** False for an instrument with none, so the control says so. */
+  hasEvents: boolean
+  /** The feature on the right axis, '' for none. */
+  field: string
+  onField: (field: string) => void
+  fields: readonly string[]
   compare: readonly string[]
   onAdd: (identifier: string) => void
   onRemove: (identifier: string) => void
@@ -37,6 +48,12 @@ export function ChartToolbar({
   onInterval,
   adjusted,
   onAdjusted,
+  events,
+  onEvents,
+  hasEvents,
+  field,
+  onField,
+  fields,
   compare,
   onAdd,
   onRemove,
@@ -70,6 +87,37 @@ export function ChartToolbar({
           onAdjusted(next === 'adjusted')
         }}
         label="Prices"
+      />
+
+      {/*
+        What happened to the instrument, and what is known about it (BU-152).
+
+        Both controls are here rather than behind Indicators because they are
+        properties of the subject, not of the drawing — and both state what
+        there is: an instrument with no actions says so instead of offering a
+        toggle that would change nothing.
+      */}
+      <Checkbox
+        label={hasEvents ? 'Corporate actions' : 'No corporate actions'}
+        checked={events}
+        disabled={!hasEvents}
+        onChange={onEvents}
+      />
+
+      <Select
+        label="Feature"
+        value={field}
+        disabled={fields.length === 0}
+        placeholder={fields.length === 0 ? 'No features' : 'No feature'}
+        options={
+          fields.length === 0
+            ? []
+            : [
+                { value: '', label: 'No feature' },
+                ...fields.map((name) => ({ value: name, label: fieldLabel(name) }))
+              ]
+        }
+        onChange={onField}
       />
 
       {compare.map((identifier, index) => (

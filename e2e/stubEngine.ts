@@ -756,11 +756,19 @@ function body(url: URL): unknown {
       return notFound(`instrument '${identifier}'`, 'MarketData')
     }
 
+    /*
+     * Ex-dates carry a time, as the engine's do (BU-152).
+     *
+     * py-beacon sends `2025-08-15T00:00:00` here while its price index sends
+     * plain dates, so a client that forgot to trim would place every flag on
+     * a day the series has no bar for — and against a stub sending ten
+     * characters it would look right.
+     */
     return {
       identifier,
       actions: [
         {
-          ex_date: '2026-05-09',
+          ex_date: '2026-05-09T00:00:00',
           pay_date: '2026-05-23',
           status: 'paid',
           type: 'DIVIDEND',
@@ -768,7 +776,7 @@ function body(url: URL): unknown {
           value: 0.26
         },
         {
-          ex_date: '2025-08-31',
+          ex_date: '2025-08-31T00:00:00',
           pay_date: null,
           status: 'announced',
           type: 'SPLIT',
@@ -776,7 +784,7 @@ function body(url: URL): unknown {
           value: 4
         },
         {
-          ex_date: '2025-03-02',
+          ex_date: '2025-03-02T00:00:00',
           pay_date: null,
           status: null,
           type: 'SPIN_OFF',

@@ -432,6 +432,67 @@ test('the chart draws the adjusted line or the traded one, never both', async ({
   await expect(window.getByText(/· unadjusted/)).toHaveCount(0)
 })
 
+test('the chart flags corporate actions and draws a feature on its own axis', async ({
+  window
+}) => {
+  // BU-152: the two other things the engine holds per instrument. Reading a
+  // step in the line used to mean opening Corporate Actions in another tab
+  // and matching dates by eye.
+  await openPage(window, 'Data Explorer')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
+  await window.locator('.level-chart-frame').waitFor()
+
+  // Off until asked for: a chart of a price is what this view is for.
+  await expect(window.getByText(/corporate action/)).toHaveCount(0)
+
+  await window.getByRole('checkbox', { name: 'Corporate actions' }).check()
+  // Singular, because there is one of them in a year of this window.
+  await expect(window.getByText(/· 1 corporate action(?!s)/)).toBeVisible()
+
+  await window.getByLabel('Feature', { exact: true }).selectOption('pe_ratio')
+  // Named with the axis it is read against, because a P/E and a price share
+  // a calendar and nothing else.
+  await expect(window.getByText('Pe ratio · right axis')).toBeVisible()
+  await expect(window.getByText(/Pe ratio on the right axis/)).toBeVisible()
+
+  // And the frame steps in from that axis, as it does from the left one.
+  // Polled: the chart reports its new axis width a frame after the series
+  // that caused it is added, and the inset is measured from that.
+  await expect
+    .poll(async () =>
+      window.evaluate(() => {
+        const frame = document.querySelector('.level-chart-frame')?.getBoundingClientRect()
+        const plot = document.querySelector('.level-chart-plot')?.getBoundingClientRect()
+        return frame === undefined || plot === undefined ? 0 : plot.right - frame.right
+      })
+    )
+    .toBeGreaterThan(20)
+})
+
+test('an instrument with neither says so rather than offering empty controls', async ({
+  window
+}) => {
+  // A pair is market data and nothing else, which the controls have to state
+  // rather than leave to be discovered by clicking (BU-152).
+  await openPage(window, 'Data Explorer')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
+  await window.getByRole('combobox', { name: 'Subject' }).fill('EURUSD')
+  await window.keyboard.press('Enter')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
+  await window.locator('.level-chart-frame').waitFor()
+
+  await expect(window.getByRole('checkbox', { name: 'No corporate actions' })).toBeDisabled()
+  await expect(window.getByLabel('Feature', { exact: true })).toBeDisabled()
+  await expect(window.getByText('No features')).toBeVisible()
+})
+
 test('a view query bar completes with Tab', async ({ window }) => {
   await openPage(window, 'Data Explorer')
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()

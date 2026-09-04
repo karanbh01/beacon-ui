@@ -3,13 +3,19 @@ import {
   AreaSeries,
   HistogramSeries,
   LineSeries,
+  LineStyle,
   createChart,
+  createSeriesMarkers,
   type IChartApi,
+  type ISeriesApi,
+  type SeriesMarker,
+  type SeriesMarkerShape,
+  type SeriesType,
   type UTCTimestamp
 } from 'lightweight-charts'
-import type { ThemeMode } from '../tokens/tokens'
+import { COLORS, type ThemeMode } from '../tokens/tokens'
 import { chartOptions, histogramOptions, lineOptions, seriesColor, withAlpha } from './theme'
-import { toHistogramData, toLineData, type Point } from './transform'
+import { toHistogramData, toLineData, toTime, type Point } from './transform'
 import './LevelChart.css'
 
 export interface Series {
@@ -25,11 +31,43 @@ export interface SubPanel {
   kind: 'area' | 'histogram'
 }
 
+/**
+ * A moment on the time axis rather than a value on it (BU-152).
+ *
+ * A dividend or a split happened on a day; it has no level and belongs on no
+ * price scale. It is drawn as a flag under the first series, which is what
+ * makes a step in that line explicable without a second tab open.
+ */
+export interface ChartEvent {
+  date: string
+  /** Rendered beside the flag, so it stays to a few words. */
+  text: string
+  /** The caller's way of telling kinds apart at a glance. */
+  shape?: SeriesMarkerShape
+}
+
+/**
+ * A series in its own units, on the right scale (BU-152).
+ *
+ * A P/E against a price is the case this exists for: rebasing the two onto
+ * one axis would claim they moved together when all they share is a
+ * calendar. Drawn dashed, because two solid lines on two scales read as
+ * comparable.
+ */
+export interface Overlay {
+  label: string
+  points: readonly Point[]
+}
+
 export interface LevelChartProps {
   series: readonly Series[]
   mode: ThemeMode
   /** Drawdown or volume, in a second pane sharing the time axis. */
   subPanel?: SubPanel
+  /** Flags on the time axis — corporate actions, in Charting's case. */
+  events?: readonly ChartEvent[]
+  /** One series on the right price scale, in units of its own. */
+  overlay?: Overlay
   /**
    * A fixed height in px, or `fill` to take the pane's (BU-132).
    *
@@ -57,6 +95,8 @@ export function LevelChart({
   series,
   mode,
   subPanel,
+  events,
+  overlay,
   height = 420,
   note
 }: LevelChartProps): ReactElement {
@@ -95,6 +135,19 @@ export function LevelChart({
     const panel = subPanel === undefined ? undefined : addSubPanel(created, subPanel, mode)
 
     /*
+     * Flags hang off the first series, which is the subject's own line: the
+     * events belong to that instrument and not to a compared one.
+     */
+    const anchor = drawn[0]
+    const flags =
+      events === undefined || events.length === 0 || anchor === undefined
+        ? undefined
+        : createSeriesMarkers(anchor, toMarkers(events, mode))
+
+    const overlaid =
+      overlay === undefined ? undefined : addOverlay(created, overlay, mode, drawn.length)
+
+    /*
      * Volume is a tenth of the frame (BU-128).
      *
      * Left at their defaults the two panes come out near enough equal, which
@@ -120,10 +173,17 @@ export function LevelChart({
        * path where this effect is re-running because the data changed.
        */
       if (chart.current === null) return
+      // Markers first: they are attached to a series that is about to go.
+      flags?.detach()
       for (const api of drawn) created.removeSeries(api)
       if (panel !== undefined) created.removeSeries(panel)
+      if (overlaid !== undefined) {
+        created.removeSeries(overlaid)
+        // The axis exists for that one series, so it goes with it.
+        created.applyOptions({ rightPriceScale: { visible: false } })
+      }
     }
-  }, [series, subPanel, mode])
+  }, [series, subPanel, events, overlay, mode])
 
   /*
    * The frame around the plot, with the axes outside it.
@@ -134,14 +194,19 @@ export function LevelChart({
    * plot when the price labels get wider.
    */
   const filling = height === 'fill'
-  const [axes, setAxes] = useState({ left: 0, bottom: 0 })
+  const [axes, setAxes] = useState({ left: 0, right: 0, bottom: 0 })
   const [plot, setPlot] = useState(0)
   useEffect(() => {
     const created = chart.current
     if (created === null) return undefined
 
     const measure = (): void => {
-      setAxes({ left: created.priceScale('left').width(), bottom: created.timeScale().height() })
+      setAxes({
+        left: created.priceScale('left').width(),
+        // Zero unless an overlay has made the right scale visible (BU-152).
+        right: created.priceScale('right').width(),
+        bottom: created.timeScale().height()
+      })
       // Measured rather than taken from the prop, which may be `fill`.
       setPlot(host.current?.getBoundingClientRect().height ?? 0)
     }
@@ -153,7 +218,7 @@ export function LevelChart({
       if (chart.current === null) return
       created.timeScale().unsubscribeSizeChange(measure)
     }
-  }, [series, subPanel, height, mode])
+  }, [series, subPanel, overlay, height, mode])
 
   return (
     <div
@@ -171,13 +236,23 @@ export function LevelChart({
             {line.label}
           </span>
         ))}
+        {overlay !== undefined && (
+          <span className="level-chart-key">
+            <span
+              className="level-chart-dash"
+              style={{ background: seriesColor(mode, series.length) }}
+              aria-hidden="true"
+            />
+            {overlay.label} · right axis
+          </span>
+        )}
         {note !== undefined && <span className="level-chart-note">{note}</span>}
       </div>
       <div className="level-chart-plot">
         <div className="level-chart-canvas" ref={host} />
         <div
           className="level-chart-frame"
-          style={{ left: axes.left, bottom: axes.bottom }}
+          style={{ left: axes.left, right: axes.right, bottom: axes.bottom }}
           aria-hidden="true"
         />
       </div>
@@ -220,6 +295,55 @@ const SUBPANEL_SHARE = { main: 9, panel: 1 }
 /** The subpanel's share of the panes, as a fraction. */
 function subPanelShare(): number {
   return SUBPANEL_SHARE.panel / (SUBPANEL_SHARE.main + SUBPANEL_SHARE.panel)
+}
+
+/**
+ * Events as markers on a series.
+ *
+ * Under the bar rather than over it: the line's own shape is what a reader
+ * is following, and a flag above it interrupts that. One colour for all of
+ * them, since they are context — the shape is what tells the kinds apart.
+ */
+function toMarkers(events: readonly ChartEvent[], mode: ThemeMode): SeriesMarker<UTCTimestamp>[] {
+  return events.map((event) => ({
+    time: toTime(event.date),
+    position: 'belowBar' as const,
+    shape: event.shape ?? 'circle',
+    color: COLORS[mode]['text-secondary'],
+    text: event.text
+  }))
+}
+
+/**
+ * The overlay's own scale: the right one.
+ *
+ * The app's price scale is on the left (Figma 289:2846), and
+ * lightweight-charts draws no axis for a custom scale id — an overlay scale
+ * exists but is never labelled, which for a series in unfamiliar units is
+ * the whole of the information.
+ */
+function addOverlay(
+  chart: IChartApi,
+  overlay: Overlay,
+  mode: ThemeMode,
+  index: number
+): ISeriesApi<SeriesType> {
+  chart.applyOptions({
+    rightPriceScale: {
+      visible: true,
+      borderVisible: false,
+      scaleMargins: { top: 0.12, bottom: 0.08 }
+    }
+  })
+
+  const api = chart.addSeries(LineSeries, {
+    ...lineOptions(mode, index),
+    lineStyle: LineStyle.Dashed,
+    priceScaleId: 'right',
+    title: overlay.label
+  })
+  api.setData(toLineData(overlay.points))
+  return api
 }
 
 function addSubPanel(chart: IChartApi, panel: SubPanel, mode: ThemeMode) {
