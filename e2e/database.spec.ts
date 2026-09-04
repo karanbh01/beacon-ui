@@ -121,3 +121,34 @@ test('reads every dataset the engine serves', async ({ window }) => {
   await expect(window.getByRole('columnheader', { name: 'RATE' })).toHaveCount(0)
   await expect(window.getByRole('columnheader', { name: 'Index' })).toHaveCount(0)
 })
+
+test('takes the pane, and scrolls itself rather than the pane', async ({ window }) => {
+  // BU-153: the price table has followed its pane since BU-127; this one ran
+  // past the bottom of a short pane and dragged the paging row off a narrow
+  // one.
+  await openPage(window, 'Data Explorer')
+  await openView(window, 'Database')
+  await expect(window.locator('.tbl-row').first()).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Next' })).toBeInViewport()
+
+  await window.getByRole('button', { name: 'Layout' }).click()
+  await window.getByRole('radio', { name: 'Two columns' }).click()
+  await window.keyboard.press('Escape')
+
+  const body = window.locator('.tbl-body').first()
+  await expect(body).toBeVisible()
+
+  // Ten market columns in half a window: the card keeps five of them and the
+  // body takes over the scrolling.
+  expect(await body.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true)
+  expect(await window.locator('.tbl-row').count()).toBeGreaterThanOrEqual(5)
+
+  await body.evaluate((node) => {
+    node.scrollLeft = 240
+  })
+  const head = window.locator('.tbl-head').first()
+  expect(await head.evaluate((node) => node.style.transform)).toBe('translateX(-240px)')
+
+  // And the controls stay where they were put.
+  await expect(window.getByRole('button', { name: 'Next' })).toBeInViewport()
+})

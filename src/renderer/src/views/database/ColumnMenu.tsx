@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import type { ReactElement } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
 import { TickerField } from '../../components/TickerField/TickerField'
@@ -12,6 +14,10 @@ export interface ColumnMenuProps {
   onChange: (query: ColumnQuery) => void
   onClose: () => void
 }
+
+/** Clear of the window's edge, and of the label the panel hangs from. */
+const EDGE = 8
+const DROP = 4
 
 /**
  * A patch, with `undefined` meaning "drop this key".
@@ -42,9 +48,29 @@ function patched(
  */
 export function ColumnMenu({ column, query, onChange, onClose }: ColumnMenuProps): ReactElement {
   const box = useRef<HTMLDivElement>(null)
+  const anchor = useRef<HTMLSpanElement>(null)
+  const [place, setPlace] = useState<{ top: number; left: number } | undefined>(undefined)
   const [draft, setDraft] = useState<ColumnQuery>(query)
   const dated = isDateColumn(column)
   const identifies = isIdentifierColumn(column)
+
+  /*
+   * The panel is a child of the document, placed over its column (BU-153).
+   *
+   * It used to sit inside the header row, which stopped working the day that
+   * row started scrolling sideways: the panel travelled with it and off the
+   * card, and what was left the card clipped. Measured rather than declared,
+   * so a menu on the last column comes back inside the window instead of
+   * hanging over its edge.
+   */
+  useLayoutEffect(() => {
+    const cell = anchor.current?.closest('[role="columnheader"]')
+    const panel = box.current
+    if (cell === null || cell === undefined || panel === null) return
+    const rect = cell.getBoundingClientRect()
+    const left = Math.min(rect.left, window.innerWidth - panel.offsetWidth - EDGE)
+    setPlace({ top: rect.bottom + DROP, left: Math.max(EDGE, left) })
+  }, [])
 
   useEffect(() => {
     const onDown = (event: MouseEvent): void => {
@@ -61,9 +87,13 @@ export function ColumnMenu({ column, query, onChange, onClose }: ColumnMenuProps
 
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
+    // Any scroll: the panel is fixed to the window and its column is not, so
+    // it would otherwise sit over a different column than the one it names.
+    document.addEventListener('scroll', onClose, true)
     return () => {
       document.removeEventListener('mousedown', onDown)
       document.removeEventListener('keydown', onKey)
+      document.removeEventListener('scroll', onClose, true)
     }
   }, [onClose])
 
@@ -76,8 +106,19 @@ export function ColumnMenu({ column, query, onChange, onClose }: ColumnMenuProps
     onClose()
   }
 
-  return (
-    <div className="column-menu" role="dialog" aria-label={`${column} options`} ref={box}>
+  // Hidden rather than off-screen until measured: one layout pass, no flash
+  // of a panel in the corner.
+  const style: CSSProperties =
+    place === undefined ? { visibility: 'hidden' } : { top: place.top, left: place.left }
+
+  const panel = (
+    <div
+      className="column-menu"
+      role="dialog"
+      aria-label={`${column} options`}
+      ref={box}
+      style={style}
+    >
       <p className="column-menu-title type-11">{column}</p>
 
       <div className="column-menu-sort">
@@ -196,5 +237,13 @@ export function ColumnMenu({ column, query, onChange, onClose }: ColumnMenuProps
         </button>
       </div>
     </div>
+  )
+
+  return (
+    <>
+      {/* Stays in the header cell, so the panel can find the column it belongs to. */}
+      <span ref={anchor} hidden />
+      {createPortal(panel, document.body)}
+    </>
   )
 }

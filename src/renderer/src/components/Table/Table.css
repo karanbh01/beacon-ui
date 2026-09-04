@@ -23,12 +23,24 @@
   align-items: center;
   gap: 10px;
   padding: 0 16px;
+  /*
+   * As wide as the cells inside it, not as wide as the card (BU-153).
+   *
+   * A table that scrolls sideways would otherwise draw its zebra, its
+   * selection wash and the divider under its labels only as far as the card
+   * reaches, and everything past that would sit on bare surface.
+   */
+  min-width: max-content;
 }
 
 /* A header cell may hang a menu off itself (BU-148), which needs somewhere
-   to be positioned from and room to escape the row. */
+   to be positioned from and room to escape the row. The z-index is what keeps
+   that menu over the rows: shifting the head sideways (BU-153) makes it a
+   stacking context, and a stacking context earlier in the document paints
+   under everything positioned after it. */
 .tbl-head {
   position: relative;
+  z-index: 2;
   overflow: visible;
   /*
    * Taller than a row, as Figma 266:2881 has it: the frame's head is 28

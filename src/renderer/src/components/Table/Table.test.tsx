@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Table, VIRTUALIZE_ABOVE } from './Table'
@@ -158,5 +158,37 @@ describe('mock dataset integrity (taxonomy 10)', () => {
     const hhi = CONSTITUENTS.reduce((total, row) => total + (row.weight / 100) ** 2, 0)
     expect(hhi).toBeCloseTo(0.158, 3)
     expect(1 / hhi).toBeCloseTo(6.3, 1)
+  })
+})
+
+describe('a table that fills its pane (BU-153)', () => {
+  it('will not shrink past the columns it promises to keep', () => {
+    const { container } = renderWeights({ fillHeight: true, fillWidth: true, minColumns: 3 })
+    const card = container.querySelector<HTMLElement>('.tbl')!
+
+    // Three columns, the two gaps between them and the card's own padding.
+    const three = WEIGHTS_COLUMNS.slice(0, 3).reduce((sum, column) => sum + column.width, 0)
+    expect(card.style.width).toBe('100%')
+    expect(card.style.minWidth).toBe(`${String(three + 32 + 20)}px`)
+  })
+
+  it('asks for room for every column when no floor is named', () => {
+    const { container } = renderWeights({ fillWidth: true })
+    const card = container.querySelector<HTMLElement>('.tbl')!
+    const all = WEIGHTS_COLUMNS.reduce((sum, column) => sum + column.width, 0)
+
+    expect(card.style.minWidth).toBe(`${String(all + 32 + (WEIGHTS_COLUMNS.length - 1) * 10)}px`)
+  })
+
+  it('carries the head sideways with the body, or the labels lie', () => {
+    const { container } = renderWeights({ fillHeight: true, fillWidth: true, minColumns: 3 })
+    const body = container.querySelector<HTMLElement>('.tbl-body')!
+    const head = container.querySelector<HTMLElement>('.tbl-head')!
+
+    // jsdom has no layout, so the scroll offset is stated rather than made.
+    Object.defineProperty(body, 'scrollLeft', { value: 120, configurable: true })
+    fireEvent.scroll(body)
+
+    expect(head.style.transform).toBe('translateX(-120px)')
   })
 })

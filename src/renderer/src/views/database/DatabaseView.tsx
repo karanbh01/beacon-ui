@@ -238,6 +238,14 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
             )}
             fillHeight
             fillWidth
+            /*
+             * Five columns before the card starts scrolling itself (BU-153).
+             *
+             * A market row is ten columns wide, so in a split pane the table
+             * cannot both fit and keep them all — and a column crushed to
+             * three characters is not a column. Five is what stays readable.
+             */
+            minColumns={5}
           />
 
           <div className="database-paging">

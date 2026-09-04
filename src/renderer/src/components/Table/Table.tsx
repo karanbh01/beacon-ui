@@ -53,6 +53,17 @@ export interface TableProps<T> {
    */
   fillWidth?: boolean
   /**
+   * How many columns have to stay on screen before the table scrolls sideways
+   * itself (BU-153).
+   *
+   * Without it a wide table makes the PANE scroll, which drags the paging and
+   * the footnote off with it. With it the card fits the pane down to this many
+   * columns and then scrolls its own body, the head following along — the same
+   * bargain `minRows` makes vertically. Omit it for a table narrow enough that
+   * the question never comes up.
+   */
+  minColumns?: number
+  /**
    * Something in each header cell besides its label (BU-148).
    *
    * A render prop rather than filter semantics baked in here: the Database
@@ -66,6 +77,12 @@ export interface TableProps<T> {
 
 /** `.tbl-head`'s own horizontal padding, which the gutter is added to. */
 const HEAD_PADDING = 16
+
+/** What the first `count` columns take, gaps and the card's padding included. */
+function widthOf<T>(columns: readonly Column<T>[], count: number): number {
+  const kept = columns.slice(0, Math.max(1, count))
+  return kept.reduce((sum, column) => sum + column.width, 0) + 32 + (kept.length - 1) * 10
+}
 
 /** The declared width, plus a share of anything left over when filling. */
 function cellStyle<T>(column: Column<T>, fill: boolean): CSSProperties {
@@ -102,11 +119,14 @@ export function Table<T>({
   fillHeight = false,
   minRows = 5,
   fillWidth = false,
+  minColumns,
   renderHeader,
   caption,
   className
 }: TableProps<T>): ReactElement {
   const bodyRef = useRef<HTMLDivElement>(null)
+  const headRef = useRef<HTMLDivElement>(null)
+  const totalRef = useRef<HTMLDivElement>(null)
   const virtualize = rows.length > VIRTUALIZE_ABOVE
 
   /*
@@ -135,6 +155,20 @@ export function Table<T>({
     }
   }, [rows.length, fillWidth])
 
+  /*
+   * The head and the total follow the body sideways (BU-153).
+   *
+   * Only the body scrolls — it is the one with a scrollbar to put somewhere —
+   * so the two rows outside it are shifted to match. Written straight to the
+   * node rather than through state: this fires on every scroll frame, and a
+   * render per frame would be felt on a table of any size.
+   */
+  const followBody = (): void => {
+    const shift = `translateX(${String(-(bodyRef.current?.scrollLeft ?? 0))}px)`
+    if (headRef.current !== null) headRef.current.style.transform = shift
+    if (totalRef.current !== null) totalRef.current.style.transform = shift
+  }
+
   const virtualizer = useVirtualizer({
     count: virtualize ? rows.length : 0,
     getScrollElement: () => bodyRef.current,
@@ -142,8 +176,11 @@ export function Table<T>({
     overscan: 12
   })
 
-  const width =
-    columns.reduce((sum, column) => sum + column.width, 0) + 32 + (columns.length - 1) * 10
+  const width = widthOf(columns, columns.length)
+  // The floor a filling table may not shrink past. Never wider than the
+  // table itself, or a five-column table would demand room for five and a
+  // half of them.
+  const floor = minColumns === undefined ? width : Math.min(widthOf(columns, minColumns), width)
 
   const renderRow = (row: T, index: number, offset?: number): ReactElement => {
     const id = getRowId(row)
@@ -199,12 +236,17 @@ export function Table<T>({
   return (
     <div
       className={['tbl', fillHeight && 'tbl-fill', className].filter(Boolean).join(' ')}
-      style={fillWidth ? { width: '100%', minWidth: width } : { width }}
+      style={fillWidth ? { width: '100%', minWidth: floor } : { width }}
       role="table"
     >
       {caption !== undefined && <span className="tbl-caption">{caption}</span>}
 
-      <div className="tbl-head" role="row" style={{ paddingRight: HEAD_PADDING + gutter }}>
+      <div
+        className="tbl-head"
+        role="row"
+        ref={headRef}
+        style={{ paddingRight: HEAD_PADDING + gutter }}
+      >
         {columns.map((column) => (
           <div
             key={column.key}
@@ -220,6 +262,7 @@ export function Table<T>({
       <div
         className="tbl-body"
         ref={bodyRef}
+        onScroll={followBody}
         style={
           fillHeight
             ? { minHeight: minRows * ROW_HEIGHT, overflowY: 'auto' }
@@ -241,7 +284,7 @@ export function Table<T>({
       </div>
 
       {totalRow !== undefined && (
-        <div className="tbl-row tbl-total" role="row">
+        <div className="tbl-row tbl-total" role="row" ref={totalRef}>
           {columns.map((column) => (
             <div
               key={column.key}

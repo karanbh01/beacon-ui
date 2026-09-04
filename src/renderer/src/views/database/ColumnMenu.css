@@ -6,10 +6,10 @@
  * object to look at.
  */
 .column-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 5;
+  /* Fixed and placed by the component: the panel is a child of the document
+     now, so that a scrolling header row cannot carry it away (BU-153). */
+  position: fixed;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   gap: 8px;
