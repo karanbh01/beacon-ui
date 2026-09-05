@@ -42,10 +42,20 @@
   outline-offset: 2px;
 }
 
-/* Methodology left, validation right (Figma 322:1552). */
+/*
+ * Methodology left, validation right (Figma 322:1552).
+ *
+ * `width: 100%` is what makes the row a row (BU-161). The view is a flex
+ * COLUMN with `align-items: flex-start`, so without it this shrink-wraps its
+ * two cards — and a card asking to grow has nothing to grow into, because
+ * the line it sits on is only as wide as the cards themselves. That is why
+ * the methodology was narrow while collapsed and wide with an editor open:
+ * it was sizing to content in both.
+ */
 .index-main-row {
   display: flex;
   gap: 16px;
+  width: 100%;
   align-items: flex-start;
   flex-wrap: wrap;
 }

@@ -12,14 +12,17 @@
  */
 .methodology {
   /*
-   * Basis zero, not `auto` (BU-159).
+   * A basis wide enough to edit in (BU-159, BU-161).
    *
    * With `auto` the width came from the content, so opening a rule editor —
    * whose fields are wider than a collapsed row — widened the card and
-   * reflowed the row around it, and closing it snapped back. Growing from
-   * nothing gives it the pane's width less the validation card either way.
+   * reflowed the row around it. A real basis fixes that and does something
+   * else as well: it is what decides when the validation card WRAPS below
+   * rather than taking 440px out of a narrow pane and leaving the
+   * methodology 180. Under about a thousand pixels the card goes underneath
+   * and this one gets the pane.
    */
-  flex: 1 1 0;
+  flex: 1 1 560px;
   min-width: 0;
   max-width: 800px;
 }

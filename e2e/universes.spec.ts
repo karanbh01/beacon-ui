@@ -265,6 +265,25 @@ test('the methodology card is the same width with an editor open', async ({ wind
   const open = await card.boundingBox()
 
   expect(open?.width).toBe(closed?.width)
+  // And wide, not merely consistent: sizing to content gave it 504 of a
+  // 1382px pane while the editor's own fields wanted 726 (BU-161).
+  expect(closed?.width ?? 0).toBeGreaterThan(700)
+})
+
+test('a narrow pane goes to the methodology, not to the validation card', async ({ window }) => {
+  await openDraft(window)
+
+  await window.getByRole('button', { name: 'Layout' }).click()
+  await window.getByRole('radio', { name: 'Two columns' }).click()
+  await window.keyboard.press('Escape')
+
+  // The validation card is a fixed 440. Taking that out of a 690px pane left
+  // the methodology 234 and its editor unusable, so it wraps underneath
+  // instead (BU-161).
+  const pane = await window.locator('.pane-body').first().boundingBox()
+  const card = await window.locator('.methodology').boundingBox()
+
+  expect(card?.width ?? 0).toBeGreaterThan((pane?.width ?? 0) * 0.85)
 })
 
 test('a weighting is chosen, edited and taken away again', async ({ window }) => {
