@@ -73,20 +73,37 @@
 /* The code sits right, like a keyboard hint: it is what you type, not what
    you read. */
 /*
- * Name then code, both left (BU-156).
+ * Two columns, both left (BU-156, BU-158).
  *
  * `space-between` put the code against the right edge, so a preset and the
- * code that loads it — one fact — sat at opposite ends of the row. The save
- * dialog already lists the pair this way round.
+ * code that loads it — one fact — sat at opposite ends of the row. Left
+ * alone after the name they were ragged instead, a code starting wherever
+ * its name happened to end.
+ *
+ * So the rows share ONE grid: the list owns the tracks and each row borrows
+ * them with `subgrid`, which is what makes a column of names size to the
+ * longest of them and every code start at the same place. Each row stays its
+ * own element, so the hover wash is still a row rather than a cell.
  */
+.layout-menu-presets {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) 1fr;
+  width: 100%;
+}
+
 .layout-menu-preset {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-start;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  gap: 12px;
+  align-items: center;
+  /* Tighter than a popover row's 6px: this is a list to scan down, and the
+     air between six of them read as six separate menus. */
+  padding-block: 3px;
   color: var(--text-secondary);
 }
 
-/* Shortens rather than pushing the code out of the popover. */
+/* A name long enough to crowd the codes shortens instead of moving them. */
 .layout-menu-preset-name {
   overflow: hidden;
   text-overflow: ellipsis;

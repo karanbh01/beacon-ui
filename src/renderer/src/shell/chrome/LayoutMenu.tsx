@@ -88,20 +88,26 @@ export function LayoutMenu({
         </p>
       )}
 
-      {presets.map((preset) => (
-        <button
-          key={preset.id}
-          type="button"
-          className="popover-row layout-menu-preset"
-          onClick={() => {
-            onApplyPreset?.(preset.id)
-            onClose()
-          }}
-        >
-          <span className="layout-menu-preset-name">{preset.name}</span>
-          <span className="popover-row-meta">{preset.code}</span>
-        </button>
-      ))}
+      {/*
+        One grid for all the rows, so the codes line up in a column of their
+        own rather than each sitting wherever its name ended (BU-158).
+      */}
+      <div className="layout-menu-presets">
+        {presets.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className="popover-row layout-menu-preset"
+            onClick={() => {
+              onApplyPreset?.(preset.id)
+              onClose()
+            }}
+          >
+            <span className="layout-menu-preset-name">{preset.name}</span>
+            <span className="popover-row-meta">{preset.code}</span>
+          </button>
+        ))}
+      </div>
     </Popover>
   )
 }
