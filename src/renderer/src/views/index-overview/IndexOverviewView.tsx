@@ -107,11 +107,12 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
               <LevelChart
                 mode={mode}
                 series={[{ label: indexId, points: level }]}
-                subPanel={{
-                  label: `drawdown · max ${signedPercent(worst?.value)}`,
-                  points: drawdown(level),
-                  kind: 'area'
-                }}
+                panels={[
+                  {
+                    label: `drawdown · max ${signedPercent(worst?.value)}`,
+                    series: [{ points: drawdown(level), kind: 'area' }]
+                  }
+                ]}
                 note={`base ${overview.data.start.slice(0, 10)} · ${String(overview.data.rebalances)} rebalances`}
                 height={520}
               />

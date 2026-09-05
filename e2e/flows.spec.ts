@@ -474,6 +474,34 @@ test('the chart flags corporate actions and draws a feature on its own axis', as
     .toBeGreaterThan(20)
 })
 
+test('indicators draw on the line, or in a pane of their own', async ({ window }) => {
+  // BU-157: Indicators was a button that did nothing. Two kinds behind it —
+  // an average shares the price scale, an oscillator cannot.
+  await openPage(window, 'Data Explorer')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
+  await window.getByRole('combobox', { name: 'Subject' }).fill('CMP001')
+  await window.keyboard.press('Enter')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
+  await window.locator('.level-chart-frame').waitFor()
+
+  // None by default: the view is a price chart first.
+  await expect(window.locator('.level-chart-sublabel')).toHaveCount(1)
+
+  await window.getByRole('button', { name: 'Indicators' }).click()
+  await window.getByRole('checkbox', { name: 'MA 50', exact: true }).check()
+  await window.getByRole('checkbox', { name: 'RSI', exact: true }).check()
+  await window.keyboard.press('Escape')
+
+  // The average is named in the legend, on the price pane; the oscillator
+  // gets a pane of its own, under volume.
+  await expect(window.locator('.level-chart-legend')).toContainText('MA 50')
+  await expect(window.locator('.level-chart-sublabel')).toHaveCount(2)
+  await expect(window.getByText('RSI · 14')).toBeVisible()
+  await expect(window.getByText(/· MA 50, RSI/)).toBeVisible()
+})
+
 test('an instrument with neither says so rather than offering empty controls', async ({
   window
 }) => {

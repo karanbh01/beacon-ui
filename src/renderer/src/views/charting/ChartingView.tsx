@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
+import { CheckSelect } from '../../components/CheckSelect/CheckSelect'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { LevelChart } from '../../charts/LevelChart'
 import { useThemeMode } from '../../state/theme'
@@ -9,6 +10,7 @@ import { RANGES, rangeStart, type Range } from '../prices/usePrices'
 import { useReference } from '../shared/queries'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { ChartToolbar } from './ChartToolbar'
+import { INDICATORS, panesFor, studiesFor } from './studies'
 import { useChartOverlays } from './useChartOverlays'
 import { useChartSeries, type Interval } from './useChartSeries'
 import './ChartingView.css'
@@ -37,6 +39,7 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
   const [adjusted, setAdjusted] = useState(false)
   const [events, setEvents] = useState(false)
   const [field, setField] = useState('')
+  const [indicators, setIndicators] = useState<readonly string[]>([])
 
   const mode = useThemeMode()
   const setSubject = useWorkspace((state) => state.setSubject)
@@ -59,12 +62,34 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
    * meant every keystroke elsewhere in the view redrew the chart and reset
    * whatever the reader had panned to.
    */
-  const subPanel = useMemo(
-    () =>
-      data.volume.length === 0
-        ? undefined
-        : { label: `volume · ${identifier}`, points: data.volume, kind: 'histogram' as const },
-    [data.volume, identifier]
+  /*
+   * Studies read the line AS DRAWN (BU-157).
+   *
+   * `data.series[0]` is the subject after adjusting, rebasing and the chosen
+   * interval, so an average of it is an average of what is on screen. Only
+   * the subject: a moving average of a compared instrument would need its
+   * own legend entry to say which, and three lines and their averages is a
+   * chart nobody can read.
+   */
+  const drawn = data.series[0]?.points
+
+  const studies = useMemo(() => studiesFor(indicators, drawn ?? []), [indicators, drawn])
+
+  const panels = useMemo(
+    () => [
+      // Volume stays directly under the price, where it has always been; the
+      // oscillators go below it.
+      ...(data.volume.length === 0
+        ? []
+        : [
+            {
+              label: `volume · ${identifier}`,
+              series: [{ points: data.volume, kind: 'histogram' as const }]
+            }
+          ]),
+      ...panesFor(indicators, drawn ?? [])
+    ],
+    [data.volume, identifier, indicators, drawn]
   )
 
   const meta = describeInstrument(reference.data?.fields)
@@ -90,7 +115,18 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
         controls={
           <>
             <Button chevron>Line</Button>
-            <Button chevron>Indicators</Button>
+            {/*
+              Several at once, none by default (BU-157). A moving average and
+              an oscillator are read together as often as not, so this is a
+              CheckSelect rather than the menu the placeholder button implied.
+            */}
+            <CheckSelect
+              label="Indicators"
+              placeholder="Indicators"
+              options={INDICATORS}
+              value={indicators}
+              onChange={setIndicators}
+            />
             <Button chevron>Export</Button>
           </>
         }
@@ -141,7 +177,8 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
         <LevelChart
           mode={mode}
           series={data.series}
-          {...(subPanel === undefined ? {} : { subPanel })}
+          panels={panels}
+          studies={studies}
           events={overlays.events}
           {...(overlays.overlay === undefined ? {} : { overlay: overlays.overlay })}
           {...(data.rebased && data.baseDate !== undefined
@@ -162,6 +199,7 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
         {overlays.events.length > 0 &&
           ` · ${String(overlays.events.length)} corporate action${overlays.events.length === 1 ? '' : 's'}`}
         {overlays.overlay !== undefined && ` · ${overlays.overlay.label} on the right axis`}
+        {indicators.length > 0 && ` · ${indicators.join(', ')}`}
         {compare.length > 0 && ` · compare: ${compare.join(', ')} (rebased)`}
       </p>
     </div>

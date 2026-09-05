@@ -28,11 +28,12 @@ export const LevelAndDrawdown: Story = {
       <LevelChart
         mode={mode(context)}
         series={[{ label: 'TECH10', points: TECH10 }]}
-        subPanel={{
-          label: `drawdown · max ${pct(worst?.value)}`,
-          points: drawdown(TECH10),
-          kind: 'area'
-        }}
+        panels={[
+          {
+            label: `drawdown · max ${pct(worst?.value)}`,
+            series: [{ points: drawdown(TECH10), kind: 'area' }]
+          }
+        ]}
         note={`total ${pct(totalReturn(TECH10))}`}
         height={480}
       />
@@ -49,7 +50,7 @@ export const RebasedCompare: Story = {
         { label: 'AAPL', points: rebase100(TECH10) },
         { label: 'MSFT', points: rebase100(BENCH) }
       ]}
-      subPanel={{ label: 'volume · AAPL', points: VOLUME, kind: 'histogram' }}
+      panels={[{ label: 'volume · AAPL', series: [{ points: VOLUME, kind: 'histogram' }] }]}
       note={`rebased · 100 = ${TECH10[0]?.date ?? ''}`}
       height={480}
     />

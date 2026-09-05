@@ -59,6 +59,11 @@
 .level-chart-sublabel {
   position: absolute;
   left: 16px;
+  /* Canvas behind the text, which is the chart's own background: invisible
+     except where a pane below is dense enough to swallow the label. With
+     three panes stacked, one of them always is. */
+  padding: 0 4px;
+  background: var(--canvas);
   /*
    * Above the chart's own canvases, which are absolute at z-index 1 and 2.
    * Anything lower is painted over — a legend at z-index 1 disappears

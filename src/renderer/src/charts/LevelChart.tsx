@@ -24,11 +24,57 @@ export interface Series {
   points: readonly Point[]
 }
 
+/** Palette slot, resolved against the theme by the chart (BU-157). */
+export type Tone = 'accent' | 'second' | 'third' | 'muted'
+
+export interface PaneSeries {
+  points: readonly Point[]
+  /** `area` for drawdown (it fills to zero); `histogram` for volume and bars. */
+  kind: 'line' | 'area' | 'histogram'
+  tone?: Tone
+  /**
+   * Horizontal reference lines, in the pane's own units.
+   *
+   * RSI's 30 and 70 are the indicator rather than decoration — a line with
+   * no bands is a wiggle out of context — and MACD's zero is where the
+   * crossing everyone is watching for happens.
+   */
+  guides?: readonly number[]
+  /**
+   * Whether the axis carries this series' last value.
+   *
+   * On by default for a line, because a reader wants MACD's current number —
+   * but not for all three of MACD's series at once, which stacks badges on
+   * top of each other and hides the axis behind them.
+   */
+  badge?: boolean
+}
+
+/**
+ * A pane under the price, sharing its time axis.
+ *
+ * More than one series in it, because MACD is a line, a signal and a
+ * histogram that only mean anything together (BU-157) — volume, the case
+ * this started as, is simply a pane with one.
+ */
 export interface SubPanel {
   label: string
+  series: readonly PaneSeries[]
+  /** Height against the price pane's nine. Volume takes one, a study two. */
+  share?: number
+}
+
+/**
+ * A line on the PRICE scale: a moving average, and nothing else so far.
+ *
+ * Distinct from `Overlay`, which brings its own axis. A study is in the same
+ * units as the line it is drawn over, which is exactly why it can share the
+ * scale — and why drawing it anywhere else would be wrong.
+ */
+export interface Study {
+  label: string
   points: readonly Point[]
-  /** `area` for drawdown (it fills down to zero); `histogram` for volume. */
-  kind: 'area' | 'histogram'
+  tone?: Tone
 }
 
 /**
@@ -62,8 +108,10 @@ export interface Overlay {
 export interface LevelChartProps {
   series: readonly Series[]
   mode: ThemeMode
-  /** Drawdown or volume, in a second pane sharing the time axis. */
-  subPanel?: SubPanel
+  /** Drawdown, volume, MACD — panes under the price, in the order given. */
+  panels?: readonly SubPanel[]
+  /** Lines on the price scale itself, e.g. moving averages (BU-157). */
+  studies?: readonly Study[]
   /** Flags on the time axis — corporate actions, in Charting's case. */
   events?: readonly ChartEvent[]
   /** One series on the right price scale, in units of its own. */
@@ -94,7 +142,8 @@ export interface LevelChartProps {
 export function LevelChart({
   series,
   mode,
-  subPanel,
+  panels,
+  studies,
   events,
   overlay,
   height = 420,
@@ -132,7 +181,26 @@ export function LevelChart({
       return api
     })
 
-    const panel = subPanel === undefined ? undefined : addSubPanel(created, subPanel, mode)
+    /*
+     * Studies share the price scale, so they are lines on pane 0 like the
+     * instruments themselves — thinner and quieter, because a moving average
+     * is a reading of the line rather than a second subject.
+     */
+    const drawnStudies = (studies ?? []).map((study) => {
+      const api = created.addSeries(LineSeries, {
+        color: toneColor(mode, study.tone ?? 'muted'),
+        lineWidth: 1,
+        // No title and no last value: the legend above already names every
+        // study, and a badge per average buries the price axis under them.
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false
+      })
+      api.setData(toLineData(study.points))
+      return api
+    })
+
+    const drawnPanels = (panels ?? []).map((panel, index) => addPane(created, panel, mode, index))
 
     /*
      * Flags hang off the first series, which is the subject's own line: the
@@ -150,14 +218,18 @@ export function LevelChart({
     /*
      * Volume is a tenth of the frame (BU-128).
      *
-     * Left at their defaults the two panes come out near enough equal, which
+     * Left at their defaults the panes come out near enough equal, which
      * makes volume look like a second subject rather than context for the
-     * line. Stretch factors are relative, so 9 and 1 is the whole rule.
+     * line. Stretch factors are relative, so the price pane's nine against a
+     * pane's one — or two, for a study somebody has to read values off — is
+     * the whole rule.
      */
-    if (panel !== undefined) {
+    if (drawnPanels.length > 0) {
       const panes = created.panes()
-      panes[0]?.setStretchFactor(SUBPANEL_SHARE.main)
-      panes[1]?.setStretchFactor(SUBPANEL_SHARE.panel)
+      panes[0]?.setStretchFactor(MAIN_SHARE)
+      ;(panels ?? []).forEach((panel, index) => {
+        panes[index + 1]?.setStretchFactor(shareOf(panel))
+      })
     }
 
     created.timeScale().fitContent()
@@ -175,15 +247,16 @@ export function LevelChart({
       if (chart.current === null) return
       // Markers first: they are attached to a series that is about to go.
       flags?.detach()
-      for (const api of drawn) created.removeSeries(api)
-      if (panel !== undefined) created.removeSeries(panel)
+      for (const api of [...drawn, ...drawnStudies, ...drawnPanels.flat()]) {
+        created.removeSeries(api)
+      }
       if (overlaid !== undefined) {
         created.removeSeries(overlaid)
         // The axis exists for that one series, so it goes with it.
         created.applyOptions({ rightPriceScale: { visible: false } })
       }
     }
-  }, [series, subPanel, events, overlay, mode])
+  }, [series, panels, studies, events, overlay, mode])
 
   /*
    * The frame around the plot, with the axes outside it.
@@ -218,7 +291,7 @@ export function LevelChart({
       if (chart.current === null) return
       created.timeScale().unsubscribeSizeChange(measure)
     }
-  }, [series, subPanel, overlay, height, mode])
+  }, [series, panels, overlay, height, mode])
 
   return (
     <div
@@ -234,6 +307,16 @@ export function LevelChart({
               aria-hidden="true"
             />
             {line.label}
+          </span>
+        ))}
+        {(studies ?? []).map((study) => (
+          <span key={study.label} className="level-chart-key">
+            <span
+              className="level-chart-dot"
+              style={{ background: toneColor(mode, study.tone ?? 'muted') }}
+              aria-hidden="true"
+            />
+            {study.label}
           </span>
         ))}
         {overlay !== undefined && (
@@ -256,45 +339,59 @@ export function LevelChart({
           aria-hidden="true"
         />
       </div>
-      {subPanel !== undefined && (
+      {(panels ?? []).map((panel, index) => (
         <span
+          key={panel.label}
           className="level-chart-sublabel type-11"
           /*
-           * On the subpanel's top edge, and inside the frame.
+           * On its pane's top edge, and inside the frame.
            *
-           * The height moved when the pane became a tenth of the chart
-           * (BU-128) — a fixed percentage left it floating in the middle of
-           * the price line — and the left offset is the axis width, or it
-           * straddles the frame's edge (BU-133).
+           * Measured from the shares rather than from a fixed percentage: the
+           * label floated in the middle of the price line when volume became
+           * a tenth of the chart (BU-128), and with three panes there is no
+           * one percentage to hard-code anyway. The left offset is the axis
+           * width, or the label straddles the frame's edge (BU-133).
            */
           style={{
             left: axes.left + LEGEND_INSET,
-            bottom: axes.bottom + (plot - axes.bottom) * subPanelShare()
+            bottom: axes.bottom + (plot - axes.bottom) * shareBelow(panels ?? [], index)
           }}
         >
-          {subPanel.label}
+          {panel.label}
         </span>
-      )}
+      ))}
     </div>
   )
 }
 
-/**
- * The second pane.
- *
- * `paneIndex: 1` is a lightweight-charts v5 feature; before it, a subpanel
- * meant a second chart with its time scales manually kept in sync, which
- * drifts the moment either one is panned.
- */
 /** Clear of the frame's own hairline, without floating away from it. */
 const LEGEND_INSET = 10
 
-/** Relative pane heights when there is a subpanel: nine parts to one. */
-const SUBPANEL_SHARE = { main: 9, panel: 1 }
+/** The price pane's share, against a panel's one. */
+const MAIN_SHARE = 9
 
-/** The subpanel's share of the panes, as a fraction. */
-function subPanelShare(): number {
-  return SUBPANEL_SHARE.panel / (SUBPANEL_SHARE.main + SUBPANEL_SHARE.panel)
+function shareOf(panel: SubPanel): number {
+  return panel.share ?? 1
+}
+
+/**
+ * How much of the plot sits at or below pane `index`, as a fraction.
+ *
+ * Which is where that pane's top edge is, measured from the bottom — panes
+ * are added downwards, so the last one in the list is the lowest on screen.
+ */
+function shareBelow(panels: readonly SubPanel[], index: number): number {
+  const total = panels.reduce((sum, panel) => sum + shareOf(panel), MAIN_SHARE)
+  const below = panels.slice(index).reduce((sum, panel) => sum + shareOf(panel), 0)
+  return below / total
+}
+
+/** A palette slot as the colour the theme gives it. */
+function toneColor(mode: ThemeMode, tone: Tone): string {
+  if (tone === 'muted') return COLORS[mode]['text-muted']
+  if (tone === 'second') return seriesColor(mode, 1)
+  if (tone === 'third') return seriesColor(mode, 2)
+  return seriesColor(mode, 0)
 }
 
 /**
@@ -346,35 +443,88 @@ function addOverlay(
   return api
 }
 
-function addSubPanel(chart: IChartApi, panel: SubPanel, mode: ThemeMode) {
-  if (panel.kind === 'histogram') {
-    const api = chart.addSeries(HistogramSeries, histogramOptions(mode), 1)
-    api.setData(toHistogramData(panel.points))
+/**
+ * One pane under the price, with everything in it.
+ *
+ * `paneIndex` is a lightweight-charts v5 feature; before it, a subpanel meant
+ * a second chart with its time scales manually kept in sync, which drifts the
+ * moment either one is panned. Pane 0 is the price, so the first panel is 1.
+ */
+function addPane(
+  chart: IChartApi,
+  panel: SubPanel,
+  mode: ThemeMode,
+  index: number
+): ISeriesApi<SeriesType>[] {
+  const pane = index + 1
+  return panel.series.map((entry) => addPaneSeries(chart, entry, mode, pane))
+}
+
+function addPaneSeries(
+  chart: IChartApi,
+  entry: PaneSeries,
+  mode: ThemeMode,
+  pane: number
+): ISeriesApi<SeriesType> {
+  if (entry.kind === 'histogram') {
+    const api = chart.addSeries(
+      HistogramSeries,
+      { ...histogramOptions(mode), color: toneColor(mode, entry.tone ?? 'muted') },
+      pane
+    )
+    api.setData(toHistogramData(entry.points))
+    return api
+  }
+
+  if (entry.kind === 'line') {
+    const api = chart.addSeries(
+      LineSeries,
+      {
+        color: toneColor(mode, entry.tone ?? 'accent'),
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: entry.badge ?? true,
+        crosshairMarkerVisible: false
+      },
+      pane
+    )
+    api.setData(toLineData(entry.points))
+    addGuides(api, entry, mode)
     return api
   }
 
   // Drawdown is negative throughout, so the area fills from zero downward —
   // which is the shape that reads as "below the peak" without a legend.
+  const color = toneColor(mode, entry.tone ?? 'accent')
   const api = chart.addSeries(
     AreaSeries,
     {
-      lineColor: seriesColor(mode, 0),
+      lineColor: color,
       topColor: 'transparent',
       // Tinted, not solid: the subpanel is context for the line above it, and
       // a full-strength fill competes with the series it is describing.
-      bottomColor: withAlpha(seriesColor(mode, 0), 0.35),
+      bottomColor: withAlpha(color, 0.35),
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: true,
       invertFilledArea: true
     },
-    1
+    pane
   )
-  api.setData(
-    panel.points.map((point) => ({
-      time: (Date.parse(`${point.date}T00:00:00Z`) / 1000) as UTCTimestamp,
-      value: point.value
-    }))
-  )
+  api.setData(toLineData(entry.points))
+  addGuides(api, entry, mode)
   return api
+}
+
+/** Quiet, unlabelled: a guide is a level to read against, not a value. */
+function addGuides(api: ISeriesApi<SeriesType>, entry: PaneSeries, mode: ThemeMode): void {
+  for (const price of entry.guides ?? []) {
+    api.createPriceLine({
+      price,
+      color: COLORS[mode].divider,
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: false
+    })
+  }
 }

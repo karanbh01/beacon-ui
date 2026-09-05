@@ -253,7 +253,7 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
                   ? []
                   : [{ label: benchmark, points: benchmarkLevel }])
               ]}
-              subPanel={{ label: 'drawdown', points: drawdown(level), kind: 'area' }}
+              panels={[{ label: 'drawdown', series: [{ points: drawdown(level), kind: 'area' }] }]}
               height={560}
               {...(overview.data === undefined
                 ? {}
