@@ -7,6 +7,13 @@ import './ValidationCard.css'
 
 export interface ValidationCardProps {
   report?: { valid: boolean; findings: Finding[] } | undefined
+  /**
+   * Findings the app made itself, before the engine was asked (BU-160).
+   *
+   * Shown with the engine's own and counted with them: to a reader they are
+   * the same kind of thing — a reason this draft is not an index yet.
+   */
+  own?: readonly Finding[]
   preview?: PreviewResponse | undefined
   dirty: boolean
   /** True while the draft has changed since preview was last run. */
@@ -27,12 +34,14 @@ export interface ValidationCardProps {
  */
 export function ValidationCard({
   report,
+  own = [],
   preview,
   dirty,
   stale
 }: ValidationCardProps): ReactElement {
-  const errors = report === undefined ? [] : errorsOf(report.findings)
-  const warnings = report === undefined ? [] : warningsOf(report.findings)
+  const findings = [...own, ...(report?.findings ?? [])]
+  const errors = errorsOf(findings)
+  const warnings = warningsOf(findings)
   const capped = preview?.assets.filter((asset) => asset.capped).length ?? 0
 
   return (
@@ -40,8 +49,24 @@ export function ValidationCard({
       <KVList>
         <KV
           label="Draft"
-          value={report === undefined ? 'not validated yet' : report.valid ? 'valid' : 'blocked'}
-          tone={report === undefined ? 'default' : report.valid ? 'positive' : 'negative'}
+          value={
+            errors.length > 0
+              ? 'blocked'
+              : report === undefined
+                ? 'not validated yet'
+                : report.valid
+                  ? 'valid'
+                  : 'blocked'
+          }
+          tone={
+            errors.length > 0
+              ? 'negative'
+              : report === undefined
+                ? 'default'
+                : report.valid
+                  ? 'positive'
+                  : 'negative'
+          }
         />
         <KV
           label="Pipeline resolves"

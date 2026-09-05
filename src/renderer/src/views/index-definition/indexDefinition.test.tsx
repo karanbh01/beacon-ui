@@ -209,14 +209,34 @@ describe('the methodology pipeline', () => {
     expect(cap).toHaveAttribute('title', expect.stringContaining('Already capped'))
   })
 
-  it('will not let a weighting or treatment row be removed', async () => {
+  it('lets the weighting and the treatment be taken out again (BU-160)', async () => {
     mount()
     await screen.findByText('Weighting & caps')
 
-    // Both are fields on the document, not rules — py-beacon has nowhere to
-    // put a third weighting.
-    expect(screen.queryByRole('button', { name: 'Remove weighting' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Remove treatment' })).not.toBeInTheDocument()
+    // Both used to be fixed rows: the app's defaults, shown as decisions the
+    // user had made and could not undo.
+    await userEvent.click(screen.getByRole('button', { name: 'Remove weighting' }))
+    expect(screen.queryByText('Market cap weighted')).not.toBeInTheDocument()
+
+    // And with none chosen, the slot offers the weighting itself.
+    expect(screen.getByRole('button', { name: /^\+ Add weighting/ })).toBeEnabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove treatment' }))
+    // Selection's slot and treatment's read the same; the last one is the
+    // treatment group's, and it is live again now that group is empty.
+    expect(screen.getAllByRole('button', { name: /^\+ Add rule/ }).at(-1)).toBeEnabled()
+  })
+
+  it('holds Validate and Save back while no scheme is chosen (BU-160)', async () => {
+    mount()
+    await screen.findByText('Weighting & caps')
+    await userEvent.click(screen.getByRole('button', { name: 'Remove weighting' }))
+
+    // `scheme` carries min_length 1, so sending this is a 422 against the
+    // request body rather than a finding anybody could act on.
+    expect(screen.getByRole('button', { name: 'Validate' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    expect(screen.getByText(/Choose a weighting scheme/)).toBeInTheDocument()
   })
 
   it('adds a rule and opens nothing until it is clicked', async () => {

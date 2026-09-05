@@ -20,6 +20,26 @@ export function findType(catalogue: RuleTypes | undefined, name: string): TypeSp
   return undefined
 }
 
+/**
+ * The cap, as a parameter the editor can render (BU-160).
+ *
+ * `max_weight` is a field of `WeightingSpec` rather than a scheme parameter,
+ * so `/indices/rule-types` does not describe it — it describes schemes. The
+ * cap still has to be editable somewhere, and the weighting it caps is the
+ * only honest place, so the editor is handed this alongside the catalogue's
+ * own parameters.
+ */
+export const MAX_WEIGHT_PARAM: ParameterSpec = {
+  name: 'max_weight',
+  label: 'Max weight',
+  type: 'number',
+  required: false,
+  default: null,
+  choices: null,
+  help: 'Single-constituent cap as a fraction — 0.2 is 20%. Empty for uncapped.',
+  order: 100
+}
+
 /** Fields in the order the catalogue asks for, required ones marked. */
 export function orderedParameters(spec: TypeSpec | undefined): ParameterSpec[] {
   return [...(spec?.parameters ?? [])].sort((a, b) => a.order - b.order)

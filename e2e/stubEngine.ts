@@ -411,8 +411,100 @@ function indexDocument(id: string): unknown {
   }
 }
 
+/**
+ * The rule catalogue, as py-beacon publishes it (BN-117).
+ *
+ * Read off a running engine rather than invented: the editor renders a type
+ * picker and labelled, typed fields FROM this, and degrades to free text
+ * when it is missing — so a stub without it exercised the fallback and never
+ * the path the app actually takes (BU-88, BU-160).
+ */
+const RULE_TYPES = {
+  selection: [
+    {
+      name: 'FeatureRule',
+      label: 'Feature threshold',
+      summary: 'Select instruments whose feature value passes a threshold.',
+      parameters: [
+        { name: 'field', type: 'string', required: true, default: null, label: 'Field', order: 1 },
+        {
+          name: 'comparison',
+          type: 'string',
+          required: false,
+          default: 'gt',
+          label: 'Comparison',
+          choices: ['gt', 'ge', 'lt', 'le', 'eq', 'ne'],
+          order: 2
+        },
+        {
+          name: 'threshold',
+          type: 'number',
+          required: false,
+          default: 0.0,
+          label: 'Threshold',
+          order: 3
+        }
+      ]
+    },
+    {
+      name: 'LiquidityRule',
+      label: 'Liquidity',
+      summary: 'Eligibility rule based on trading liquidity.',
+      parameters: [
+        {
+          name: 'min_avg_daily_value',
+          type: 'number',
+          required: false,
+          default: null,
+          label: 'Min avg daily value',
+          order: 2
+        }
+      ]
+    },
+    {
+      name: 'MarketCapRule',
+      label: 'Market capitalisation',
+      summary: 'Eligibility rule based on market capitalization.',
+      parameters: [
+        {
+          name: 'min_market_cap',
+          type: 'number',
+          required: false,
+          default: null,
+          label: 'Min market cap',
+          order: 1
+        }
+      ]
+    }
+  ],
+  weighting: [
+    {
+      name: 'EqualWeighted',
+      label: 'Equal weighted',
+      summary: 'Equal weighting scheme.',
+      parameters: []
+    },
+    {
+      name: 'MarketCapWeighted',
+      label: 'Market capitalisation weighted',
+      summary: 'Market capitalization weighting scheme.',
+      parameters: [
+        {
+          name: 'use_free_float',
+          type: 'boolean',
+          required: false,
+          default: false,
+          label: 'Use free float',
+          order: 1
+        }
+      ]
+    }
+  ]
+}
+
 const ROUTES: Record<string, unknown> = {
   '/health': { status: 'ok', version: '0.0.2', cache_age: 120 },
+  '/indices/rule-types': RULE_TYPES,
   '/data/coverage': {
     identifiers_union: 512,
     cache_size_bytes: 14_680_064,

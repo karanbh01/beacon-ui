@@ -19,6 +19,11 @@ export interface RuleEditorProps {
   rule: RuleSpec
   /** Which stage the rule belongs to, so the type list is the right one. */
   stage?: 'selection' | 'weighting'
+  /**
+   * Fields the catalogue does not describe but the spec still carries — the
+   * weighting's `max_weight`, and nothing else so far (BU-160).
+   */
+  extraParameters?: readonly ParameterSpec[]
   onApply: (rule: RuleSpec) => void
   onCancel: () => void
 }
@@ -99,6 +104,7 @@ function ParamField({
 export function RuleEditor({
   rule,
   stage = 'selection',
+  extraParameters = [],
   onApply,
   onCancel
 }: RuleEditorProps): ReactElement {
@@ -107,7 +113,7 @@ export function RuleEditor({
   const [edited, setEdited] = useState<Record<string, string>>({})
 
   const spec = findType(catalogue.data, type)
-  const parameters = orderedParameters(spec)
+  const parameters = [...orderedParameters(spec), ...extraParameters]
   const options = typesFor(catalogue.data, stage).map((entry) => ({
     value: entry.name,
     label: entry.label
@@ -134,7 +140,15 @@ export function RuleEditor({
       <div className="rule-editor-fields">
         <Field label="Rule type" width={220}>
           {options.length > 0 ? (
-            <Select label="Rule type" options={options} value={type} onChange={setType} />
+            <Select
+              label="Rule type"
+              options={options}
+              value={type}
+              // Nothing chosen is a real state now: a weighting is added by
+              // picking one rather than by accepting a default (BU-160).
+              placeholder="Choose…"
+              onChange={setType}
+            />
           ) : (
             <input
               className="rule-editor-input"
@@ -165,7 +179,7 @@ export function RuleEditor({
           onClick={() => {
             onApply({ id: rule.id, type, params: applied() })
           }}
-          disabled={missing.length > 0}
+          disabled={missing.length > 0 || type.trim() === ''}
         >
           Apply
         </Button>

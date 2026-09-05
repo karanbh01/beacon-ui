@@ -267,6 +267,51 @@ test('the methodology card is the same width with an editor open', async ({ wind
   expect(open?.width).toBe(closed?.width)
 })
 
+test('a weighting is chosen, edited and taken away again', async ({ window }) => {
+  // BU-160: it used to arrive as EqualWeighted on a row that could not be
+  // removed or edited — the app's default, shown as the user's decision.
+  await openDraft(window)
+
+  await window.getByRole('button', { name: 'Remove weighting', exact: true }).click()
+
+  // Nothing to send: `scheme` carries min_length 1, so this is a 422 against
+  // the request body rather than a finding. The app says so itself.
+  await expect(window.getByText(/Choose a weighting scheme/)).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Validate' })).toBeDisabled()
+  await expect(window.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
+
+  // The slot offers the weighting itself while there is none.
+  await window.getByRole('button', { name: /^\+ Add weighting/ }).click()
+  await expect(window.getByRole('button', { name: 'Apply' })).toBeDisabled()
+
+  // The engine's own list (BN-117), and the cap edited where it lives.
+  await window.getByLabel('Rule type').selectOption('MarketCapWeighted')
+  await window.getByLabel('Max weight').fill('0.15')
+  await window.getByRole('button', { name: 'Apply' }).click()
+
+  await expect(window.getByText('Single-constituent cap 15.0%')).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Save', exact: true })).toBeEnabled()
+
+  // The cap comes off on its own, leaving the scheme it capped.
+  await window.getByRole('button', { name: 'Remove cap', exact: true }).click()
+  await expect(window.getByText('Single-constituent cap 15.0%')).toHaveCount(0)
+  await expect(window.getByText('Market cap weighted')).toBeVisible()
+})
+
+test('the treatment is added and removed rather than assumed', async ({ window }) => {
+  await openDraft(window)
+
+  await window.getByRole('button', { name: 'Remove treatment', exact: true }).click()
+  await expect(window.getByText('Adjust divisor')).toHaveCount(0)
+
+  // py-beacon applies its own when the key is absent, so the group is empty
+  // and its slot is live again.
+  const slot = window.getByRole('button', { name: /^\+ Add rule/ }).last()
+  await expect(slot).toBeEnabled()
+  await slot.click()
+  await expect(window.getByText('Adjust divisor')).toBeVisible()
+})
+
 test('an index can be deleted, with its backtest results named', async ({ app, window }) => {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Index Definition')

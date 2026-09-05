@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   GROUPS,
-  addBlockedReason,
   addCap,
   addRule,
+  addSlotFor,
+  addTreatment,
+  applyRow,
+  draftFindings,
+  hasWeighting,
   asPercent,
   blankIndex,
   describeRule,
@@ -14,6 +18,7 @@ import {
   moveRule,
   nextRuleId,
   pipelineRows,
+  removeRow,
   removeRule,
   replaceRule,
   warningsOf,
@@ -52,21 +57,28 @@ describe('GROUPS', () => {
   })
 
   it('lets selection take another rule', () => {
-    expect(addBlockedReason('selection', doc())).toBeUndefined()
+    expect(addSlotFor('selection', doc())).toEqual({ label: 'Add rule…' })
   })
 
-  it('lets an uncapped index be capped, and a capped one not', () => {
-    // Weighting is ONE WeightingSpec whose cap is a nullable FIELD, so the
-    // only thing "add" can mean here is the cap, once.
+  it('offers the weighting itself while there is none, and the cap after', () => {
+    const none = doc()
+    none.pipeline.weighting = { id: 'weighting', scheme: '', params: {} }
+    expect(addSlotFor('weighting', none).label).toBe('Add weighting…')
+
     const uncapped = doc()
     uncapped.pipeline.weighting.max_weight = null
-    expect(addBlockedReason('weighting', uncapped)).toBeUndefined()
+    expect(addSlotFor('weighting', uncapped)).toEqual({ label: 'Add cap…' })
 
-    expect(addBlockedReason('weighting', doc())).toContain('Already capped')
+    // Capped already: the cap is a field, so a second one is not a thing.
+    expect(addSlotFor('weighting', doc()).blocked).toContain('Already capped')
   })
 
-  it('never lets treatment take anything, because py-beacon supports one', () => {
-    expect(addBlockedReason('treatment', doc())).toContain('ADJUST_DIVISOR')
+  it('lets treatment be added once, because py-beacon supports one value', () => {
+    const none = doc()
+    delete none.pipeline.treatment
+    expect(addSlotFor('treatment', none).blocked).toBeUndefined()
+
+    expect(addSlotFor('treatment', doc()).blocked).toContain('ADJUST_DIVISOR')
   })
 })
 
@@ -152,11 +164,12 @@ describe('pipelineRows', () => {
   })
 
   it('renders the cap as its own row, since the design shows one', () => {
-    // It is a FIELD on the weighting spec, not a rule — so the row is fixed
-    // and cannot be removed or reordered.
+    // A FIELD on the weighting spec rather than a rule, so it is edited with
+    // the weighting — but it can be taken off on its own (BU-160).
     const cap = pipelineRows(doc()).find((row) => row.id === 'weighting-cap')
     expect(cap?.summary).toBe('Single-constituent cap 20.0%')
-    expect(cap?.fixed).toBe(true)
+    expect(cap?.removable).toBe(true)
+    expect(cap?.movable).toBe(false)
   })
 
   it('omits the cap row entirely when the index is uncapped', () => {
@@ -179,9 +192,77 @@ describe('pipelineRows', () => {
     expect(rows.find((row) => row.id === 'r2')?.outcome).toBe('24 pass')
   })
 
-  it('marks only selection rules as editable', () => {
+  it('reorders selection rules and nothing else — order is meaning there', () => {
     const rows = pipelineRows(doc())
-    expect(rows.filter((row) => !row.fixed).map((row) => row.id)).toEqual(['r1', 'r2'])
+    expect(rows.filter((row) => row.movable).map((row) => row.id)).toEqual(['r1', 'r2'])
+  })
+
+  it('lets every row be taken out, and the treatment be no more than that', () => {
+    const rows = pipelineRows(doc())
+
+    expect(rows.every((row) => row.removable)).toBe(true)
+    // One legal value, so an editor could offer nothing (BU-160).
+    expect(rows.find((row) => row.group === 'treatment')?.editable).toBe(false)
+  })
+
+  it('shows no weighting or treatment row until there is one', () => {
+    const empty = blankIndex('NEW')
+    expect(pipelineRows(empty)).toEqual([])
+  })
+})
+
+describe('choosing, editing and removing rows (BU-160)', () => {
+  it('knows whether a scheme has been chosen', () => {
+    expect(hasWeighting(blankIndex('X'))).toBe(false)
+    expect(hasWeighting(doc())).toBe(true)
+  })
+
+  it('carries the cap through the editor and back onto the spec', () => {
+    const edited = applyRow(doc(), {
+      id: 'weighting',
+      type: 'MarketCapWeighted',
+      params: { use_free_float: true, max_weight: 0.1 }
+    })
+
+    expect(edited.pipeline.weighting.scheme).toBe('MarketCapWeighted')
+    expect(edited.pipeline.weighting.max_weight).toBe(0.1)
+    // `max_weight` is a field of the spec, never one of the scheme's params.
+    expect(edited.pipeline.weighting.params).toEqual({ use_free_float: true })
+  })
+
+  it('takes the cap off without disturbing the scheme', () => {
+    const uncapped = removeRow(doc(), 'weighting-cap')
+
+    expect(uncapped.pipeline.weighting.max_weight).toBeNull()
+    expect(uncapped.pipeline.weighting.scheme).toBe('MarketCapWeighted')
+  })
+
+  it('clears the whole weighting, cap and params with it', () => {
+    const cleared = removeRow(doc(), 'weighting')
+
+    expect(hasWeighting(cleared)).toBe(false)
+    expect(cleared.pipeline.weighting.max_weight).toBeNull()
+    expect(cleared.pipeline.weighting.params).toEqual({})
+  })
+
+  it('omits treatment rather than nulling it — the engine applies its own', () => {
+    const without = removeRow(doc(), 'treatment')
+
+    expect(Object.hasOwn(without.pipeline, 'treatment')).toBe(false)
+    expect(addTreatment(without).pipeline.treatment?.corporate_actions).toBe('ADJUST_DIVISOR')
+  })
+
+  it('still removes a selection rule by id', () => {
+    expect((removeRow(doc(), 'r1').pipeline.selection ?? []).map((rule) => rule.id)).toEqual(['r2'])
+  })
+
+  it('says a scheme is missing before the engine is asked', () => {
+    // `scheme` carries min_length 1, so an unchosen one is a 422 against the
+    // request body rather than a finding anybody could act on.
+    const findings = draftFindings(blankIndex('X'))
+
+    expect(findings.map((finding) => finding.code)).toEqual(['NO_WEIGHTING'])
+    expect(draftFindings(doc())).toEqual([])
   })
 })
 
@@ -267,8 +348,10 @@ describe('blankIndex', () => {
     const fresh = blankIndex('NEWIDX')
 
     expect(fresh.id).toBe('NEWIDX')
-    expect(fresh.pipeline.weighting.scheme).toBe('EqualWeighted')
-    expect(fresh.pipeline.treatment?.corporate_actions).toBe('ADJUST_DIVISOR')
+    // Nothing chosen: a weighting is the author's decision, and the engine
+    // supplies its own treatment when none is sent (BU-160).
+    expect(fresh.pipeline.weighting.scheme).toBe('')
+    expect(fresh.pipeline.treatment).toBeUndefined()
   })
 
   it('starts with no selection rules, which validate should complain about', () => {

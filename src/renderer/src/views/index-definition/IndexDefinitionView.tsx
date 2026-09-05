@@ -20,7 +20,17 @@ import { IndexOverview } from './IndexOverview'
 import { Methodology } from './Methodology'
 import { ValidationCard } from './ValidationCard'
 import { useIndexDraft } from './useIndexDraft'
-import { addCap, addRule, moveRule, removeRule, replaceRule, type IndexDocument } from './pipeline'
+import {
+  addCap,
+  addRule,
+  addTreatment,
+  applyRow,
+  draftFindings,
+  hasWeighting,
+  moveRule,
+  removeRow,
+  type IndexDocument
+} from './pipeline'
 import './IndexDefinitionView.css'
 
 /**
@@ -170,7 +180,9 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
               onClick={() => {
                 run(draft)
               }}
-              disabled={validate.isPending}
+              // Neither call can be made with no scheme chosen: the request
+              // schema rejects the body before any of it is read (BU-160).
+              disabled={validate.isPending || !hasWeighting(draft)}
             >
               Validate
             </Button>
@@ -179,7 +191,7 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
             </Button>
             <Button
               variant="accent"
-              disabled={!dirty || save.isPending}
+              disabled={!dirty || save.isPending || !hasWeighting(draft)}
               onClick={() => {
                 save.mutate(
                   { document: draft, isNew: saved === undefined },
@@ -251,16 +263,26 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
           editingId={editingId}
           onSelect={setEditingId}
           onAdd={(group) => {
-            // Each group adds a different thing, and treatment adds nothing —
-            // its slot is inert, so this is never reached for it.
-            edit(group === 'weighting' ? addCap : addRule)
+            /*
+             * Each group adds a different thing, and one of them adds nothing
+             * yet: a weighting is CHOSEN, so with none there the slot opens
+             * the editor and the row appears when a scheme is applied
+             * (BU-160).
+             */
+            if (group === 'weighting' && !hasWeighting(draft)) {
+              setEditingId(draft.pipeline.weighting.id)
+              return
+            }
+            if (group === 'weighting') edit(addCap)
+            else if (group === 'treatment') edit(addTreatment)
+            else edit(addRule)
           }}
           onApply={(rule) => {
-            edit((current) => replaceRule(current, rule))
+            edit((current) => applyRow(current, rule))
             setEditingId(undefined)
           }}
           onRemove={(id) => {
-            edit((current) => removeRule(current, id))
+            edit((current) => removeRow(current, id))
             setEditingId(undefined)
           }}
           onMove={(id, delta) => {
@@ -270,6 +292,10 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
 
         <ValidationCard
           {...(validate.data === undefined ? {} : { report: validate.data })}
+          // What this app knows before the engine is asked (BU-160): an
+          // unchosen weighting is a 422 from the request schema, not a
+          // finding, so it has to be said here.
+          own={draftFindings(draft)}
           {...(preview.data === undefined ? {} : { preview: preview.data })}
           dirty={dirty}
           stale={previewedFor !== undefined && previewedFor !== JSON.stringify(draft)}

@@ -3,10 +3,14 @@ import { AddSlot } from '../../components/AddSlot/AddSlot'
 import { Badge } from '../../components/Badge/Badge'
 import { Card } from '../../components/Card/Card'
 import { RuleEditor } from './RuleEditor'
+import { MAX_WEIGHT_PARAM } from './ruleCatalogue'
 import {
-  addBlockedReason,
+  addSlotFor,
+  capId,
   GROUPS,
+  hasWeighting,
   pipelineRows,
+  weightingAsRule,
   type IndexDocument,
   type GroupId,
   type PipelineRow,
@@ -37,12 +41,40 @@ export interface MethodologyProps {
  */
 export function Methodology(props: MethodologyProps): ReactElement {
   const rows = pipelineRows(props.document, props.steps)
-  const selection = props.document.pipeline.selection ?? []
+  const weighting = props.document.pipeline.weighting
+
+  /*
+   * A weighting being CHOSEN is an editor with no row under it (BU-160).
+   *
+   * "Add weighting…" cannot append a scheme the way "Add rule…" appends a
+   * rule, because picking the scheme is the whole of the act — so the slot
+   * opens the editor against a weighting that has none yet, and the row
+   * appears when it is applied.
+   */
+  const choosing = props.editingId === weighting.id && !hasWeighting(props.document)
+
+  const editor = (id: string): ReactElement | null => {
+    const rule = editedRule(props.document, id)
+    if (rule === null) return null
+
+    return (
+      <RuleEditor
+        rule={rule}
+        stage={isWeighting(props.document, id) ? 'weighting' : 'selection'}
+        // The cap lives on the weighting spec, so it is edited with it.
+        extraParameters={isWeighting(props.document, id) ? [MAX_WEIGHT_PARAM] : []}
+        onApply={props.onApply}
+        onCancel={() => {
+          props.onSelect(undefined)
+        }}
+      />
+    )
+  }
 
   return (
     <Card title="Methodology" flush className="methodology">
       {GROUPS.map((group) => {
-        const blocked = addBlockedReason(group.id, props.document)
+        const slot = addSlotFor(group.id, props.document)
         return (
           <Fragment key={group.id}>
             <h4 className="methodology-group">{group.label}</h4>
@@ -55,7 +87,9 @@ export function Methodology(props: MethodologyProps): ReactElement {
                     position={rows.indexOf(row) + 1}
                     selected={row.id === props.editingId}
                     onSelect={() => {
-                      props.onSelect(row.fixed || row.id === props.editingId ? undefined : row.id)
+                      props.onSelect(
+                        !row.editable || row.id === props.editingId ? undefined : row.id
+                      )
                     }}
                     onRemove={() => {
                       props.onRemove(row.id)
@@ -64,22 +98,16 @@ export function Methodology(props: MethodologyProps): ReactElement {
                       props.onMove(row.id, delta)
                     }}
                   />
-                  {row.id === props.editingId && (
-                    <RuleEditorFor
-                      rules={selection}
-                      id={row.id}
-                      onApply={props.onApply}
-                      onCancel={() => {
-                        props.onSelect(undefined)
-                      }}
-                    />
-                  )}
+                  {row.id === props.editingId && editor(row.id)}
                 </Fragment>
               ))}
+
+            {group.id === 'weighting' && choosing && editor(weighting.id)}
+
             <AddSlot
-              label={group.addLabel}
+              label={slot.label}
               indent={44}
-              {...(blocked === undefined ? {} : { blocked })}
+              {...(slot.blocked === undefined ? {} : { blocked: slot.blocked })}
               onClick={() => {
                 props.onAdd(group.id)
               }}
@@ -91,20 +119,16 @@ export function Methodology(props: MethodologyProps): ReactElement {
   )
 }
 
-function RuleEditorFor({
-  rules,
-  id,
-  onApply,
-  onCancel
-}: {
-  rules: readonly RuleSpec[]
-  id: string
-  onApply: (rule: RuleSpec) => void
-  onCancel: () => void
-}): ReactElement | null {
-  const rule = rules.find((candidate) => candidate.id === id)
-  if (rule === undefined) return null
-  return <RuleEditor rule={rule} onApply={onApply} onCancel={onCancel} />
+/** True for the weighting row and for the cap, which is edited with it. */
+function isWeighting(document: IndexDocument, id: string): boolean {
+  const weighting = document.pipeline.weighting
+  return id === weighting.id || id === capId(weighting)
+}
+
+/** What the editor is editing: a selection rule, or the weighting as one. */
+function editedRule(document: IndexDocument, id: string): RuleSpec | null {
+  if (isWeighting(document, id)) return weightingAsRule(document.pipeline.weighting)
+  return (document.pipeline.selection ?? []).find((rule) => rule.id === id) ?? null
 }
 
 interface RowProps {
@@ -119,9 +143,10 @@ interface RowProps {
 /**
  * Selection is a full-row wash, never a chip or a border (taxonomy 5).
  *
- * Fixed rows still render the same shape — py-beacon models weighting and
- * treatment as fields rather than rules, and hiding them would make the
- * methodology look shorter than the index actually is.
+ * Every row renders the same shape whatever py-beacon models it as — a rule,
+ * the weighting, its cap, the treatment. What differs is what the row lets
+ * you do with it: the treatment has one legal value, so it can be taken out
+ * but there is nothing to open an editor for.
  */
 function MethodologyRow({
   row,
@@ -131,7 +156,11 @@ function MethodologyRow({
   onRemove,
   onMove
 }: RowProps): ReactElement {
-  const classes = ['methodology-row', selected && 'methodology-selected', row.fixed && 'is-fixed']
+  const classes = [
+    'methodology-row',
+    selected && 'methodology-selected',
+    !row.editable && 'is-fixed'
+  ]
     .filter(Boolean)
     .join(' ')
 
@@ -141,7 +170,7 @@ function MethodologyRow({
         type="button"
         className="methodology-main"
         aria-pressed={selected}
-        disabled={row.fixed}
+        disabled={!row.editable}
         onClick={onSelect}
       >
         <span className="methodology-index">{String(position).padStart(2, '0')}</span>
@@ -150,23 +179,27 @@ function MethodologyRow({
         <span className="methodology-outcome">{row.outcome ?? '—'}</span>
       </button>
 
-      {!row.fixed && (
+      {(row.movable || row.removable) && (
         <span className="methodology-actions">
-          <RowAction
-            label={`Move ${row.id} up`}
-            glyph="↑"
-            onClick={() => {
-              onMove(-1)
-            }}
-          />
-          <RowAction
-            label={`Move ${row.id} down`}
-            glyph="↓"
-            onClick={() => {
-              onMove(1)
-            }}
-          />
-          <RowAction label={`Remove ${row.id}`} glyph="×" onClick={onRemove} />
+          {row.movable && (
+            <>
+              <RowAction
+                label={`Move ${row.name} up`}
+                glyph="↑"
+                onClick={() => {
+                  onMove(-1)
+                }}
+              />
+              <RowAction
+                label={`Move ${row.name} down`}
+                glyph="↓"
+                onClick={() => {
+                  onMove(1)
+                }}
+              />
+            </>
+          )}
+          {row.removable && <RowAction label={`Remove ${row.name}`} glyph="×" onClick={onRemove} />}
         </span>
       )}
     </div>
