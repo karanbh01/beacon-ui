@@ -146,8 +146,13 @@ test('takes the pane, and scrolls itself rather than the pane', async ({ window 
   await body.evaluate((node) => {
     node.scrollLeft = 240
   })
+  // Polled: a scroll event is dispatched before the next paint rather than
+  // synchronously with the assignment above, so reading straight after it
+  // sometimes catches the head before it has followed.
   const head = window.locator('.tbl-head').first()
-  expect(await head.evaluate((node) => node.style.transform)).toBe('translateX(-240px)')
+  await expect
+    .poll(async () => head.evaluate((node) => node.style.transform))
+    .toBe('translateX(-240px)')
 
   // And the controls stay where they were put.
   await expect(window.getByRole('button', { name: 'Next' })).toBeInViewport()

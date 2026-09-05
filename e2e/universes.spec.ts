@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test'
 import { expect, openPage, openView, test } from './fixtures'
 
 /**
@@ -239,6 +240,31 @@ test('a universe made here can be deleted, and a seeded one cannot', async ({ ap
   await expect(
     window.locator('.universe-overview .tbl-row', { hasText: 'Disposable' })
   ).toHaveCount(0)
+})
+
+async function openDraft(window: Page): Promise<void> {
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Index Definition')
+  await window.getByRole('button', { name: 'New index…' }).click()
+  await window.getByRole('textbox', { name: 'Index id' }).fill('MY-INDEX')
+  await window.getByRole('button', { name: 'Create' }).click()
+  await expect(window.getByText('Weighting & caps')).toBeVisible()
+}
+
+test('the methodology card is the same width with an editor open', async ({ window }) => {
+  // BU-159: `flex: 1 1 auto` sized the card from its content, so opening a
+  // rule editor — whose fields are wider than a collapsed row — widened the
+  // card and reflowed the row around it.
+  await openDraft(window)
+
+  const card = window.locator('.methodology')
+  const closed = await card.boundingBox()
+
+  await window.getByText('Gics sector Information Technology').click()
+  await expect(window.getByLabel('Rule type')).toBeVisible()
+  const open = await card.boundingBox()
+
+  expect(open?.width).toBe(closed?.width)
 })
 
 test('an index can be deleted, with its backtest results named', async ({ app, window }) => {

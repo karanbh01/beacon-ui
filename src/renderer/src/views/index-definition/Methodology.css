@@ -11,7 +11,15 @@
  * condition, a layout overflow. `min-width: 0` is what lets it shrink.
  */
 .methodology {
-  flex: 1 1 auto;
+  /*
+   * Basis zero, not `auto` (BU-159).
+   *
+   * With `auto` the width came from the content, so opening a rule editor —
+   * whose fields are wider than a collapsed row — widened the card and
+   * reflowed the row around it, and closing it snapped back. Growing from
+   * nothing gives it the pane's width less the validation card either way.
+   */
+  flex: 1 1 0;
   min-width: 0;
   max-width: 800px;
 }
