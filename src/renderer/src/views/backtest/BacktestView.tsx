@@ -57,9 +57,16 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
   const run = useRunBacktest()
   const jobs = useJobs((state) => state.jobs)
 
-  // Ask for the result only once a backtest has been run in this session, or
-  // the pane would show a stale overview as though it were this run's.
-  const overview = useIndexOverview(indexId, ranAt !== undefined)
+  /*
+   * Why this run did not happen (BU-162).
+   *
+   * py-beacon fails a backtest whose universe resolves to nothing (BN-161)
+   * where it used to succeed with a dead level of zero. The job carries the
+   * reason; without this the pane fell through to "no backtest run yet", or
+   * asked for an overview that was never written and reported the 404 —
+   * which is true of the wrong thing.
+   */
+  const submitted = ranAt === undefined ? undefined : jobs[ranAt]
   const compare = useCompare(benchmark === '' ? [] : [indexId, benchmark])
 
   const running = activeJobs(jobs).find((job) => job.kind.toLowerCase().includes('backtest'))
@@ -72,13 +79,35 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
    * and was not on screen before.
    */
   const runResult = useBacktestRun(ranAt, ranAt !== undefined && running === undefined)
-  const runData = runResult.data
+
+  /*
+   * Why this run did not happen (BU-162).
+   *
+   * py-beacon fails a backtest whose universe resolves to nothing (BN-161)
+   * where it used to succeed with a dead level of zero. Read from the event
+   * feed where it arrived, and from the job endpoint where it did not —
+   * without either, the pane fell through to "no backtest run yet", or asked
+   * for an overview that was never written and reported the 404, which is
+   * true of the wrong thing.
+   */
+  const failure =
+    submitted?.status === 'failed'
+      ? (submitted.error ?? submitted.message)
+      : runResult.data?.status === 'failed'
+        ? (runResult.data.error ?? 'The engine gave no reason.')
+        : undefined
+
+  const runData = runResult.data?.run
+
+  // Ask for the result only once a backtest has been run in this session, or
+  // the pane would show a stale overview as though it were this run's.
+  const overview = useIndexOverview(indexId, ranAt !== undefined && failure === undefined)
 
   const { refetch } = overview
   useEffect(() => {
-    if (ranAt === undefined || running !== undefined) return
+    if (ranAt === undefined || running !== undefined || failure !== undefined) return
     void refetch()
-  }, [ranAt, running, refetch])
+  }, [ranAt, running, failure, refetch])
 
   /*
    * The portfolio's NAV where there is one, the index's level otherwise.
@@ -190,14 +219,30 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
         </div>
       )}
 
+      {failure !== undefined && (
+        <div className="view-state">
+          <p className="type-13">The backtest did not run.</p>
+          {/* The engine's own words: it names the field to look at, which no
+              paraphrase here could do as well. */}
+          <p className="type-11">{failure}</p>
+        </div>
+      )}
+
       {ranAt === undefined && indexId !== '' && running === undefined && (
         <ViewEmpty>No backtest run yet in this session.</ViewEmpty>
       )}
 
-      {overview.isPending && ranAt !== undefined && running === undefined && (
-        <ViewLoading what={indexId} />
-      )}
-      {overview.isError && <ViewError error={overview.error} />}
+      {overview.isPending &&
+        ranAt !== undefined &&
+        running === undefined &&
+        failure === undefined && <ViewLoading what={indexId} />}
+      {/*
+        Not while the job's own reason is on screen (BU-162): the overview is
+        asked for as soon as a run is submitted, so a failed run answers 404
+        for a result that was never written — a true statement about the
+        wrong thing.
+      */}
+      {overview.isError && failure === undefined && <ViewError error={overview.error} />}
 
       {level.length > 0 && (
         <>

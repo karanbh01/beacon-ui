@@ -156,6 +156,29 @@ describe('stub long job (BU-21 acceptance)', () => {
     expect(screen.getByRole('progressbar', { name: 'sync' })).toBeInTheDocument()
   })
 
+  it('lets a failure wrap, since py-beacon explains itself in sentences', async () => {
+    setup()
+    await screen.findByText('run 1')
+
+    // BN-161's empty-universe error runs to four hundred characters and names
+    // the field to look at. One line with an ellipsis is the shape of an
+    // answer without the answer in it (BU-162).
+    const reason =
+      "the calculation for index 'X' is empty — it never held a single constituent — so there " +
+      "is nothing to simulate. The likely omission is the definition's universe_identifiers."
+
+    FakeSocket.current?.emit({
+      type: 'job',
+      job_id: 'stub-long-fail',
+      kind: 'backtest',
+      status: 'failed',
+      progress: 0.05,
+      error: reason
+    })
+
+    expect(await screen.findByText(reason)).toHaveClass('job-message-failed')
+  })
+
   it('does not refetch on a job that merely started', async () => {
     setup()
     await screen.findByText('run 1')

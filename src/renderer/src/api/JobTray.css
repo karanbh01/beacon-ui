@@ -72,6 +72,10 @@
   background: var(--danger);
 }
 
+/*
+ * One line while it runs: a progress frame is a short status, and a tray that
+ * changes height on every frame is a tray that jitters.
+ */
 .job-message {
   margin: 0;
   font-family: var(--font-ui);
@@ -80,4 +84,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/*
+ * A failure wraps (BU-162).
+ *
+ * py-beacon's calculation errors are sentences — the empty-universe one runs
+ * to four hundred characters and names the field to look at. Clipping that at
+ * a card's width leaves "the calculation for index 'X' is empty — no level
+ * was co…", which is the shape of an answer without the answer in it.
+ */
+.job-message-failed {
+  white-space: normal;
+  color: var(--text-secondary);
 }

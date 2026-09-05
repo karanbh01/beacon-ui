@@ -53,3 +53,32 @@ test('a run given a benchmark measures it, and says so', async ({ window }) => {
   await expect(window.getByText('not measured')).toHaveCount(0)
   await expect(window.getByText('BENCHMARK CAGR')).toBeVisible()
 })
+
+test('a run that cannot happen says why, in py-beacon’s own words', async ({ window }) => {
+  /*
+   * BN-161 made an unresolvable universe a FAILURE rather than a dead level
+   * of zero, and this app had nowhere to put one: the pane fell through to
+   * "no backtest run yet", and the tray clipped four hundred characters of
+   * explanation at the width of a card (BU-162).
+   */
+  await openPage(window, 'Beacon View')
+  await window.getByRole('combobox', { name: 'Search' }).fill('backtest NO-UNIVERSE')
+  await window
+    .getByRole('option', { name: /Backtest/ })
+    .first()
+    .click()
+
+  await window.getByRole('button', { name: 'Run backtest' }).click()
+
+  // In the pane, where the result would have been.
+  await expect(window.getByText('The backtest did not run.')).toBeVisible()
+  await expect(window.getByText(/universe_identifiers/).first()).toBeVisible()
+
+  // And not standing in for it: the overview is never asked for a result
+  // that was not written, so no 404 reports the wrong thing.
+  await expect(window.getByText('Not found.')).toHaveCount(0)
+  await expect(window.getByText('No backtest run yet in this session.')).toHaveCount(0)
+
+  // The tray's half of this is a unit test: it is fed by the event socket,
+  // and the stub has none — every job here is finished on arrival.
+})

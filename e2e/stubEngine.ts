@@ -206,6 +206,21 @@ function tablePage(dataset: string, url: URL): unknown {
   }
 }
 
+/**
+ * The index whose universe resolves to nothing, so its backtest fails.
+ *
+ * Reserved the way REFERENCE_ONLY is: a name that exercises one path and is
+ * absent from every catalogue, so no other test trips over it.
+ */
+const EMPTY_UNIVERSE = 'NO-UNIVERSE'
+
+/** py-beacon's own words (BN-161), because the app renders them verbatim. */
+const EMPTY_UNIVERSE_ERROR =
+  "the calculation for index 'NO-UNIVERSE' is empty — it never held a single constituent — so " +
+  "there is nothing to simulate. The likely omission is the definition's universe_identifiers " +
+  '(universe_identifiers is not set): an empty or unresolvable universe would otherwise backtest ' +
+  'silently to a dead level and zero trades.'
+
 /** Computed on request rather than stored, so it is legal in `fields`. */
 const DERIVED_COLUMNS = ['adv_3m', 'market_cap', 'free_float_market_cap']
 
@@ -1071,27 +1086,41 @@ export function startStubEngine(): Promise<StubEngine> {
           parsed = {}
         }
 
+        const indexId = decodeURIComponent(url.pathname.split('/')[2] ?? '')
         const jobId = `job-${String(jobs.size + 1)}`
-        jobs.set(jobId, {
-          job_id: jobId,
-          kind: 'backtest',
-          status: 'succeeded',
-          progress: 1,
-          message: 'done',
-          result: backtestResult(parsed.benchmark !== undefined && parsed.benchmark !== null),
-          error: null
-        })
 
-        response.writeHead(202).end(
-          JSON.stringify({
-            job_id: jobId,
-            kind: 'backtest',
-            status: 'succeeded',
-            progress: 1,
-            message: 'done',
-            error: null
-          })
-        )
+        /*
+         * A run that CANNOT happen (BN-161, BU-162).
+         *
+         * py-beacon fails a backtest whose universe resolves to nothing,
+         * naming `universe_identifiers`, where it used to succeed with a
+         * dead level of 0.0 and no trades. A stub that only ever succeeds
+         * would let the app render that failure any way it liked — which is
+         * how it came to render it as a 404 from the overview.
+         */
+        const failed = indexId === EMPTY_UNIVERSE
+        const job = failed
+          ? {
+              job_id: jobId,
+              kind: 'backtest',
+              status: 'failed',
+              progress: 0.05,
+              message: 'Calculating the index and simulating the tracking portfolio.',
+              result: null,
+              error: EMPTY_UNIVERSE_ERROR
+            }
+          : {
+              job_id: jobId,
+              kind: 'backtest',
+              status: 'succeeded',
+              progress: 1,
+              message: 'done',
+              result: backtestResult(parsed.benchmark !== undefined && parsed.benchmark !== null),
+              error: null
+            }
+
+        jobs.set(jobId, job)
+        response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))
       })
       return
     }

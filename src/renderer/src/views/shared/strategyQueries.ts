@@ -338,7 +338,19 @@ export function useBacktestRun(jobId: string | undefined, ready: boolean) {
       if (client === null) throw new Error('No engine')
       if (jobId === undefined) throw new Error('No job')
       const status = await client.jobs.get(jobId, signal)
-      return parseRun(status.result)
+      /*
+       * The status travels with the run (BU-162).
+       *
+       * A failure reaches the app on the event feed, and the feed is a
+       * socket: a dropped connection or a missed frame left a failed run
+       * looking like one that never finished. This endpoint knows, and it is
+       * already being called.
+       */
+      return {
+        status: status.status,
+        ...(status.error == null ? {} : { error: status.error }),
+        run: parseRun(status.result)
+      }
     },
     enabled: client !== null && jobId !== undefined && ready,
     retry: false
