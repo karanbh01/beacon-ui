@@ -98,7 +98,7 @@ export function LayoutMenu({
             onClose()
           }}
         >
-          <span>{preset.name}</span>
+          <span className="layout-menu-preset-name">{preset.name}</span>
           <span className="popover-row-meta">{preset.code}</span>
         </button>
       ))}

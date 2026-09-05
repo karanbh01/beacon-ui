@@ -72,9 +72,23 @@
 
 /* The code sits right, like a keyboard hint: it is what you type, not what
    you read. */
+/*
+ * Name then code, both left (BU-156).
+ *
+ * `space-between` put the code against the right edge, so a preset and the
+ * code that loads it — one fact — sat at opposite ends of the row. The save
+ * dialog already lists the pair this way round.
+ */
 .layout-menu-preset {
   display: flex;
-  gap: 12px;
-  justify-content: space-between;
+  gap: 8px;
+  justify-content: flex-start;
   color: var(--text-secondary);
+}
+
+/* Shortens rather than pushing the code out of the popover. */
+.layout-menu-preset-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
