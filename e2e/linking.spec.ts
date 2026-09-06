@@ -126,7 +126,10 @@ test('Beacon View anchors on its own Overview (BU-166)', async ({ window }) => {
   // rather than instruments.
   const field = window.getByRole('combobox', { name: 'Subject' })
   await field.fill('tech')
-  await expect(window.getByRole('option', { name: /TECH10/ })).toBeVisible()
+  const row = window.getByRole('option', { name: /TECH10/ })
+  await expect(row).toBeVisible()
+  // What has been back-tested, and how long ago (BN-162, BU-168).
+  await expect(row).toContainText('backtested 3d ago')
   await window.keyboard.press('ArrowDown')
   await window.keyboard.press('Enter')
   await expect(field).toHaveValue('TECH10')

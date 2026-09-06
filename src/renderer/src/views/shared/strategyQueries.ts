@@ -6,6 +6,8 @@ import { parseRun } from '@shared/backtestRun'
 import { ApiError } from '../../api/errors'
 import { isDocumentId } from '../../api/ids'
 import { keys } from '../../api/keys'
+import { useBacktestRecords } from './beaconQueries'
+import { withBacktests } from './indexSuggestions'
 import { useBeacon } from '../../api/queryClient'
 
 export type IndexDocument = components['schemas']['IndexDocument']
@@ -376,14 +378,24 @@ export function useBacktestRun(jobId: string | undefined, ready: boolean) {
  */
 export function useIndexCatalogue(): { rows: Suggestion[]; loading: boolean } {
   const indices = useIndices()
+  const records = useBacktestRecords()
 
-  const rows = useMemo(
+  const named = useMemo(
     () =>
       (indices.data?.indices ?? []).map((index) => ({
         identifier: index.id,
         ...(index.name === '' ? {} : { name: index.name })
       })),
     [indices.data]
+  )
+
+  /*
+   * Stamped once per render rather than per row, so every age in one list is
+   * measured from the same instant (BU-168).
+   */
+  const rows = useMemo(
+    () => withBacktests(named, records.data ?? [], Date.now()),
+    [named, records.data]
   )
 
   return { rows, loading: indices.isPending }

@@ -520,6 +520,17 @@ const RULE_TYPES = {
 const ROUTES: Record<string, unknown> = {
   '/health': { status: 'ok', version: '0.0.2', cache_age: 120 },
   '/indices/rule-types': RULE_TYPES,
+  /*
+   * Stored backtest records, newest first (BN-162, BU-168).
+   *
+   * Two rows for two different states: one stamped, and one written before
+   * py-beacon stamped them — which is null on a real store too, and is the
+   * case a client is most likely to render as "Invalid Date".
+   */
+  '/beacon/backtests': [
+    { index_id: 'TECH10', run_at: new Date(Date.now() - 3 * 86_400_000).toISOString() },
+    { index_id: 'EU-VALUE', run_at: null }
+  ],
   '/data/coverage': {
     identifiers_union: 512,
     cache_size_bytes: 14_680_064,

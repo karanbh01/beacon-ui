@@ -17,6 +17,26 @@ export type CompareView = components['schemas']['CompareView']
  * save. The split keeps a freshness event from dropping an editor's state.
  */
 
+/**
+ * Which indices carry a stored backtest, and when it was captured (BN-162).
+ *
+ * Thin rows on purpose — the books stay behind `/beacon/{index_id}/record`.
+ * Invalidated with the rest of the beacon branch, which is what a new run or
+ * a deleted index already touches.
+ */
+export function useBacktestRecords() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.beacon.backtests(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/beacon/backtests', { signal })
+    },
+    enabled: client !== null
+  })
+}
+
 export function useOverview(indexId: string) {
   const client = useBeacon()
 

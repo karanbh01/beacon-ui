@@ -60,7 +60,9 @@ export const keys = {
     overview: (indexId: string, asof?: string) => ['beacon', 'overview', indexId, asof] as const,
     weights: (indexId: string, asof?: string) => ['beacon', 'weights', indexId, asof] as const,
     attribution: (indexId: string, asof?: string) =>
-      ['beacon', 'attribution', indexId, asof] as const
+      ['beacon', 'attribution', indexId, asof] as const,
+    /** Every stored backtest record, thin rows (BN-162). */
+    backtests: () => ['beacon', 'backtests'] as const
   },
 
   jobs: {
