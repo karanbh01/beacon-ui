@@ -8,12 +8,14 @@ import { KV, KVList } from '../../components/KV/KV'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { PaperPreview } from '../../components/PaperPreview/PaperPreview'
 import { Select } from '../../components/Select/Select'
+import { TickerField } from '../../components/TickerField/TickerField'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useOverview } from '../shared/beaconQueries'
 import { fromFraction, percent, signedPercent, sinceStart, toPoints } from '../shared/indexMetrics'
 import { useOpenRender, useRenderReport, useTemplates } from '../shared/reportQueries'
+import { useIndexCatalogue } from '../shared/strategyQueries'
 import { FACTSHEET_SECTIONS, orderedSelection, renderFilename, toggle } from './sections'
 import './FactsheetView.css'
 
@@ -35,6 +37,8 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
   const [message, setMessage] = useState<string | undefined>(undefined)
 
   const templates = useTemplates()
+  const catalogue = useIndexCatalogue()
+  const setSubject = useWorkspace((state) => state.setSubject)
   const overview = useOverview(indexId)
   const render = useRenderReport()
   const open = useOpenRender()
@@ -126,11 +130,23 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
             placeholder={templateId}
           />
         </Field>
-        <Field label="Index" width={140} value={indexId === '' ? '—' : indexId} />
+        {/* This view names its own index now (BU-167): Reports has no
+            document to hang off, and a page is its own workspace. */}
+        <Field label="Index" width={140}>
+          <TickerField
+            className="ticker-field-inline"
+            label="Index"
+            subject={indexId}
+            index={catalogue.rows}
+            onQuery={(next) => {
+              setSubject(tab.id, next.toUpperCase())
+            }}
+          />
+        </Field>
         <Field label="As of" width={140} value={overview.data?.end.slice(0, 10) ?? '—'} />
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Pin this pane to an index.</ViewEmpty>}
+      {indexId === '' && <ViewEmpty>Name an index to draw its factsheet.</ViewEmpty>}
       {render.isError && <ViewError error={render.error} />}
       {open.isError && <ViewError error={open.error} />}
       {message !== undefined && <p className="factsheet-message type-11">{message}</p>}

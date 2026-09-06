@@ -162,3 +162,55 @@
   padding: 4px 8px;
   color: var(--text-muted);
 }
+
+/*
+ * The same field inside a Field box (BU-167).
+ *
+ * A header that already shows a row of labelled boxes — Factsheet, Term
+ * Structure — should not grow a second, larger control beside them just to
+ * name its subject. The box owns the frame and the label; this fills it and
+ * keeps everything that matters: the suggestions, tab completion, the arrows.
+ */
+.ticker-field-inline {
+  width: 100%;
+  height: 24px;
+}
+
+/*
+ * The box has to let the panel out.
+ *
+ * `.field-box` clips its content — it is a 28px frame around a value — so an
+ * inline field's suggestions were rendered and then cut off at the border,
+ * which looks exactly like a field that does not suggest anything.
+ */
+.field-box:has(.ticker-field-inline) {
+  overflow: visible;
+}
+
+.ticker-field-inline .ticker-surface {
+  background: none;
+  border: 0;
+}
+
+.ticker-field-inline .ticker-surface-open {
+  /* Open, it is a panel again: it has to read as lifted off the pane, and it
+     may be wider than the box — a 140px field cannot show a name. */
+  min-width: 240px;
+  background: var(--glass);
+  border: 1px solid var(--chrome-search-stroke);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.ticker-field-inline .ticker-row {
+  height: 22px;
+  padding: 0;
+}
+
+.ticker-field-inline .ticker-surface-open .ticker-row {
+  padding: 0 6px;
+}
+
+.ticker-field-inline .ticker-input {
+  font-size: 11px;
+  font-weight: 400;
+}

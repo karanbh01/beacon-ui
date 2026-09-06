@@ -6,6 +6,7 @@ import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
+import { TickerField } from '../../components/TickerField/TickerField'
 import { Table, type Column } from '../../components/Table/Table'
 import { seriesColor } from '../../charts/theme'
 import { COLORS } from '../../tokens/tokens'
@@ -13,6 +14,8 @@ import { useThemeMode } from '../../state/theme'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useRoll, useTermStructure } from '../shared/derivativesQueries'
+import { useIndexCatalogue } from '../shared/strategyQueries'
+import { useWorkspace } from '../../state/tabs.store'
 import { money, rate } from '../futures/futures'
 import { defaultExpiries, describeShape, parseExpiries, type CurvePoint } from './termStructure'
 import './TermStructureView.css'
@@ -72,6 +75,8 @@ const COLUMNS: readonly Column<CurvePoint>[] = [
 export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
   const indexId = subject ?? tab.pinnedDoc ?? ''
   const mode = useThemeMode()
+  const catalogue = useIndexCatalogue()
+  const setSubject = useWorkspace((state) => state.setSubject)
 
   const [expiryText, setExpiryText] = useState(() => defaultExpiries(new Date()).join(', '))
   const [rateText, setRateText] = useState('4.00')
@@ -136,7 +141,18 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
   return (
     <div className="term-structure-view">
       <PaneHeader kind="fields" controls={<Button chevron>Export</Button>}>
-        <Field label="Index" width={160} value={indexId === '' ? '—' : indexId} />
+        {/* Names its own index (BU-167): Derivatives has no document view. */}
+        <Field label="Index" width={160}>
+          <TickerField
+            className="ticker-field-inline"
+            label="Index"
+            subject={indexId}
+            index={catalogue.rows}
+            onQuery={(next) => {
+              setSubject(tab.id, next.toUpperCase())
+            }}
+          />
+        </Field>
         <Field label="Spot" width={110} value={money(curve.data?.spot)} />
         <Field label="Expiries" width={280}>
           <input
@@ -170,7 +186,7 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
         </Field>
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Pin this pane to an index.</ViewEmpty>}
+      {indexId === '' && <ViewEmpty>Name an index to price its curve.</ViewEmpty>}
       {indexId !== '' && options.expiries.length === 0 && (
         <ViewEmpty>
           Name at least one contract expiry — py-beacon prices contracts, so there is no curve

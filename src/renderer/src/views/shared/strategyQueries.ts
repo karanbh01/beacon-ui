@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { Suggestion } from '../../components/TickerField/suggestions'
 import type { components } from '@shared/api.generated'
 import { parseRun } from '@shared/backtestRun'
 import { ApiError } from '../../api/errors'
@@ -364,6 +366,29 @@ export function useBacktestRun(jobId: string | undefined, ready: boolean) {
  * BU-21's store renders it. Awaiting a result here would mean polling
  * something the socket already pushes.
  */
+/**
+ * The index catalogue as query-bar suggestions (BU-167).
+ *
+ * Three views name an index in that bar — Overview, Factsheet, Term Structure
+ * — and none of them wants the identifier search behind it: an index is not
+ * an instrument. The rows are the catalogue, named where the definition has
+ * a name.
+ */
+export function useIndexCatalogue(): { rows: Suggestion[]; loading: boolean } {
+  const indices = useIndices()
+
+  const rows = useMemo(
+    () =>
+      (indices.data?.indices ?? []).map((index) => ({
+        identifier: index.id,
+        ...(index.name === '' ? {} : { name: index.name })
+      })),
+    [indices.data]
+  )
+
+  return { rows, loading: indices.isPending }
+}
+
 export function useRunBacktest() {
   const client = useBeacon()
 

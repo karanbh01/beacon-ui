@@ -634,3 +634,33 @@ test('Prices carries a mini chart that follows the range and opens Charting', as
   await expect(window.locator('.charting-view')).toBeVisible()
   await expect(window.getByRole('combobox', { name: 'Subject' }).last()).toHaveValue('CMP001')
 })
+
+test('every page can be opened from empty, and names its own subject', async ({ window }) => {
+  /*
+   * BU-167. Factsheet and Term Structure were `pinned`, on pages with no
+   * document view — so with pages independent (BU-166) neither could ever be
+   * opened from the tab menu. Both take an index, so both name one.
+   */
+  for (const [page, view, empty] of [
+    ['Reports', 'Factsheet', 'Name an index to draw its factsheet.'],
+    ['Derivatives', 'Term Structure', 'Name an index to price its curve.']
+  ] as const) {
+    await openPage(window, page)
+    await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+
+    const entry = window.getByRole('menuitem', { name: view, exact: true })
+    await expect(entry).toBeEnabled()
+    await entry.click()
+    await expect(window.getByText(empty)).toBeVisible()
+
+    // The catalogue, in the same query bar as everywhere else.
+    const field = window.getByRole('combobox', { name: 'Index' })
+    await field.fill('tech')
+    await expect(window.getByRole('option', { name: /TECH10/ })).toBeVisible()
+    await window.keyboard.press('ArrowDown')
+    await window.keyboard.press('Enter')
+
+    await expect(field).toHaveValue('TECH10')
+    await expect(window.getByText(empty)).toHaveCount(0)
+  }
+})

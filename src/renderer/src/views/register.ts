@@ -248,14 +248,25 @@ const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] 
     kind: 'term-structure',
     page: 'derivatives',
     title: 'Term Structure',
-    archetype: 'pinned',
+    /*
+     * Names its own index (BU-167).
+     *
+     * Derivatives has no document view either (BU-167).
+     */
+    archetype: 'query',
     component: TermStructureView
   },
   {
     kind: 'factsheet',
     page: 'reports',
     title: 'Factsheet',
-    archetype: 'pinned',
+    /*
+     * Names its own index (BU-167).
+     *
+     * Reports has no document view, and a page is an independent
+     * workspace (BU-166) — so pinned, this could never be opened at all.
+     */
+    archetype: 'query',
     component: FactsheetView
   },
   {

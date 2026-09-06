@@ -11,7 +11,7 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useOverview, useWeights } from '../shared/beaconQueries'
-import { useIndices } from '../shared/strategyQueries'
+import { useIndexCatalogue } from '../shared/strategyQueries'
 import {
   fromFraction,
   lastValue,
@@ -41,7 +41,7 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
   const mode = useThemeMode()
   const overview = useOverview(indexId)
   const weights = useWeights(indexId)
-  const indices = useIndices()
+  const catalogue = useIndexCatalogue()
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
   const setSubject = useWorkspace((state) => state.setSubject)
 
@@ -54,16 +54,6 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
 
   const metrics = overview.data?.metrics
 
-  /** What the query bar suggests: the catalogue, named. */
-  const catalogue = useMemo(
-    () =>
-      (indices.data?.indices ?? []).map((index) => ({
-        identifier: index.id,
-        ...(index.name === '' ? {} : { name: index.name })
-      })),
-    [indices.data]
-  )
-
   return (
     <div className="index-overview-view">
       {/*
@@ -75,7 +65,7 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
       <PaneHeader
         kind="query"
         subject={indexId}
-        index={catalogue}
+        index={catalogue.rows}
         {...(overview.data === undefined
           ? {}
           : { meta: `${overview.data.name} · ${String(overview.data.observations)} observations` })}
