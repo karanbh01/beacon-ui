@@ -366,7 +366,7 @@
         "type": "object"
       },
       "BacktestResultSummary": {
-        "description": "Serialised view of a `BacktestResult`, in the shape of its books.\n\nThe nested shape mirrors the library object (BN-155): one home per fact,\nand the new data — positions, daily index weights — has a natural place\ninstead of being bolted flat beside old names. Books the run did not have\n(no benchmark given, no target index) are null rather than empty, so a\nclient can tell \"not measured\" from \"measured and empty\".",
+        "description": "Serialised view of a `BacktestResult`, in the shape of its books.\n\nThe nested shape mirrors the library object (BN-155): one home per fact,\nand the new data — positions, daily index weights — has a natural place\ninstead of being bolted flat beside old names. Books the run did not have\n(no benchmark given, no index calculated) are null rather than empty, so\na client can tell \"not measured\" from \"measured and empty\". Since BN-164\n`index` is a container of two books, `{target, optimised}`, matching the\nlibrary's `IndexBooks`.",
         "properties": {
           "benchmark": {
             "anyOf": [
@@ -379,14 +379,7 @@
             ]
           },
           "index": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/BookPayload"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/IndexBooksPayload"
           },
           "metrics": {
             "$ref": "#/components/schemas/BacktestMetrics"
@@ -404,16 +397,6 @@
               }
             ],
             "title": "Run At"
-          },
-          "target_index": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/BookPayload"
-              },
-              {
-                "type": "null"
-              }
-            ]
           },
           "unfilled": {
             "items": {
@@ -2214,6 +2197,33 @@
           }
         },
         "title": "IdentifierSearchResponse",
+        "type": "object"
+      },
+      "IndexBooksPayload": {
+        "description": "The run's calculated indices on the wire (BN-164).\n\nMirrors the library's `IndexBooks`: `target` is the index being aimed\nat, pre-optimisation; `optimised` is the solved index's own\ncalculation, null until an optimised run fills it.",
+        "properties": {
+          "optimised": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "IndexBooksPayload",
         "type": "object"
       },
       "IndexCollection": {

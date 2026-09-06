@@ -1208,17 +1208,18 @@ export interface components {
          *     The nested shape mirrors the library object (BN-155): one home per fact,
          *     and the new data — positions, daily index weights — has a natural place
          *     instead of being bolted flat beside old names. Books the run did not have
-         *     (no benchmark given, no target index) are null rather than empty, so a
-         *     client can tell "not measured" from "measured and empty".
+         *     (no benchmark given, no index calculated) are null rather than empty, so
+         *     a client can tell "not measured" from "measured and empty". Since BN-164
+         *     `index` is a container of two books, `{target, optimised}`, matching the
+         *     library's `IndexBooks`.
          */
         BacktestResultSummary: {
             benchmark?: components["schemas"]["BookPayload"] | null;
-            index?: components["schemas"]["BookPayload"] | null;
+            index?: components["schemas"]["IndexBooksPayload"];
             metrics: components["schemas"]["BacktestMetrics"];
             portfolio: components["schemas"]["PortfolioBookPayload"];
             /** Run At */
             run_at?: string | null;
-            target_index?: components["schemas"]["BookPayload"] | null;
             /** Unfilled */
             unfilled?: components["schemas"]["UnfilledOrderPayload"][];
         };
@@ -2263,6 +2264,18 @@ export interface components {
              * @default
              */
             version: string;
+        };
+        /**
+         * IndexBooksPayload
+         * @description The run's calculated indices on the wire (BN-164).
+         *
+         *     Mirrors the library's `IndexBooks`: `target` is the index being aimed
+         *     at, pre-optimisation; `optimised` is the solved index's own
+         *     calculation, null until an optimised run fills it.
+         */
+        IndexBooksPayload: {
+            optimised?: components["schemas"]["BookPayload"] | null;
+            target?: components["schemas"]["BookPayload"] | null;
         };
         /**
          * IndexCollection
