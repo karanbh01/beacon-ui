@@ -37,6 +37,28 @@ export function useBacktestRecords() {
   })
 }
 
+/**
+ * The stored backtest for one index (BN-158, BU-169).
+ *
+ * What the engine kept from the last run: the portfolio's books, the index it
+ * tracked, the comparator. A 404 is the ordinary answer for an index nobody
+ * has back-tested, so it does not retry — the listing already said which
+ * indices have one, and asking again cannot change that.
+ */
+export function useBacktestRecord(indexId: string, enabled = true) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.beacon.record(indexId),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/beacon/{index_id}/record', { params: { index_id: indexId }, signal })
+    },
+    enabled: client !== null && indexId !== '' && enabled,
+    retry: false
+  })
+}
+
 export function useOverview(indexId: string) {
   const client = useBeacon()
 

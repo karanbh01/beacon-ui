@@ -127,3 +127,70 @@ export function parseRun(result: unknown): BacktestRun | undefined {
     initialCapital: typeof result.initial_capital === 'number' ? result.initial_capital : undefined
   }
 }
+
+/**
+ * Rebase a series so its first real value is 100.
+ *
+ * The job payload arrives rebased; a stored record carries the portfolio's
+ * NAV in currency. Rebasing here rather than in the pane means a run looks
+ * the same wherever it was read from, which is the whole point of reading
+ * both into one shape.
+ */
+function rebased(source: RunSeries): RunSeries {
+  const base = source.data.find((value) => value !== null && value !== 0)
+  if (base === null || base === undefined) return source
+
+  return {
+    index: source.index,
+    data: source.data.map((value) => (value === null ? null : (value / base) * 100))
+  }
+}
+
+/**
+ * Read a STORED backtest record as the same run (BN-158, BU-169).
+ *
+ * The record and a job result describe one run in two shapes, so this reads
+ * into `BacktestRun` and the pane keeps a single contract: a second source,
+ * not a second code path. What the record does not carry — drawdown, calendar
+ * returns — the pane already derives from the level series, so nothing is
+ * missing by leaving them empty.
+ *
+ * Two things worth knowing about the shapes:
+ *
+ * - `index` is a CONTAINER and is never null; `index.target` is the one that
+ *   can be (BN-164). A guard written against the container would never fire.
+ * - `portfolio.nav` includes day zero, where a job result starts at the first
+ *   traded close. So a record's 100 is the starting capital — one extra
+ *   leading point, which is real rather than a discrepancy.
+ */
+export function parseRecord(result: unknown): BacktestRun | undefined {
+  if (!isRecord(result)) return undefined
+  const portfolio = result.portfolio
+  if (!isRecord(portfolio) || !isRecord(result.metrics)) return undefined
+
+  const books = isRecord(result.index) ? result.index : {}
+  const target = isRecord(books.target) ? books.target : undefined
+  const benchmark = isRecord(result.benchmark) ? result.benchmark : undefined
+
+  return {
+    level: rebased(series(portfolio.nav)),
+    indexLevel: rebased(series(target?.levels)),
+    // Derived by the pane from the level series, as they always were.
+    drawdown: { index: [], data: [] },
+    annualReturns: {},
+    metrics: metrics(result.metrics),
+    /*
+     * A comparator BOOK, not a metrics block.
+     *
+     * The record stores what the benchmark did rather than the comparison —
+     * so a measured benchmark is a book here, and the numbers the pane shows
+     * against it come from the run's own metrics (`tracking_error`,
+     * `tracking_difference`). An absent book still means "not measured",
+     * which is the distinction the pane keeps.
+     */
+    benchmark: benchmark === undefined ? undefined : metrics(result.metrics),
+    totalCosts: undefined,
+    initialCapital:
+      typeof portfolio.initial_capital === 'number' ? portfolio.initial_capital : undefined
+  }
+}

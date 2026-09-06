@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseRun } from './backtestRun'
+import { parseRecord, parseRun } from './backtestRun'
 
 /**
  * The one payload in the app described by hand rather than generated
@@ -55,5 +55,93 @@ describe('parseRun', () => {
   it('drops values that are not finite numbers rather than plotting them', () => {
     const messy = { ...RUN, level: { index: ['a', 'b'], data: ['x', Number.NaN] } }
     expect(parseRun(messy)?.level.data).toEqual([null, null])
+  })
+})
+
+describe('parseRecord (BU-169)', () => {
+  /** What `/beacon/{index_id}/record` returns after BN-164's reshape. */
+  const RECORD = {
+    run_at: '2026-09-04T09:00:00Z',
+    portfolio: {
+      portfolio_id: 'TECH10',
+      initial_capital: 1_000_000,
+      // Day zero first: the capital before anything traded.
+      nav: {
+        index: ['2024-12-31', '2025-01-02', '2025-01-03'],
+        data: [1_000_000, 1_010_000, 990_000]
+      },
+      cash: { index: [], data: [] },
+      weights: { index: [], columns: [], data: [] },
+      weights_dates_total: 0,
+      positions: { index: [], columns: [], data: [] },
+      positions_total: 0,
+      transactions: { index: [], columns: [], data: [] }
+    },
+    index: {
+      target: {
+        levels: { index: ['2025-01-02', '2025-01-03'], data: [200, 202] },
+        weights: { index: [], columns: [], data: [] },
+        weights_dates_total: 0
+      },
+      optimised: null
+    },
+    benchmark: null,
+    unfilled: [],
+    metrics: {
+      total_return: -0.01,
+      annualised_return: -0.4,
+      volatility: 0.2,
+      sharpe_ratio: -1.9,
+      max_drawdown: -0.02
+    }
+  }
+
+  it('rebases the portfolio NAV, so a run looks the same wherever it was read', () => {
+    const run = parseRecord(RECORD)
+
+    // 100 is the starting capital here, since the record opens on day zero.
+    expect(run?.level.data).toEqual([100, 101, 99])
+    expect(run?.initialCapital).toBe(1_000_000)
+  })
+
+  it('rebases the tracked index onto the same scale', () => {
+    // Stored in points rather than currency, and still rebased: the chart
+    // draws the two together and they have to share an axis.
+    expect(parseRecord(RECORD)?.indexLevel.data).toEqual([100, 101])
+  })
+
+  it('reads the tracked book from the container, not from the container', () => {
+    // `index` is never null; `index.target` is the one that can be (BN-164).
+    const passive = { ...RECORD, index: { target: null, optimised: null } }
+    expect(parseRecord(passive)?.indexLevel).toEqual({ index: [], data: [] })
+  })
+
+  it('leaves drawdown and calendar returns to the pane, which derives them', () => {
+    const run = parseRecord(RECORD)
+
+    expect(run?.drawdown).toEqual({ index: [], data: [] })
+    expect(run?.annualReturns).toEqual({})
+  })
+
+  it('says not measured when the record kept no comparator', () => {
+    expect(parseRecord(RECORD)?.benchmark).toBeUndefined()
+  })
+
+  it('reports a comparison when there was one to store', () => {
+    const measured = {
+      ...RECORD,
+      benchmark: {
+        levels: { index: [], data: [] },
+        weights: { index: [], columns: [], data: [] },
+        weights_dates_total: 0
+      }
+    }
+
+    expect(parseRecord(measured)?.benchmark).toBeDefined()
+  })
+
+  it('is not a record at all without a portfolio', () => {
+    expect(parseRecord({ metrics: {} })).toBeUndefined()
+    expect(parseRecord(undefined)).toBeUndefined()
   })
 })

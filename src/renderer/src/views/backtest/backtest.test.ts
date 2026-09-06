@@ -37,14 +37,29 @@ describe('annualReturns', () => {
   it('measures each year from the last level of the previous one', () => {
     const rows = annualReturns(toPoints(LEVELS))
 
-    expect(rows.map((row) => row.year)).toEqual(['2023', '2024', '2025'])
-    expect(rows[1]?.value).toBeCloseTo(20, 6)
-    expect(rows[2]?.value).toBeCloseTo(-25, 6)
+    expect(rows.map((row) => row.year)).toEqual(['2024', '2025'])
+    expect(rows[0]?.value).toBeCloseTo(20, 6)
+    expect(rows[1]?.value).toBeCloseTo(-25, 6)
   })
 
-  it('treats the first year as the partial year it is', () => {
+  it('treats a first year that traded as the partial year it is', () => {
     // Measured from its own first observation — there is no prior year-end.
-    expect(annualReturns(toPoints(LEVELS))[0]?.value).toBeCloseTo(0, 6)
+    const partial = annualReturns(
+      toPoints({ index: ['2024-02-01', '2024-06-28', '2024-12-31'], data: [100, 110, 120] })
+    )
+
+    expect(partial.map((row) => row.year)).toEqual(['2024'])
+    expect(partial[0]?.value).toBeCloseTo(20, 6)
+  })
+
+  it('drops a first year holding one observation, which can only say 0.0%', () => {
+    /*
+     * It would be measured against itself. That reads as a year that went
+     * nowhere rather than one that never traded — and a stored backtest
+     * record makes it ordinary, since its NAV opens on day zero, often the
+     * last day of the year before the run (BU-169).
+     */
+    expect(annualReturns(toPoints(LEVELS)).map((row) => row.year)).not.toContain('2023')
   })
 
   it('says nothing about an empty series', () => {
@@ -68,11 +83,7 @@ describe('annualTable', () => {
   })
 
   it('lists newest first, which is how a returns table is read', () => {
-    expect(annualTable(toPoints(LEVELS), []).map((row) => row.year)).toEqual([
-      '2025',
-      '2024',
-      '2023'
-    ])
+    expect(annualTable(toPoints(LEVELS), []).map((row) => row.year)).toEqual(['2025', '2024'])
   })
 
   it('leaves excess undefined rather than treating a missing year as zero', () => {

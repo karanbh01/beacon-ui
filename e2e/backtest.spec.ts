@@ -109,3 +109,37 @@ test('opens on an empty page and picks its own index', async ({ window }) => {
   // drawn result saying "Not found" (BU-164).
   await expect(window.getByText('Not found.')).toHaveCount(0)
 })
+
+test('shows a stored run without re-running it', async ({ window }) => {
+  /*
+   * BU-169. The pane only ever drew a run it had started itself, so an index
+   * back-tested last week said "no backtest run yet in this session" — true
+   * of the session and false of the index. `/beacon/{index_id}/record` is
+   * what the engine kept (BN-158).
+   */
+  await openPage(window, 'Beacon View')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
+  await window.getByLabel('Index', { exact: true }).selectOption('TECH10')
+
+  // Drawn without pressing Run.
+  await expect(window.getByText('TECH10 portfolio')).toBeVisible()
+  await expect(window.getByText('TECH10 index')).toBeVisible()
+
+  // And said to be stored, with its age: it may predate the definition on
+  // screen, and its NAV opens at day zero rather than the first traded close.
+  await expect(window.getByText(/stored run, captured 3d ago/)).toBeVisible()
+
+  // A single day-zero observation is not a calendar year that went nowhere,
+  // so no 0.0% row for the year before the run.
+  await expect(window.getByText('2024')).toHaveCount(0)
+})
+
+test('an index nobody has back-tested says so, about the index', async ({ window }) => {
+  await openPage(window, 'Beacon View')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
+  await window.getByLabel('Index', { exact: true }).selectOption('EU-VALUE')
+
+  await expect(window.getByText('This index has never been back-tested.')).toBeVisible()
+})

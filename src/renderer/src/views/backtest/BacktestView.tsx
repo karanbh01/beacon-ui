@@ -11,6 +11,9 @@ import { useThemeMode } from '../../state/theme'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { parseRecord } from '@shared/backtestRun'
+import { relativeTime } from '../home/activityRows'
+import { useBacktestRecord } from '../shared/beaconQueries'
 import {
   useBacktestRun,
   useCompare,
@@ -101,7 +104,29 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
         ? (runResult.data.error ?? 'The engine gave no reason.')
         : undefined
 
-  const runData = runResult.data?.run
+  /*
+   * The run this session started, or the one the engine kept (BU-169).
+   *
+   * A pane opened on an index back-tested last week used to say "no backtest
+   * run yet in this session", which was true of the session and false of the
+   * index. The stored record is asked for only when this session has no run
+   * of its own — a fresh run is always the better answer, and it is the one
+   * whose costs and settings the reader just chose.
+   */
+  const stored = useBacktestRecord(indexId, ranAt === undefined)
+  const storedRun = useMemo(() => parseRecord(stored.data), [stored.data])
+
+  const runData = runResult.data?.run ?? storedRun
+  /** True while what is on screen came from the store rather than this session. */
+  const showingStored = runResult.data?.run === undefined && storedRun !== undefined
+
+  /** How old the stored run is, when the engine stamped it (BN-162). */
+  const storedAge = useMemo(() => {
+    const at = stored.data?.run_at
+    if (at == null) return undefined
+    const when = Date.parse(at)
+    return Number.isNaN(when) ? undefined : `captured ${relativeTime(when, Date.now())}`
+  }, [stored.data])
 
   // Ask for the result only once a backtest has been run in this session, or
   // the pane would show a stale overview as though it were this run's.
@@ -116,11 +141,11 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
   /*
    * The portfolio's NAV where there is one, the index's level otherwise.
    *
-   * Both are rebased to 100 on the first TRADING day — the run payload
-   * carries no day-zero row, so there is nothing to drop here. Day zero
-   * lives on `portfolio.nav` in the record payload, which has no route yet;
-   * a view that reads it will have to decide, per chart, whether the
-   * starting capital is part of the story.
+   * Rebased to 100 either way, so the two sources draw the same shape. A
+   * job result starts at the first TRADING day; a stored record carries day
+   * zero as well, so its 100 is the starting capital rather than the first
+   * close — one extra leading point, and the footnote says which is on
+   * screen (BU-169).
    */
   const nav = useMemo(() => toPoints(runData?.level), [runData])
   const level = useMemo(
@@ -261,9 +286,14 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
         </div>
       )}
 
-      {ranAt === undefined && indexId !== '' && running === undefined && (
-        <ViewEmpty>No backtest run yet in this session.</ViewEmpty>
-      )}
+      {/*
+        Nothing anywhere, which is not the same as nothing today (BU-169).
+      */}
+      {ranAt === undefined &&
+        indexId !== '' &&
+        running === undefined &&
+        storedRun === undefined &&
+        !stored.isPending && <ViewEmpty>This index has never been back-tested.</ViewEmpty>}
 
       {overview.isPending &&
         ranAt !== undefined &&
@@ -360,6 +390,13 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
               : ` (${Math.round(runData.totalCosts).toLocaleString('en-US')} paid)`}{' '}
             · {nav.length > 0 ? 'portfolio NAV against the tracked index' : 'index level'} · annual
             returns and the monthly hit rate are derived from the level series
+            {/*
+              Which run this is (BU-169). A stored one may predate the
+              definition on screen, and its NAV starts at day zero rather than
+              at the first traded close — both worth saying rather than
+              leaving the reader to assume this session ran it.
+            */}
+            {showingStored && ` · stored run${storedAge === undefined ? '' : `, ${storedAge}`}`}
           </p>
         </>
       )}

@@ -261,6 +261,15 @@ const PRICES = {
   })
 }
 
+/** The trading days a stored record's books are indexed by (BU-169). */
+const LEVEL_DATES = [
+  '2025-01-02T00:00:00',
+  '2025-01-03T00:00:00',
+  '2025-01-06T00:00:00',
+  '2025-01-07T00:00:00',
+  '2025-01-08T00:00:00'
+]
+
 const IDENTIFIERS = Array.from({ length: 120 }, (_, i) => `CMP${String(i).padStart(3, '0')}`)
 
 /**
@@ -918,6 +927,61 @@ function body(url: URL): unknown {
           name: universe.name,
           source: universe.source === 'seeded' ? 'seeded' : 'user'
         }))
+    }
+  }
+
+  /*
+   * One stored backtest record (BN-158, BN-164, BU-169).
+   *
+   * The books, not the run payload: `portfolio.nav` in currency and with day
+   * zero, and `index` as the container BN-164 made it — `target` filled,
+   * `optimised` null on a passive run. TECH10 has one because the listing
+   * says so; anything else 404s, which is the ordinary answer for an index
+   * nobody has back-tested.
+   */
+  if (/^\/beacon\/[^/]+\/record$/.test(path)) {
+    const identifier = decodeURIComponent(path.split('/')[2] ?? '')
+    if (identifier !== 'TECH10') {
+      return notFound(`backtest record for '${identifier}'`, 'RecordStore')
+    }
+
+    const dates = LEVEL_DATES
+    return {
+      run_at: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+      portfolio: {
+        portfolio_id: 'TECH10',
+        initial_capital: 1_000_000,
+        // Day zero first: the capital before anything traded.
+        nav: {
+          index: ['2024-12-31T00:00:00', ...dates],
+          data: [1_000_000, 1_004_000, 1_011_500, 1_026_000, 1_019_000, 1_047_500]
+        },
+        cash: { index: dates, data: [10_000, 8_000, 7_500, 9_000, 6_000] },
+        weights: { index: [], columns: [], data: [] },
+        weights_dates_total: 0,
+        positions: { index: [], columns: [], data: [] },
+        positions_total: 0,
+        transactions: { index: [], columns: [], data: [] }
+      },
+      index: {
+        target: {
+          levels: { index: dates, data: [100, 100.9, 102.1, 101.4, 104.2] },
+          weights: { index: [], columns: [], data: [] },
+          weights_dates_total: 0
+        },
+        optimised: null
+      },
+      benchmark: null,
+      unfilled: [],
+      metrics: {
+        total_return: 0.0475,
+        annualised_return: 0.121,
+        volatility: 0.184,
+        sharpe_ratio: 0.66,
+        max_drawdown: -0.068,
+        tracking_error: 0.004,
+        tracking_difference: 0.0009
+      }
     }
   }
 

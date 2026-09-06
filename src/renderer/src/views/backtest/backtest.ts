@@ -38,13 +38,22 @@ export interface AnnualRow {
  * exactly. Each year is measured from the LAST level of the previous year, so
  * the first year in the series is measured from its own first observation —
  * a partial year, which is what it is.
+ *
+ * Unless that first year holds a single observation: measured against itself
+ * it can only ever report 0.0%, which reads as a year that went nowhere
+ * rather than one that never traded. A stored record makes that ordinary —
+ * its NAV opens on day zero, often the last day of the previous year
+ * (BU-169).
  */
 export function annualReturns(points: readonly Point[]): { year: string; value: number }[] {
   if (points.length === 0) return []
 
   const lastByYear = new Map<string, number>()
+  const seenByYear = new Map<string, number>()
   for (const point of points) {
-    lastByYear.set(point.date.slice(0, 4), point.value)
+    const year = point.date.slice(0, 4)
+    lastByYear.set(year, point.value)
+    seenByYear.set(year, (seenByYear.get(year) ?? 0) + 1)
   }
 
   const years = [...lastByYear.keys()].sort()
@@ -52,6 +61,16 @@ export function annualReturns(points: readonly Point[]): { year: string; value: 
   const rows: { year: string; value: number }[] = []
 
   years.forEach((year, position) => {
+    /*
+     * A first year holding one observation has no return to report (BU-169).
+     *
+     * It would be measured against itself and come out as a flat 0.0%, which
+     * reads as a year that went nowhere rather than as one that never
+     * traded. A stored record makes this ordinary: its NAV opens on day zero,
+     * which is often the last day of the year before the backtest starts.
+     */
+    if (position === 0 && (seenByYear.get(year) ?? 0) < 2) return
+
     const close = lastByYear.get(year)
     const previous = position === 0 ? first?.value : lastByYear.get(years[position - 1] ?? '')
     if (close === undefined || previous === undefined || previous === 0) return

@@ -108,6 +108,20 @@ function makeClient(): BeaconClient {
       })
     },
     get: (path: string, options: { params?: Record<string, string> }) => {
+      /*
+       * By path, not by every GET (BU-169).
+       *
+       * The pane asks for a stored record as well now, and counting that as
+       * an overview would make "the overview was not asked for" true of a
+       * request nobody made. The record answers 404, which is the ordinary
+       * reply for an index nobody has back-tested.
+       */
+      if (path.includes('record')) {
+        return Promise.reject(
+          new ApiError(404, { code: 'DATA_NOT_FOUND', message: 'no record for this index' })
+        )
+      }
+
       calls.overviews.push(options.params?.index_id ?? path)
       return Promise.resolve({
         index_id: 'NEWIDX',
@@ -275,7 +289,10 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
   it('does not show a stale overview as though it were this session’s run', async () => {
     mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
 
-    expect(await screen.findByText(/No backtest run yet/)).toBeInTheDocument()
+    // The pane says what is true of the INDEX now, not of the session: with
+    // no run of this session's and no stored one, nothing has ever been run
+    // (BU-169). The overview is still not asked for either way.
+    expect(await screen.findByText(/never been back-tested/)).toBeInTheDocument()
     expect(calls.overviews).toHaveLength(0)
   })
 
