@@ -1,3 +1,4 @@
+import { isDocumentId } from '../api/ids'
 import { newTabId } from '../state/tabs.logic'
 import type { Tab } from '../state/tabs.types'
 import type { ViewOption } from './viewRegistry'
@@ -14,13 +15,39 @@ export interface NewTabOption extends ViewOption {
 }
 
 /**
- * Which of a page's views can be opened, given what is already open.
+ * The document a pinned tab would hang off, or undefined.
  *
- * Taxonomy §1 is the whole of this. A `linked` tab stores no subject and
+ * A document tab has to NAME one (BU-163). Its identity is its document
+ * (taxonomy §1), but a tab opened from this menu is titled "Index
+ * Definition" and shows the catalogue — what it is looking at is the pane's
+ * own state until an index is chosen. Pinning a backtest to that title would
+ * run one against an index called "Index Definition".
+ */
+export function pinnableDocument(open: readonly Tab[]): string | undefined {
+  for (const tab of open) {
+    if (tab.archetype !== 'document') continue
+    const named = tab.subject ?? (isDocumentId(tab.title) ? tab.title : undefined)
+    if (named !== undefined) return named
+  }
+  return undefined
+}
+
+/**
+ * Which of a page's views can be opened, given what is open in the WORKSPACE.
+ *
+ * Taxonomy §1 is the whole of the rule. A `linked` tab stores no subject and
  * resolves one from another tab; a `pinned` tab hangs off a document. Neither
  * can exist with nothing to attach to — opening one anyway would create a tab
  * that can never resolve a subject, which is the exact failure the archetypes
  * exist to prevent.
+ *
+ * The SCOPE is the workspace, not the page (BU-163). Anchors live on other
+ * pages by design: the only document view in the app is Index Definition on
+ * Strategy Builder, and every query view is on Data Explorer, while Beacon
+ * View is five pinned views and a linked one. Judged per page, that whole
+ * page's menu was disabled forever and could only be populated through the
+ * palette. The tab link menu has always crossed pages, so this was the odd
+ * one out rather than a rule anybody had chosen.
  *
  * `query`, `document` and `global` need nothing. A query view opens with no
  * subject and waits for a ticker, which is the point of BU-59.
@@ -30,14 +57,17 @@ export function newTabOptions(views: readonly ViewOption[], open: readonly Tab[]
   // that HAS a subject of its own — following a follower is not a chain the
   // model supports.
   const hasSubjectSource = open.some((tab) => tab.archetype === 'query')
-  const hasDocument = open.some((tab) => tab.archetype === 'document')
+  const document = pinnableDocument(open)
 
   return views.map((view) => {
     if (view.archetype === 'linked' && !hasSubjectSource) {
       return { ...view, unavailable: 'needs a query tab to follow' }
     }
-    if (view.archetype === 'pinned' && !hasDocument) {
-      return { ...view, unavailable: 'needs an open document' }
+    if (view.archetype === 'pinned' && document === undefined) {
+      // Where to get one, not just that there is none: the view that makes
+      // documents is on another page, which is the whole reason this row is
+      // ever disabled.
+      return { ...view, unavailable: 'needs an index — open one in Strategy Builder' }
     }
     return view
   })
@@ -66,14 +96,18 @@ export function tabForOption(
     title: option.title
   }
 
+  // This page's tabs first: a link to something visible beside you is easier
+  // to read than one to a tab on a page you are not looking at (BU-163).
+  const nearest = [...open].sort((a, b) => Number(b.page === page) - Number(a.page === page))
+
   if (option.archetype === 'linked') {
-    const source = open.find((tab) => tab.archetype === 'query')
+    const source = nearest.find((tab) => tab.archetype === 'query')
     return source === undefined ? base : { ...base, linkSourceId: source.id }
   }
 
   if (option.archetype === 'pinned') {
-    const document = open.find((tab) => tab.archetype === 'document')
-    return document === undefined ? base : { ...base, pinnedDoc: document.title }
+    const document = pinnableDocument(nearest)
+    return document === undefined ? base : { ...base, pinnedDoc: document }
   }
 
   return base

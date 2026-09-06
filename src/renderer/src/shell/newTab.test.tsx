@@ -56,6 +56,30 @@ describe('newTabOptions', () => {
     expect(options.find((o) => o.viewKind === 'overview')?.unavailable).toBeUndefined()
   })
 
+  it('takes its anchors from the WORKSPACE, not the page (BU-163)', () => {
+    // The only document view in the app is on Strategy Builder and every
+    // query view is on Data Explorer, while these live on Beacon View. Judged
+    // per page, this menu was disabled forever.
+    const elsewhere = [
+      tab({ id: 'd', page: 'strategy-builder', archetype: 'document', title: 'TECH10' }),
+      tab({ id: 'q', page: 'data-explorer', archetype: 'query', subject: 'CMPA' })
+    ]
+    const options = newTabOptions(VIEWS, elsewhere)
+
+    expect(options.every((option) => option.unavailable === undefined)).toBe(true)
+  })
+
+  it('will not pin to a document tab that names no document', () => {
+    // A tab opened from this menu is titled "Index Definition" and shows the
+    // catalogue; what it is looking at is the pane's own state. Pinning to
+    // that title would run a backtest against an index of that name.
+    const options = newTabOptions(VIEWS, [
+      tab({ id: 'd', archetype: 'document', title: 'Index Definition' })
+    ])
+
+    expect(options.find((o) => o.viewKind === 'overview')?.unavailable).toContain('needs an index')
+  })
+
   it('will not follow another follower', () => {
     // A linked tab stores no subject, so linking to one gives a chain with no
     // source at the end of it.
@@ -79,6 +103,26 @@ describe('tabForOption', () => {
   it('pins to the open document', () => {
     const doc = tab({ id: 'doc', archetype: 'document', title: 'TECH10' })
     expect(tabForOption(VIEWS[2]!, 'p', [doc])).toMatchObject({ pinnedDoc: 'TECH10' })
+  })
+
+  it('pins to what the document NAMES, not to the tab title (BU-163)', () => {
+    const doc = tab({
+      id: 'doc',
+      archetype: 'document',
+      title: 'Index Definition',
+      subject: 'EU-VALUE'
+    })
+
+    expect(tabForOption(VIEWS[2]!, 'p', [doc])).toMatchObject({ pinnedDoc: 'EU-VALUE' })
+  })
+
+  it('prefers an anchor on this page to one on another', () => {
+    const here = tab({ id: 'here', page: 'p', archetype: 'query', subject: 'CMPA' })
+    const away = tab({ id: 'away', page: 'other', archetype: 'query', subject: 'CMPB' })
+
+    // A link to something visible beside you reads better than one to a tab
+    // on a page you are not looking at.
+    expect(tabForOption(VIEWS[1]!, 'p', [away, here])).toMatchObject({ linkSourceId: 'here' })
   })
 
   it('gives each tab of the same kind its own id', () => {
