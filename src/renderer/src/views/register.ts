@@ -146,7 +146,14 @@ const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] 
     kind: 'backtest',
     page: 'beacon-view',
     title: 'Backtest',
-    archetype: 'pinned',
+    /*
+     * A question about an index you name, not a view of a document you have
+     * open (BU-164). As `pinned` it could only be opened beside a document
+     * tab — and the only document view in the app is on another page, so the
+     * entry was permanently disabled and the index was never anyone's
+     * choice.
+     */
+    archetype: 'query',
     component: BacktestView
   },
   {

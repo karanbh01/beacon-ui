@@ -82,3 +82,30 @@ test('a run that cannot happen says why, in py-beacon’s own words', async ({ w
   // The tray's half of this is a unit test: it is fed by the event socket,
   // and the stub has none — every job here is finished on arrival.
 })
+
+test('opens on an empty page and picks its own index', async ({ window }) => {
+  /*
+   * BU-164. Backtest was a `pinned` view, so the tab menu offered it only
+   * beside an open document — and the only document view in the app is on
+   * another page, which left every entry on Beacon View greyed out for good
+   * (BU-163). It holds its own subject now.
+   */
+  await openPage(window, 'Beacon View')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+
+  const entry = window.getByRole('menuitem', { name: 'Backtest', exact: true })
+  await expect(entry).toBeEnabled()
+  await entry.click()
+
+  await expect(window.getByText('Choose an index to back-test.')).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
+
+  // The catalogue, not a typed identifier: it is a short closed list.
+  await window.getByLabel('Index', { exact: true }).selectOption('TECH10')
+  await window.getByRole('button', { name: 'Run backtest' }).click()
+
+  await expect(window.getByText('TECH10 portfolio')).toBeVisible()
+  // The overview is a supplement here, so its 404 does not sit above a
+  // drawn result saying "Not found" (BU-164).
+  await expect(window.getByText('Not found.')).toHaveCount(0)
+})

@@ -8,6 +8,7 @@ import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
 import { Stat, StatStrip } from '../../components/Stat/Stat'
 import { useThemeMode } from '../../state/theme'
+import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import {
@@ -47,7 +48,10 @@ const COSTS = [0, 1, 5, 10, 25].map((bps) => ({
  * carry. Both are left out rather than guessed.
  */
 export function BacktestView({ tab, subject }: ViewProps): ReactElement {
+  // `pinnedDoc` is still read: a tab saved in a preset while this view was
+  // pinned keeps working (BU-164).
   const indexId = subject ?? tab.pinnedDoc ?? ''
+  const setSubject = useWorkspace((state) => state.setSubject)
   const [benchmark, setBenchmark] = useState('')
   const [costBps, setCostBps] = useState('5')
   const [ranAt, setRanAt] = useState<string | undefined>(undefined)
@@ -173,7 +177,26 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
           </Button>
         }
       >
-        <Field label="Index" width={160} value={indexId === '' ? '—' : indexId} />
+        {/*
+          The catalogue is a short closed list, so the subject is chosen
+          rather than typed (BU-164) — and switching index stops being a trip
+          through the palette.
+        */}
+        <Field label="Index" width={160}>
+          <Select
+            className="backtest-inline-select"
+            options={(indices.data?.indices ?? []).map((index) => ({
+              value: index.id,
+              label: index.id
+            }))}
+            value={indexId}
+            placeholder={indices.isPending ? 'Loading…' : 'Choose an index'}
+            onChange={(value) => {
+              setSubject(tab.id, value)
+            }}
+            label="Index"
+          />
+        </Field>
         <Field label="Benchmark" width={160}>
           <Select
             className="backtest-inline-select"
@@ -197,7 +220,7 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
         </Field>
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Pin this pane to an index to back-test it.</ViewEmpty>}
+      {indexId === '' && <ViewEmpty>Choose an index to back-test.</ViewEmpty>}
       {run.isError && <ViewError error={run.error} />}
 
       {running !== undefined && (
@@ -237,12 +260,17 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
         running === undefined &&
         failure === undefined && <ViewLoading what={indexId} />}
       {/*
-        Not while the job's own reason is on screen (BU-162): the overview is
-        asked for as soon as a run is submitted, so a failed run answers 404
-        for a result that was never written — a true statement about the
-        wrong thing.
+        Only when the overview is what this pane still needs (BU-162, BU-164).
+
+        It is asked for as soon as a run is submitted, and it is a supplement
+        — the run payload carries the level and the metrics. So a 404 from it
+        is worth reporting only with nothing else on screen: above a drawn
+        result it is noise, and behind a failed job it is a true statement
+        about the wrong thing.
       */}
-      {overview.isError && failure === undefined && <ViewError error={overview.error} />}
+      {overview.isError && failure === undefined && level.length === 0 && (
+        <ViewError error={overview.error} />
+      )}
 
       {level.length > 0 && (
         <>
