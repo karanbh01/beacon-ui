@@ -9,6 +9,7 @@ import {
   capId,
   GROUPS,
   hasWeighting,
+  pipelineOf,
   pipelineRows,
   weightingAsRule,
   type IndexDocument,
@@ -39,9 +40,18 @@ export interface MethodologyProps {
  * because that is what the rule ids in a validation finding refer to — a
  * finding pointing at "rule 06" has to be findable without counting groups.
  */
-export function Methodology(props: MethodologyProps): ReactElement {
+export function Methodology(props: MethodologyProps): ReactElement | null {
   const rows = pipelineRows(props.document, props.steps)
-  const weighting = props.document.pipeline.weighting
+  const weighting = pipelineOf(props.document)?.weighting
+
+  /*
+   * A derived index has no methodology (BU-170).
+   *
+   * It carries a derivation instead of a pipeline, and what it is made of is
+   * shown by `Derivation` — a card of empty rule groups would say the index
+   * has no rules, which is not the same as having no pipeline.
+   */
+  if (weighting === undefined) return null
 
   /*
    * A weighting being CHOSEN is an editor with no row under it (BU-160).
@@ -121,14 +131,17 @@ export function Methodology(props: MethodologyProps): ReactElement {
 
 /** True for the weighting row and for the cap, which is edited with it. */
 function isWeighting(document: IndexDocument, id: string): boolean {
-  const weighting = document.pipeline.weighting
+  const weighting = pipelineOf(document)?.weighting
+  if (weighting === undefined) return false
   return id === weighting.id || id === capId(weighting)
 }
 
 /** What the editor is editing: a selection rule, or the weighting as one. */
 function editedRule(document: IndexDocument, id: string): RuleSpec | null {
-  if (isWeighting(document, id)) return weightingAsRule(document.pipeline.weighting)
-  return (document.pipeline.selection ?? []).find((rule) => rule.id === id) ?? null
+  const pipeline = pipelineOf(document)
+  if (pipeline === undefined) return null
+  if (isWeighting(document, id)) return weightingAsRule(pipeline.weighting)
+  return (pipeline.selection ?? []).find((rule) => rule.id === id) ?? null
 }
 
 interface RowProps {

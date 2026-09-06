@@ -8,6 +8,7 @@ import {
   applyRow,
   draftFindings,
   hasWeighting,
+  isDerived,
   asPercent,
   blankIndex,
   describeRule,
@@ -23,8 +24,22 @@ import {
   replaceRule,
   warningsOf,
   type IndexDocument,
+  type PipelineSpec,
   type PreviewStep
 } from './pipeline'
+
+/**
+ * The fixture's pipeline.
+ *
+ * `IndexDocument.pipeline` is nullable since BN-168 — a document carries it or
+ * a derivation — and every fixture here is a rule-driven index. Saying so once
+ * keeps the assertions about what they are testing (BU-170).
+ */
+function pipe(document: IndexDocument): PipelineSpec {
+  const spec = document.pipeline
+  if (spec === null || spec === undefined) throw new Error('fixture has no pipeline')
+  return spec
+}
 
 function doc(overrides: Partial<IndexDocument> = {}): IndexDocument {
   return {
@@ -62,11 +77,11 @@ describe('GROUPS', () => {
 
   it('offers the weighting itself while there is none, and the cap after', () => {
     const none = doc()
-    none.pipeline.weighting = { id: 'weighting', scheme: '', params: {} }
+    pipe(none).weighting = { id: 'weighting', scheme: '', params: {} }
     expect(addSlotFor('weighting', none).label).toBe('Add weighting…')
 
     const uncapped = doc()
-    uncapped.pipeline.weighting.max_weight = null
+    pipe(uncapped).weighting.max_weight = null
     expect(addSlotFor('weighting', uncapped)).toEqual({ label: 'Add cap…' })
 
     // Capped already: the cap is a field, so a second one is not a thing.
@@ -75,7 +90,7 @@ describe('GROUPS', () => {
 
   it('lets treatment be added once, because py-beacon supports one value', () => {
     const none = doc()
-    delete none.pipeline.treatment
+    delete pipe(none).treatment
     expect(addSlotFor('treatment', none).blocked).toBeUndefined()
 
     expect(addSlotFor('treatment', doc()).blocked).toContain('ADJUST_DIVISOR')
@@ -85,23 +100,23 @@ describe('GROUPS', () => {
 describe('addCap', () => {
   it('caps an uncapped index at the frame default', () => {
     const uncapped = doc()
-    uncapped.pipeline.weighting.max_weight = null
+    pipe(uncapped).weighting.max_weight = null
 
-    expect(addCap(uncapped).pipeline.weighting.max_weight).toBe(0.2)
+    expect(pipe(addCap(uncapped)).weighting.max_weight).toBe(0.2)
   })
 
   it('leaves the scheme and its params alone', () => {
     const uncapped = doc()
-    uncapped.pipeline.weighting.max_weight = null
+    pipe(uncapped).weighting.max_weight = null
     const capped = addCap(uncapped)
 
-    expect(capped.pipeline.weighting.scheme).toBe('MarketCapWeighted')
-    expect(capped.pipeline.selection).toEqual(uncapped.pipeline.selection)
+    expect(pipe(capped).weighting.scheme).toBe('MarketCapWeighted')
+    expect(pipe(capped).selection).toEqual(pipe(uncapped).selection)
   })
 
   it('adds a cap ROW to the methodology, which is the visible point of it', () => {
     const uncapped = doc()
-    uncapped.pipeline.weighting.max_weight = null
+    pipe(uncapped).weighting.max_weight = null
 
     expect(pipelineRows(uncapped).filter((row) => row.type === 'Cap')).toHaveLength(0)
     expect(pipelineRows(addCap(uncapped)).filter((row) => row.type === 'Cap')).toHaveLength(1)
@@ -174,7 +189,7 @@ describe('pipelineRows', () => {
 
   it('omits the cap row entirely when the index is uncapped', () => {
     const uncapped = doc({
-      pipeline: { ...doc().pipeline, weighting: { id: 'weighting', scheme: 'EqualWeighted' } }
+      pipeline: { ...pipe(doc()), weighting: { id: 'weighting', scheme: 'EqualWeighted' } }
     })
     expect(pipelineRows(uncapped).some((row) => row.id === 'weighting-cap')).toBe(false)
   })
@@ -224,36 +239,36 @@ describe('choosing, editing and removing rows (BU-160)', () => {
       params: { use_free_float: true, max_weight: 0.1 }
     })
 
-    expect(edited.pipeline.weighting.scheme).toBe('MarketCapWeighted')
-    expect(edited.pipeline.weighting.max_weight).toBe(0.1)
+    expect(pipe(edited).weighting.scheme).toBe('MarketCapWeighted')
+    expect(pipe(edited).weighting.max_weight).toBe(0.1)
     // `max_weight` is a field of the spec, never one of the scheme's params.
-    expect(edited.pipeline.weighting.params).toEqual({ use_free_float: true })
+    expect(pipe(edited).weighting.params).toEqual({ use_free_float: true })
   })
 
   it('takes the cap off without disturbing the scheme', () => {
     const uncapped = removeRow(doc(), 'weighting-cap')
 
-    expect(uncapped.pipeline.weighting.max_weight).toBeNull()
-    expect(uncapped.pipeline.weighting.scheme).toBe('MarketCapWeighted')
+    expect(pipe(uncapped).weighting.max_weight).toBeNull()
+    expect(pipe(uncapped).weighting.scheme).toBe('MarketCapWeighted')
   })
 
   it('clears the whole weighting, cap and params with it', () => {
     const cleared = removeRow(doc(), 'weighting')
 
     expect(hasWeighting(cleared)).toBe(false)
-    expect(cleared.pipeline.weighting.max_weight).toBeNull()
-    expect(cleared.pipeline.weighting.params).toEqual({})
+    expect(pipe(cleared).weighting.max_weight).toBeNull()
+    expect(pipe(cleared).weighting.params).toEqual({})
   })
 
   it('omits treatment rather than nulling it — the engine applies its own', () => {
     const without = removeRow(doc(), 'treatment')
 
-    expect(Object.hasOwn(without.pipeline, 'treatment')).toBe(false)
-    expect(addTreatment(without).pipeline.treatment?.corporate_actions).toBe('ADJUST_DIVISOR')
+    expect(Object.hasOwn(pipe(without), 'treatment')).toBe(false)
+    expect(pipe(addTreatment(without)).treatment?.corporate_actions).toBe('ADJUST_DIVISOR')
   })
 
   it('still removes a selection rule by id', () => {
-    expect((removeRow(doc(), 'r1').pipeline.selection ?? []).map((rule) => rule.id)).toEqual(['r2'])
+    expect((pipe(removeRow(doc(), 'r1')).selection ?? []).map((rule) => rule.id)).toEqual(['r2'])
   })
 
   it('says a scheme is missing before the engine is asked', () => {
@@ -269,7 +284,7 @@ describe('choosing, editing and removing rows (BU-160)', () => {
 describe('draft transitions', () => {
   it('never reuses a rule id', () => {
     const added = addRule(doc())
-    const ids = (added.pipeline.selection ?? []).map((rule) => rule.id)
+    const ids = (pipe(added).selection ?? []).map((rule) => rule.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(nextRuleId(added)).not.toBe(ids[ids.length - 1])
   })
@@ -278,15 +293,15 @@ describe('draft transitions', () => {
     const before = doc()
     const after = removeRule(replaceRule(addRule(before), { id: 'r1', type: 'X' }), 'r2')
 
-    expect((after.pipeline.selection ?? []).map((rule) => rule.type)).toEqual(['X', 'FilterRule'])
-    expect(after.pipeline.weighting).toEqual(before.pipeline.weighting)
+    expect((pipe(after).selection ?? []).map((rule) => rule.type)).toEqual(['X', 'FilterRule'])
+    expect(pipe(after).weighting).toEqual(pipe(before).weighting)
     expect(after.name).toBe(before.name)
   })
 
   it('reorders, because order is the pipeline’s meaning', () => {
     // Filter-then-rank produces a different index from rank-then-filter.
     const moved = moveRule(doc(), 'r2', -1)
-    expect((moved.pipeline.selection ?? []).map((rule) => rule.id)).toEqual(['r2', 'r1'])
+    expect((pipe(moved).selection ?? []).map((rule) => rule.id)).toEqual(['r2', 'r1'])
   })
 
   it('refuses a move off either end rather than wrapping', () => {
@@ -350,17 +365,70 @@ describe('blankIndex', () => {
     expect(fresh.id).toBe('NEWIDX')
     // Nothing chosen: a weighting is the author's decision, and the engine
     // supplies its own treatment when none is sent (BU-160).
-    expect(fresh.pipeline.weighting.scheme).toBe('')
-    expect(fresh.pipeline.treatment).toBeUndefined()
+    expect(pipe(fresh).weighting.scheme).toBe('')
+    expect(pipe(fresh).treatment).toBeUndefined()
   })
 
   it('starts with no selection rules, which validate should complain about', () => {
     // That complaint is the correct first thing to tell someone who has just
     // opened an empty index.
-    expect(blankIndex('X').pipeline.selection).toEqual([])
+    expect(pipe(blankIndex('X')).selection).toEqual([])
   })
 
   it('is dirty from the start — nothing has been saved', () => {
     expect(isDirty(blankIndex('X'), undefined)).toBe(true)
+  })
+})
+
+describe('a derived index carries no pipeline (BU-170)', () => {
+  /**
+   * What py-beacon stores for an optimised index (BN-168): a derivation and
+   * identity, no pipeline and no universe. Exactly one of the two, enforced
+   * server-side — neither or both is a 422.
+   */
+  function derived(): IndexDocument {
+    const identity = doc()
+    delete identity.pipeline
+    delete identity.universe
+
+    return {
+      ...identity,
+      derivation: {
+        source_index_id: 'TECH10',
+        objective: 'min_tracking_error',
+        constraints: [{ id: 'c1', type: 'MaxWeight', params: { max: 0.05 } }]
+      }
+    }
+  }
+
+  it('is recognised as derived, which is the app’s whole switch', () => {
+    expect(isDerived(derived())).toBe(true)
+    expect(isDerived(doc())).toBe(false)
+  })
+
+  it('lists no methodology rows', () => {
+    // Not "an index with no rules" — an index whose composition is its
+    // derivation. The editor shows that instead.
+    expect(pipelineRows(derived())).toEqual([])
+  })
+
+  it('has neither a weighting nor a treatment to report', () => {
+    expect(hasWeighting(derived())).toBe(false)
+    expect(addSlotFor('weighting', derived()).label).toBe('Add weighting…')
+  })
+
+  it('is left exactly as it was by every edit aimed at a pipeline', () => {
+    const before = derived()
+
+    // Nothing in the app can reach these on a derived document, since it
+    // renders no methodology to click. These are the guards that keep that
+    // true rather than trusting it.
+    expect(addRule(before)).toBe(before)
+    expect(addCap(before)).toBe(before)
+    expect(addTreatment(before)).toBe(before)
+    expect(removeRow(before, 'weighting')).toBe(before)
+    expect(removeRow(before, 'treatment')).toBe(before)
+    expect(applyRow(before, { id: 'r1', type: 'FilterRule', params: {} })).toBe(before)
+    expect(moveRule(before, 'r1', 1)).toBe(before)
   })
 })

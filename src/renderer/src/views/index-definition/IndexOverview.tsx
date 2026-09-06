@@ -22,7 +22,9 @@ const COLUMNS: readonly Column<IndexDocument>[] = [
     key: 'universe',
     header: 'Universe',
     width: 150,
-    render: (row) => row.universe.universe_id ?? '—'
+    // A derived index has no universe of its own: it takes the parent's
+    // constituents through the solve (BU-170).
+    render: (row) => row.universe?.universe_id ?? '—'
   },
   {
     key: 'rebalance',

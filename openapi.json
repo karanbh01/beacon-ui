@@ -1159,6 +1159,76 @@
         "title": "DatasetCoverage",
         "type": "object"
       },
+      "DeletedIndex": {
+        "description": "One index a delete removed, and what went with it.",
+        "properties": {
+          "backtest_record_deleted": {
+            "description": "Whether a stored backtest record went with it.",
+            "title": "Backtest Record Deleted",
+            "type": "boolean"
+          },
+          "backtest_results_deleted": {
+            "description": "How many job records and persisted run results were forgotten with it.",
+            "title": "Backtest Results Deleted",
+            "type": "integer"
+          },
+          "derived_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The index this one was derived from, when it went as an optimised child. Null for the index the request named.",
+            "title": "Derived From"
+          },
+          "index_id": {
+            "description": "The index that was removed.",
+            "title": "Index Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index_id",
+          "backtest_record_deleted",
+          "backtest_results_deleted"
+        ],
+        "title": "DeletedIndex",
+        "type": "object"
+      },
+      "DerivationPayload": {
+        "description": "How an optimised index is derived from the index it was built on.\n\nThe whole of an optimised index's methodology: the source it reallocates,\nwhat the solve minimises, and what the answer must satisfy. No weights —\nneither the parent's nor the solved ones — because definitions are rules\nand weights are calculated.",
+        "properties": {
+          "constraints": {
+            "description": "What the solved weights must satisfy — exactly the rows `/optimise/constraint-sets` stores, so one editor serves both. Empty leaves the solver's own full-investment default.",
+            "items": {
+              "$ref": "#/components/schemas/ConstraintRow"
+            },
+            "title": "Constraints",
+            "type": "array"
+          },
+          "objective": {
+            "default": "min_tracking_error",
+            "description": "What the solve minimises. Accepted values: min_tracking_error. A plain string rather than an enum so a risk-model objective can be added without a wire break; an unknown value is refused with a finding naming the accepted set.",
+            "title": "Objective",
+            "type": "string"
+          },
+          "source_index_id": {
+            "description": "Id of the index this one optimises. Immutable after creation: re-pointing a derivation is a new index, not an edit, so an update that changes it is refused.",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Source Index Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_index_id"
+        ],
+        "title": "DerivationPayload",
+        "type": "object"
+      },
       "DriftPayload": {
         "description": "How far weights moved between two rebalances.",
         "properties": {
@@ -2243,8 +2313,31 @@
         "title": "IndexCollection",
         "type": "object"
       },
+      "IndexDeletion": {
+        "description": "Response of `DELETE /indices/{index_id}`.\n\nEverything the delete removed, so a client reports the outcome from the\nresponse rather than from its own prediction of the blast radius. The\nnamed index comes first, then each optimised child in the order the\ncascade reached it.",
+        "properties": {
+          "deleted": {
+            "items": {
+              "$ref": "#/components/schemas/DeletedIndex"
+            },
+            "title": "Deleted",
+            "type": "array"
+          },
+          "index_id": {
+            "description": "The index the request named.",
+            "title": "Index Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index_id",
+          "deleted"
+        ],
+        "title": "IndexDeletion",
+        "type": "object"
+      },
       "IndexDocument": {
-        "description": "A stored index definition.",
+        "description": "A stored index definition, in one of its two faces.\n\nA document carries **either** a rule pipeline (`pipeline` and `universe`)\n**or** a `derivation` — never both, never neither. `derivation` is the\ndiscriminator: present, the index is optimiser-derived and its methodology\nis the derivation; absent, it is a rule pipeline over a universe.\n\nA synthesised pipeline for optimised documents was considered and rejected\n(design record, \"Document schema\"): it would be a methodology nobody wrote\nand nobody can meaningfully edit.",
         "properties": {
           "base_date": {
             "description": "Base date, YYYY-MM-DD.",
@@ -2274,6 +2367,17 @@
             "minLength": 3,
             "title": "Currency",
             "type": "string"
+          },
+          "derivation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DerivationPayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present on an optimiser-derived index, null on a rule-driven one. Its presence is the discriminator a client branches on."
           },
           "description": {
             "anyOf": [
@@ -2307,7 +2411,15 @@
             "type": "string"
           },
           "pipeline": {
-            "$ref": "#/components/schemas/PipelineSpec"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PipelineSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The rule pipeline. Present on a rule-driven index, null on an optimiser-derived one."
           },
           "publication_time": {
             "anyOf": [
@@ -2344,7 +2456,15 @@
             "type": "string"
           },
           "universe": {
-            "$ref": "#/components/schemas/UniverseRef"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UniverseRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The investable set. Present on a rule-driven index, null on an optimiser-derived one, which reallocates exactly the names its source published."
           },
           "withholding_tax_rate": {
             "default": 0.0,
@@ -2361,9 +2481,7 @@
           "base_date",
           "base_value",
           "currency",
-          "rebalancing_frequency",
-          "universe",
-          "pipeline"
+          "rebalancing_frequency"
         ],
         "title": "IndexDocument",
         "type": "object"
@@ -2500,6 +2618,56 @@
           "constraint_set_id"
         ],
         "title": "OptimisationRunRequest",
+        "type": "object"
+      },
+      "OptimiseRequest": {
+        "description": "Body of `POST /indices/{index_id}/optimise`.\n\nEverything the derived index needs that the parent cannot supply. The\nsource is deliberately absent: provenance is server-truth, taken from the\nURL, so a client cannot assert a parentage the server did not create.",
+        "properties": {
+          "constraints": {
+            "description": "What the solved weights must satisfy. Validated through the same catalogue `/optimise/constraint-sets` uses, so a bad row is refused here naming the row.",
+            "items": {
+              "$ref": "#/components/schemas/ConstraintRow"
+            },
+            "title": "Constraints",
+            "type": "array"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional description for the derived index. Null inherits nothing — the parent's description describes the parent.",
+            "title": "Description"
+          },
+          "id": {
+            "description": "Id for the new optimised index.",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name for the new optimised index.",
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "objective": {
+            "default": "min_tracking_error",
+            "description": "What the solve minimises. Accepted values: min_tracking_error.",
+            "title": "Objective",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "OptimiseRequest",
         "type": "object"
       },
       "OverviewView": {
@@ -9369,7 +9537,7 @@
     },
     "/indices/{index_id}": {
       "delete": {
-        "description": "Remove a stored index definition, and its backtest results.\n\nThe cascade is deliberate (BN-157): results are keyed\n`backtest:{index_id}`, and orphaning them would leave records\naddressable by an id that no longer resolves -- the overview route\n404s on the definition load before it ever reaches them. The client's\nconfirm dialog says \"and its backtest results\", so nothing goes that\nthe user was not told about.\n\nNo refusal case: unlike universes, no index is seeded -- every stored\ndefinition was created by somebody, so every one may be deleted.",
+        "description": "Remove a stored index definition, its optimised children, and the\nbacktest results of every one of them.\n\nThe first cascade is deliberate (BN-157): results are keyed\n`backtest:{index_id}`, and orphaning them would leave records\naddressable by an id that no longer resolves -- the overview route\n404s on the definition load before it ever reaches them.\n\nThe second is the owner's call for BN-168: an optimised index\n*references* its source rather than copying it, so a child left behind\nwould be a methodology with no methodology — it could never be\ncalculated again. Each child goes through the identical cascade, and\nthe chain is followed recursively. The confirmation warning stays\nclient-side: documents carry `source_index_id`, so the UI computes the\nblast radius from the catalogue before sending. This response then\nsays what actually went, which is what the client reports.\n\nNo refusal case: unlike universes, no index is seeded -- every stored\ndefinition was created by somebody, so every one may be deleted.",
         "operationId": "delete_index_indices__index_id__delete",
         "parameters": [
           {
@@ -9385,7 +9553,14 @@
           }
         ],
         "responses": {
-          "204": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexDeletion"
+                }
+              }
+            },
             "description": "Successful Response"
           },
           "400": {
@@ -9704,6 +9879,141 @@
           }
         },
         "summary": "Put Index",
+        "tags": [
+          "indices"
+        ]
+      }
+    },
+    "/indices/{index_id}/optimise": {
+      "post": {
+        "description": "Derive a new, optimised index from a stored one.\n\nThe UI's \"Optimise\" action on any index. Provenance is server-truth:\nthe source is the index in the URL, and the body has no way to assert\na parentage the server did not create.\n\nThe derived document inherits the parent's identity — base date, base\nvalue, currency, calendar, and the rebalancing cadence in particular,\nbecause the child solves exactly at the parent's published snapshots\nand a cadence of its own would have no parent weights at the extra\ndates (design record, default 2).",
+        "operationId": "optimise_index_indices__index_id__optimise_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "index_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Index Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptimiseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedIndex"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An index with the requested id already exists."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Optimise Index",
         "tags": [
           "indices"
         ]

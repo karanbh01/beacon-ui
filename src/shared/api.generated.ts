@@ -608,19 +608,57 @@ export interface paths {
         post?: never;
         /**
          * Delete Index
-         * @description Remove a stored index definition, and its backtest results.
+         * @description Remove a stored index definition, its optimised children, and the
+         *     backtest results of every one of them.
          *
-         *     The cascade is deliberate (BN-157): results are keyed
+         *     The first cascade is deliberate (BN-157): results are keyed
          *     `backtest:{index_id}`, and orphaning them would leave records
          *     addressable by an id that no longer resolves -- the overview route
-         *     404s on the definition load before it ever reaches them. The client's
-         *     confirm dialog says "and its backtest results", so nothing goes that
-         *     the user was not told about.
+         *     404s on the definition load before it ever reaches them.
+         *
+         *     The second is the owner's call for BN-168: an optimised index
+         *     *references* its source rather than copying it, so a child left behind
+         *     would be a methodology with no methodology — it could never be
+         *     calculated again. Each child goes through the identical cascade, and
+         *     the chain is followed recursively. The confirmation warning stays
+         *     client-side: documents carry `source_index_id`, so the UI computes the
+         *     blast radius from the catalogue before sending. This response then
+         *     says what actually went, which is what the client reports.
          *
          *     No refusal case: unlike universes, no index is seeded -- every stored
          *     definition was created by somebody, so every one may be deleted.
          */
         delete: operations["delete_index_indices__index_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/indices/{index_id}/optimise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Optimise Index
+         * @description Derive a new, optimised index from a stored one.
+         *
+         *     The UI's "Optimise" action on any index. Provenance is server-truth:
+         *     the source is the index in the URL, and the body has no way to assert
+         *     a parentage the server did not create.
+         *
+         *     The derived document inherits the parent's identity — base date, base
+         *     value, currency, calendar, and the rebalancing cadence in particular,
+         *     because the child solves exactly at the parent's published snapshots
+         *     and a cadence of its own would have no parent weights at the extra
+         *     dates (design record, default 2).
+         */
+        post: operations["optimise_index_indices__index_id__optimise_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1691,6 +1729,59 @@ export interface components {
             start?: string | null;
         };
         /**
+         * DeletedIndex
+         * @description One index a delete removed, and what went with it.
+         */
+        DeletedIndex: {
+            /**
+             * Backtest Record Deleted
+             * @description Whether a stored backtest record went with it.
+             */
+            backtest_record_deleted: boolean;
+            /**
+             * Backtest Results Deleted
+             * @description How many job records and persisted run results were forgotten with it.
+             */
+            backtest_results_deleted: number;
+            /**
+             * Derived From
+             * @description The index this one was derived from, when it went as an optimised child. Null for the index the request named.
+             */
+            derived_from?: string | null;
+            /**
+             * Index Id
+             * @description The index that was removed.
+             */
+            index_id: string;
+        };
+        /**
+         * DerivationPayload
+         * @description How an optimised index is derived from the index it was built on.
+         *
+         *     The whole of an optimised index's methodology: the source it reallocates,
+         *     what the solve minimises, and what the answer must satisfy. No weights —
+         *     neither the parent's nor the solved ones — because definitions are rules
+         *     and weights are calculated.
+         */
+        DerivationPayload: {
+            /**
+             * Constraints
+             * @description What the solved weights must satisfy — exactly the rows `/optimise/constraint-sets` stores, so one editor serves both. Empty leaves the solver's own full-investment default.
+             */
+            constraints?: components["schemas"]["ConstraintRow"][];
+            /**
+             * Objective
+             * @description What the solve minimises. Accepted values: min_tracking_error. A plain string rather than an enum so a risk-model objective can be added without a wire break; an unknown value is refused with a finding naming the accepted set.
+             * @default min_tracking_error
+             */
+            objective: string;
+            /**
+             * Source Index Id
+             * @description Id of the index this one optimises. Immutable after creation: re-pointing a derivation is a new index, not an edit, so an update that changes it is refused.
+             */
+            source_index_id: string;
+        };
+        /**
          * DriftPayload
          * @description How far weights moved between two rebalances.
          */
@@ -2286,8 +2377,35 @@ export interface components {
             indices: components["schemas"]["IndexDocument"][];
         };
         /**
+         * IndexDeletion
+         * @description Response of `DELETE /indices/{index_id}`.
+         *
+         *     Everything the delete removed, so a client reports the outcome from the
+         *     response rather than from its own prediction of the blast radius. The
+         *     named index comes first, then each optimised child in the order the
+         *     cascade reached it.
+         */
+        IndexDeletion: {
+            /** Deleted */
+            deleted: components["schemas"]["DeletedIndex"][];
+            /**
+             * Index Id
+             * @description The index the request named.
+             */
+            index_id: string;
+        };
+        /**
          * IndexDocument
-         * @description A stored index definition.
+         * @description A stored index definition, in one of its two faces.
+         *
+         *     A document carries **either** a rule pipeline (`pipeline` and `universe`)
+         *     **or** a `derivation` — never both, never neither. `derivation` is the
+         *     discriminator: present, the index is optimiser-derived and its methodology
+         *     is the derivation; absent, it is a rule pipeline over a universe.
+         *
+         *     A synthesised pipeline for optimised documents was considered and rejected
+         *     (design record, "Document schema"): it would be a methodology nobody wrote
+         *     and nobody can meaningfully edit.
          */
         IndexDocument: {
             /**
@@ -2310,6 +2428,8 @@ export interface components {
              * @description Index currency.
              */
             currency: string;
+            /** @description Present on an optimiser-derived index, null on a rule-driven one. Its presence is the discriminator a client branches on. */
+            derivation?: components["schemas"]["DerivationPayload"] | null;
             /** Description */
             description?: string | null;
             /**
@@ -2328,7 +2448,8 @@ export interface components {
              * @description Display name.
              */
             name: string;
-            pipeline: components["schemas"]["PipelineSpec"];
+            /** @description The rule pipeline. Present on a rule-driven index, null on an optimiser-derived one. */
+            pipeline?: components["schemas"]["PipelineSpec"] | null;
             /**
              * Publication Time
              * @description When the level is published, e.g. '18:00 America/New_York'. Display metadata: it says when a figure is released and changes no figure, so nothing in the calculation reads it.
@@ -2352,7 +2473,8 @@ export interface components {
              * @enum {string}
              */
             return_type: "PRICE" | "TOTAL_RETURN" | "NET_TOTAL_RETURN";
-            universe: components["schemas"]["UniverseRef"];
+            /** @description The investable set. Present on a rule-driven index, null on an optimiser-derived one, which reallocates exactly the names its source published. */
+            universe?: components["schemas"]["UniverseRef"] | null;
             /**
              * Withholding Tax Rate
              * @description Fraction of each distribution withheld, for a net index. A flat index-level rate rather than a per-country table: a table is only as good as the country field behind it, and an unpopulated one produces a number that looks precise and is not. Ignored unless `return_type` is NET_TOTAL_RETURN.
@@ -2443,6 +2565,42 @@ export interface components {
              * @description Start of the window the risk model is estimated over.
              */
             start?: string | null;
+        };
+        /**
+         * OptimiseRequest
+         * @description Body of `POST /indices/{index_id}/optimise`.
+         *
+         *     Everything the derived index needs that the parent cannot supply. The
+         *     source is deliberately absent: provenance is server-truth, taken from the
+         *     URL, so a client cannot assert a parentage the server did not create.
+         */
+        OptimiseRequest: {
+            /**
+             * Constraints
+             * @description What the solved weights must satisfy. Validated through the same catalogue `/optimise/constraint-sets` uses, so a bad row is refused here naming the row.
+             */
+            constraints?: components["schemas"]["ConstraintRow"][];
+            /**
+             * Description
+             * @description Optional description for the derived index. Null inherits nothing — the parent's description describes the parent.
+             */
+            description?: string | null;
+            /**
+             * Id
+             * @description Id for the new optimised index.
+             */
+            id: string;
+            /**
+             * Name
+             * @description Display name for the new optimised index.
+             */
+            name: string;
+            /**
+             * Objective
+             * @description What the solve minimises. Accepted values: min_tracking_error.
+             * @default min_tracking_error
+             */
+            objective: string;
         };
         /**
          * OverviewView
@@ -7409,11 +7567,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["IndexDeletion"];
+                };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
             400: {
@@ -7444,6 +7604,113 @@ export interface operations {
             };
             /** @description The path exists but does not accept this method. */
             405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    optimise_index_indices__index_id__optimise_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptimiseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedIndex"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An index with the requested id already exists. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

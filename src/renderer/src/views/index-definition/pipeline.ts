@@ -3,6 +3,8 @@ import type { components } from '@shared/api.generated'
 export type IndexDocument = components['schemas']['IndexDocument']
 export type RuleSpec = components['schemas']['RuleSpec']
 export type WeightingSpec = components['schemas']['WeightingSpec']
+export type PipelineSpec = components['schemas']['PipelineSpec']
+export type DerivationPayload = components['schemas']['DerivationPayload']
 export type PreviewStep = components['schemas']['PreviewStep']
 export type Finding = components['schemas']['Finding']
 
@@ -36,13 +38,30 @@ export interface AddSlotSpec {
   blocked?: string
 }
 
+/**
+ * The rule pipeline, or undefined on a derived index (BU-170).
+ *
+ * Nullable since BN-168: a document carries EITHER a pipeline and a universe
+ * or a derivation, and py-beacon refuses anything else with a 422. So every
+ * edit below is a no-op on a derived document — there are no rules to change,
+ * and the editor shows the derivation in place of the methodology.
+ */
+export function pipelineOf(document: IndexDocument): PipelineSpec | undefined {
+  return document.pipeline ?? undefined
+}
+
+/** True for an optimiser-derived index: the app's two-face switch (BU-170). */
+export function isDerived(document: IndexDocument): boolean {
+  return document.derivation != null
+}
+
 /** What this group's add slot offers, given what the document already has. */
 export function addSlotFor(group: GroupId, document: IndexDocument): AddSlotSpec {
   if (group === 'selection') return { label: 'Add rule…' }
 
   if (group === 'weighting') {
     if (!hasWeighting(document)) return { label: 'Add weighting…' }
-    return document.pipeline.weighting.max_weight == null
+    return pipelineOf(document)?.weighting.max_weight == null
       ? { label: 'Add cap…' }
       : { label: 'Add cap…', blocked: 'Already capped — edit the weighting to change it' }
   }
@@ -64,11 +83,11 @@ export function addSlotFor(group: GroupId, document: IndexDocument): AddSlotSpec
  * ever being sent.
  */
 export function hasWeighting(document: IndexDocument): boolean {
-  return document.pipeline.weighting.scheme.trim() !== ''
+  return (pipelineOf(document)?.weighting.scheme ?? '').trim() !== ''
 }
 
 export function hasTreatment(document: IndexDocument): boolean {
-  return document.pipeline.treatment != null
+  return pipelineOf(document)?.treatment != null
 }
 
 /** A row in the methodology list, whatever group it came from. */
@@ -170,9 +189,14 @@ export function pipelineRows(
   document: IndexDocument,
   steps: readonly PreviewStep[] = []
 ): PipelineRow[] {
+  const pipeline = pipelineOf(document)
+  // A derived index has no methodology to list: its derivation is what it is
+  // made of, and the editor renders that instead (BU-170).
+  if (pipeline === undefined) return []
+
   const byRule = new Map(steps.filter((step) => step.rule_id != null).map((s) => [s.rule_id, s]))
 
-  const rows: PipelineRow[] = (document.pipeline.selection ?? []).map((rule) => ({
+  const rows: PipelineRow[] = (pipeline.selection ?? []).map((rule: RuleSpec) => ({
     group: 'selection' as const,
     id: rule.id,
     name: rule.id,
@@ -191,7 +215,7 @@ export function pipelineRows(
    * in its pipeline and both rows fixed — the app's guesses, presented as
    * decisions the user had made and could not take back.
    */
-  const weighting = document.pipeline.weighting
+  const weighting = pipeline.weighting
   if (hasWeighting(document)) {
     rows.push({
       group: 'weighting',
@@ -222,7 +246,7 @@ export function pipelineRows(
     }
   }
 
-  const treatment = document.pipeline.treatment
+  const treatment = pipeline.treatment
   if (treatment != null) {
     rows.push({
       group: 'treatment',
@@ -258,9 +282,14 @@ function outcomeFor(step: PreviewStep | undefined): string | undefined {
 
 /* ── draft transitions ──────────────────────────────────────────────────── */
 
+/** The selection rules, or none at all on a derived index. */
+function selectionOf(document: IndexDocument): readonly RuleSpec[] {
+  return pipelineOf(document)?.selection ?? []
+}
+
 /** Unique within the pipeline, which is all py-beacon requires of a rule id. */
 export function nextRuleId(document: IndexDocument): string {
-  const taken = new Set((document.pipeline.selection ?? []).map((rule) => rule.id))
+  const taken = new Set(selectionOf(document).map((rule) => rule.id))
   for (let n = 1; ; n++) {
     const candidate = `rule-${String(n)}`
     if (!taken.has(candidate)) return candidate
@@ -269,7 +298,7 @@ export function nextRuleId(document: IndexDocument): string {
 
 export function addRule(document: IndexDocument, type = 'FilterRule'): IndexDocument {
   const rule: RuleSpec = { id: nextRuleId(document), type, params: {} }
-  return withSelection(document, [...(document.pipeline.selection ?? []), rule])
+  return withSelection(document, [...selectionOf(document), rule])
 }
 
 /**
@@ -280,7 +309,10 @@ export function addRule(document: IndexDocument, type = 'FilterRule'): IndexDocu
  * see and edit, not an empty field that fails validation.
  */
 export function addCap(document: IndexDocument, max = 0.2): IndexDocument {
-  return setWeighting(document, { ...document.pipeline.weighting, max_weight: max })
+  const weighting = pipelineOf(document)?.weighting
+  if (weighting === undefined) return document
+
+  return setWeighting(document, { ...weighting, max_weight: max })
 }
 
 /**
@@ -293,7 +325,8 @@ export function addCap(document: IndexDocument, max = 0.2): IndexDocument {
 export function removeRow(document: IndexDocument, id: string): IndexDocument {
   if (id === TREATMENT_ID) return removeTreatment(document)
 
-  const weighting = document.pipeline.weighting
+  const weighting = pipelineOf(document)?.weighting
+  if (weighting === undefined) return document
   if (id === weighting.id) return clearWeighting(document)
   if (id === capId(weighting)) return removeCap(document)
   return removeRule(document, id)
@@ -307,28 +340,34 @@ export function removeRow(document: IndexDocument, id: string): IndexDocument {
  * should not have to know which rows are rules and which only look like them.
  */
 export function applyRow(document: IndexDocument, rule: RuleSpec): IndexDocument {
-  if (rule.id !== document.pipeline.weighting.id) return replaceRule(document, rule)
-  return setWeighting(document, weightingFromRule(rule, document.pipeline.weighting))
+  const weighting = pipelineOf(document)?.weighting
+  if (weighting === undefined) return document
+  if (rule.id !== weighting.id) return replaceRule(document, rule)
+  return setWeighting(document, weightingFromRule(rule, weighting))
 }
 
 /** Back to nothing chosen, cap and parameters included: they were its own. */
 export function clearWeighting(document: IndexDocument): IndexDocument {
-  return setWeighting(document, {
-    id: document.pipeline.weighting.id,
-    scheme: '',
-    params: {},
-    max_weight: null
-  })
+  const weighting = pipelineOf(document)?.weighting
+  if (weighting === undefined) return document
+
+  return setWeighting(document, { id: weighting.id, scheme: '', params: {}, max_weight: null })
 }
 
 export function removeCap(document: IndexDocument): IndexDocument {
-  return setWeighting(document, { ...document.pipeline.weighting, max_weight: null })
+  const weighting = pipelineOf(document)?.weighting
+  if (weighting === undefined) return document
+
+  return setWeighting(document, { ...weighting, max_weight: null })
 }
 
 export function addTreatment(document: IndexDocument): IndexDocument {
+  const pipeline = pipelineOf(document)
+  if (pipeline === undefined) return document
+
   return {
     ...document,
-    pipeline: { ...document.pipeline, treatment: { corporate_actions: DEFAULT_TREATMENT } }
+    pipeline: { ...pipeline, treatment: { corporate_actions: DEFAULT_TREATMENT } }
   }
 }
 
@@ -339,7 +378,10 @@ export function addTreatment(document: IndexDocument): IndexDocument {
  * when it is absent — which is a different statement from "no treatment".
  */
 export function removeTreatment(document: IndexDocument): IndexDocument {
-  const pipeline = { ...document.pipeline }
+  const current = pipelineOf(document)
+  if (current === undefined) return document
+
+  const pipeline = { ...current }
   delete pipeline.treatment
   return { ...document, pipeline }
 }
@@ -398,14 +440,14 @@ export function draftFindings(document: IndexDocument): Finding[] {
 export function removeRule(document: IndexDocument, id: string): IndexDocument {
   return withSelection(
     document,
-    (document.pipeline.selection ?? []).filter((rule) => rule.id !== id)
+    selectionOf(document).filter((rule) => rule.id !== id)
   )
 }
 
 export function replaceRule(document: IndexDocument, rule: RuleSpec): IndexDocument {
   return withSelection(
     document,
-    (document.pipeline.selection ?? []).map((current) => (current.id === rule.id ? rule : current))
+    selectionOf(document).map((current) => (current.id === rule.id ? rule : current))
   )
 }
 
@@ -417,7 +459,7 @@ export function replaceRule(document: IndexDocument, rule: RuleSpec): IndexDocum
  * display preference.
  */
 export function moveRule(document: IndexDocument, id: string, delta: -1 | 1): IndexDocument {
-  const rules = [...(document.pipeline.selection ?? [])]
+  const rules = [...selectionOf(document)]
   const from = rules.findIndex((rule) => rule.id === id)
   const to = from + delta
   if (from < 0 || to < 0 || to >= rules.length) return document
@@ -431,12 +473,27 @@ export function moveRule(document: IndexDocument, id: string, delta: -1 | 1): In
   return withSelection(document, rules)
 }
 
-function withSelection(document: IndexDocument, selection: RuleSpec[]): IndexDocument {
-  return { ...document, pipeline: { ...document.pipeline, selection } }
+/*
+ * Both of these leave a derived document exactly as it was.
+ *
+ * There is nothing to write a pipeline onto — py-beacon refuses a document
+ * carrying both — so an edit aimed at one is a no-op rather than an invention
+ * (BU-170). Nothing in the app can reach these on a derived index anyway,
+ * since it shows no methodology to edit; this is the guard that keeps that
+ * true if something ever does.
+ */
+function withSelection(document: IndexDocument, selection: readonly RuleSpec[]): IndexDocument {
+  const pipeline = pipelineOf(document)
+  if (pipeline === undefined) return document
+
+  return { ...document, pipeline: { ...pipeline, selection: [...selection] } }
 }
 
 export function setWeighting(document: IndexDocument, weighting: WeightingSpec): IndexDocument {
-  return { ...document, pipeline: { ...document.pipeline, weighting } }
+  const pipeline = pipelineOf(document)
+  if (pipeline === undefined) return document
+
+  return { ...document, pipeline: { ...pipeline, weighting } }
 }
 
 /** Field-by-field, so a draft can be compared with what the engine holds. */

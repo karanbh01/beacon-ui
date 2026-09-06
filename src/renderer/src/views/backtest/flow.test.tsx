@@ -198,7 +198,7 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     await waitFor(() => {
       expect(calls.saved).toHaveLength(1)
     })
-    expect(calls.saved[0]?.pipeline.selection).toHaveLength(2)
+    expect(calls.saved[0]?.pipeline?.selection).toHaveLength(2)
     await waitFor(() => {
       expect(tabFor('def').dirty).toBe(false)
     })

@@ -28,6 +28,7 @@ import {
   draftFindings,
   hasWeighting,
   moveRule,
+  pipelineOf,
   removeRow,
   type IndexDocument
 } from './pipeline'
@@ -78,7 +79,7 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
   const [previewedFor, setPreviewedFor] = useState<string | undefined>(undefined)
 
   const universes = useUniverses()
-  const members = useUniverseMembers(draft?.universe.universe_id ?? '')
+  const members = useUniverseMembers(draft?.universe?.universe_id ?? '')
   const validate = useValidateIndex()
   const preview = usePreviewDocument()
   const save = useSaveIndex()
@@ -221,7 +222,7 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
               value: universe.id,
               label: universe.name
             }))}
-            value={draft.universe.universe_id ?? ''}
+            value={draft.universe?.universe_id ?? ''}
             placeholder="No universes"
             label="Starting universe"
             disabled={(universes.data?.universes ?? []).length === 0}
@@ -243,7 +244,7 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
                 pane,
                 viewKind: 'universe-set',
                 title: 'Universe Set',
-                subject: draft.universe.universe_id ?? ''
+                subject: draft.universe?.universe_id ?? ''
               })
             }}
           >
@@ -269,8 +270,9 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
              * the editor and the row appears when a scheme is applied
              * (BU-160).
              */
-            if (group === 'weighting' && !hasWeighting(draft)) {
-              setEditingId(draft.pipeline.weighting.id)
+            const weighting = pipelineOf(draft)?.weighting
+            if (group === 'weighting' && weighting !== undefined && !hasWeighting(draft)) {
+              setEditingId(weighting.id)
               return
             }
             if (group === 'weighting') edit(addCap)
