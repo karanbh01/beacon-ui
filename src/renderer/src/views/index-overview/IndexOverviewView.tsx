@@ -11,6 +11,7 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useOverview, useWeights } from '../shared/beaconQueries'
+import { useIndices } from '../shared/strategyQueries'
 import {
   fromFraction,
   lastValue,
@@ -34,11 +35,15 @@ import './IndexOverviewView.css'
  * in hand would be slower and could disagree with the chart beneath them.
  */
 export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactElement {
+  // `pinnedDoc` is still read: a tab saved in a preset while this view was
+  // pinned keeps working (BU-166).
   const indexId = subject ?? tab.pinnedDoc ?? ''
   const mode = useThemeMode()
   const overview = useOverview(indexId)
   const weights = useWeights(indexId)
+  const indices = useIndices()
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
+  const setSubject = useWorkspace((state) => state.setSubject)
 
   const level = useMemo(() => toPoints(overview.data?.level), [overview.data])
   const worst = useMemo(() => maxDrawdown(drawdown(level)), [level])
@@ -49,17 +54,38 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
 
   const metrics = overview.data?.metrics
 
+  /** What the query bar suggests: the catalogue, named. */
+  const catalogue = useMemo(
+    () =>
+      (indices.data?.indices ?? []).map((index) => ({
+        identifier: index.id,
+        ...(index.name === '' ? {} : { name: index.name })
+      })),
+    [indices.data]
+  )
+
   return (
     <div className="index-overview-view">
+      {/*
+        This page's subject lives here (BU-166): Overview names the index and
+        Weights, Attribution and Comparison follow it. The same query bar
+        every subject-bearing view uses — tab-completion, arrows, commit on
+        Enter — searching the index catalogue rather than instruments.
+      */}
       <PaneHeader
-        kind="document"
-        title={indexId === '' ? '—' : indexId}
+        kind="query"
+        subject={indexId}
+        index={catalogue}
         {...(overview.data === undefined
           ? {}
           : { meta: `${overview.data.name} · ${String(overview.data.observations)} observations` })}
+        onQuery={(next) => {
+          setSubject(tab.id, next.toUpperCase())
+        }}
         controls={
           <>
             <Button
+              disabled={indexId === ''}
               onClick={() => {
                 openOrRetarget({
                   page: 'strategy-builder',
@@ -77,7 +103,7 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
         }
       />
 
-      {indexId === '' && <ViewEmpty>Pin this pane to an index.</ViewEmpty>}
+      {indexId === '' && <ViewEmpty>Choose an index to see how it has done.</ViewEmpty>}
       {overview.isPending && indexId !== '' && <ViewLoading what={indexId} />}
       {overview.isError && <ViewError error={overview.error} />}
 

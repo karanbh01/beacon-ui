@@ -142,6 +142,38 @@ describe('setSubject', () => {
   })
 })
 
+describe('a link stays inside its page (BU-166)', () => {
+  it('refuses a source on another page', () => {
+    // Pages are independent workspaces: a tab following one on a page you
+    // are not looking at changes subject from somewhere off screen.
+    const elsewhere: OpenTabInput = {
+      id: 'overview',
+      page: 'beacon-view',
+      viewKind: 'overview',
+      archetype: 'query',
+      title: 'Overview',
+      subject: 'TECH10'
+    }
+    const state = workspace(PRICES, elsewhere)
+
+    expect(linkTab(state, 'prices', 'overview')).toBe(state)
+  })
+
+  it('still links two tabs on the same page', () => {
+    const sibling: OpenTabInput = {
+      id: 'second',
+      page: 'data-explorer',
+      viewKind: 'charting',
+      archetype: 'query',
+      title: 'Second'
+    }
+    const state = linkTab(workspace(PRICES, sibling), 'second', 'prices')
+
+    expect(findTab(state, 'second')?.linkSourceId).toBe('prices')
+    expect(resolveSubject(state, findTab(state, 'second')!)).toBe('AAPL')
+  })
+})
+
 describe('unlinking from either end (BU-109)', () => {
   it('severs the follower when asked from the follower', () => {
     const state = unlinkTab(workspace(PRICES, CHARTING), 'charting')

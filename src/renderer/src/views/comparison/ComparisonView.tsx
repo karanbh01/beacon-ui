@@ -93,7 +93,9 @@ export function ComparisonView({ tab, subject }: ViewProps): ReactElement {
         </div>
       </PaneHeader>
 
-      {anchor === '' && <ViewEmpty>Pin this pane to an index to compare from.</ViewEmpty>}
+      {anchor === '' && (
+        <ViewEmpty>Name an index in Overview — this pane compares from it.</ViewEmpty>
+      )}
       {ids.length < 2 && anchor !== '' && (
         <ViewEmpty>Add a second index — a comparison needs two.</ViewEmpty>
       )}

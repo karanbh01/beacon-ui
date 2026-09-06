@@ -2,7 +2,7 @@ import { useRef, useState, type CSSProperties, type DragEvent, type ReactElement
 import { Tab } from '../components/Tab/Tab'
 import { TabBar } from '../components/Tab/TabBar'
 import { carriesTab, paneDropTarget, TAB_MIME, type DropTarget } from '../components/Tab/dragTab'
-import { activeTab, resolveSubject, tabsForPane } from '../state/tabs.logic'
+import { activeTab, resolveSubject, tabsForPage, tabsForPane } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { chipFor } from './chips'
 import { TabLinkMenu } from './TabLinkMenu'
@@ -63,9 +63,9 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
   const tabs = tabsForPane(state, page, index, paneCount)
   const active = activeTab(state, page, index, paneCount)
   const View = active === undefined ? undefined : (getView(active.viewKind) ?? MissingView)
-  // The whole workspace, not this page: what a pinned or linked view needs
-  // to attach to lives on another page by design (BU-163).
-  const options = newTabOptions(viewsForPage(page), state.tabs)
+  // This page's tabs: pages are independent workspaces, so an anchor on
+  // another one is not one this page can use (BU-166).
+  const options = newTabOptions(viewsForPage(page), tabsForPage(state, page))
 
   /** Measured live: tabs move, the strip scrolls, and a drag is not a render. */
   const targetAt = (x: number, y: number): DropTarget => {
@@ -146,7 +146,7 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
             options={options}
             onChoose={(option) => {
               state.openTab({
-                ...tabForOption(option, page, state.tabs),
+                ...tabForOption(option, page, tabsForPage(state, page)),
                 pane: index
               })
             }}

@@ -135,6 +135,19 @@ export function resolveSubject(state: WorkspaceState, tab: Tab): string | undefi
   return tab.subject
 }
 
+/**
+ * The subject this page is currently about (BU-166).
+ *
+ * Beacon View's Overview holds it and the rest of the page reads it. A view
+ * that needs BOTH — Drilldown wants a constituent AND the index it belongs
+ * to — takes its own subject from the tab and the index from here, which is
+ * the only honest way to carry two in a model with one subject per tab.
+ */
+export function pageSubject(state: WorkspaceState, page: string, viewKind: string): string {
+  const anchor = state.tabs.find((tab) => tab.page === page && tab.viewKind === viewKind)
+  return anchor?.subject ?? ''
+}
+
 /** Tabs that follow the given tab's subject. */
 export function dependants(state: WorkspaceState, id: string): Tab[] {
   return state.tabs.filter((tab) => tab.archetype === 'linked' && tab.linkSourceId === id)
@@ -416,6 +429,10 @@ export function linkTab(state: WorkspaceState, id: string, sourceId: string): Wo
   if (tab === undefined || source === undefined) return state
   // A tab cannot follow itself, and chains of links are not in the taxonomy.
   if (id === sourceId || source.archetype === 'linked') return state
+  // Nor across pages (BU-166). Pages are independent workspaces, so a link to
+  // a tab on one you are not looking at is a relationship nobody can see —
+  // and the subject would change from somewhere off screen.
+  if (source.page !== tab.page) return state
 
   return replaceTab(state, id, (current) => ({
     ...current,

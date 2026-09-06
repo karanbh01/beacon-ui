@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from 'react'
 import { TickerField } from '../TickerField/TickerField'
+import type { Suggestion } from '../TickerField/suggestions'
 import './PaneHeader.css'
 
 interface CommonProps {
@@ -22,6 +23,8 @@ export interface QueryHeaderProps extends CommonProps {
   onSever?: () => void
   /** Dataset this view needs, so a suggestion it cannot serve is marked. */
   requires?: string
+  /** Suggest from this list rather than from identifier search (BU-166). */
+  index?: readonly Suggestion[]
 }
 
 export interface DocumentHeaderProps extends CommonProps {
@@ -54,7 +57,7 @@ export function PaneHeader(props: PaneHeaderProps): ReactElement {
   const classes = ['pane-header', props.className].filter(Boolean).join(' ')
 
   if (props.kind === 'query') {
-    const { subject, linkedTo, meta, onQuery, onSever, requires, controls } = props
+    const { subject, linkedTo, meta, onQuery, onSever, requires, index, controls } = props
     return (
       <header className={classes}>
         <Left align="center">
@@ -64,6 +67,7 @@ export function PaneHeader(props: PaneHeaderProps): ReactElement {
             onQuery={onQuery}
             {...(onSever === undefined ? {} : { onSever })}
             {...(requires === undefined ? {} : { requires })}
+            {...(index === undefined ? {} : { index })}
           />
           {meta !== undefined && <span className="pane-header-meta">{meta}</span>}
         </Left>

@@ -111,35 +111,53 @@ const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] 
     kind: 'overview',
     page: 'beacon-view',
     title: 'Overview',
-    archetype: 'pinned',
+    /*
+     * The page's subject-holder (BU-166).
+     *
+     * Beacon View has no document view of its own, and pages are independent
+     * workspaces — so hanging these off Index Definition, which lives on
+     * Strategy Builder, was a link nobody could see. Overview names the
+     * index and the views describing that same index follow it.
+     */
+    archetype: 'query',
     component: IndexOverviewView
   },
   {
     kind: 'weights',
     page: 'beacon-view',
     title: 'Weights',
-    archetype: 'pinned',
+    // Follows Overview, which holds this page's subject (BU-166).
+    archetype: 'linked',
     component: IndexWeightsView
   },
   {
     kind: 'attribution',
     page: 'beacon-view',
     title: 'Attribution',
-    archetype: 'pinned',
+    // Follows Overview, which holds this page's subject (BU-166).
+    archetype: 'linked',
     component: AttributionView
   },
   {
     kind: 'asset-drilldown',
     page: 'beacon-view',
     title: 'Drilldown',
-    archetype: 'linked',
+    /*
+     * Holds the CONSTITUENT it drills into (BU-166).
+     *
+     * The index comes from the page's Overview, which is the only way to
+     * carry two subjects in a model that gives a tab one. Linked, it would
+     * have resolved the index and had no name to drill into.
+     */
+    archetype: 'query',
     component: DrilldownView
   },
   {
     kind: 'comparison',
     page: 'beacon-view',
     title: 'Comparison',
-    archetype: 'pinned',
+    // Follows Overview, which holds this page's subject (BU-166).
+    archetype: 'linked',
     component: ComparisonView
   },
   {

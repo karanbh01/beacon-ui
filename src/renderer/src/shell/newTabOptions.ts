@@ -59,9 +59,22 @@ export function newTabOptions(views: readonly ViewOption[], open: readonly Tab[]
   const hasSubjectSource = open.some((tab) => tab.archetype === 'query')
   const document = pinnableDocument(open)
 
+  /*
+   * The page's anchor, by name (BU-166).
+   *
+   * "needs a query tab to follow" is true and unhelpful: the tab to open
+   * first is Prices on Data Explorer and Overview on Beacon View, and the
+   * row can simply say so. The first subject-bearing view a page registers
+   * IS that tab — registration order is the order this menu lists them in,
+   * and both pages put their anchor at the top.
+   */
+  const anchor = views.find((view) => view.archetype === 'query')?.title
+  const follow =
+    anchor === undefined ? 'needs a query tab to follow' : `needs ${anchor} open to follow`
+
   return views.map((view) => {
     if (view.archetype === 'linked' && !hasSubjectSource) {
-      return { ...view, unavailable: 'needs a query tab to follow' }
+      return { ...view, unavailable: follow }
     }
     if (view.archetype === 'pinned' && document === undefined) {
       // Where to get one, not just that there is none: the view that makes

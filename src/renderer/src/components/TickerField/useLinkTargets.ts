@@ -47,13 +47,13 @@ export function useLinkTargets(tabId: string): Linkage {
   const targets = useMemo(
     () =>
       tabs
-        .filter((tab) => canFollow(tab, tabId))
+        .filter((tab) => canFollow(tab, self))
         .map((tab) => ({
           id: tab.id,
           title: tab.title,
           subject: tab.subject
         })),
-    [tabs, tabId]
+    [tabs, self]
   )
 
   const source = tabs.find((tab) => tab.id === self?.linkSourceId)
@@ -89,10 +89,12 @@ function unlinkLabelFor(linkedTo: string | undefined, followers: string[]): stri
   return undefined
 }
 
-function canFollow(candidate: Tab, tabId: string): boolean {
-  if (candidate.id === tabId) return false
+function canFollow(candidate: Tab, self: Tab | undefined): boolean {
+  if (self === undefined || candidate.id === self.id) return false
   // `linkTab` refuses a linked source, so offering one would be a dead row.
   if (candidate.archetype === 'linked') return false
+  // And one on another page (BU-166): pages are independent workspaces.
+  if (candidate.page !== self.page) return false
   // A source with no subject has nothing to give, and following it would
   // blank the follower.
   return candidate.subject !== undefined && candidate.subject !== ''

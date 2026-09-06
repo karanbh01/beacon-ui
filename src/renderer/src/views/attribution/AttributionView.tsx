@@ -120,7 +120,7 @@ export function AttributionView({ tab, subject }: ViewProps): ReactElement {
         <Field label="Method" width={170} value="Contribution to return" />
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Pin this pane to an index.</ViewEmpty>}
+      {indexId === '' && <ViewEmpty>Name an index in Overview — this pane follows it.</ViewEmpty>}
       {attribution.isPending && indexId !== '' && <ViewLoading what={indexId} />}
       {attribution.isError && <ViewError error={attribution.error} />}
 

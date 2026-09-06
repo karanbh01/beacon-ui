@@ -85,15 +85,14 @@ const COLUMNS: readonly Column<WeightRow>[] = [
  * Name and GICS Sub-Industry still need the batch reference join and land
  * with it.
  */
-export function IndexWeightsView({ tab, subject }: ViewProps): ReactElement {
-  // The INDEX comes from the pin; `subject` is the selected CONSTITUENT.
-  // Two different things, and this is the pane where they meet: Figma links
-  // Drilldown to this tab (357:2319), so this tab's subject has to be the
-  // name Drilldown drills into, not the index it belongs to.
-  const indexId = tab.pinnedDoc ?? ''
+export function IndexWeightsView({ tab, subject, pane }: ViewProps): ReactElement {
+  // The index, resolved from Overview (BU-166). Clicking a row opens
+  // Drilldown for that constituent rather than storing it here: a linked tab
+  // holds no subject of its own, and this page's subject is the index.
+  const indexId = subject ?? tab.pinnedDoc ?? ''
   const [asof, setAsof] = useState('')
   const weights = useWeights(indexId, asof)
-  const setSubject = useWorkspace((state) => state.setSubject)
+  const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
   // Prefer the per-constituent rows; fall back to the identifier→fraction map,
   // because a response without `rows` is still a valid one and the table
@@ -131,7 +130,7 @@ export function IndexWeightsView({ tab, subject }: ViewProps): ReactElement {
         />
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Pin this pane to an index.</ViewEmpty>}
+      {indexId === '' && <ViewEmpty>Name an index in Overview — this pane follows it.</ViewEmpty>}
       {weights.isPending && indexId !== '' && <ViewLoading what={indexId} />}
       {weights.isError && <ViewError error={weights.error} />}
 
@@ -167,11 +166,22 @@ export function IndexWeightsView({ tab, subject }: ViewProps): ReactElement {
                 getRowId={(row) => row.ticker}
                 selectedId={subject ?? ''}
                 onSelectRow={(row) => {
-                  // Selecting a name changes THIS tab's subject; the linked
-                  // Drilldown resolves from here and follows (taxonomy §1,
-                  // archetype 6). Opening a Drilldown directly would break
-                  // the link the design draws.
-                  setSubject(tab.id, row.ticker)
+                  /*
+                   * Straight to Drilldown (BU-166).
+                   *
+                   * This used to set the tab's own subject and let a linked
+                   * Drilldown resolve from here. This tab follows Overview
+                   * now, so writing a subject would forward to it and turn
+                   * the page's index into a ticker — the page has one
+                   * subject and this is not it.
+                   */
+                  openOrRetarget({
+                    page: tab.page,
+                    pane,
+                    viewKind: 'asset-drilldown',
+                    title: 'Drilldown',
+                    subject: row.ticker
+                  })
                 }}
                 maxBodyHeight={560}
               />

@@ -105,3 +105,35 @@ test('the chain itself unlinks, in one click', async ({ window }) => {
   // Severing keeps what was on screen (taxonomy 2).
   await expect(window.getByRole('combobox', { name: 'Subject' })).toHaveValue('CMP005')
 })
+
+test('Beacon View anchors on its own Overview (BU-166)', async ({ window }) => {
+  /*
+   * The page has no document view of its own, and pages are independent
+   * workspaces — so these used to hang off Index Definition, which lives on
+   * Strategy Builder, and every entry in this menu was disabled forever.
+   */
+  await openPage(window, 'Beacon View')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+
+  // Named, not "needs a query tab": the tab to open first is right there.
+  const weights = window.getByRole('menuitem', { name: /^Weights/ })
+  await expect(weights).toBeDisabled()
+  await expect(weights).toContainText('needs Overview open to follow')
+
+  await window.getByRole('menuitem', { name: 'Overview', exact: true }).click()
+
+  // The same query bar as everywhere else, searching the index catalogue
+  // rather than instruments.
+  const field = window.getByRole('combobox', { name: 'Subject' })
+  await field.fill('tech')
+  await expect(window.getByRole('option', { name: /TECH10/ })).toBeVisible()
+  await window.keyboard.press('ArrowDown')
+  await window.keyboard.press('Enter')
+  await expect(field).toHaveValue('TECH10')
+
+  // And the rest of the page follows it.
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Weights', exact: true }).click()
+
+  await expect(window.locator('.tab-chip-label')).toHaveText(['TECH10', 'TECH10'])
+})

@@ -4,7 +4,7 @@ import { ChainIcon } from '../../icons/generated'
 import { useIdentifierIndex } from '../../views/shared/identifierIndex'
 import { useIdentifierSearch } from '../../views/shared/useIdentifierSearch'
 import { useTypeahead } from '../Typeahead/useTypeahead'
-import { mergeSuggestions, unavailableFor } from './suggestions'
+import { matchSuggestions, mergeSuggestions, unavailableFor, type Suggestion } from './suggestions'
 import './TickerField.css'
 
 export interface TickerFieldProps {
@@ -37,6 +37,16 @@ export interface TickerFieldProps {
    * search failing.
    */
   requires?: string
+  /**
+   * Search THIS list instead of the engine's identifier search (BU-166).
+   *
+   * Some subjects are not instruments: Beacon View's Overview names an index,
+   * and the catalogue is a short list the app already holds. The behaviour
+   * around the box — tab-completion, the arrows, committing on Enter — is the
+   * point of reusing this field, and none of it depends on where the rows
+   * came from.
+   */
+  index?: readonly Suggestion[]
   label?: string
   className?: string
 }
@@ -66,6 +76,7 @@ export function TickerField({
   onDraft,
   onSever,
   requires,
+  index,
   label,
   className
 }: TickerFieldProps): ReactElement {
@@ -90,8 +101,13 @@ export function TickerField({
   // Never suggest the thing already on screen — the whole list would be one
   // row repeating what the field says.
   const wanted = draft.trim() === subject ? '' : draft
-  const search = useIdentifierSearch(wanted)
-  const suggestions = mergeSuggestions(search.suggestions, local, wanted)
+  // A supplied list is the whole of the search: asking the engine for
+  // instruments as well would offer tickers where an index is wanted.
+  const search = useIdentifierSearch(index === undefined ? wanted : '')
+  const suggestions =
+    index === undefined
+      ? mergeSuggestions(search.suggestions, local, wanted)
+      : matchSuggestions(wanted, index)
 
   const commit = (next: string): void => {
     const value = next.trim()

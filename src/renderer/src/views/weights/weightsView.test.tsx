@@ -99,14 +99,15 @@ beforeEach(() => {
     title: 'Weights',
     pinnedDoc: 'TECH10'
   })
+  // The page's subject-holder (BU-166): Weights follows this and Drilldown
+  // reads the index off it.
   store.openTab({
-    id: 'drill',
+    id: 'overview',
     page: 'beacon-view',
-    viewKind: 'asset-drilldown',
-    archetype: 'linked',
-    title: 'Drilldown',
-    linkSourceId: 'weights',
-    pinnedDoc: 'TECH10'
+    viewKind: 'overview',
+    archetype: 'query',
+    title: 'Overview',
+    subject: 'TECH10'
   })
 })
 
@@ -151,52 +152,73 @@ describe('IndexWeightsView', () => {
   })
 })
 
-describe('Drilldown as the second linked view (BU-29)', () => {
-  function mountBoth(): void {
+describe('Weights into Drilldown (BU-29, BU-166)', () => {
+  function mountWeightsLinked(): void {
     const queries = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const state = useWorkspace.getState()
     const weights = state.tabs.find((tab) => tab.id === 'weights')
-    const drill = state.tabs.find((tab) => tab.id === 'drill')
 
     render(
       <QueryClientProvider client={queries}>
         <ClientContext.Provider value={client()}>
-          <IndexWeightsView tab={weights!} subject={undefined} />
-          <DrilldownView tab={drill!} subject={resolveSubject(state, drill!)} />
+          <IndexWeightsView tab={weights!} subject={resolveSubject(state, weights!)} pane={0} />
         </ClientContext.Provider>
       </QueryClientProvider>
     )
   }
 
-  it('selects INTO the Weights tab, so the linked pane follows', async () => {
-    // The first linked view follows Prices on Data Explorer; this one follows
-    // Weights on Beacon View. Neither knows about the other — both resolve
-    // their subject from whatever tab they were linked to.
-    mountBoth()
+  it('opens Drilldown on the name that was clicked', async () => {
+    /*
+     * This used to write the ticker into the Weights tab's own subject and
+     * let a linked Drilldown resolve it. Weights follows Overview now
+     * (BU-166), so a subject written here would forward to Overview and turn
+     * the page's index into a ticker.
+     */
+    mountWeightsLinked()
+    await userEvent.click(await screen.findByText('AVGO'))
+
+    const drill = useWorkspace.getState().tabs.find((tab) => tab.viewKind === 'asset-drilldown')
+    expect(drill?.subject).toBe('AVGO')
+  })
+
+  it('never opens a second Drilldown — it retargets the one that is open', async () => {
+    mountWeightsLinked()
+    await userEvent.click(await screen.findByText('AVGO'))
+    await userEvent.click(await screen.findByText('ORCL'))
+
+    const drills = useWorkspace.getState().tabs.filter((t) => t.viewKind === 'asset-drilldown')
+    expect(drills).toHaveLength(1)
+    expect(drills[0]?.subject).toBe('ORCL')
+  })
+
+  it('leaves the page’s index alone', async () => {
+    // Reading the index off a constituent would ask py-beacon for the weights
+    // of "AVGO".
+    mountWeightsLinked()
     await userEvent.click(await screen.findByText('AVGO'))
 
     const state = useWorkspace.getState()
-    expect(state.tabs.find((tab) => tab.id === 'weights')?.subject).toBe('AVGO')
-    expect(state.tabs.find((tab) => tab.id === 'drill')?.archetype).toBe('linked')
+    expect(state.tabs.find((tab) => tab.id === 'overview')?.subject).toBe('TECH10')
+    expect(state.tabs.find((tab) => tab.id === 'weights')?.subject).toBeUndefined()
   })
 
-  it('never opens a second Drilldown — the link is the mechanism', async () => {
-    mountBoth()
+  it('drills into the index the page is about', async () => {
+    mountWeightsLinked()
     await userEvent.click(await screen.findByText('AVGO'))
 
-    expect(
-      useWorkspace.getState().tabs.filter((tab) => tab.viewKind === 'asset-drilldown')
-    ).toHaveLength(1)
-  })
+    const state = useWorkspace.getState()
+    const drill = state.tabs.find((tab) => tab.viewKind === 'asset-drilldown')
 
-  it('keeps the index and the selected constituent apart', async () => {
-    // The pin names the index; the subject names the constituent. Reading the
-    // index off `subject` would ask py-beacon for weights of "AVGO".
-    mountBoth()
-    await userEvent.click(await screen.findByText('AVGO'))
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={queries}>
+        <ClientContext.Provider value={client()}>
+          <DrilldownView tab={drill!} subject={resolveSubject(state, drill!)} pane={0} />
+        </ClientContext.Provider>
+      </QueryClientProvider>
+    )
 
-    const weights = useWorkspace.getState().tabs.find((tab) => tab.id === 'weights')
-    expect(weights?.pinnedDoc).toBe('TECH10')
-    expect(weights?.subject).toBe('AVGO')
+    // The index comes from Overview, not from a hard-coded 'TECH10' (BU-166).
+    expect(await screen.findByText(/constituent of TECH10/)).toBeInTheDocument()
   })
 })

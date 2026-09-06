@@ -7,6 +7,7 @@ import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
 import { useThemeMode } from '../../state/theme'
+import { pageSubject } from '../../state/tabs.logic'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
@@ -80,7 +81,14 @@ const HISTORY_COLUMNS: readonly Column<HistoryRow>[] = [
 export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
   const identifier = subject ?? ''
   // A drilldown is always into some index; the pin says which.
-  const indexId = tab.pinnedDoc ?? 'TECH10'
+  /*
+   * The index this constituent belongs to, from the page's Overview (BU-166).
+   *
+   * It used to fall back to a hard-coded 'TECH10', so a drilldown opened from
+   * any other index quietly described that one instead.
+   */
+  const anchor = useWorkspace((state) => pageSubject(state, tab.page, 'overview'))
+  const indexId = anchor === '' ? (tab.pinnedDoc ?? '') : anchor
 
   const mode = useThemeMode()
   const asset = useAsset(indexId, identifier)
