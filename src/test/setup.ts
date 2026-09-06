@@ -48,3 +48,40 @@ if (typeof globalThis.ResizeObserver !== 'function') {
     }
   }
 }
+
+/**
+ * jsdom has no canvas, and `getContext` returns null (ADR-0002).
+ *
+ * lightweight-charts asks for one while sizing its price axis, and throws
+ * "Value is null" out of an internal resize rather than returning nothing.
+ * That happens off the call stack of any test — an autoSize observer or a
+ * queued frame — so it lands as an unhandled error and failed the whole run
+ * about one time in three (BU-171).
+ *
+ * The stub measures nothing and draws nothing, which is honest: no test here
+ * asserts on a canvas, and a chart that cannot draw is exactly what jsdom is.
+ * A test that needs real rendering belongs in the E2E suite, against Chromium.
+ */
+if (typeof HTMLCanvasElement !== 'undefined') {
+  /*
+   * Every method the chart reaches for, and nothing else.
+   *
+   * A Proxy rather than a list: the library paints through `fancy-canvas`,
+   * which calls whatever the 2D context has, and a stub that answers half of
+   * them fails later and less legibly than one that answers none. Reads that
+   * must return a value are named; everything else is a no-op function.
+   */
+  const values: Record<string, unknown> = {
+    canvas: undefined,
+    measureText: () => ({ width: 0 }),
+    createLinearGradient: () => ({ addColorStop: () => undefined }),
+    getImageData: () => ({ data: new Uint8ClampedArray(4) })
+  }
+
+  const context = new Proxy(values, {
+    get: (target, property) => (property in target ? target[property as string] : () => undefined)
+  })
+
+  HTMLCanvasElement.prototype.getContext = (() =>
+    context) as unknown as HTMLCanvasElement['getContext']
+}

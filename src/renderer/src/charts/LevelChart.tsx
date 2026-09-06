@@ -274,6 +274,18 @@ export function LevelChart({
     if (created === null) return undefined
 
     const measure = (): void => {
+      /*
+       * Nothing to measure once the chart is gone (BU-171).
+       *
+       * A size change delivered after `remove()` reaches a disposed object,
+       * and lightweight-charts throws "Value is null" out of the first
+       * `priceScale` read rather than returning nothing. The cleanup below
+       * already refuses to unsubscribe from a chart that has gone; this is
+       * the half that still runs — a pane closed mid-resize in the app, and
+       * about one test run in three.
+       */
+      if (chart.current === null) return
+
       setAxes({
         left: created.priceScale('left').width(),
         // Zero unless an overlay has made the right scale visible (BU-152).
