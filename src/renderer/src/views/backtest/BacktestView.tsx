@@ -174,16 +174,16 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
   const measuredBenchmark = runData?.benchmark !== undefined
 
   /*
-   * What can be measured against (BU-170).
+   * What can be measured against: anything but itself (BU-172).
    *
-   * Not itself, and not an optimised index: py-beacon refuses a derived one
-   * as a benchmark with a 422 (its #182). Offering it and failing on Run
-   * would be the app knowing better and saying nothing — if that refusal is
-   * lifted, this filter is the one line to remove.
+   * Optimised indices were excluded while py-beacon refused them as
+   * benchmarks — an accident of resolution rather than a rule, since a
+   * benchmark needs nothing but a level series, and lifted in its #182. They
+   * are the comparison this pane most wants: a parent measured against its
+   * own optimised child answers "what did the constraints cost?" without
+   * anybody reasoning across two charts.
    */
-  const others = (indices.data?.indices ?? []).filter(
-    (index) => index.id !== indexId && index.derivation == null
-  )
+  const others = (indices.data?.indices ?? []).filter((index) => index.id !== indexId)
 
   return (
     <div className="backtest-view">

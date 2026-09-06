@@ -143,3 +143,26 @@ test('an index nobody has back-tested says so, about the index', async ({ window
 
   await expect(window.getByText('This index has never been back-tested.')).toBeVisible()
 })
+
+test('an optimised index can be the benchmark, which is the point of one', async ({ window }) => {
+  /*
+   * BU-172. py-beacon refused a derived index as a benchmark until its #182
+   * — an accident of resolution rather than a rule, since a benchmark needs
+   * nothing but a level series. The comparison it blocked is the one the
+   * whole feature is for: a parent against its own optimised child answers
+   * "what did the constraints cost?".
+   */
+  await openPage(window, 'Beacon View')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
+  await window.getByLabel('Index', { exact: true }).selectOption('TECH10')
+
+  const benchmark = window.getByLabel('Benchmark')
+  await expect(benchmark.locator('option', { hasText: 'TECH10-OPT' })).toHaveCount(1)
+
+  await benchmark.selectOption('TECH10-OPT')
+  await window.getByRole('button', { name: 'Run backtest' }).click()
+
+  await expect(window.getByText('not measured')).toHaveCount(0)
+  await expect(window.getByText('BENCHMARK CAGR')).toBeVisible()
+})
