@@ -33,37 +33,36 @@ function format(value: unknown): string {
   return String(value)
 }
 
-export function nextConstraintId(set: ConstraintSet): string {
-  const taken = new Set((set.constraints ?? []).map((row) => row.id))
+/*
+ * The list operations work on the ROWS, not on the document holding them
+ * (BU-170).
+ *
+ * A constraint set is one place they live and an optimised index's derivation
+ * is another — py-beacon stores the same `ConstraintRow` in both, so the same
+ * editing belongs to both. The set-shaped wrappers below keep the callers
+ * that have a set from having to unwrap it.
+ */
+export function nextRowId(rows: readonly ConstraintRow[]): string {
+  const taken = new Set(rows.map((row) => row.id))
   for (let n = 1; ; n++) {
     const candidate = `c${String(n)}`
     if (!taken.has(candidate)) return candidate
   }
 }
 
-function withConstraints(set: ConstraintSet, constraints: ConstraintRow[]): ConstraintSet {
-  return { ...set, constraints }
+export function addRow(rows: readonly ConstraintRow[], type: string): ConstraintRow[] {
+  return [...rows, { id: nextRowId(rows), type, params: {} }]
 }
 
-export function addConstraint(set: ConstraintSet, type: string): ConstraintSet {
-  return withConstraints(set, [
-    ...(set.constraints ?? []),
-    { id: nextConstraintId(set), type, params: {} }
-  ])
+export function removeRowById(rows: readonly ConstraintRow[], id: string): ConstraintRow[] {
+  return rows.filter((row) => row.id !== id)
 }
 
-export function removeConstraint(set: ConstraintSet, id: string): ConstraintSet {
-  return withConstraints(
-    set,
-    (set.constraints ?? []).filter((row) => row.id !== id)
-  )
-}
-
-export function replaceConstraint(set: ConstraintSet, constraint: ConstraintRow): ConstraintSet {
-  return withConstraints(
-    set,
-    (set.constraints ?? []).map((row) => (row.id === constraint.id ? constraint : row))
-  )
+export function replaceRow(
+  rows: readonly ConstraintRow[],
+  constraint: ConstraintRow
+): ConstraintRow[] {
+  return rows.map((row) => (row.id === constraint.id ? constraint : row))
 }
 
 /**
@@ -73,19 +72,53 @@ export function replaceConstraint(set: ConstraintSet, constraint: ConstraintRow)
  * sequential like index rules. It is a display preference, and reordering is
  * offered only because a long set is easier to read grouped by intent.
  */
-export function moveConstraint(set: ConstraintSet, id: string, delta: -1 | 1): ConstraintSet {
-  const rows = [...(set.constraints ?? [])]
+export function moveRow(
+  rows: readonly ConstraintRow[],
+  id: string,
+  delta: -1 | 1
+): readonly ConstraintRow[] {
   const from = rows.findIndex((row) => row.id === id)
   const to = from + delta
-  if (from < 0 || to < 0 || to >= rows.length) return set
+  // A refused move gives back what it was given, so a caller can tell that
+  // nothing happened by identity rather than by comparing contents.
+  if (from < 0 || to < 0 || to >= rows.length) return rows
 
-  const moved = rows[from]
-  const displaced = rows[to]
-  if (moved === undefined || displaced === undefined) return set
-  rows[from] = displaced
-  rows[to] = moved
+  const moved = [...rows]
+  const one = moved[from]
+  const other = moved[to]
+  if (one === undefined || other === undefined) return rows
+  moved[from] = other
+  moved[to] = one
 
-  return withConstraints(set, rows)
+  return moved
+}
+
+/* ── the same operations, for a caller holding a set ─────────────────────── */
+
+export function nextConstraintId(set: ConstraintSet): string {
+  return nextRowId(set.constraints ?? [])
+}
+
+function withConstraints(set: ConstraintSet, constraints: ConstraintRow[]): ConstraintSet {
+  return { ...set, constraints }
+}
+
+export function addConstraint(set: ConstraintSet, type: string): ConstraintSet {
+  return withConstraints(set, addRow(set.constraints ?? [], type))
+}
+
+export function removeConstraint(set: ConstraintSet, id: string): ConstraintSet {
+  return withConstraints(set, removeRowById(set.constraints ?? [], id))
+}
+
+export function replaceConstraint(set: ConstraintSet, constraint: ConstraintRow): ConstraintSet {
+  return withConstraints(set, replaceRow(set.constraints ?? [], constraint))
+}
+
+export function moveConstraint(set: ConstraintSet, id: string, delta: -1 | 1): ConstraintSet {
+  const rows = set.constraints ?? []
+  const moved = moveRow(rows, id, delta)
+  return moved === rows ? set : withConstraints(set, [...moved])
 }
 
 export function isDirty(draft: ConstraintSet, saved: ConstraintSet | undefined): boolean {

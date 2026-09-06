@@ -148,7 +148,17 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
    */
   const measuredBenchmark = runData?.benchmark !== undefined
 
-  const others = (indices.data?.indices ?? []).filter((index) => index.id !== indexId)
+  /*
+   * What can be measured against (BU-170).
+   *
+   * Not itself, and not an optimised index: py-beacon refuses a derived one
+   * as a benchmark with a 422 (its #182). Offering it and failing on Run
+   * would be the app knowing better and saying nothing — if that refusal is
+   * lifted, this filter is the one line to remove.
+   */
+  const others = (indices.data?.indices ?? []).filter(
+    (index) => index.id !== indexId && index.derivation == null
+  )
 
   return (
     <div className="backtest-view">

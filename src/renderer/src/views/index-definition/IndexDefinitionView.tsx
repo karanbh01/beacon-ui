@@ -15,6 +15,8 @@ import {
   useUniverses,
   useValidateIndex
 } from '../shared/strategyQueries'
+import { useConstraintTypes } from '../shared/optimiseQueries'
+import { Derivation } from './Derivation'
 import { IndexDetailsForm } from './IndexDetailsForm'
 import { IndexOverview } from './IndexOverview'
 import { Methodology } from './Methodology'
@@ -25,7 +27,10 @@ import {
   addRule,
   addTreatment,
   applyRow,
+  describeCascade,
+  describeDeleted,
   draftFindings,
+  derivationOf,
   hasWeighting,
   moveRule,
   pipelineOf,
@@ -77,8 +82,21 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
 
   const [editingId, setEditingId] = useState<string | undefined>(undefined)
   const [previewedFor, setPreviewedFor] = useState<string | undefined>(undefined)
+  /** What the last delete actually removed, in the engine's own count. */
+  const [removed, setRemoved] = useState<string | undefined>(undefined)
 
   const universes = useUniverses()
+  const constraintTypes = useConstraintTypes()
+
+  /*
+   * Which of the two documents this is (BU-170).
+   *
+   * py-beacon stores exactly one of a pipeline-and-universe or a derivation,
+   * and refuses anything else — so this single question decides the whole
+   * pane: what it shows in place of a methodology, whether a universe is
+   * asked for, and whether a preview is offered.
+   */
+  const derivation = draft === undefined ? undefined : derivationOf(draft)
   const members = useUniverseMembers(draft?.universe?.universe_id ?? '')
   const validate = useValidateIndex()
   const preview = usePreviewDocument()
@@ -101,27 +119,40 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
   if (chosen === undefined) {
     return (
       <div className="index-definition-view">
+        {/* What actually went, in the engine's own count — a cascade can
+            remove more than the row that was clicked (BU-170). */}
+        {removed !== undefined && <p className="index-removed type-11">{removed}</p>}
+
         <IndexOverview
           indices={catalogue}
           onOpen={setOpened}
           onDelete={(index) => {
             /*
-             * The confirmation names what goes with it (BU-151).
+             * The confirmation names what goes with it (BU-151, BU-170).
              *
              * The engine deletes the runs keyed to this id along with the
-             * definition, and a backtest somebody waited two minutes for
-             * disappearing unannounced is the app failing to say what it was
-             * about to do.
+             * definition, and since BN-168 the indices solved FROM it as
+             * well. A backtest somebody waited two minutes for — or a whole
+             * optimised index — disappearing unannounced is the app failing
+             * to say what it was about to do.
+             *
+             * Warned from the catalogue, reported from the response: the
+             * warning has to come before the request and only the answer
+             * knows what actually went.
              */
             void window.beacon
               ?.confirm({
                 title: 'Delete index',
                 message: `Delete “${index.name}”?`,
-                detail:
-                  'The definition and its backtest results are removed from the engine. Universes and market data are untouched.'
+                detail: describeCascade(index.id, catalogue)
               })
               .then((confirmed) => {
-                if (confirmed) deleteIndex.mutate(index.id)
+                if (!confirmed) return
+                deleteIndex.mutate(index.id, {
+                  onSuccess: (result) => {
+                    setRemoved(describeDeleted(result))
+                  }
+                })
               })
           }}
         />
@@ -214,83 +245,109 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
 
       <IndexDetailsForm document={draft} onChange={edit} idLocked={saved !== undefined} />
 
-      <section className="index-universe">
-        <h3 className="index-section-label">Universe</h3>
-        <div className="index-universe-row">
-          <Select
-            options={(universes.data?.universes ?? []).map((universe) => ({
-              value: universe.id,
-              label: universe.name
-            }))}
-            value={draft.universe?.universe_id ?? ''}
-            placeholder="No universes"
-            label="Starting universe"
-            disabled={(universes.data?.universes ?? []).length === 0}
-            onChange={(value) => {
-              edit((current) => ({ ...current, universe: { universe_id: value } }))
+      {/*
+        A derived index has no universe of its own (BU-170): it takes the
+        parent's constituents through the solve, and the parent is named in
+        the derivation below.
+      */}
+      {derivation === undefined && (
+        <section className="index-universe">
+          <h3 className="index-section-label">Universe</h3>
+          <div className="index-universe-row">
+            <Select
+              options={(universes.data?.universes ?? []).map((universe) => ({
+                value: universe.id,
+                label: universe.name
+              }))}
+              value={draft.universe?.universe_id ?? ''}
+              placeholder="No universes"
+              label="Starting universe"
+              disabled={(universes.data?.universes ?? []).length === 0}
+              onChange={(value) => {
+                edit((current) => ({ ...current, universe: { universe_id: value } }))
+              }}
+            />
+            <span className="index-universe-count type-11">
+              {members.data === undefined
+                ? 'eligible assets unknown'
+                : `${members.data.identifiers.length.toLocaleString('en-US')} eligible assets`}
+            </span>
+            <button
+              type="button"
+              className="index-link type-11"
+              onClick={() => {
+                openOrRetarget({
+                  page: tab.page,
+                  pane,
+                  viewKind: 'universe-set',
+                  title: 'Universe Set',
+                  subject: draft.universe?.universe_id ?? ''
+                })
+              }}
+            >
+              {/* With nothing to choose, the link has to be the way OUT of that
+                state rather than a tour of it (BU-78). */}
+              {(universes.data?.universes ?? []).length === 0
+                ? 'Create a universe… →'
+                : 'Open Universe Set →'}
+            </button>
+          </div>
+        </section>
+      )}
+
+      <div className="index-main-row">
+        {derivation !== undefined ? (
+          <Derivation
+            derivation={derivation}
+            types={constraintTypes.data?.types ?? {}}
+            onChange={(derivation) => {
+              edit((current) => ({ ...current, derivation }))
             }}
-          />
-          <span className="index-universe-count type-11">
-            {members.data === undefined
-              ? 'eligible assets unknown'
-              : `${members.data.identifiers.length.toLocaleString('en-US')} eligible assets`}
-          </span>
-          <button
-            type="button"
-            className="index-link type-11"
-            onClick={() => {
+            onOpenParent={(parent) => {
               openOrRetarget({
                 page: tab.page,
                 pane,
-                viewKind: 'universe-set',
-                title: 'Universe Set',
-                subject: draft.universe?.universe_id ?? ''
+                viewKind: 'index-definition',
+                title: parent,
+                subject: parent
               })
             }}
-          >
-            {/* With nothing to choose, the link has to be the way OUT of that
-                state rather than a tour of it (BU-78). */}
-            {(universes.data?.universes ?? []).length === 0
-              ? 'Create a universe… →'
-              : 'Open Universe Set →'}
-          </button>
-        </div>
-      </section>
-
-      <div className="index-main-row">
-        <Methodology
-          document={draft}
-          steps={preview.data?.steps ?? []}
-          editingId={editingId}
-          onSelect={setEditingId}
-          onAdd={(group) => {
-            /*
-             * Each group adds a different thing, and one of them adds nothing
-             * yet: a weighting is CHOSEN, so with none there the slot opens
-             * the editor and the row appears when a scheme is applied
-             * (BU-160).
-             */
-            const weighting = pipelineOf(draft)?.weighting
-            if (group === 'weighting' && weighting !== undefined && !hasWeighting(draft)) {
-              setEditingId(weighting.id)
-              return
-            }
-            if (group === 'weighting') edit(addCap)
-            else if (group === 'treatment') edit(addTreatment)
-            else edit(addRule)
-          }}
-          onApply={(rule) => {
-            edit((current) => applyRow(current, rule))
-            setEditingId(undefined)
-          }}
-          onRemove={(id) => {
-            edit((current) => removeRow(current, id))
-            setEditingId(undefined)
-          }}
-          onMove={(id, delta) => {
-            edit((current) => moveRule(current, id, delta))
-          }}
-        />
+          />
+        ) : (
+          <Methodology
+            document={draft}
+            steps={preview.data?.steps ?? []}
+            editingId={editingId}
+            onSelect={setEditingId}
+            onAdd={(group) => {
+              /*
+               * Each group adds a different thing, and one of them adds nothing
+               * yet: a weighting is CHOSEN, so with none there the slot opens
+               * the editor and the row appears when a scheme is applied
+               * (BU-160).
+               */
+              const weighting = pipelineOf(draft)?.weighting
+              if (group === 'weighting' && weighting !== undefined && !hasWeighting(draft)) {
+                setEditingId(weighting.id)
+                return
+              }
+              if (group === 'weighting') edit(addCap)
+              else if (group === 'treatment') edit(addTreatment)
+              else edit(addRule)
+            }}
+            onApply={(rule) => {
+              edit((current) => applyRow(current, rule))
+              setEditingId(undefined)
+            }}
+            onRemove={(id) => {
+              edit((current) => removeRow(current, id))
+              setEditingId(undefined)
+            }}
+            onMove={(id, delta) => {
+              edit((current) => moveRule(current, id, delta))
+            }}
+          />
+        )}
 
         <ValidationCard
           {...(validate.data === undefined ? {} : { report: validate.data })}
@@ -304,21 +361,31 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
         />
       </div>
 
-      <button
-        type="button"
-        className="index-link type-11"
-        onClick={() => {
-          openOrRetarget({
-            page: tab.page,
-            pane,
-            viewKind: 'constituent-preview',
-            title: 'Constituent Preview',
-            subject: draft.id
-          })
-        }}
-      >
-        Open Constituent Preview →
-      </button>
+      {/*
+        Not for a derived index (BU-170).
+
+        `POST /indices/{id}/preview` walks eligibility rules, and a derivation
+        has none — py-beacon answers 422 (its #182). The honest analogue is
+        solved weights and binding constraints, which is a feature rather than
+        a repair, so the action is absent rather than offered and refused.
+      */}
+      {derivation === undefined && (
+        <button
+          type="button"
+          className="index-link type-11"
+          onClick={() => {
+            openOrRetarget({
+              page: tab.page,
+              pane,
+              viewKind: 'constituent-preview',
+              title: 'Constituent Preview',
+              subject: draft.id
+            })
+          }}
+        >
+          Open Constituent Preview →
+        </button>
+      )}
     </div>
   )
 }

@@ -50,9 +50,20 @@ export function pipelineOf(document: IndexDocument): PipelineSpec | undefined {
   return document.pipeline ?? undefined
 }
 
-/** True for an optimiser-derived index: the app's two-face switch (BU-170). */
+/**
+ * The derivation, or undefined on a rule-driven index (BU-170).
+ *
+ * The app's two-face switch. A document carries this or a pipeline, never
+ * both — py-beacon refuses anything else with a 422 — so asking for it is
+ * asking which kind of document this is.
+ */
+export function derivationOf(document: IndexDocument): DerivationPayload | undefined {
+  return document.derivation ?? undefined
+}
+
+/** True for an optimiser-derived index. */
 export function isDerived(document: IndexDocument): boolean {
-  return document.derivation != null
+  return derivationOf(document) !== undefined
 }
 
 /** What this group's add slot offers, given what the document already has. */
@@ -415,6 +426,51 @@ export function weightingFromRule(rule: RuleSpec, current: WeightingSpec): Weigh
   }
 }
 
+export type IndexDeletion = components['schemas']['IndexDeletion']
+
+/** The indices solved from this one, which a delete takes with it (BU-170). */
+export function childrenOf(indexId: string, catalogue: readonly IndexDocument[]): IndexDocument[] {
+  return catalogue.filter((index) => derivationOf(index)?.source_index_id === indexId)
+}
+
+/**
+ * What deleting this index will take with it.
+ *
+ * Computed from the catalogue because the confirmation has to be shown BEFORE
+ * the request — the response says what actually went, and the two are
+ * different jobs. py-beacon cascades downward only, so a child names its
+ * parent and never the reverse.
+ */
+export function describeCascade(indexId: string, catalogue: readonly IndexDocument[]): string {
+  const children = childrenOf(indexId, catalogue)
+  const runs = 'The definition and its backtest results are removed from the engine.'
+  const untouched = 'Universes and market data are untouched.'
+
+  if (children.length === 0) return `${runs} ${untouched}`
+
+  const named = children.map((child) => child.id).join(', ')
+  return (
+    `${runs} So are the ${String(children.length)} optimised ` +
+    `${children.length === 1 ? 'index' : 'indices'} solved from it — ${named} — ` +
+    `and their results. ${untouched}`
+  )
+}
+
+/** What actually went, from the engine's own answer (BN-168). */
+export function describeDeleted(result: IndexDeletion): string {
+  const removed = result.deleted
+  const runs = removed.reduce((sum, entry) => sum + entry.backtest_results_deleted, 0)
+  const records = removed.filter((entry) => entry.backtest_record_deleted).length
+
+  const parts = [
+    `${String(removed.length)} ${removed.length === 1 ? 'index' : 'indices'}`,
+    ...(runs === 0 ? [] : [`${String(runs)} backtest ${runs === 1 ? 'result' : 'results'}`]),
+    ...(records === 0 ? [] : [`${String(records)} stored ${records === 1 ? 'run' : 'runs'}`])
+  ]
+
+  return `Deleted ${parts.join(', ')}: ${removed.map((entry) => entry.index_id).join(', ')}.`
+}
+
 /**
  * What this app can say before the engine is asked (BU-160).
  *
@@ -424,7 +480,9 @@ export function weightingFromRule(rule: RuleSpec, current: WeightingSpec): Weigh
  * body path — rather than as a finding anybody would act on.
  */
 export function draftFindings(document: IndexDocument): Finding[] {
-  if (hasWeighting(document)) return []
+  // A derived index has no weighting to choose: its weights are solved, and
+  // the derivation is what py-beacon validates (BU-170).
+  if (isDerived(document) || hasWeighting(document)) return []
 
   return [
     {

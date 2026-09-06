@@ -284,7 +284,7 @@ test('the palette lists the engine’s indices', async ({ window }) => {
 
   const results = window.getByRole('listbox', { name: 'Search results' })
   await expect(results.getByText('INDICES')).toBeVisible()
-  await expect(results.getByRole('option', { name: /TECH10/ })).toBeVisible()
+  await expect(results.getByRole('option', { name: /^TECH10 / })).toBeVisible()
 })
 
 test('an empty query offers what you were just doing', async ({ window }) => {
@@ -656,7 +656,7 @@ test('every page can be opened from empty, and names its own subject', async ({ 
     // The catalogue, in the same query bar as everywhere else.
     const field = window.getByRole('combobox', { name: 'Index' })
     await field.fill('tech')
-    await expect(window.getByRole('option', { name: /TECH10/ })).toBeVisible()
+    await expect(window.getByRole('option', { name: /^TECH10 / })).toBeVisible()
     await window.keyboard.press('ArrowDown')
     await window.keyboard.press('Enter')
 

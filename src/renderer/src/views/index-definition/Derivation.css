@@ -1,0 +1,19 @@
+/*
+ * What an optimised index is made of (BU-170).
+ *
+ * Sits where the methodology card sits on a rule-driven index, and takes the
+ * same width — the two are alternatives, so the pane must not change shape
+ * depending on which kind of document is open.
+ */
+.derivation {
+  display: flex;
+  flex: 1 1 560px;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  max-width: 800px;
+}
+
+.derivation-card {
+  width: 100%;
+}

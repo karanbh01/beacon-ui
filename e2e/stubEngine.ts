@@ -380,12 +380,21 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
  * test, so the stub does not need to reproduce it.
  */
 /**
+ * An optimiser-derived index (BN-168, BU-170).
+ *
+ * Solved from TECH10, so the app has a document with a derivation and no
+ * pipeline to render — the shape that broke every type in the editor and the
+ * one no stub could produce before.
+ */
+const OPTIMISED = 'TECH10-OPT'
+
+/**
  * The catalogue, mutable since indices can be deleted (BN-157, BU-151).
  *
  * Two of them, so a benchmark can be chosen against one (BU-137) — the
  * measured and not-measured readings of a run are different code paths.
  */
-let indexIds = ['TECH10', 'EU-VALUE']
+let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED]
 
 /** True when there was one to remove, which is the engine's 204 or 404. */
 function deleteIndexDocument(id: string): boolean {
@@ -394,7 +403,35 @@ function deleteIndexDocument(id: string): boolean {
   return true
 }
 
+function derivedDocument(id: string): unknown {
+  return {
+    id,
+    name: 'TECH10 optimised',
+    description: '',
+    currency: 'USD',
+    base_date: '2019-12-31',
+    base_value: 100,
+    rebalancing_frequency: 'QUARTERLY',
+    return_type: 'NET_TOTAL_RETURN',
+    rebalance_day_rule: 'THIRD_FRIDAY',
+    effective_lag_sessions: 0,
+    withholding_tax_rate: 0,
+    // Exactly one of a pipeline-and-universe or a derivation: py-beacon
+    // refuses a document carrying both, and so does this.
+    derivation: {
+      source_index_id: 'TECH10',
+      objective: 'min_tracking_error',
+      constraints: [
+        { id: 'c1', type: 'MaxWeight', params: { max: 0.05 } },
+        { id: 'c2', type: 'FullInvestment', params: {} }
+      ]
+    }
+  }
+}
+
 function indexDocument(id: string): unknown {
+  if (id === OPTIMISED) return derivedDocument(id)
+
   return {
     id,
     name: 'Beacon US Technology Top 10',
@@ -527,6 +564,22 @@ const ROUTES: Record<string, unknown> = {
    * py-beacon stamped them — which is null on a real store too, and is the
    * case a client is most likely to render as "Invalid Date".
    */
+  /*
+   * The constraint catalogue (BU-170).
+   *
+   * `/optimise/constraint-types` is what makes the constraint editor render
+   * named fields instead of free-text keys, and without it every test
+   * exercised the empty-catalogue fallback — the same gap `/indices/rule-types`
+   * had until BU-160.
+   */
+  '/optimise/constraint-types': {
+    types: {
+      MaxWeight: ['max'],
+      MinWeight: ['min'],
+      FullInvestment: [],
+      SectorBand: ['sector', 'min', 'max']
+    }
+  },
   '/beacon/backtests': [
     { index_id: 'TECH10', run_at: new Date(Date.now() - 3 * 86_400_000).toISOString() },
     { index_id: 'EU-VALUE', run_at: null }
@@ -1137,22 +1190,47 @@ export function startStubEngine(): Promise<StubEngine> {
     }
 
     /*
-     * Deleting an index (BN-157, BU-151).
+     * Deleting an index (BN-157, BN-168, BU-151, BU-170).
      *
-     * 204, or 404 for one that is not there — and no refusal case, because
-     * no index is seeded. The engine drops the runs keyed to the id along
-     * with the definition; this stub has no job registry to drop them from,
-     * which is worth knowing when reading a test that passes here.
+     * 200 with a body since BN-168 — not 204 — listing everything the cascade
+     * removed: the named index first, then the indices solved from it. The
+     * app warns from the catalogue and REPORTS from this, so a stub that
+     * answered an empty body would leave the report untested.
+     *
+     * 404 for one that is not there, and no refusal case: no index is seeded.
      */
     if (method === 'DELETE' && url.pathname.startsWith('/indices/')) {
       const id = decodeURIComponent(url.pathname.slice('/indices/'.length))
+      const children = indexIds.filter((candidate) => candidate === OPTIMISED && id === 'TECH10')
+
       if (!deleteIndexDocument(id)) {
         response
           .writeHead(404)
           .end(JSON.stringify(notFound(`index '${id}'`, 'DocumentStore').payload))
         return
       }
-      response.writeHead(204).end()
+
+      for (const child of children) deleteIndexDocument(child)
+
+      response.writeHead(200).end(
+        JSON.stringify({
+          index_id: id,
+          deleted: [
+            {
+              index_id: id,
+              derived_from: null,
+              backtest_record_deleted: true,
+              backtest_results_deleted: 2
+            },
+            ...children.map((child) => ({
+              index_id: child,
+              derived_from: id,
+              backtest_record_deleted: false,
+              backtest_results_deleted: 1
+            }))
+          ]
+        })
+      )
       return
     }
 

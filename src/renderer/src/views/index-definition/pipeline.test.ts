@@ -11,6 +11,8 @@ import {
   isDerived,
   asPercent,
   blankIndex,
+  describeCascade,
+  describeDeleted,
   describeRule,
   describeWeighting,
   errorsOf,
@@ -430,5 +432,79 @@ describe('a derived index carries no pipeline (BU-170)', () => {
     expect(removeRow(before, 'treatment')).toBe(before)
     expect(applyRow(before, { id: 'r1', type: 'FilterRule', params: {} })).toBe(before)
     expect(moveRule(before, 'r1', 1)).toBe(before)
+  })
+})
+
+describe('what a delete takes with it (BU-170)', () => {
+  const parent = doc()
+  const child = { ...doc({ id: 'TECH10-OPT', name: 'TECH10 optimised' }) }
+
+  function catalogue(): IndexDocument[] {
+    const derivedChild = { ...child }
+    delete derivedChild.pipeline
+    delete derivedChild.universe
+    return [
+      parent,
+      {
+        ...derivedChild,
+        derivation: { source_index_id: 'TECH10', objective: 'x', constraints: [] }
+      }
+    ]
+  }
+
+  it('names the indices solved from this one, since the cascade takes them', () => {
+    const detail = describeCascade('TECH10', catalogue())
+
+    expect(detail).toContain('TECH10-OPT')
+    expect(detail).toContain('1 optimised index')
+  })
+
+  it('says only what it used to when nothing was solved from it', () => {
+    // The cascade is downward: deleting a child leaves its parent, so a
+    // childless index warns exactly as it did before (BU-151).
+    const detail = describeCascade('TECH10-OPT', catalogue())
+
+    expect(detail).toContain('backtest results')
+    expect(detail).not.toContain('optimised')
+  })
+
+  it('reports what actually went from the engine and not from the guess', () => {
+    // The warning is computed from the catalogue before the request; only the
+    // response knows what the engine really removed.
+    const said = describeDeleted({
+      index_id: 'TECH10',
+      deleted: [
+        {
+          index_id: 'TECH10',
+          derived_from: null,
+          backtest_record_deleted: true,
+          backtest_results_deleted: 2
+        },
+        {
+          index_id: 'TECH10-OPT',
+          derived_from: 'TECH10',
+          backtest_record_deleted: false,
+          backtest_results_deleted: 1
+        }
+      ]
+    })
+
+    expect(said).toBe('Deleted 2 indices, 3 backtest results, 1 stored run: TECH10, TECH10-OPT.')
+  })
+
+  it('counts one of a thing as one thing', () => {
+    const said = describeDeleted({
+      index_id: 'EU-VALUE',
+      deleted: [
+        {
+          index_id: 'EU-VALUE',
+          derived_from: null,
+          backtest_record_deleted: false,
+          backtest_results_deleted: 0
+        }
+      ]
+    })
+
+    expect(said).toBe('Deleted 1 index: EU-VALUE.')
   })
 })

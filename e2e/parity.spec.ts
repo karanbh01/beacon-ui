@@ -288,7 +288,7 @@ test.describe('frame parity', () => {
     await openPage(window, 'Strategy Builder')
     await openView(window, 'Index Definition')
     // The tab lands on the catalogue now (BU-95); open one to get a card.
-    await window.locator('.index-overview').getByText('TECH10').click()
+    await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
     await window.locator('.methodology').waitFor()
 
     const head = await window.evaluate(() => {

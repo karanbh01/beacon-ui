@@ -68,7 +68,7 @@ test('a created universe is selectable in an index definition', async ({ window 
   await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveValue('MY-SECTOR')
 
   await openView(window, 'Index Definition')
-  await window.locator('.index-overview').getByText('TECH10').click()
+  await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
   const starting = window.getByRole('combobox', { name: 'Starting universe' })
   await expect(starting).toBeVisible()
   await starting.selectOption('MY-SECTOR')
@@ -164,7 +164,7 @@ test('an index definition can be created, which is what the tab is for', async (
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Index Definition')
 
-  await expect(window.locator('.index-overview').getByText('TECH10')).toBeVisible()
+  await expect(window.locator('.index-overview').getByText('TECH10', { exact: true })).toBeVisible()
   await window.getByRole('button', { name: 'New index…' }).click()
 
   // Rejected before anything is sent: a space cannot address a document.
@@ -358,4 +358,61 @@ test('an index can be deleted, with its backtest results named', async ({ app, w
   // disappearing unannounced is the app failing to say what it was doing.
   const asked = await app.evaluate(() => (globalThis as { asked?: string[] }).asked ?? [])
   expect(seen.concat(asked).join(' ')).toContain('backtest results')
+})
+
+test('an optimised index shows what it was derived from (BU-170)', async ({ window }) => {
+  /*
+   * BN-168: a document carries EITHER a pipeline and a universe or a
+   * derivation. So this pane has two faces, and the derived one shows the
+   * parent, the objective and the constraints — the editable surface IS the
+   * derivation, because no parent methodology is embedded to edit.
+   */
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Index Definition')
+
+  const overview = window.locator('.index-overview')
+  await overview.getByText('TECH10-OPT', { exact: true }).click()
+
+  await expect(window.getByText('Derived from')).toBeVisible()
+  await expect(window.getByRole('button', { name: /TECH10 →/ })).toBeVisible()
+  await expect(window.getByText('min_tracking_error')).toBeVisible()
+
+  // The constraints are the same rows a constraint set holds, so the same
+  // editor serves both — named fields from the catalogue, not free text.
+  await window.getByText('max 5%').click()
+  await expect(window.locator('.constraint-editor').getByLabel('max')).toBeVisible()
+
+  // No universe to choose and no preview to open: a derivation has neither,
+  // and py-beacon refuses the preview outright.
+  await expect(window.getByText('UNIVERSE')).toHaveCount(0)
+  await expect(window.getByRole('button', { name: /Constituent Preview/ })).toHaveCount(0)
+
+  // And no invented finding: it needs no weighting, so nothing is missing.
+  await expect(window.getByText(/Choose a weighting scheme/)).toHaveCount(0)
+})
+
+test('deleting a parent says which optimised indices go with it', async ({ app, window }) => {
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Index Definition')
+
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = (...args: unknown[]) => {
+      const options = (args.length > 1 ? args[1] : args[0]) as { detail?: string }
+      ;(globalThis as { warned?: string[] }).warned ??= []
+      ;(globalThis as { warned?: string[] }).warned?.push(options.detail ?? '')
+      return Promise.resolve({ response: 0, checkboxChecked: false })
+    }
+  })
+
+  const overview = window.locator('.index-overview')
+  await overview.getByRole('button', { name: 'Delete TECH10', exact: true }).click()
+
+  // Warned from the catalogue, before the request.
+  const warned = await app.evaluate(() => (globalThis as { warned?: string[] }).warned ?? [])
+  expect(warned.join(' ')).toContain('TECH10-OPT')
+
+  // Reported from the response, which is the only thing that knows what the
+  // engine actually removed (BN-168).
+  await expect(window.getByText(/Deleted 2 indices/)).toBeVisible()
+  await expect(overview.getByText('TECH10-OPT')).toHaveCount(0)
 })

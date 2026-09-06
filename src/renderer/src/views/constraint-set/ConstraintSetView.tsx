@@ -1,8 +1,5 @@
-import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
-import { AddSlot } from '../../components/AddSlot/AddSlot'
-import { Badge } from '../../components/Badge/Badge'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
-import { Card } from '../../components/Card/Card'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
 import { useWorkspace } from '../../state/tabs.store'
@@ -16,15 +13,8 @@ import {
   useValidateConstraintSet,
   type ConstraintSet
 } from '../shared/optimiseQueries'
-import { ConstraintEditor } from './ConstraintEditor'
-import {
-  addConstraint,
-  describeConstraint,
-  isDirty,
-  moveConstraint,
-  removeConstraint,
-  replaceConstraint
-} from './constraints'
+import { ConstraintList } from './ConstraintList'
+import { isDirty } from './constraints'
 import './ConstraintSetView.css'
 
 /**
@@ -44,7 +34,6 @@ export function ConstraintSetView({ tab, subject }: ViewProps): ReactElement {
   const stored = useConstraintSet(selectedId)
 
   const [draft, setDraft] = useState<ConstraintSet | undefined>(undefined)
-  const [editingId, setEditingId] = useState<string | undefined>(undefined)
   const seededFor = useRef<string | undefined>(undefined)
 
   const save = useSaveConstraintSet()
@@ -127,89 +116,19 @@ export function ConstraintSetView({ tab, subject }: ViewProps): ReactElement {
 
       {draft !== undefined && (
         <>
-          <Card title={`Constraints · ${draft.name}`} flush className="constraint-card">
-            {(draft.constraints ?? []).map((constraint, index) => (
-              <Fragment key={constraint.id}>
-                <div
-                  className={
-                    constraint.id === editingId ? 'constraint-row is-selected' : 'constraint-row'
-                  }
-                >
-                  <button
-                    type="button"
-                    className="constraint-main"
-                    aria-pressed={constraint.id === editingId}
-                    onClick={() => {
-                      setEditingId(constraint.id === editingId ? undefined : constraint.id)
-                    }}
-                  >
-                    <span className="constraint-index">{String(index + 1).padStart(2, '0')}</span>
-                    <Badge>{constraint.type}</Badge>
-                    <span className="constraint-summary">
-                      {describeConstraint(constraint, types)}
-                    </span>
-                  </button>
-                  <span className="constraint-actions">
-                    <button
-                      type="button"
-                      className="constraint-action"
-                      aria-label={`Move ${constraint.id} up`}
-                      onClick={() => {
-                        edit((current) => moveConstraint(current, constraint.id, -1))
-                      }}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="constraint-action"
-                      aria-label={`Move ${constraint.id} down`}
-                      onClick={() => {
-                        edit((current) => moveConstraint(current, constraint.id, 1))
-                      }}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      className="constraint-action"
-                      aria-label={`Remove ${constraint.id}`}
-                      onClick={() => {
-                        edit((current) => removeConstraint(current, constraint.id))
-                        setEditingId(undefined)
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                </div>
-
-                {constraint.id === editingId && (
-                  <ConstraintEditor
-                    constraint={constraint}
-                    catalogue={types}
-                    onApply={(next) => {
-                      edit((current) => replaceConstraint(current, next))
-                      setEditingId(undefined)
-                    }}
-                    onCancel={() => {
-                      setEditingId(undefined)
-                    }}
-                  />
-                )}
-              </Fragment>
-            ))}
-
-            <AddSlot
-              label="Add constraint…"
-              indent={44}
-              onClick={() => {
-                const first = Object.keys(types)[0]
-                if (first === undefined) return
-                edit((current) => addConstraint(current, first))
-              }}
-            />
-          </Card>
+          {/*
+            The list is a component now (BU-170): an optimised index's
+            derivation stores the same rows, so the editing belongs to both
+            rather than to whichever view needed it first.
+          */}
+          <ConstraintList
+            title={`Constraints · ${draft.name}`}
+            rows={draft.constraints ?? []}
+            types={types}
+            onChange={(rows) => {
+              edit((current) => ({ ...current, constraints: [...rows] }))
+            }}
+          />
 
           {validate.data !== undefined && (
             <div

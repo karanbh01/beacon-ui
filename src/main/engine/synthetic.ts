@@ -70,7 +70,7 @@ export function readStoreStatus(python: string): Promise<StoreStatus> {
  * gives for not reimplementing the path. Under the Microsoft Store build of
  * python, MSIX redirects `%LOCALAPPDATA%` writes into a package-private cache
  * and reads them back transparently: py-beacon reports its store at
- * `…\AppData\Localeaconeacon\market-store`, that path does not exist to
+ * `…\AppData\Local\beacon\beacon\market-store`, that path does not exist to
  * any other process, and the bytes are really under
  * `…\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_…\LocalCache`.
  * Node deleting the reported path would remove nothing and report success.
