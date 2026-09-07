@@ -32,7 +32,9 @@ function buildColumns(preview: PreviewResponse): Column<PreviewAsset>[] {
     }
   ]
 
-  for (const column of waterfallColumns(preview.steps)) {
+  // Null on a derived index, which has no rules to walk (BN-170). The
+  // waterfall is then empty rather than absent; the solve face is BU-173.
+  for (const column of waterfallColumns(preview.steps ?? [])) {
     columns.push({
       key: column.key,
       header: column.header,

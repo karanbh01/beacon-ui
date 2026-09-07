@@ -2694,7 +2694,7 @@ export interface components {
             cash: components["schemas"]["SeriesPayload"];
             /** Initial Capital */
             initial_capital: number;
-            /** @description The full NAV book, day-zero row included: it opens with initial capital on the eve of the first trading day. Metrics derive from the series without that row. */
+            /** @description The full NAV book, day-zero row included: it opens with initial capital on the eve of the first trading day. Metrics derive from the series without that row, and a client deriving its own period figures should do the same — a period holding only the day-zero row measures that row against itself and reads as a flat period rather than one that never traded. */
             nav: components["schemas"]["SeriesPayload"];
             /** Portfolio Id */
             portfolio_id: string;
@@ -2717,6 +2717,15 @@ export interface components {
         /**
          * PreviewAsset
          * @description Per-asset outcome of the derivation.
+         *
+         *     Two disjoint groups of fields, matching the two faces of a preview. The
+         *     rule-provenance fields (`excluded_by`, `excluded_at`, `uncapped_weight`,
+         *     `capped`) describe a walk down a pipeline and are null on a derived
+         *     preview, which has no rules to attribute anything to. The derived fields
+         *     (`source_weight`, `solved_weight`, `weight_delta`) describe a reallocation
+         *     and are null on a rule-driven one. Neither group was overloaded to carry
+         *     the other's meaning: a client reading `excluded_by` on a derived index
+         *     would be reading an answer to a question nobody asked.
          */
         PreviewAsset: {
             /**
@@ -2732,7 +2741,7 @@ export interface components {
             excluded_at?: number | null;
             /**
              * Excluded By
-             * @description Id of the first rule that excluded it. Null when included.
+             * @description Id of the first rule that excluded it. Null when included, and always null on a derived preview.
              */
             excluded_by?: string | null;
             /** Identifier */
@@ -2743,15 +2752,66 @@ export interface components {
              */
             included: boolean;
             /**
+             * Solved Weight
+             * @description Derived preview only: what the optimiser allocated it — the 'after'. Equal to `weight`, and carried separately so the before/after/delta triple reads as one row without a client having to know which face it is on.
+             */
+            solved_weight?: number | null;
+            /**
+             * Source Weight
+             * @description Derived preview only: what the parent index published for this name at the rebalance being previewed — the 'before'.
+             */
+            source_weight?: number | null;
+            /**
              * Uncapped Weight
              * @description Weight before capping, when the cap bound this name.
              */
             uncapped_weight?: number | null;
             /**
              * Weight
-             * @description Final weight as a fraction. Null when excluded.
+             * @description Final weight as a fraction: the capped pipeline weight on a rule-driven preview, the solved weight on a derived one. Null when the name is not held.
              */
             weight?: number | null;
+            /**
+             * Weight Delta
+             * @description Derived preview only: `solved_weight` minus `source_weight`. What the constraints did to this name.
+             */
+            weight_delta?: number | null;
+        };
+        /**
+         * PreviewConstraint
+         * @description One constraint at the solved point: whether it bound, and its room.
+         *
+         *     Every constraint appears, not only the binding ones. A binding constraint's
+         *     slack is zero by definition, so a report of only those is a list of zeros;
+         *     what a reader actually wants beside "this cap bound" is "and the turnover
+         *     budget had four points of room left".
+         */
+        PreviewConstraint: {
+            /**
+             * Binding
+             * @description Whether the solution sits on this constraint's boundary.
+             */
+            binding: boolean;
+            /**
+             * Kind
+             * @description 'eq' for an equality, 'ineq' for an inequality. An equality is always binding.
+             */
+            kind: string;
+            /**
+             * Label
+             * @description The constraint's own description of itself, e.g. 'maximum weight 60.0000% on AAA'.
+             */
+            label: string;
+            /**
+             * Slack
+             * @description Signed room at the solution: zero sits exactly on the boundary, positive has room, negative would be a violation and is never returned. Measured in `unit`, not in a common currency — there is no shadow price here and slacks of different constraints are not comparable.
+             */
+            slack: number;
+            /**
+             * Unit
+             * @description What `slack` is measured in, declared by the constraint class and also published by `/optimise/constraint-types`. 'fraction' means a proportion — of the portfolio for a weight or turnover limit, of return for a return target — and formats as a percentage; 'count' is a whole number of names.
+             */
+            unit: string;
         };
         /**
          * PreviewDocumentRequest
@@ -2784,7 +2844,16 @@ export interface components {
         };
         /**
          * PreviewResponse
-         * @description Response of `POST /indices/{id}/preview`.
+         * @description Response of `POST /indices/{id}/preview`, in one of its two faces.
+         *
+         *     Exactly one of `steps` and `solve` is present, mirroring `pipeline` and
+         *     `derivation` on the document the preview was built from: a rule-driven
+         *     index answers with the waterfall, a derived one with the solve. `solve` is
+         *     the discriminator, and it is the same discriminator the client already
+         *     branches on one level up.
+         *
+         *     Everything outside the pair is common to both: the resolved weights, their
+         *     total, and one row per name.
          */
         PreviewResponse: {
             /** As Of */
@@ -2793,7 +2862,7 @@ export interface components {
             assets: components["schemas"]["PreviewAsset"][];
             /**
              * Cap
-             * @description Cap applied, as a fraction, if any.
+             * @description Cap applied, as a fraction, if any. Always null on a derived preview, whose limits are constraints.
              */
             cap?: number | null;
             /**
@@ -2804,8 +2873,13 @@ export interface components {
             cap_redistributed: number;
             /** Index Id */
             index_id: string;
-            /** Steps */
-            steps: components["schemas"]["PreviewStep"][];
+            /** @description The optimisation at `as_of`. Null on a rule-driven index. */
+            solve?: components["schemas"]["PreviewSolve"] | null;
+            /**
+             * Steps
+             * @description The derivation waterfall, one rung per selection rule. Null on a derived index, which narrows nothing.
+             */
+            steps?: components["schemas"]["PreviewStep"][] | null;
             /**
              * Total Weight
              * @description Sum of the final weights; 1.0 for a non-empty index.
@@ -2818,6 +2892,42 @@ export interface components {
             weights: {
                 [key: string]: number;
             };
+        };
+        /**
+         * PreviewSolve
+         * @description What the optimiser did at one rebalance — the derived face of a preview.
+         *
+         *     A derivation has no waterfall: the solve moves every weight at once rather
+         *     than eliminating names in steps, so there are no rungs to show. This is the
+         *     honest analogue — which parent snapshot was solved, under what, and which
+         *     rules cost something.
+         */
+        PreviewSolve: {
+            /**
+             * Binding
+             * @description Labels of the constraints the solution sits on — the headline answer to 'what did my constraints do?'. Each also appears in `constraints` with its slack.
+             */
+            binding?: string[];
+            /**
+             * Constraints
+             * @description Every constraint at the solution, binding or not.
+             */
+            constraints?: components["schemas"]["PreviewConstraint"][];
+            /**
+             * Objective
+             * @description What the solve minimised.
+             */
+            objective: string;
+            /**
+             * Rebalance Date
+             * @description The parent snapshot this reports, YYYY-MM-DD: the latest one on or before `as_of`. A derivation solves only at its parent's rebalances, so an `as_of` between two of them previews the composition actually in force on that day.
+             */
+            rebalance_date: string;
+            /**
+             * Source Index Id
+             * @description The parent index whose published weights were solved.
+             */
+            source_index_id: string;
         };
         /**
          * PreviewStep
@@ -3650,6 +3760,11 @@ export interface components {
             name: string;
             /** Parameters */
             parameters?: components["schemas"]["ParameterSpec"][];
+            /**
+             * Slack Unit
+             * @description For a constraint type, what its slack is measured in: 'fraction' or 'count'. Read off the constraint class, so the same answer reaches the constraint editor here and each row of a preview's `solve.constraints`. Null on a selection rule or weighting scheme, which have no slack.
+             */
+            slack_unit?: string | null;
             /**
              * Summary
              * @description One line describing what it does.

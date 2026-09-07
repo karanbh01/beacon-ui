@@ -2831,7 +2831,7 @@
           },
           "nav": {
             "$ref": "#/components/schemas/SeriesPayload",
-            "description": "The full NAV book, day-zero row included: it opens with initial capital on the eve of the first trading day. Metrics derive from the series without that row."
+            "description": "The full NAV book, day-zero row included: it opens with initial capital on the eve of the first trading day. Metrics derive from the series without that row, and a client deriving its own period figures should do the same — a period holding only the day-zero row measures that row against itself and reads as a flat period rather than one that never traded."
           },
           "portfolio_id": {
             "title": "Portfolio Id",
@@ -2874,7 +2874,7 @@
         "type": "object"
       },
       "PreviewAsset": {
-        "description": "Per-asset outcome of the derivation.",
+        "description": "Per-asset outcome of the derivation.\n\nTwo disjoint groups of fields, matching the two faces of a preview. The\nrule-provenance fields (`excluded_by`, `excluded_at`, `uncapped_weight`,\n`capped`) describe a walk down a pipeline and are null on a derived\npreview, which has no rules to attribute anything to. The derived fields\n(`source_weight`, `solved_weight`, `weight_delta`) describe a reallocation\nand are null on a rule-driven one. Neither group was overloaded to carry\nthe other's meaning: a client reading `excluded_by` on a derived index\nwould be reading an answer to a question nobody asked.",
         "properties": {
           "capped": {
             "default": false,
@@ -2903,7 +2903,7 @@
                 "type": "null"
               }
             ],
-            "description": "Id of the first rule that excluded it. Null when included.",
+            "description": "Id of the first rule that excluded it. Null when included, and always null on a derived preview.",
             "title": "Excluded By"
           },
           "identifier": {
@@ -2914,6 +2914,30 @@
             "description": "Whether it reached the final index.",
             "title": "Included",
             "type": "boolean"
+          },
+          "solved_weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Derived preview only: what the optimiser allocated it — the 'after'. Equal to `weight`, and carried separately so the before/after/delta triple reads as one row without a client having to know which face it is on.",
+            "title": "Solved Weight"
+          },
+          "source_weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Derived preview only: what the parent index published for this name at the rebalance being previewed — the 'before'.",
+            "title": "Source Weight"
           },
           "uncapped_weight": {
             "anyOf": [
@@ -2936,8 +2960,20 @@
                 "type": "null"
               }
             ],
-            "description": "Final weight as a fraction. Null when excluded.",
+            "description": "Final weight as a fraction: the capped pipeline weight on a rule-driven preview, the solved weight on a derived one. Null when the name is not held.",
             "title": "Weight"
+          },
+          "weight_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Derived preview only: `solved_weight` minus `source_weight`. What the constraints did to this name.",
+            "title": "Weight Delta"
           }
         },
         "required": [
@@ -2945,6 +2981,45 @@
           "included"
         ],
         "title": "PreviewAsset",
+        "type": "object"
+      },
+      "PreviewConstraint": {
+        "description": "One constraint at the solved point: whether it bound, and its room.\n\nEvery constraint appears, not only the binding ones. A binding constraint's\nslack is zero by definition, so a report of only those is a list of zeros;\nwhat a reader actually wants beside \"this cap bound\" is \"and the turnover\nbudget had four points of room left\".",
+        "properties": {
+          "binding": {
+            "description": "Whether the solution sits on this constraint's boundary.",
+            "title": "Binding",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "'eq' for an equality, 'ineq' for an inequality. An equality is always binding.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "description": "The constraint's own description of itself, e.g. 'maximum weight 60.0000% on AAA'.",
+            "title": "Label",
+            "type": "string"
+          },
+          "slack": {
+            "description": "Signed room at the solution: zero sits exactly on the boundary, positive has room, negative would be a violation and is never returned. Measured in `unit`, not in a common currency — there is no shadow price here and slacks of different constraints are not comparable.",
+            "title": "Slack",
+            "type": "number"
+          },
+          "unit": {
+            "description": "What `slack` is measured in, declared by the constraint class and also published by `/optimise/constraint-types`. 'fraction' means a proportion — of the portfolio for a weight or turnover limit, of return for a return target — and formats as a percentage; 'count' is a whole number of names.",
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "kind",
+          "slack",
+          "unit",
+          "binding"
+        ],
+        "title": "PreviewConstraint",
         "type": "object"
       },
       "PreviewDocumentRequest": {
@@ -2993,7 +3068,7 @@
         "type": "object"
       },
       "PreviewResponse": {
-        "description": "Response of `POST /indices/{id}/preview`.",
+        "description": "Response of `POST /indices/{id}/preview`, in one of its two faces.\n\nExactly one of `steps` and `solve` is present, mirroring `pipeline` and\n`derivation` on the document the preview was built from: a rule-driven\nindex answers with the waterfall, a derived one with the solve. `solve` is\nthe discriminator, and it is the same discriminator the client already\nbranches on one level up.\n\nEverything outside the pair is common to both: the resolved weights, their\ntotal, and one row per name.",
         "properties": {
           "as_of": {
             "title": "As Of",
@@ -3015,7 +3090,7 @@
                 "type": "null"
               }
             ],
-            "description": "Cap applied, as a fraction, if any.",
+            "description": "Cap applied, as a fraction, if any. Always null on a derived preview, whose limits are constraints.",
             "title": "Cap"
           },
           "cap_redistributed": {
@@ -3028,12 +3103,31 @@
             "title": "Index Id",
             "type": "string"
           },
+          "solve": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PreviewSolve"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The optimisation at `as_of`. Null on a rule-driven index."
+          },
           "steps": {
-            "items": {
-              "$ref": "#/components/schemas/PreviewStep"
-            },
-            "title": "Steps",
-            "type": "array"
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PreviewStep"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The derivation waterfall, one rung per selection rule. Null on a derived index, which narrows nothing.",
+            "title": "Steps"
           },
           "total_weight": {
             "description": "Sum of the final weights; 1.0 for a non-empty index.",
@@ -3052,12 +3146,54 @@
         "required": [
           "index_id",
           "as_of",
-          "steps",
           "assets",
           "weights",
           "total_weight"
         ],
         "title": "PreviewResponse",
+        "type": "object"
+      },
+      "PreviewSolve": {
+        "description": "What the optimiser did at one rebalance — the derived face of a preview.\n\nA derivation has no waterfall: the solve moves every weight at once rather\nthan eliminating names in steps, so there are no rungs to show. This is the\nhonest analogue — which parent snapshot was solved, under what, and which\nrules cost something.",
+        "properties": {
+          "binding": {
+            "description": "Labels of the constraints the solution sits on — the headline answer to 'what did my constraints do?'. Each also appears in `constraints` with its slack.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Binding",
+            "type": "array"
+          },
+          "constraints": {
+            "description": "Every constraint at the solution, binding or not.",
+            "items": {
+              "$ref": "#/components/schemas/PreviewConstraint"
+            },
+            "title": "Constraints",
+            "type": "array"
+          },
+          "objective": {
+            "description": "What the solve minimised.",
+            "title": "Objective",
+            "type": "string"
+          },
+          "rebalance_date": {
+            "description": "The parent snapshot this reports, YYYY-MM-DD: the latest one on or before `as_of`. A derivation solves only at its parent's rebalances, so an `as_of` between two of them previews the composition actually in force on that day.",
+            "title": "Rebalance Date",
+            "type": "string"
+          },
+          "source_index_id": {
+            "description": "The parent index whose published weights were solved.",
+            "title": "Source Index Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_index_id",
+          "rebalance_date",
+          "objective"
+        ],
+        "title": "PreviewSolve",
         "type": "object"
       },
       "PreviewStep": {
@@ -4399,6 +4535,18 @@
             },
             "title": "Parameters",
             "type": "array"
+          },
+          "slack_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a constraint type, what its slack is measured in: 'fraction' or 'count'. Read off the constraint class, so the same answer reaches the constraint editor here and each row of a preview's `solve.constraints`. Null on a selection rule or weighting scheme, which have no slack.",
+            "title": "Slack Unit"
           },
           "summary": {
             "default": "",
