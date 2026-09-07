@@ -45,6 +45,25 @@ function refuse(status: number, code: string, message: string, detail?: unknown)
 }
 
 /** `Data not found: market data for 'ZZZ'. (Source: MarketData)` */
+/** JSON request bodies, which every POST here reads the same way. */
+function readBody(request: IncomingMessage, then: (parsed: Record<string, unknown>) => void): void {
+  let raw = ''
+  request.on('data', (chunk: Buffer) => {
+    raw += chunk.toString('utf-8')
+  })
+  request.on('end', () => {
+    try {
+      then(JSON.parse(raw === '' ? '{}' : raw) as Record<string, unknown>)
+    } catch {
+      then({})
+    }
+  })
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function notFound(description: string, source: string): Refusal {
   return refuse(404, 'DATA_NOT_FOUND', `Data not found: ${description}. (Source: ${source})`, {
     data_description: description,
@@ -1172,6 +1191,148 @@ function writeUniverse(
   return { status: 200, payload: updated }
 }
 
+/**
+ * The two faces of a preview (BN-170, BU-173).
+ *
+ * `steps` and `solve` are mutually exclusive, and every consumer branches on
+ * which one arrived — so a stub that only ever produced the waterfall would
+ * leave the branch that matters untested. The derived index gets the solve;
+ * everything else gets the rungs.
+ */
+function previewPayload(indexId: string, asOf: string): unknown {
+  return previewFace(indexId, asOf, indexId === OPTIMISED)
+}
+
+function previewFace(indexId: string, asOf: string, derived: boolean): unknown {
+  const common = { index_id: indexId, as_of: `${asOf}T00:00:00`, total_weight: 1 }
+
+  if (derived) {
+    return { ...common, steps: null, cap: null, cap_redistributed: 0, ...solvedPreview() }
+  }
+
+  return { ...common, solve: null, ...walkedPreview() }
+}
+
+/** Ten names out of the universe, two of them at the cap. */
+function walkedPreview(): Record<string, unknown> {
+  const kept = Array.from({ length: 10 }, (_, i) => `CMP${String(i).padStart(3, '0')}`)
+  const cutBy1 = ['CMP010', 'CMP011']
+  const cutBy2 = ['CMP012']
+
+  const weight = 1 / kept.length
+  const assets = [
+    ...kept.map((identifier, index) => ({
+      identifier,
+      included: true,
+      excluded_by: null,
+      excluded_at: null,
+      weight: index < 2 ? 0.12 : weight - 0.005,
+      uncapped_weight: index < 2 ? 0.15 : weight,
+      capped: index < 2,
+      source_weight: null,
+      solved_weight: null,
+      weight_delta: null
+    })),
+    ...cutBy1.map((identifier) => excludedAsset(identifier, 'rule-1', 1)),
+    ...cutBy2.map((identifier) => excludedAsset(identifier, 'rule-2', 2))
+  ]
+
+  return {
+    steps: [
+      { position: 0, remaining: 120, rule_id: null, rule_type: null, excluded: [] },
+      { position: 1, remaining: 11, rule_id: 'rule-1', rule_type: 'FilterRule', excluded: cutBy1 },
+      { position: 2, remaining: 10, rule_id: 'rule-2', rule_type: 'FilterRule', excluded: cutBy2 }
+    ],
+    assets,
+    weights: Object.fromEntries(kept.map((identifier) => [identifier, weight])),
+    cap: 0.12,
+    cap_redistributed: 0.06
+  }
+}
+
+function excludedAsset(identifier: string, ruleId: string, position: number): unknown {
+  return {
+    identifier,
+    included: false,
+    excluded_by: ruleId,
+    excluded_at: position,
+    weight: 0,
+    uncapped_weight: null,
+    capped: false,
+    source_weight: null,
+    solved_weight: null,
+    weight_delta: null
+  }
+}
+
+/**
+ * A solve against TECH10's published weights.
+ *
+ * One name the optimiser dropped entirely, so the delta column has the case
+ * that is not a rebalance but an exit — and both a binding and a slack
+ * constraint, in the two units py-beacon publishes, since the room figure is
+ * formatted per row from `unit`.
+ */
+function solvedPreview(): Record<string, unknown> {
+  // Parent weight, solved weight. Both columns sum to 1: the solve
+  // reallocates a published index rather than sizing one from nothing, and a
+  // before column that did not sum to 1 would not be a published index.
+  const moves: [string, number, number][] = [
+    ['CMP000', 0.15, 0.12],
+    ['CMP001', 0.13, 0.12],
+    ['CMP002', 0.12, 0.12],
+    ['CMP003', 0.1, 0.11],
+    ['CMP004', 0.1, 0.11],
+    ['CMP005', 0.1, 0.11],
+    ['CMP006', 0.1, 0.11],
+    ['CMP007', 0.08, 0.1],
+    ['CMP008', 0.07, 0.1],
+    ['CMP009', 0.05, 0]
+  ]
+
+  return {
+    solve: {
+      source_index_id: 'TECH10',
+      rebalance_date: '2025-06-20',
+      objective: 'min_tracking_error',
+      binding: ['maximum weight 12.0000% on any name', 'weights sum to 1'],
+      constraints: [
+        {
+          label: 'maximum weight 12.0000% on any name',
+          kind: 'ineq',
+          slack: 0,
+          unit: 'fraction',
+          binding: true
+        },
+        { label: 'weights sum to 1', kind: 'eq', slack: 0, unit: 'fraction', binding: true },
+        { label: 'at most 12 names', kind: 'ineq', slack: 3, unit: 'count', binding: false },
+        {
+          label: 'one-way turnover at most 20.0000%',
+          kind: 'ineq',
+          slack: 0.11,
+          unit: 'fraction',
+          binding: false
+        }
+      ]
+    },
+    assets: moves.map(([identifier, before, after]) => ({
+      identifier,
+      included: after > 0,
+      excluded_by: null,
+      excluded_at: null,
+      weight: after,
+      uncapped_weight: null,
+      capped: false,
+      source_weight: before,
+      solved_weight: after,
+      weight_delta: Number((after - before).toFixed(6))
+    })),
+    weights: Object.fromEntries(
+      moves.filter(([, , after]) => after > 0).map(([identifier, , after]) => [identifier, after])
+    )
+  }
+}
+
 export function startStubEngine(): Promise<StubEngine> {
   const server: Server = createServer((request: IncomingMessage, response: ServerResponse) => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1')
@@ -1192,6 +1353,52 @@ export function startStubEngine(): Promise<StubEngine> {
     }
 
     const method = request.method ?? 'GET'
+
+    /*
+     * Resolving a definition (BU-173).
+     *
+     * Two routes for the same answer: by id for a saved document, with a body
+     * for a draft. The draft route asks the DOCUMENT which face it has, which
+     * is what lets an unsaved derivation be previewed — the parent has to
+     * exist, since its published weights are what gets solved, but the child
+     * does not.
+     */
+    if (method === 'POST' && /^\/indices\/([^/]+\/preview|preview)$/.test(url.pathname)) {
+      readBody(request, (parsed) => {
+        const draft = isRecord(parsed.document) ? parsed.document : undefined
+        const asOf = typeof parsed.as_of === 'string' ? parsed.as_of.slice(0, 10) : '2025-06-30'
+
+        if (draft !== undefined) {
+          const derivation = isRecord(draft.derivation) ? draft.derivation : undefined
+          const parent =
+            typeof derivation?.source_index_id === 'string' ? derivation.source_index_id : undefined
+
+          if (parent !== undefined && !indexIds.includes(parent)) {
+            response
+              .writeHead(404)
+              .end(JSON.stringify(notFound(`index '${parent}'`, 'DocumentStore').payload))
+            return
+          }
+
+          const id = typeof draft.id === 'string' ? draft.id : 'DRAFT'
+          response
+            .writeHead(200)
+            .end(JSON.stringify(previewFace(id, asOf, derivation !== undefined)))
+          return
+        }
+
+        const indexId = decodeURIComponent(url.pathname.split('/')[2] ?? '')
+        if (!indexIds.includes(indexId)) {
+          response
+            .writeHead(404)
+            .end(JSON.stringify(notFound(`index '${indexId}'`, 'DocumentStore').payload))
+          return
+        }
+
+        response.writeHead(200).end(JSON.stringify(previewPayload(indexId, asOf)))
+      })
+      return
+    }
 
     /*
      * Submitting a backtest (BU-137).

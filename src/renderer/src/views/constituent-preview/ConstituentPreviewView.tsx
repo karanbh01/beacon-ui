@@ -13,12 +13,16 @@ import {
   cellState,
   oneWayTurnover,
   percent,
+  solveOf,
+  solveRows,
   sortAssets,
   summarise,
+  summariseSolve,
   waterfallColumns,
   type PreviewAsset,
   type PreviewResponse
 } from './derivation'
+import { SolveConstraints, solveColumns } from './Solve'
 import './ConstituentPreviewView.css'
 
 function buildColumns(preview: PreviewResponse): Column<PreviewAsset>[] {
@@ -97,16 +101,26 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
     mutate(asOf === '' ? { indexId } : { indexId, asOf })
   }, [indexId, asOf, mutate])
 
-  const rows = useMemo(
-    () => (preview.data === undefined ? [] : sortAssets(preview.data.assets)),
-    [preview.data]
-  )
-  const columns = useMemo(
-    () => (preview.data === undefined ? [] : buildColumns(preview.data)),
-    [preview.data]
-  )
+  // Which face this preview is: a pipeline answers with the waterfall, a
+  // derivation with the solve (BN-170). The discriminator is the response's,
+  // not the pane's — the same index can be either between two saves.
+  const solve = preview.data === undefined ? undefined : solveOf(preview.data)
 
-  const summary = preview.data === undefined ? undefined : summarise(preview.data)
+  const rows = useMemo(() => {
+    if (preview.data === undefined) return []
+    return solve === undefined ? sortAssets(preview.data.assets) : solveRows(preview.data.assets)
+  }, [preview.data, solve])
+  const columns = useMemo(() => {
+    if (preview.data === undefined) return []
+    return solve === undefined ? buildColumns(preview.data) : solveColumns()
+  }, [preview.data, solve])
+
+  const summary =
+    preview.data === undefined || solve !== undefined ? undefined : summarise(preview.data)
+  const solved =
+    preview.data === undefined || solve === undefined
+      ? undefined
+      : summariseSolve(preview.data, solve)
   const turnover =
     preview.data === undefined || comparison.data === undefined
       ? undefined
@@ -146,19 +160,27 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
             }}
           />
         </Field>
-        <Field label="Compare vs" width={130}>
-          <input
-            className="preview-input"
-            type="date"
-            aria-label="Compare vs"
-            value={compareTo}
-            onChange={(event) => {
-              const next = event.target.value
-              setCompareTo(next)
-              if (next !== '' && indexId !== '') comparison.mutate({ indexId, asOf: next })
-            }}
-          />
-        </Field>
+        {/*
+          Turnover between two dates, which is a question about a schedule.
+          A solve reports its distance from the parent instead, so the field
+          would drive a figure this face does not show — and a control that
+          does nothing is worse than an absent one.
+        */}
+        {solve === undefined && (
+          <Field label="Compare vs" width={130}>
+            <input
+              className="preview-input"
+              type="date"
+              aria-label="Compare vs"
+              value={compareTo}
+              onChange={(event) => {
+                const next = event.target.value
+                setCompareTo(next)
+                if (next !== '' && indexId !== '') comparison.mutate({ indexId, asOf: next })
+              }}
+            />
+          </Field>
+        )}
       </PaneHeader>
 
       {indexId === '' && <ViewEmpty>Open this from an index definition to preview it.</ViewEmpty>}
@@ -186,6 +208,29 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         />
       )}
 
+      {/*
+        A different set of figures, because a solve answers different
+        questions: cap and redistribution are a weighting scheme's, and are
+        null and zero on every derived preview. What moved, and what it ran
+        into, are this face's headline.
+      */}
+      {solved !== undefined && solve !== undefined && (
+        <SummaryLine
+          items={[
+            { label: `${String(solved.constituents)} constituents`, value: indexId },
+            { label: 'Σ weights', value: percent(solved.totalWeight) },
+            { label: 'objective', value: solve.objective },
+            {
+              label: 'binding',
+              value: `${String(solved.binding)} of ${String(solved.constraints)}`
+            },
+            { label: 'moved from parent', value: percent(solved.turnover) }
+          ]}
+        />
+      )}
+
+      {solve !== undefined && <SolveConstraints solve={solve} />}
+
       {preview.data !== undefined && rows.length > 0 && (
         <>
           <Table
@@ -194,11 +239,19 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
             getRowId={(asset) => asset.identifier}
             maxBodyHeight={560}
           />
-          <p className="preview-footnote type-11">
-            {rows.length.toLocaleString('en-US')} names evaluated · resolved{' '}
-            {preview.data.as_of.slice(0, 10)} · ✓ passed · ✕ excluded here · · already out · preview
-            describes the SAVED definition
-          </p>
+          {solve === undefined ? (
+            <p className="preview-footnote type-11">
+              {rows.length.toLocaleString('en-US')} names evaluated · resolved{' '}
+              {preview.data.as_of.slice(0, 10)} · ✓ passed · ✕ excluded here · · already out ·
+              preview describes the SAVED definition
+            </p>
+          ) : (
+            <p className="preview-footnote type-11">
+              {rows.length.toLocaleString('en-US')} names · solved from {solve.source_index_id} at
+              its {solve.rebalance_date} rebalance · asked for {preview.data.as_of.slice(0, 10)} ·
+              preview describes the SAVED definition
+            </p>
+          )}
         </>
       )}
     </div>

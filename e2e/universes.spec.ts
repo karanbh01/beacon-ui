@@ -382,13 +382,67 @@ test('an optimised index shows what it was derived from (BU-170)', async ({ wind
   await window.getByText('max 5%').click()
   await expect(window.locator('.constraint-editor').getByLabel('max')).toBeVisible()
 
-  // No universe to choose and no preview to open: a derivation has neither,
-  // and py-beacon refuses the preview outright.
+  // No universe to choose: a derivation has none. Preview IS offered, since
+  // py-beacon answers a derivation with the solve (BU-173).
   await expect(window.getByText('UNIVERSE')).toHaveCount(0)
-  await expect(window.getByRole('button', { name: /Constituent Preview/ })).toHaveCount(0)
+  await expect(window.getByRole('button', { name: /Constituent Preview/ })).toBeVisible()
 
   // And no invented finding: it needs no weighting, so nothing is missing.
   await expect(window.getByText(/Choose a weighting scheme/)).toHaveCount(0)
+})
+
+test('previewing an optimised index shows the solve, not a waterfall (BU-173)', async ({
+  window
+}) => {
+  /*
+   * BN-170: a preview answers in one of two faces, and `solve` is the
+   * discriminator. A derivation has no rungs to show — the solve moves every
+   * weight at once rather than eliminating names in steps — so the analogue
+   * is before, after, and what each constraint cost.
+   */
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Index Definition')
+  await window.locator('.index-overview').getByText('TECH10-OPT', { exact: true }).click()
+  await window.getByRole('button', { name: /Constituent Preview/ }).click()
+
+  const preview = window.locator('.constituent-preview-view')
+  await expect(preview.getByText('min_tracking_error')).toBeVisible()
+  await expect(preview.getByText('9 constituents')).toBeVisible()
+  // Distance from the parent's published weights, which is what a solve is
+  // measured by — not turnover between two dates.
+  await expect(preview.getByText('9.00%')).toBeVisible()
+
+  // Every constraint, not only the binding ones: a list of binding rows is a
+  // list of zeros, and the informative figure is the room the others had.
+  const bound = preview.locator('.solve-constraint', { hasText: 'maximum weight' })
+  await expect(bound.locator('.solve-constraint-room')).toHaveText('bound')
+  const names = preview.locator('.solve-constraint', { hasText: 'at most 12 names' })
+  await expect(names.locator('.solve-constraint-room')).toHaveText('3 names')
+  const budget = preview.locator('.solve-constraint', { hasText: 'one-way turnover' })
+  await expect(budget.locator('.solve-constraint-room')).toHaveText('11.00%')
+
+  // Before/after/delta in place of the rule columns, biggest move first —
+  // and the name the solve dropped moves furthest, which is right.
+  await expect(preview.getByText('01 · FilterRule')).toHaveCount(0)
+  await expect(preview.getByText('Parent w')).toBeVisible()
+  await expect(preview.locator('.tbl-body .tbl-row').first()).toContainText('CMP009')
+  await expect(preview.locator('.solve-delta-down').first()).toHaveText('-5.00%')
+
+  // The date it reports is the parent's rebalance, not the day asked for: a
+  // derivation solves only where its parent rebalances.
+  await expect(preview.getByText(/solved from TECH10 at its 2025-06-20 rebalance/)).toBeVisible()
+})
+
+test('previewing a rule-driven index still shows the waterfall (BU-173)', async ({ window }) => {
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Index Definition')
+  await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
+  await window.getByRole('button', { name: /Constituent Preview/ }).click()
+
+  const preview = window.locator('.constituent-preview-view')
+  await expect(preview.getByText('01 · FilterRule')).toBeVisible()
+  await expect(preview.getByText('Parent w')).toHaveCount(0)
+  await expect(preview.getByText(/names evaluated/)).toBeVisible()
 })
 
 test('deleting a parent says which optimised indices go with it', async ({ app, window }) => {

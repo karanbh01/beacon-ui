@@ -49,3 +49,79 @@
   max-width: 900px;
   color: var(--text-muted);
 }
+
+/*
+ * The solve face (BU-173). Same card grammar as a constraint set — a reader
+ * moving between an optimised index's definition and its preview is looking
+ * at the same constraints, so they read the same way.
+ */
+.solve-card {
+  width: 800px;
+  max-width: 100%;
+}
+
+.solve-constraint {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-top: 1px solid var(--divider);
+  font-size: 11px;
+}
+
+.solve-constraint:first-of-type {
+  border-top: none;
+}
+
+/* The rows that cost something. Everything else had room to spare. */
+.solve-constraint.is-binding {
+  background: var(--sidebar-active-bg);
+}
+
+.solve-constraint-index {
+  flex: none;
+  width: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.solve-constraint-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.solve-constraint-room {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.solve-empty {
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--text-muted);
+}
+
+.solve-delta-up {
+  color: var(--success);
+}
+
+.solve-delta-down {
+  color: var(--danger);
+}
+
+.solve-delta-flat {
+  color: var(--text-muted);
+}
+
+/* Solved to zero: out of the index, and struck through so the row reads as
+   a departure rather than a very small position. */
+.solve-dropped {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}

@@ -362,30 +362,26 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
       </div>
 
       {/*
-        Not for a derived index (BU-170).
-
-        `POST /indices/{id}/preview` walks eligibility rules, and a derivation
-        has none — py-beacon answers 422 (its #182). The honest analogue is
-        solved weights and binding constraints, which is a feature rather than
-        a repair, so the action is absent rather than offered and refused.
+        Offered on both kinds now (BU-173). Preview answers for a derivation
+        since py-beacon ea159e0 — with the solve in place of the waterfall,
+        which is the analogue rather than a repair. The pane branches on the
+        response, so there is nothing to tell it here.
       */}
-      {derivation === undefined && (
-        <button
-          type="button"
-          className="index-link type-11"
-          onClick={() => {
-            openOrRetarget({
-              page: tab.page,
-              pane,
-              viewKind: 'constituent-preview',
-              title: 'Constituent Preview',
-              subject: draft.id
-            })
-          }}
-        >
-          Open Constituent Preview →
-        </button>
-      )}
+      <button
+        type="button"
+        className="index-link type-11"
+        onClick={() => {
+          openOrRetarget({
+            page: tab.page,
+            pane,
+            viewKind: 'constituent-preview',
+            title: 'Constituent Preview',
+            subject: draft.id
+          })
+        }}
+      >
+        Open Constituent Preview →
+      </button>
     </div>
   )
 }

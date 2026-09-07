@@ -2,13 +2,18 @@ import { describe, expect, it } from 'vitest'
 import {
   CELL_GLYPH,
   cellState,
+  describeRoom,
   oneWayTurnover,
   percent,
+  solveOf,
+  solveRows,
   sortAssets,
   summarise,
+  summariseSolve,
   waterfallColumns,
   type PreviewAsset,
   type PreviewResponse,
+  type PreviewSolve,
   type PreviewStep
 } from './derivation'
 
@@ -124,5 +129,113 @@ describe('percent', () => {
   it('renders py-beacon fractions', () => {
     expect(percent(0.2)).toBe('20.00%')
     expect(percent(null)).toBe('—')
+  })
+})
+
+const SOLVED: PreviewAsset[] = [
+  {
+    identifier: 'AAA',
+    included: true,
+    capped: false,
+    weight: 0.12,
+    source_weight: 0.15,
+    solved_weight: 0.12,
+    weight_delta: -0.03
+  },
+  {
+    identifier: 'BBB',
+    included: true,
+    capped: false,
+    weight: 0.2,
+    source_weight: 0.2,
+    solved_weight: 0.2,
+    weight_delta: 0
+  },
+  {
+    identifier: 'CCC',
+    included: false,
+    capped: false,
+    weight: 0,
+    source_weight: 0.05,
+    solved_weight: 0,
+    weight_delta: -0.05
+  },
+  {
+    identifier: 'DDD',
+    included: true,
+    capped: false,
+    weight: 0.68,
+    source_weight: 0.6,
+    solved_weight: 0.68,
+    weight_delta: 0.08
+  }
+]
+
+describe('the solve face (BU-173)', () => {
+  const solve: PreviewSolve = {
+    source_index_id: 'TECH10',
+    rebalance_date: '2025-06-20',
+    objective: 'min_tracking_error',
+    binding: ['maximum weight 12%'],
+    constraints: [
+      { label: 'maximum weight 12%', kind: 'ineq', slack: 0, unit: 'fraction', binding: true },
+      { label: 'at most 12 names', kind: 'ineq', slack: 3, unit: 'count', binding: false }
+    ]
+  }
+  const preview: PreviewResponse = {
+    index_id: 'TECH10-OPT',
+    as_of: '2025-06-30T00:00:00',
+    assets: SOLVED,
+    weights: { AAA: 0.12, BBB: 0.2, DDD: 0.68 },
+    total_weight: 1,
+    cap: null,
+    cap_redistributed: 0,
+    steps: null,
+    solve
+  }
+
+  it('reads the face off `solve`, not off the absence of steps', () => {
+    expect(solveOf(preview)?.objective).toBe('min_tracking_error')
+    // A rule-driven response sends solve: null, which is not a solve.
+    expect(solveOf({ ...preview, solve: null })).toBeUndefined()
+  })
+
+  it('puts the biggest move first, which is what a solve is read for', () => {
+    // Rank order says nothing here: the solve moved every weight at once.
+    expect(solveRows(SOLVED).map((asset) => asset.identifier)).toEqual(['DDD', 'CCC', 'AAA', 'BBB'])
+  })
+
+  it('measures how far it moved from the parent', () => {
+    // (0.03 + 0 + 0.05 + 0.08) / 2 — one-way, so a switch counts once.
+    expect(summariseSolve(preview, solve).turnover).toBeCloseTo(0.08)
+    expect(summariseSolve(preview, solve).binding).toBe(1)
+    expect(summariseSolve(preview, solve).constraints).toBe(2)
+  })
+})
+
+describe('describeRoom (BU-173)', () => {
+  it('formats room in the constraint’s own unit', () => {
+    // A weight limit's room is a fraction of the portfolio; a name limit's is
+    // a count. One caption over the column would be wrong for one of them.
+    expect(
+      describeRoom({ label: 'w', kind: 'ineq', slack: 0.0812, unit: 'fraction', binding: false })
+    ).toBe('8.12%')
+    expect(
+      describeRoom({ label: 'n', kind: 'ineq', slack: 3, unit: 'count', binding: false })
+    ).toBe('3 names')
+  })
+
+  it('says bound rather than zero', () => {
+    // Slack is zero at the boundary by definition, so the zero is the
+    // definition restated — and a column of them reads as missing data.
+    expect(
+      describeRoom({ label: 'w', kind: 'eq', slack: 0, unit: 'fraction', binding: true })
+    ).toBe('bound')
+  })
+
+  it('keeps a unit it does not know rather than guessing one', () => {
+    expect(describeRoom({ label: 'x', kind: 'ineq', slack: 4, unit: 'bps', binding: false })).toBe(
+      '4 bps'
+    )
   })
 })
