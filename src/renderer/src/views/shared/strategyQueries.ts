@@ -7,6 +7,7 @@ import { ApiError } from '../../api/errors'
 import { isDocumentId } from '../../api/ids'
 import { keys } from '../../api/keys'
 import { useBacktestRecords } from './beaconQueries'
+import type { ConstraintRow } from './optimiseQueries'
 import { withBacktests } from './indexSuggestions'
 import { useBeacon } from '../../api/queryClient'
 
@@ -278,27 +279,6 @@ export function useSaveIndex() {
 export type OverviewView = components['schemas']['OverviewView']
 export type CompareView = components['schemas']['CompareView']
 
-/**
- * The completed backtest, read back from the index rather than from the job.
- *
- * `JobStatus.result` is typed `unknown` — py-beacon does not publish its
- * shape — so the pane asks the endpoint that does: `/beacon/{id}/overview`
- * returns the level series and the metrics with a schema behind them. The job
- * is what tells us WHEN to ask.
- */
-export function useIndexOverview(indexId: string, enabled: boolean) {
-  const client = useBeacon()
-
-  return useQuery({
-    queryKey: keys.beacon.overview(indexId),
-    queryFn: ({ signal }) => {
-      if (client === null) throw new Error('No engine')
-      return client.get('/beacon/{index_id}/overview', { params: { index_id: indexId }, signal })
-    },
-    enabled: client !== null && indexId !== '' && enabled
-  })
-}
-
 /** Two or more stored indices on one rebased scale. */
 export function useCompare(indexIds: readonly string[]) {
   const client = useBeacon()
@@ -319,6 +299,12 @@ export interface BacktestOptions {
   start?: string
   end?: string
   transactionCostBps: number
+  /**
+   * Required, because the generated body makes it so: the field carries a
+   * default in the schema, which openapi-typescript reads as always present.
+   * The form holds py-beacon's own 1,000,000 as its starting value.
+   */
+  initialCapital: number
   benchmarkIndexId?: string
 }
 
@@ -412,7 +398,7 @@ export function useRunBacktest() {
         body: {
           ...(options.start === undefined ? {} : { start: options.start }),
           ...(options.end === undefined ? {} : { end: options.end }),
-          initial_capital: 1_000_000,
+          initial_capital: options.initialCapital,
           transaction_cost_bps: options.transactionCostBps,
           ...(options.benchmarkIndexId === undefined
             ? {}
@@ -427,6 +413,46 @@ export function useRunBacktest() {
       })
     }
   })
+}
+
+/**
+ * Derive an optimised index from a stored one (BU-174).
+ *
+ * Provenance is server-truth: the parent is the id in the URL, and the body
+ * has no way to assert a parentage the engine did not create. What comes back
+ * is a saved document like any other, which is why the catalogue is
+ * invalidated rather than patched — it has a new member.
+ */
+export function useOptimiseIndex() {
+  const client = useBeacon()
+  const queries = useQueryClient()
+
+  return useMutation({
+    mutationFn: (options: OptimiseOptions) => {
+      if (client === null) throw new Error('No engine')
+      return client.write('post', '/indices/{index_id}/optimise', {
+        params: { index_id: options.indexId },
+        body: {
+          id: options.derivedId,
+          name: options.derivedName,
+          objective: options.objective,
+          constraints: [...options.constraints]
+        }
+      })
+    },
+    onSuccess: () => {
+      void queries.invalidateQueries({ queryKey: keys.strategy.indices() })
+    }
+  })
+}
+
+export interface OptimiseOptions {
+  /** The parent, whose published weights the solve reallocates. */
+  indexId: string
+  derivedId: string
+  derivedName: string
+  objective: string
+  constraints: readonly ConstraintRow[]
 }
 
 /**

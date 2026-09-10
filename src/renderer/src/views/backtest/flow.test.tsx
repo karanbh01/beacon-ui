@@ -47,6 +47,7 @@ interface Calls {
   saved: IndexDocument[]
   previewed: { id: string; asOf?: string }[]
   backtested: { id: string; body: unknown }[]
+  optimised: { id: string; body: unknown }[]
   overviews: string[]
 }
 
@@ -95,10 +96,26 @@ function makeClient(): BeaconClient {
     },
     write: (
       _method: string,
-      _path: string,
+      path: string,
       options: { params: Record<string, string>; body: unknown }
     ) => {
-      calls.backtested.push({ id: options.params.index_id ?? '', body: options.body })
+      const id = options.params.index_id ?? ''
+
+      /*
+       * Optimising is a different call from running (BU-174), and the pane
+       * makes both in sequence when the box is ticked. Recorded apart, or a
+       * test could not tell "back-tested the child" from "back-tested twice".
+       */
+      if (path.includes('optimise')) {
+        calls.optimised.push({ id, body: options.body })
+        const body = options.body as { id: string; name: string }
+        return Promise.resolve({
+          index: { ...FRESH, id: body.id, name: body.name },
+          findings: []
+        })
+      }
+
+      calls.backtested.push({ id, body: options.body })
       return Promise.resolve({
         job_id: 'job-1',
         kind: 'backtest',
@@ -106,6 +123,23 @@ function makeClient(): BeaconClient {
         progress: 0,
         message: ''
       })
+    },
+    /*
+     * The job endpoint, which is how the pane learns a run finished: the
+     * event feed is a socket, and a dropped frame would otherwise leave a
+     * finished run looking like one still going (BU-162).
+     */
+    jobs: {
+      get: (jobId: string) =>
+        Promise.resolve({
+          job_id: jobId,
+          kind: 'backtest',
+          status: 'succeeded',
+          progress: 1,
+          message: 'done',
+          result: null,
+          error: null
+        })
     },
     get: (path: string, options: { params?: Record<string, string> }) => {
       /*
@@ -120,6 +154,15 @@ function makeClient(): BeaconClient {
         return Promise.reject(
           new ApiError(404, { code: 'DATA_NOT_FOUND', message: 'no record for this index' })
         )
+      }
+
+      // Nobody has back-tested anything here, which is what the header says.
+      if (path === '/beacon/backtests') return Promise.resolve([])
+
+      if (path === '/optimise/constraint-types') {
+        return Promise.resolve({
+          types: { MaxWeight: { name: 'MaxWeight', label: 'Maximum weight', parameters: [] } }
+        })
       }
 
       calls.overviews.push(options.params?.index_id ?? path)
@@ -168,7 +211,7 @@ function tabFor(id: string): Tab {
 }
 
 beforeEach(() => {
-  calls = { saved: [], previewed: [], backtested: [], overviews: [] }
+  calls = { saved: [], previewed: [], backtested: [], optimised: [], overviews: [] }
   queries = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   })
@@ -241,7 +284,7 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     })
   })
 
-  it('back-tests: submits a job, follows the feed, then reads the result back', async () => {
+  it('back-tests: submits a job, follows the feed, and leaves the result to the Overview', async () => {
     mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Run backtest' }))
@@ -279,34 +322,105 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
       })
     })
 
-    // JobStatus.result is typed unknown, so the result comes from the
-    // endpoint that has a schema.
-    await waitFor(() => {
-      expect(calls.overviews).toContain('NEWIDX')
-    })
-  })
-
-  it('does not show a stale overview as though it were this session’s run', async () => {
-    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
-
-    // The pane says what is true of the INDEX now, not of the session: with
-    // no run of this session's and no stored one, nothing has ever been run
-    // (BU-169). The overview is still not asked for either way.
-    expect(await screen.findByText(/never been back-tested/)).toBeInTheDocument()
+    /*
+     * The pane hands the run over rather than drawing it (BU-174).
+     *
+     * Performance is read in the Overview, and a second chart of the same
+     * series here would be two places to keep in step. So the finished state
+     * is a route to the answer, and this pane never asks for one.
+     */
+    expect(await screen.findByRole('button', { name: 'Open overview' })).toBeInTheDocument()
     expect(calls.overviews).toHaveLength(0)
   })
 
-  it('sends the transaction cost the user chose', async () => {
+  it('says when the index was last run, which is what to know before running it', async () => {
     mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
-    await screen.findByLabelText('Costs')
 
-    await userEvent.selectOptions(screen.getByLabelText('Costs'), '25')
+    // True of the INDEX, not of the session (BU-169): nobody has run this,
+    // and the catalogue of records is what says so.
+    expect(await screen.findByText(/never back-tested/)).toBeInTheDocument()
+    expect(calls.overviews).toHaveLength(0)
+  })
+
+  it('sends every setting the form collects, not just the ones it used to', async () => {
+    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+    await screen.findByLabelText('Transaction cost (bps)')
+
+    await userEvent.clear(screen.getByLabelText('Transaction cost (bps)'))
+    await userEvent.type(screen.getByLabelText('Transaction cost (bps)'), '25')
+    await userEvent.clear(screen.getByLabelText('Initial capital'))
+    await userEvent.type(screen.getByLabelText('Initial capital'), '250000')
+    await userEvent.type(screen.getByLabelText('Start'), '2021-01-04')
+    await userEvent.type(screen.getByLabelText('End'), '2024-12-31')
+
     await userEvent.click(screen.getByRole('button', { name: 'Run backtest' }))
 
     await waitFor(() => {
       expect(calls.backtested).toHaveLength(1)
     })
-    expect(calls.backtested[0]?.body).toMatchObject({ transaction_cost_bps: 25 })
+    // Capital was hard-coded at 1,000,000 in the mutation before this, and
+    // the period was whatever py-beacon defaulted to.
+    expect(calls.backtested[0]?.body).toMatchObject({
+      transaction_cost_bps: 25,
+      initial_capital: 250_000,
+      start: '2021-01-04',
+      end: '2024-12-31'
+    })
+  })
+
+  it('leaves a blank date out of the body rather than inventing one', async () => {
+    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Run backtest' }))
+
+    await waitFor(() => {
+      expect(calls.backtested).toHaveLength(1)
+    })
+    // py-beacon starts at the index base date and ends at its last
+    // observation, which beats any default this form could choose.
+    expect(calls.backtested[0]?.body).not.toHaveProperty('start')
+    expect(calls.backtested[0]?.body).not.toHaveProperty('end')
+  })
+
+  it('will not submit a body the engine would refuse', async () => {
+    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+    await screen.findByLabelText('Initial capital')
+
+    await userEvent.clear(screen.getByLabelText('Initial capital'))
+
+    // Said here rather than fetched as a 422: the form knows this one.
+    expect(screen.getByText(/Initial capital has to be more than zero/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
+  })
+
+  it('optimises first when asked, and back-tests the index that came out', async () => {
+    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Optimise first' }))
+
+    // The child's identity is suggested, not imposed — both boxes are live.
+    expect(screen.getByLabelText('Optimised index id')).toHaveValue('NEWIDX-OPT')
+    await userEvent.clear(screen.getByLabelText('Optimised index id'))
+    await userEvent.type(screen.getByLabelText('Optimised index id'), 'NEWIDX-MINTE')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run backtest' }))
+
+    await waitFor(() => {
+      expect(calls.optimised).toHaveLength(1)
+    })
+    // The parent is the URL's, because provenance is the engine's to assert.
+    expect(calls.optimised[0]?.id).toBe('NEWIDX')
+    expect(calls.optimised[0]?.body).toMatchObject({
+      id: 'NEWIDX-MINTE',
+      objective: 'min_tracking_error'
+    })
+
+    // And the run goes against the CHILD: the parent's numbers would answer
+    // a question nobody asked.
+    await waitFor(() => {
+      expect(calls.backtested).toHaveLength(1)
+    })
+    expect(calls.backtested[0]?.id).toBe('NEWIDX-MINTE')
   })
 })
 

@@ -1,57 +1,69 @@
+import type { Page } from '@playwright/test'
 import { expect, openPage, test } from './fixtures'
 
 /**
- * Reading a finished backtest (BU-137).
+ * Setting up a backtest (BU-174).
  *
- * The stub answers the submission with a job that is already done and whose
- * result carries BN-155's shape — `index_level` rather than `benchmark_level`,
- * and a null benchmark when none was asked for.
+ * The pane is a form: it says what to run, and the Overview says what
+ * happened. So these cover the settings reaching the engine and the run
+ * being handed over — not a chart, which this pane no longer draws.
+ *
+ * The stub answers a submission with a job that is already done, since it
+ * carries no event socket to push progress over.
  */
-test('draws the portfolio against the index it tracked', async ({ window }) => {
+
+/** Open Backtest on an empty Beacon View page and point it at an index. */
+async function openBacktest(window: Page, indexId: string): Promise<void> {
   await openPage(window, 'Beacon View')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
 
-  /*
-   * Opened from the palette, pinned to an index in one gesture.
-   *
-   * Backtest is a `pinned` view: the new-tab menu offers it only beside an
-   * open document, and it needs an index to run against either way. The
-   * intent row — a view and a subject in one query — is the shortest route
-   * to both.
-   */
-  await window.getByRole('combobox', { name: 'Search' }).fill('backtest TECH10')
-  await window
-    .getByRole('option', { name: /Backtest/ })
-    .first()
-    .click()
+  if (indexId === '') return
+  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill(indexId)
+  await window.keyboard.press('Enter')
+}
 
-  await window.getByRole('button', { name: 'Run backtest' }).click()
+test('every setting the engine accepts is on the pane', async ({ window }) => {
+  await openBacktest(window, 'TECH10')
 
-  // Two lines: what the simulation did, and what it was tracking. The second
-  // comes from `index_level`, which was `benchmark_level` before BN-155.
-  await expect(window.getByText('TECH10 portfolio')).toBeVisible()
-  await expect(window.getByText('TECH10 index')).toBeVisible()
+  // Start, end and initial capital were not on screen at all before this:
+  // the capital was hard-coded in the mutation and the period was whatever
+  // py-beacon defaulted to.
+  await expect(window.getByLabel('Start')).toBeVisible()
+  await expect(window.getByLabel('End')).toBeVisible()
+  await expect(window.getByLabel('Transaction cost (bps)')).toBeVisible()
+  await expect(window.getByLabel('Initial capital')).toHaveValue('1000000')
+  await expect(window.getByLabel('Benchmark')).toBeVisible()
 
-  // A run given no benchmark says so rather than reporting a dash.
-  await expect(window.getByText('not measured')).toBeVisible()
-
-  await expect(window.getByText(/portfolio NAV against the tracked index/)).toBeVisible()
+  // And nothing is drawn: performance is read in the Overview (BU-175).
+  await expect(window.locator('.level-chart')).toHaveCount(0)
+  await expect(window.getByText('CAGR')).toHaveCount(0)
 })
 
-test('a run given a benchmark measures it, and says so', async ({ window }) => {
-  await openPage(window, 'Beacon View')
-  await window.getByRole('combobox', { name: 'Search' }).fill('backtest TECH10')
-  await window
-    .getByRole('option', { name: /Backtest/ })
-    .first()
-    .click()
+test('a finished run hands over to the Overview rather than drawing it', async ({ window }) => {
+  await openBacktest(window, 'TECH10')
 
-  await window.getByLabel('Benchmark').selectOption('EU-VALUE')
+  // What to know before running it again, from the catalogue of records.
+  await expect(window.locator('.backtest-view')).toContainText('last run 3d ago')
+
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
-  // Measured: the "not measured" line belongs to a run that had none, and
-  // the two must not read the same (BU-137).
-  await expect(window.getByText('not measured')).toHaveCount(0)
-  await expect(window.getByText('BENCHMARK CAGR')).toBeVisible()
+  await expect(window.getByText('Back-tested TECH10.')).toBeVisible()
+  await window.getByRole('button', { name: 'Open overview' }).click()
+
+  // The index's own pane, showing the level it always showed.
+  await expect(window.locator('.index-overview-view')).toBeVisible()
+})
+
+test('a run the form knows the engine would refuse is not sent', async ({ window }) => {
+  await openBacktest(window, 'TECH10')
+
+  await window.getByLabel('Initial capital').fill('0')
+
+  // `initial_capital` is exclusiveMinimum 0 in the schema, so this is the
+  // 422 arriving early rather than a rule of this app's own.
+  await expect(window.getByText(/Initial capital has to be more than zero/)).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
 })
 
 test('a run that cannot happen says why, in py-beacon’s own words', async ({ window }) => {
@@ -61,23 +73,14 @@ test('a run that cannot happen says why, in py-beacon’s own words', async ({ w
    * "no backtest run yet", and the tray clipped four hundred characters of
    * explanation at the width of a card (BU-162).
    */
-  await openPage(window, 'Beacon View')
-  await window.getByRole('combobox', { name: 'Search' }).fill('backtest NO-UNIVERSE')
-  await window
-    .getByRole('option', { name: /Backtest/ })
-    .first()
-    .click()
-
+  await openBacktest(window, 'NO-UNIVERSE')
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
-  // In the pane, where the result would have been.
   await expect(window.getByText('The backtest did not run.')).toBeVisible()
   await expect(window.getByText(/universe_identifiers/).first()).toBeVisible()
 
-  // And not standing in for it: the overview is never asked for a result
-  // that was not written, so no 404 reports the wrong thing.
-  await expect(window.getByText('Not found.')).toHaveCount(0)
-  await expect(window.getByText('No backtest run yet in this session.')).toHaveCount(0)
+  // And no success state behind it: a run that failed was not handed over.
+  await expect(window.getByRole('button', { name: 'Open overview' })).toHaveCount(0)
 
   // The tray's half of this is a unit test: it is fed by the event socket,
   // and the stub has none — every job here is finished on arrival.
@@ -100,48 +103,65 @@ test('opens on an empty page and picks its own index', async ({ window }) => {
   await expect(window.getByText('Choose an index to back-test.')).toBeVisible()
   await expect(window.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
 
-  // The catalogue, not a typed identifier: it is a short closed list.
-  await window.getByLabel('Index', { exact: true }).selectOption('TECH10')
+  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill('TECH10')
+  await window.keyboard.press('Enter')
+  await expect(window.getByRole('button', { name: 'Run backtest' })).toBeEnabled()
+})
+
+test('says what is known about the last run, and no more', async ({ window }) => {
+  await openBacktest(window, 'TECH10-OPT')
+  await expect(window.locator('.backtest-view')).toContainText('never back-tested')
+
+  // A record py-beacon never stamped (BN-162) is "back-tested" without a
+  // date: inventing one from the file would be a guess dressed as data.
+  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill('EU-VALUE')
+  await window.keyboard.press('Enter')
+  await expect(window.locator('.backtest-view')).toContainText('· back-tested')
+})
+
+test('optimising first makes a real index, and runs that one', async ({ window }) => {
+  /*
+   * BU-174. There is no `optimised` flag in `BacktestRequest`, and there
+   * should not be: optimising produces an INDEX. So the box composes two
+   * calls the engine already has — derive a child, then back-test the child.
+   */
+  await openBacktest(window, 'TECH10')
+
+  await window.getByRole('checkbox', { name: 'Optimise first' }).check()
+
+  // The child's identity is suggested from the parent, and both boxes stay
+  // editable: a suggestion that could not be changed would be a rule.
+  await expect(window.getByLabel('Optimised index id')).toHaveValue('TECH10-OPT')
+  await window.getByLabel('Optimised index id').fill('TECH10-MINTE')
+
+  // The same constraint list the derivation editor uses, since py-beacon
+  // stores one row shape for both (BU-170).
+  await window.getByRole('button', { name: /Add constraint/ }).click()
+  await expect(window.locator('.constraint-row')).toHaveCount(1)
+
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
-  await expect(window.getByText('TECH10 portfolio')).toBeVisible()
-  // The overview is a supplement here, so its 404 does not sit above a
-  // drawn result saying "Not found" (BU-164).
-  await expect(window.getByText('Not found.')).toHaveCount(0)
+  await expect(window.getByText(/Back-tested TECH10-MINTE, solved from TECH10/)).toBeVisible()
+
+  // Saved, not notional: the child is a document like any other. It opens
+  // on Strategy Builder, where index definitions live — pages are separate
+  // workspaces, so the tab lands there and the page has to be turned to.
+  await window.getByRole('button', { name: 'Open TECH10-MINTE' }).click()
+  await openPage(window, 'Strategy Builder')
+  await expect(window.getByText('Derived from')).toBeVisible()
+  await expect(window.getByRole('button', { name: /TECH10 →/ })).toBeVisible()
 })
 
-test('shows a stored run without re-running it', async ({ window }) => {
-  /*
-   * BU-169. The pane only ever drew a run it had started itself, so an index
-   * back-tested last week said "no backtest run yet in this session" — true
-   * of the session and false of the index. `/beacon/{index_id}/record` is
-   * what the engine kept (BN-158).
-   */
-  await openPage(window, 'Beacon View')
-  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
-  await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
-  await window.getByLabel('Index', { exact: true }).selectOption('TECH10')
+test('an index that is already optimised is not optimised again', async ({ window }) => {
+  await openBacktest(window, 'TECH10-OPT')
 
-  // Drawn without pressing Run.
-  await expect(window.getByText('TECH10 portfolio')).toBeVisible()
-  await expect(window.getByText('TECH10 index')).toBeVisible()
-
-  // And said to be stored, with its age: it may predate the definition on
-  // screen, and its NAV opens at day zero rather than the first traded close.
-  await expect(window.getByText(/stored run, captured 3d ago/)).toBeVisible()
-
-  // A single day-zero observation is not a calendar year that went nowhere,
-  // so no 0.0% row for the year before the run.
-  await expect(window.getByText('2024')).toHaveCount(0)
-})
-
-test('an index nobody has back-tested says so, about the index', async ({ window }) => {
-  await openPage(window, 'Beacon View')
-  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
-  await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
-  await window.getByLabel('Index', { exact: true }).selectOption('EU-VALUE')
-
-  await expect(window.getByText('This index has never been back-tested.')).toBeVisible()
+  // A solve on top of a solved index would be a third document nobody asked
+  // for, so the terms shown are this index's own.
+  const box = window.getByRole('checkbox', { name: 'Already optimised' })
+  await expect(box).toBeChecked()
+  await expect(box).toBeDisabled()
+  await expect(window.getByLabel('Optimised index id')).toHaveCount(0)
+  await expect(window.locator('.backtest-view')).toContainText('min_tracking_error')
 })
 
 test('an optimised index can be the benchmark, which is the point of one', async ({ window }) => {
@@ -152,10 +172,7 @@ test('an optimised index can be the benchmark, which is the point of one', async
    * whole feature is for: a parent against its own optimised child answers
    * "what did the constraints cost?".
    */
-  await openPage(window, 'Beacon View')
-  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
-  await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
-  await window.getByLabel('Index', { exact: true }).selectOption('TECH10')
+  await openBacktest(window, 'TECH10')
 
   const benchmark = window.getByLabel('Benchmark')
   await expect(benchmark.locator('option', { hasText: 'TECH10-OPT' })).toHaveCount(1)
@@ -163,6 +180,5 @@ test('an optimised index can be the benchmark, which is the point of one', async
   await benchmark.selectOption('TECH10-OPT')
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
-  await expect(window.getByText('not measured')).toHaveCount(0)
-  await expect(window.getByText('BENCHMARK CAGR')).toBeVisible()
+  await expect(window.getByText('Back-tested TECH10.')).toBeVisible()
 })

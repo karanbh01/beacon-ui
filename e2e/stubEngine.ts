@@ -424,17 +424,53 @@ const OPTIMISED = 'TECH10-OPT'
  */
 let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED]
 
+interface StubDerivation {
+  parent: string
+  name: string
+  objective: string
+  constraints: unknown[]
+}
+
+/**
+ * Children made through `/indices/{id}/optimise` (BU-174).
+ *
+ * The seeded one is here too rather than special-cased, so a child this
+ * session created and a child that was always there answer identically —
+ * including to the delete cascade, which reads parentage from this map.
+ */
+const derivations = new Map<string, StubDerivation>()
+
+function resetIndices(): void {
+  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED]
+  derivations.clear()
+  derivations.set(OPTIMISED, {
+    parent: 'TECH10',
+    name: 'TECH10 optimised',
+    objective: 'min_tracking_error',
+    constraints: [
+      { id: 'c1', type: 'MaxWeight', params: { max: 0.05 } },
+      { id: 'c2', type: 'FullInvestment', params: {} }
+    ]
+  })
+}
+
 /** True when there was one to remove, which is the engine's 204 or 404. */
 function deleteIndexDocument(id: string): boolean {
   if (!indexIds.includes(id)) return false
   indexIds = indexIds.filter((entry) => entry !== id)
+  derivations.delete(id)
   return true
 }
 
-function derivedDocument(id: string): unknown {
+/** The indices solved from this one, which a delete takes with it. */
+function childrenOf(id: string): string[] {
+  return indexIds.filter((candidate) => derivations.get(candidate)?.parent === id)
+}
+
+function derivedDocument(id: string, derivation: StubDerivation): unknown {
   return {
     id,
-    name: 'TECH10 optimised',
+    name: derivation.name,
     description: '',
     currency: 'USD',
     base_date: '2019-12-31',
@@ -447,18 +483,16 @@ function derivedDocument(id: string): unknown {
     // Exactly one of a pipeline-and-universe or a derivation: py-beacon
     // refuses a document carrying both, and so does this.
     derivation: {
-      source_index_id: 'TECH10',
-      objective: 'min_tracking_error',
-      constraints: [
-        { id: 'c1', type: 'MaxWeight', params: { max: 0.05 } },
-        { id: 'c2', type: 'FullInvestment', params: {} }
-      ]
+      source_index_id: derivation.parent,
+      objective: derivation.objective,
+      constraints: derivation.constraints
     }
   }
 }
 
 function indexDocument(id: string): unknown {
-  if (id === OPTIMISED) return derivedDocument(id)
+  const derivation = derivations.get(id)
+  if (derivation !== undefined) return derivedDocument(id, derivation)
 
   return {
     id,
@@ -1200,7 +1234,7 @@ function writeUniverse(
  * everything else gets the rungs.
  */
 function previewPayload(indexId: string, asOf: string): unknown {
-  return previewFace(indexId, asOf, indexId === OPTIMISED)
+  return previewFace(indexId, asOf, derivations.has(indexId))
 }
 
 function previewFace(indexId: string, asOf: string, derived: boolean): unknown {
@@ -1333,7 +1367,24 @@ function solvedPreview(): Record<string, unknown> {
   }
 }
 
+/**
+ * One engine per test, so one catalogue per test (BU-174).
+ *
+ * The state below is module-level and the whole spec run shares a process,
+ * so without this a test that creates or deletes an index changes what a
+ * later test finds — and the failure lands on the later test, which did
+ * nothing wrong. Found exactly that way: an optimised index created here
+ * turned a delete cascade of two into one of three, three files away.
+ */
+function resetState(): void {
+  resetIndices()
+  resetUniverses()
+  jobs.clear()
+}
+
 export function startStubEngine(): Promise<StubEngine> {
+  resetState()
+
   const server: Server = createServer((request: IncomingMessage, response: ServerResponse) => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1')
 
@@ -1353,6 +1404,60 @@ export function startStubEngine(): Promise<StubEngine> {
     }
 
     const method = request.method ?? 'GET'
+
+    /*
+     * Deriving an optimised index (BU-174).
+     *
+     * The parent is the id in the URL and nothing in the body can assert a
+     * different one — provenance is the engine's, and the stub keeps it that
+     * way so a client that tried would fail here too. 409 for an id already
+     * taken, since a new document cannot land on an existing one.
+     */
+    if (method === 'POST' && /^\/indices\/[^/]+\/optimise$/.test(url.pathname)) {
+      readBody(request, (parsed) => {
+        const parent = decodeURIComponent(url.pathname.split('/')[2] ?? '')
+        if (!indexIds.includes(parent)) {
+          response
+            .writeHead(404)
+            .end(JSON.stringify(notFound(`index '${parent}'`, 'DocumentStore').payload))
+          return
+        }
+
+        const id = typeof parsed.id === 'string' ? parsed.id : ''
+        const name = typeof parsed.name === 'string' ? parsed.name : ''
+        if (!DOCUMENT_ID.test(id)) {
+          response.writeHead(422).end(JSON.stringify(badId('id', id).payload))
+          return
+        }
+        if (name.trim() === '') {
+          response.writeHead(422).end(
+            JSON.stringify({
+              error: { code: 'VALIDATION_ERROR', message: 'an index needs a name' }
+            })
+          )
+          return
+        }
+        if (indexIds.includes(id)) {
+          response.writeHead(409).end(
+            JSON.stringify({
+              error: { code: 'CONFLICT', message: `index '${id}' already exists` }
+            })
+          )
+          return
+        }
+
+        derivations.set(id, {
+          parent,
+          name,
+          objective: typeof parsed.objective === 'string' ? parsed.objective : 'min_tracking_error',
+          constraints: Array.isArray(parsed.constraints) ? parsed.constraints : []
+        })
+        indexIds = [...indexIds, id]
+
+        response.writeHead(200).end(JSON.stringify({ index: indexDocument(id), findings: [] }))
+      })
+      return
+    }
 
     /*
      * Resolving a definition (BU-173).
@@ -1472,7 +1577,7 @@ export function startStubEngine(): Promise<StubEngine> {
      */
     if (method === 'DELETE' && url.pathname.startsWith('/indices/')) {
       const id = decodeURIComponent(url.pathname.slice('/indices/'.length))
-      const children = indexIds.filter((candidate) => candidate === OPTIMISED && id === 'TECH10')
+      const children = childrenOf(id)
 
       if (!deleteIndexDocument(id)) {
         response

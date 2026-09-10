@@ -1,13 +1,56 @@
-/* Figma pane-content – backtest, 354:11580. */
+/*
+ * Figma pane-content – backtest, 354:11580.
+ *
+ * A form since BU-174, so it borrows the index-definition grammar rather
+ * than the report grammar it had: rows of label-above-box fields, 12px
+ * apart, inside cards that hug a readable width.
+ */
 
 .backtest-view {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  align-items: stretch;
+  align-items: flex-start;
   width: 100%;
 }
 
+.backtest-card {
+  width: 800px;
+  max-width: 100%;
+}
+
+.backtest-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.backtest-form-row:last-child {
+  margin-bottom: 0;
+}
+
+/*
+ * A bare input inside Field's box: the box owns the chrome, so the input
+ * contributes only the text. Any border of its own would double the stroke.
+ */
+.backtest-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.backtest-input:focus {
+  outline: none;
+}
+
+/* Select supplies its own box, so inside a Field it drops back to bare. */
 .backtest-inline-select {
   width: 100%;
   padding: 0;
@@ -15,24 +58,28 @@
   background: none;
 }
 
-/* Chart left, annual returns right (Figma 354:11640). */
-.backtest-main-row {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+.backtest-note {
+  margin: 0;
+  max-width: 640px;
+  color: var(--text-muted);
 }
 
-.backtest-main-row .level-chart {
-  flex: 1;
-  min-width: 480px;
+/*
+ * What stops the run, in the danger colour but not as an error state: these
+ * are conditions to fix in the form above, not a failure that happened.
+ */
+.backtest-findings {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--danger);
 }
 
 .backtest-progress {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 480px;
+  width: 480px;
+  max-width: 100%;
   color: var(--text-muted);
 }
 
@@ -58,8 +105,18 @@
   transition: width 120ms linear;
 }
 
-.backtest-footnote {
+/* The run finished, and the result is a tab away rather than below. */
+.backtest-done {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.backtest-done p {
   margin: 0;
-  max-width: 900px;
-  color: var(--text-muted);
+}
+
+.backtest-done-actions {
+  display: flex;
+  gap: 8px;
 }

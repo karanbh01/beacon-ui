@@ -1,262 +1,329 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
 import { activeJobs, useJobs } from '../../api/jobs'
-import { LevelChart } from '../../charts/LevelChart'
-import { drawdown } from '../../charts/transform'
 import { Button } from '../../components/Button/Button'
+import { Card } from '../../components/Card/Card'
+import { Checkbox } from '../../components/Checkbox/Checkbox'
 import { Field } from '../../components/Field/Field'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
-import { Stat, StatStrip } from '../../components/Stat/Stat'
-import { useThemeMode } from '../../state/theme'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
-import { parseRecord } from '@shared/backtestRun'
+import { ViewError } from '../shared/ViewState'
 import { relativeTime } from '../home/activityRows'
-import { useBacktestRecord } from '../shared/beaconQueries'
+import { useBacktestRecords } from '../shared/beaconQueries'
+import type { BacktestRecordRow } from '../shared/indexSuggestions'
+import { useConstraintTypes } from '../shared/optimiseQueries'
 import {
   useBacktestRun,
-  useCompare,
-  useIndexOverview,
+  useIndex,
+  useIndexCatalogue,
   useIndices,
+  useOptimiseIndex,
   useRunBacktest
 } from '../shared/strategyQueries'
-import { AnnualReturns } from './AnnualReturns'
+import { Optimiser } from './Optimiser'
 import {
-  annualTable,
-  cagr,
-  fromFraction,
-  monthlyHitRate,
-  signedPercent,
-  toPoints
-} from './backtest'
+  DEFAULT_SETTINGS,
+  settingsFindings,
+  suggestDerived,
+  type BacktestSettings
+} from './settings'
 import './BacktestView.css'
 
-const COSTS = [0, 1, 5, 10, 25].map((bps) => ({
-  value: String(bps),
-  label: `${String(bps)} bps per side`
-}))
-
 /**
- * Beacon View → Backtest. Figma 234:8294.
+ * Beacon View → Backtest (BU-174).
  *
- * The job flow end to end: submit, watch progress on the event feed, then
- * read the result back from `/beacon/{id}/overview` — `JobStatus.result` is
- * typed `unknown`, so the pane asks the endpoint that has a schema.
+ * The form that says what to run, the way Index Definition is the form that
+ * says what an index is. Everything `BacktestRequest` accepts is a field —
+ * start, end, costs and initial capital were not on screen before, so the
+ * capital was hard-coded in the mutation and the period was whatever the
+ * engine defaulted to.
  *
- * Figma's strip also shows Sortino, hit rate and turnover. Hit rate is a
- * plain count over the level series and is computed here; Sortino needs a
- * minimum-acceptable-return convention the engine has not stated, and
- * turnover needs the weights at every rebalance, which the overview does not
- * carry. Both are left out rather than guessed.
+ * What the run DID is read in the Overview (BU-175). A second chart of the
+ * same series in a second tab is two places to keep in step, and only one of
+ * them is where anyone looks for performance.
  */
-export function BacktestView({ tab, subject }: ViewProps): ReactElement {
+export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
   // `pinnedDoc` is still read: a tab saved in a preset while this view was
   // pinned keeps working (BU-164).
   const indexId = subject ?? tab.pinnedDoc ?? ''
   const setSubject = useWorkspace((state) => state.setSubject)
-  const [benchmark, setBenchmark] = useState('')
-  const [costBps, setCostBps] = useState('5')
-  const [ranAt, setRanAt] = useState<string | undefined>(undefined)
+  const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
-  const mode = useThemeMode()
+  const [settings, setSettings] = useState<BacktestSettings>(DEFAULT_SETTINGS)
+  const [ranAt, setRanAt] = useState<string | undefined>(undefined)
+  /** The index this run went against — the child, when one was made. */
+  const [ranFor, setRanFor] = useState<string | undefined>(undefined)
+  const [derived, setDerived] = useState<string | undefined>(undefined)
+
+  const catalogue = useIndexCatalogue()
   const indices = useIndices()
+  const document = useIndex(indexId)
+  const records = useBacktestRecords()
+  const constraintTypes = useConstraintTypes()
+
+  const optimise = useOptimiseIndex()
   const run = useRunBacktest()
   const jobs = useJobs((state) => state.jobs)
 
+  const running = activeJobs(jobs).find((job) => job.kind.toLowerCase().includes('backtest'))
+  const status = useBacktestRun(ranAt, ranAt !== undefined && running === undefined)
+
+  /*
+   * Already optimised, so not optimised again (BU-174).
+   *
+   * A solve on top of a solved index would be a third document nobody asked
+   * for. The section shows this index's own terms instead, and the run goes
+   * straight to the backtest.
+   */
+  const derivation = document.data?.derivation ?? undefined
+  const willOptimise = settings.optimise && derivation === undefined
+  const findings = settingsFindings({ ...settings, optimise: willOptimise }, indexId)
+
   /*
    * Why this run did not happen (BU-162).
    *
-   * py-beacon fails a backtest whose universe resolves to nothing (BN-161)
-   * where it used to succeed with a dead level of zero. The job carries the
-   * reason; without this the pane fell through to "no backtest run yet", or
-   * asked for an overview that was never written and reported the 404 —
-   * which is true of the wrong thing.
+   * py-beacon fails a backtest whose universe resolves to nothing (BN-161).
+   * Read from the job endpoint as well as the event feed, which is a socket
+   * a dropped frame can leave silent.
    */
   const submitted = ranAt === undefined ? undefined : jobs[ranAt]
-  const compare = useCompare(benchmark === '' ? [] : [indexId, benchmark])
-
-  const running = activeJobs(jobs).find((job) => job.kind.toLowerCase().includes('backtest'))
-
-  /*
-   * The run itself, read from the job (BU-137).
-   *
-   * The overview answers what the INDEX did when recalculated; this answers
-   * what the simulated portfolio did — which is what a backtest pane is for,
-   * and was not on screen before.
-   */
-  const runResult = useBacktestRun(ranAt, ranAt !== undefined && running === undefined)
-
-  /*
-   * Why this run did not happen (BU-162).
-   *
-   * py-beacon fails a backtest whose universe resolves to nothing (BN-161)
-   * where it used to succeed with a dead level of zero. Read from the event
-   * feed where it arrived, and from the job endpoint where it did not —
-   * without either, the pane fell through to "no backtest run yet", or asked
-   * for an overview that was never written and reported the 404, which is
-   * true of the wrong thing.
-   */
   const failure =
     submitted?.status === 'failed'
       ? (submitted.error ?? submitted.message)
-      : runResult.data?.status === 'failed'
-        ? (runResult.data.error ?? 'The engine gave no reason.')
+      : status.data?.status === 'failed'
+        ? (status.data.error ?? 'The engine gave no reason.')
         : undefined
 
-  /*
-   * The run this session started, or the one the engine kept (BU-169).
-   *
-   * A pane opened on an index back-tested last week used to say "no backtest
-   * run yet in this session", which was true of the session and false of the
-   * index. The stored record is asked for only when this session has no run
-   * of its own — a fresh run is always the better answer, and it is the one
-   * whose costs and settings the reader just chose.
-   */
-  const stored = useBacktestRecord(indexId, ranAt === undefined)
-  const storedRun = useMemo(() => parseRecord(stored.data), [stored.data])
+  const finished = failure === undefined && running === undefined && status.data !== undefined
 
-  const runData = runResult.data?.run ?? storedRun
-  /** True while what is on screen came from the store rather than this session. */
-  const showingStored = runResult.data?.run === undefined && storedRun !== undefined
-
-  /** How old the stored run is, when the engine stamped it (BN-162). */
-  const storedAge = useMemo(() => {
-    const at = stored.data?.run_at
-    if (at == null) return undefined
-    const when = Date.parse(at)
-    return Number.isNaN(when) ? undefined : `captured ${relativeTime(when, Date.now())}`
-  }, [stored.data])
-
-  // Ask for the result only once a backtest has been run in this session, or
-  // the pane would show a stale overview as though it were this run's.
-  const overview = useIndexOverview(indexId, ranAt !== undefined && failure === undefined)
-
-  const { refetch } = overview
-  useEffect(() => {
-    if (ranAt === undefined || running !== undefined || failure !== undefined) return
-    void refetch()
-  }, [ranAt, running, failure, refetch])
+  const submit = (target: string): void => {
+    run.mutate(
+      {
+        indexId: target,
+        ...(settings.start === '' ? {} : { start: settings.start }),
+        ...(settings.end === '' ? {} : { end: settings.end }),
+        transactionCostBps: Number(settings.costBps),
+        initialCapital: Number(settings.initialCapital),
+        ...(settings.benchmark === '' ? {} : { benchmarkIndexId: settings.benchmark })
+      },
+      {
+        onSuccess: (job) => {
+          setRanAt(job.job_id)
+          setRanFor(target)
+        }
+      }
+    )
+  }
 
   /*
-   * The portfolio's NAV where there is one, the index's level otherwise.
+   * Optimise, then back-test what came out.
    *
-   * Rebased to 100 either way, so the two sources draw the same shape. A
-   * job result starts at the first TRADING day; a stored record carries day
-   * zero as well, so its 100 is the starting capital rather than the first
-   * close — one extra leading point, and the footnote says which is on
-   * screen (BU-169).
+   * Two calls because they are two things: the first SAVES an index, and it
+   * is that index — not the parent — whose run is being asked for. A failed
+   * optimise therefore stops here rather than quietly back-testing the
+   * parent, which would answer a question nobody asked.
    */
-  const nav = useMemo(() => toPoints(runData?.level), [runData])
-  const level = useMemo(
-    () => (nav.length > 0 ? nav : toPoints(overview.data?.level)),
-    [nav, overview.data]
-  )
-  /** The index this portfolio was tracking, from the run (was `benchmark_level`). */
-  const trackedLevel = useMemo(() => toPoints(runData?.indexLevel), [runData])
-  const benchmarkLevel = useMemo(() => {
-    const entry = compare.data?.entries.find((candidate) => candidate.index_id === benchmark)
-    return toPoints(entry?.level)
-  }, [compare.data, benchmark])
+  const start = (): void => {
+    setDerived(undefined)
+    if (!willOptimise) {
+      submit(indexId)
+      return
+    }
 
-  const annual = useMemo(() => annualTable(level, benchmarkLevel), [level, benchmarkLevel])
-  const metrics = runData?.metrics ?? overview.data?.metrics
-  const benchmarkCagr = benchmarkLevel.length === 0 ? undefined : cagr(benchmarkLevel)
-  const indexCagr = fromFraction(metrics?.annualised_return) ?? cagr(level)
+    optimise.mutate(
+      {
+        indexId,
+        derivedId: settings.derivedId,
+        derivedName: settings.derivedName,
+        objective: settings.objective,
+        constraints: settings.constraints
+      },
+      {
+        onSuccess: (saved) => {
+          setDerived(saved.index.id)
+          submit(saved.index.id)
+        }
+      }
+    )
+  }
 
-  /*
-   * Not measured, which is not the same as flat (BU-137).
-   *
-   * A run given no benchmark comes back with `benchmark: null`, and saying
-   * "—" for its numbers would read as a measurement that happened to be
-   * nothing. Only a run that HAS one gets the comparison row.
-   */
-  const measuredBenchmark = runData?.benchmark !== undefined
-
-  /*
-   * What can be measured against: anything but itself (BU-172).
-   *
-   * Optimised indices were excluded while py-beacon refused them as
-   * benchmarks — an accident of resolution rather than a rule, since a
-   * benchmark needs nothing but a level series, and lifted in its #182. They
-   * are the comparison this pane most wants: a parent measured against its
-   * own optimised child answers "what did the constraints cost?" without
-   * anybody reasoning across two charts.
-   */
+  const busy = optimise.isPending || run.isPending || running !== undefined
   const others = (indices.data?.indices ?? []).filter((index) => index.id !== indexId)
 
   return (
     <div className="backtest-view">
       <PaneHeader
-        kind="fields"
+        kind="query"
+        subject={indexId}
+        index={catalogue.rows}
+        meta={describeIndex(document.data?.name, lastRun(records.data, indexId))}
+        onQuery={(next) => {
+          setSubject(tab.id, next.toUpperCase())
+        }}
         controls={
-          <Button
-            variant="accent"
-            disabled={indexId === '' || run.isPending || running !== undefined}
-            onClick={() => {
-              run.mutate(
-                {
-                  indexId,
-                  transactionCostBps: Number(costBps),
-                  ...(benchmark === '' ? {} : { benchmarkIndexId: benchmark })
-                },
-                {
-                  onSuccess: (job) => {
-                    setRanAt(job.job_id)
-                  }
-                }
-              )
-            }}
-          >
-            {running === undefined ? 'Run backtest' : 'Running…'}
-          </Button>
+          <>
+            <Button
+              disabled={indexId === ''}
+              onClick={() => {
+                openOrRetarget({
+                  page: 'strategy-builder',
+                  pane,
+                  viewKind: 'index-definition',
+                  title: indexId,
+                  subject: indexId
+                })
+              }}
+            >
+              Open definition
+            </Button>
+            <Button variant="accent" disabled={busy || findings.length > 0} onClick={start}>
+              {busy ? 'Running…' : 'Run backtest'}
+            </Button>
+          </>
         }
-      >
-        {/*
-          The catalogue is a short closed list, so the subject is chosen
-          rather than typed (BU-164) — and switching index stops being a trip
-          through the palette.
-        */}
-        <Field label="Index" width={160}>
-          <Select
-            className="backtest-inline-select"
-            options={(indices.data?.indices ?? []).map((index) => ({
-              value: index.id,
-              label: index.id
-            }))}
-            value={indexId}
-            placeholder={indices.isPending ? 'Loading…' : 'Choose an index'}
-            onChange={(value) => {
-              setSubject(tab.id, value)
-            }}
-            label="Index"
-          />
-        </Field>
-        <Field label="Benchmark" width={160}>
-          <Select
-            className="backtest-inline-select"
-            options={[
-              { value: '', label: 'None' },
-              ...others.map((i) => ({ value: i.id, label: i.id }))
-            ]}
-            value={benchmark}
-            onChange={setBenchmark}
-            label="Benchmark"
-          />
-        </Field>
-        <Field label="Costs" width={140}>
-          <Select
-            className="backtest-inline-select"
-            options={COSTS}
-            value={costBps}
-            onChange={setCostBps}
-            label="Costs"
-          />
-        </Field>
-      </PaneHeader>
+      />
 
-      {indexId === '' && <ViewEmpty>Choose an index to back-test.</ViewEmpty>}
+      <Card title="Period and costs" className="backtest-card">
+        <div className="backtest-form-row">
+          <Field label="Start" width={140}>
+            <input
+              className="backtest-input"
+              type="date"
+              aria-label="Start"
+              value={settings.start}
+              onChange={(event) => {
+                const start = event.target.value
+                setSettings((current) => ({ ...current, start }))
+              }}
+            />
+          </Field>
+
+          <Field label="End" width={140}>
+            <input
+              className="backtest-input"
+              type="date"
+              aria-label="End"
+              value={settings.end}
+              onChange={(event) => {
+                const end = event.target.value
+                setSettings((current) => ({ ...current, end }))
+              }}
+            />
+          </Field>
+
+          <Field label="Benchmark" width={160}>
+            <Select
+              className="backtest-inline-select"
+              options={[
+                { value: '', label: 'None' },
+                ...others.map((index) => ({ value: index.id, label: index.id }))
+              ]}
+              value={settings.benchmark}
+              onChange={(benchmark) => {
+                setSettings((current) => ({ ...current, benchmark }))
+              }}
+              label="Benchmark"
+            />
+          </Field>
+        </div>
+
+        <div className="backtest-form-row">
+          <Field label="Transaction cost (bps)" width={180}>
+            <input
+              className="backtest-input"
+              type="number"
+              min={0}
+              aria-label="Transaction cost (bps)"
+              value={settings.costBps}
+              onChange={(event) => {
+                const costBps = event.target.value
+                setSettings((current) => ({ ...current, costBps }))
+              }}
+            />
+          </Field>
+
+          <Field label={capitalLabel(document.data?.currency)} width={180}>
+            <input
+              className="backtest-input"
+              type="number"
+              min={0}
+              aria-label="Initial capital"
+              value={settings.initialCapital}
+              onChange={(event) => {
+                const initialCapital = event.target.value
+                setSettings((current) => ({ ...current, initialCapital }))
+              }}
+            />
+          </Field>
+        </div>
+
+        {/*
+          Blank is not missing: py-beacon starts at the index base date and
+          ends at the last observation it has, which beats a date this form
+          could invent. Costs are bps per side, as the engine reads them.
+        */}
+        <p className="backtest-note type-11">
+          Cost is per side. Leave a date empty to take the index’s own range — base date to last
+          observation.
+        </p>
+      </Card>
+
+      <Card
+        title="Optimiser"
+        aside={
+          <Checkbox
+            label={derivation === undefined ? 'Optimise first' : 'Already optimised'}
+            checked={settings.optimise || derivation !== undefined}
+            disabled={indexId === '' || derivation !== undefined}
+            onChange={(optimise) => {
+              setSettings((current) => ({
+                ...current,
+                optimise,
+                // Filled once, while the box is untouched: overwriting what
+                // was typed would be worse than leaving it blank.
+                ...(optimise && current.derivedId === ''
+                  ? suggested(indexId, document.data?.name ?? '')
+                  : {})
+              }))
+            }}
+          />
+        }
+        className="backtest-card"
+      >
+        {!settings.optimise && derivation === undefined && (
+          <p className="backtest-note type-11">
+            Off: the index is back-tested as it is defined. On, it is solved into a new optimised
+            index first, and that index is what runs.
+          </p>
+        )}
+
+        {(settings.optimise || derivation !== undefined) && (
+          <Optimiser
+            settings={settings}
+            onChange={setSettings}
+            types={constraintTypes.data?.types ?? {}}
+            derivation={derivation}
+          />
+        )}
+      </Card>
+
+      {findings.length > 0 && (
+        <ul className="backtest-findings type-11">
+          {findings.map((finding) => (
+            <li key={finding}>{finding}</li>
+          ))}
+        </ul>
+      )}
+
+      {optimise.isError && <ViewError error={optimise.error} />}
       {run.isError && <ViewError error={run.error} />}
+
+      {optimise.isPending && (
+        <p className="backtest-note type-11">
+          Solving {indexId} into {settings.derivedId}…
+        </p>
+      )}
 
       {running !== undefined && (
         <div className="backtest-progress">
@@ -286,120 +353,81 @@ export function BacktestView({ tab, subject }: ViewProps): ReactElement {
         </div>
       )}
 
-      {/*
-        Nothing anywhere, which is not the same as nothing today (BU-169).
-      */}
-      {ranAt === undefined &&
-        indexId !== '' &&
-        running === undefined &&
-        storedRun === undefined &&
-        !stored.isPending && <ViewEmpty>This index has never been back-tested.</ViewEmpty>}
-
-      {overview.isPending &&
-        ranAt !== undefined &&
-        running === undefined &&
-        failure === undefined && <ViewLoading what={indexId} />}
-      {/*
-        Only when the overview is what this pane still needs (BU-162, BU-164).
-
-        It is asked for as soon as a run is submitted, and it is a supplement
-        — the run payload carries the level and the metrics. So a 404 from it
-        is worth reporting only with nothing else on screen: above a drawn
-        result it is noise, and behind a failed job it is a true statement
-        about the wrong thing.
-      */}
-      {overview.isError && failure === undefined && level.length === 0 && (
-        <ViewError error={overview.error} />
-      )}
-
-      {level.length > 0 && (
-        <>
-          <StatStrip>
-            <Stat label="CAGR" value={signedPercent(indexCagr)} />
-            {benchmark !== '' && (
-              <Stat label="BENCHMARK CAGR" value={signedPercent(benchmarkCagr)} />
-            )}
-            {benchmark !== '' && (
-              <Stat
-                label="EXCESS"
-                value={
-                  indexCagr === undefined || benchmarkCagr === undefined
-                    ? '—'
-                    : signedPercent(indexCagr - benchmarkCagr)
-                }
-                tone={
-                  indexCagr !== undefined &&
-                  benchmarkCagr !== undefined &&
-                  indexCagr >= benchmarkCagr
-                    ? 'positive'
-                    : 'negative'
-                }
-              />
-            )}
-            {runData !== undefined && !measuredBenchmark && benchmark === '' && (
-              <Stat label="BENCHMARK" value="not measured" />
-            )}
-            <Stat label="VOL" value={signedPercent(fromFraction(metrics?.volatility)).slice(1)} />
-            {/* Nullable now that this may come from the run, where every
-                metric is optional — the overview's was not. */}
-            <Stat label="SHARPE" value={metrics?.sharpe_ratio?.toFixed(2) ?? '—'} />
-            <Stat
-              label="MAX DD"
-              value={signedPercent(fromFraction(metrics?.max_drawdown))}
-              tone="negative"
-            />
-            <Stat label="HIT RATE · MO" value={signedPercent(monthlyHitRate(level)).slice(1)} />
-            <Stat label="TOTAL RETURN" value={signedPercent(fromFraction(metrics?.total_return))} />
-          </StatStrip>
-
-          <div className="backtest-main-row">
-            <LevelChart
-              mode={mode}
-              series={[
-                { label: nav.length > 0 ? `${indexId} portfolio` : indexId, points: level },
-                // The tracked index, when the run reported one — the line
-                // that says how closely the portfolio replicated it.
-                ...(trackedLevel.length === 0
-                  ? []
-                  : [{ label: `${indexId} index`, points: trackedLevel }]),
-                ...(benchmarkLevel.length === 0
-                  ? []
-                  : [{ label: benchmark, points: benchmarkLevel }])
-              ]}
-              panels={[{ label: 'drawdown', series: [{ points: drawdown(level), kind: 'area' }] }]}
-              height={560}
-              {...(overview.data === undefined
-                ? {}
-                : {
-                    note: `${overview.data.start.slice(0, 10)} → ${overview.data.end.slice(0, 10)} · ${String(overview.data.rebalances)} rebalances`
-                  })}
-            />
-
-            <AnnualReturns
-              rows={annual}
-              indexId={indexId}
-              {...(benchmark === '' ? {} : { benchmarkId: benchmark })}
-            />
-          </div>
-
-          <p className="backtest-footnote type-11">
-            {overview.data?.observations.toLocaleString('en-US') ?? '—'} observations · costs{' '}
-            {costBps} bps per side
-            {runData?.totalCosts === undefined
-              ? ''
-              : ` (${Math.round(runData.totalCosts).toLocaleString('en-US')} paid)`}{' '}
-            · {nav.length > 0 ? 'portfolio NAV against the tracked index' : 'index level'} · annual
-            returns and the monthly hit rate are derived from the level series
-            {/*
-              Which run this is (BU-169). A stored one may predate the
-              definition on screen, and its NAV starts at day zero rather than
-              at the first traded close — both worth saying rather than
-              leaving the reader to assume this session ran it.
-            */}
-            {showingStored && ` · stored run${storedAge === undefined ? '' : `, ${storedAge}`}`}
+      {finished && ranFor !== undefined && (
+        <div className="backtest-done">
+          <p className="type-13">
+            Back-tested {ranFor}
+            {derived === undefined ? '' : `, solved from ${indexId}`}.
           </p>
-        </>
+          <div className="backtest-done-actions">
+            <Button
+              variant="accent"
+              onClick={() => {
+                openOrRetarget({
+                  page: 'beacon-view',
+                  pane,
+                  viewKind: 'overview',
+                  title: ranFor,
+                  subject: ranFor
+                })
+              }}
+            >
+              Open overview
+            </Button>
+            {derived !== undefined && (
+              <Button
+                onClick={() => {
+                  openOrRetarget({
+                    page: 'strategy-builder',
+                    pane,
+                    viewKind: 'index-definition',
+                    title: derived,
+                    subject: derived
+                  })
+                }}
+              >
+                Open {derived}
+              </Button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
+}
+
+/** The index's own currency, when the document has arrived to say so. */
+function capitalLabel(currency: string | undefined): string {
+  return currency === undefined ? 'Initial capital' : `Initial capital (${currency})`
+}
+
+function suggested(indexId: string, name: string): { derivedId: string; derivedName: string } {
+  const derived = suggestDerived(indexId, name)
+  return { derivedId: derived.id, derivedName: derived.name }
+}
+
+/** The index's name, and when anyone last ran this — worth knowing first. */
+function describeIndex(name: string | undefined, ran: string | undefined): string | undefined {
+  const parts = [name, ran].filter((part) => part !== undefined && part !== '')
+  return parts.length === 0 ? undefined : parts.join(' · ')
+}
+
+/**
+ * When this index was last back-tested, from the catalogue of records.
+ *
+ * `run_at` is null on records written before py-beacon stamped them (BN-162),
+ * so "back-tested" without a date is the honest reading — inventing a time
+ * from the file would be a guess dressed as data.
+ */
+function lastRun(
+  records: readonly BacktestRecordRow[] | undefined,
+  indexId: string
+): string | undefined {
+  if (indexId === '' || records === undefined) return undefined
+
+  const row = records.find((record) => record.index_id === indexId)
+  if (row === undefined) return 'never back-tested'
+
+  const at = row.run_at == null ? Number.NaN : Date.parse(row.run_at)
+  return Number.isNaN(at) ? 'back-tested' : `last run ${relativeTime(at, Date.now())}`
 }

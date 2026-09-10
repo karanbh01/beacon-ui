@@ -22,7 +22,8 @@ import {
   type PreviewAsset,
   type PreviewResponse
 } from './derivation'
-import { SolveConstraints, solveColumns } from './Solve'
+import { SolveConstraints } from './Solve'
+import { solveColumns } from './solveColumns'
 import './ConstituentPreviewView.css'
 
 function buildColumns(preview: PreviewResponse): Column<PreviewAsset>[] {
