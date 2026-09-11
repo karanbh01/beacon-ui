@@ -1089,6 +1089,38 @@ export interface components {
             window_start?: string | null;
         };
         /**
+         * AllNode
+         * @description Every operand must pass: `expressions.core.All`.
+         */
+        AllNode: {
+            /**
+             * @description Discriminator. Always 'all'. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            node: "all";
+            /**
+             * Operands
+             * @description The expressions that must all pass.
+             */
+            operands: components["schemas"]["ExpressionNode"][];
+        };
+        /**
+         * AnyNode
+         * @description At least one operand must pass: `expressions.core.Any_`.
+         */
+        AnyNode: {
+            /**
+             * @description Discriminator. Always 'any'. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            node: "any";
+            /**
+             * Operands
+             * @description The expressions, any of which may pass.
+             */
+            operands: components["schemas"]["ExpressionNode"][];
+        };
+        /**
          * AssetView
          * @description Response of `GET /beacon/{index_id}/assets/{identifier}`.
          */
@@ -1503,6 +1535,27 @@ export interface components {
             observations: number;
             /** Start */
             start: string;
+        };
+        /**
+         * ComparisonNode
+         * @description A field, an operator and a value: `expressions.core.Comparison`.
+         */
+        ComparisonNode: {
+            /**
+             * Comparison
+             * @description How the field is compared to the value, spelled as the stored document spells it: gt, ge, lt, le, eq, ne, in, between.
+             * @enum {string}
+             */
+            comparison: "gt" | "ge" | "lt" | "le" | "eq" | "ne" | "in" | "between";
+            /** @description The datapoint being compared. */
+            field: components["schemas"]["FieldNode"];
+            /**
+             * @description Discriminator. Always 'comparison'. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            node: "comparison";
+            /** Value */
+            value: unknown;
         };
         /**
          * ConcentrationPayload
@@ -2003,6 +2056,19 @@ export interface components {
             run_id: string;
         };
         /**
+         * ExpressionNode
+         * @description One node of a serialised expression, discriminated on `node`.
+         *
+         *     The grammar a screen is written in: a field, a comparison over one, or a
+         *     boolean composition of either. Recursive — `all`, `any` and `not` carry
+         *     nodes of this same union — so an arbitrarily nested screen is one type.
+         *
+         *     A `RootModel` rather than a bare union so the union is a *named* schema in
+         *     this document: a recursive `$ref` needs a name to point at, and so does
+         *     `ParameterSpec.ref`.
+         */
+        ExpressionNode: components["schemas"]["FieldNode"] | components["schemas"]["ComparisonNode"] | components["schemas"]["AllNode"] | components["schemas"]["AnyNode"] | components["schemas"]["NotNode"];
+        /**
          * FactorExposure
          * @description One factor loading.
          */
@@ -2198,6 +2264,36 @@ export interface components {
              * @description How it is written, e.g. 'reference.sector' or 'features.fundamentals.revenue'.
              */
             path: string;
+        };
+        /**
+         * FieldNode
+         * @description A named datapoint: `expressions.core.Field`.
+         *
+         *     `namespace` is the surface the value comes from and `dataset` narrows a
+         *     feature to one vendor's `TYPE`, so two sources can both ship a `revenue`
+         *     without collision.
+         */
+        FieldNode: {
+            /**
+             * Dataset
+             * @description Narrows a feature to one dataset. Null on a reference or market field, which have no dataset to narrow.
+             */
+            dataset?: string | null;
+            /**
+             * Name
+             * @description The datapoint's name.
+             */
+            name: string;
+            /**
+             * Namespace
+             * @description The surface the datapoint comes from: 'reference', 'market' or 'features'. `GET /data/fields` lists what each one holds.
+             */
+            namespace: string;
+            /**
+             * @description Discriminator. Always 'field'. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            node: "field";
         };
         /**
          * Finding
@@ -2679,6 +2775,18 @@ export interface components {
             status: string;
         };
         /**
+         * NotNode
+         * @description The negation of an expression: `expressions.core.Not`.
+         */
+        NotNode: {
+            /**
+             * @description Discriminator. Always 'not'. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            node: "not";
+            operand: components["schemas"]["ExpressionNode"];
+        };
+        /**
          * OptimisationJobStatus
          * @description An `optimise:{run_id}` job. `result` is the solved portfolio.
          */
@@ -2905,6 +3013,11 @@ export interface components {
              * @description Position in the form, ascending.
              */
             order: number;
+            /**
+             * Ref
+             * @description Component schema this parameter's value must conform to, e.g. 'ExpressionNode' — resolve it under `components.schemas` in this document. Null for a scalar parameter. `type` stays the coarse render hint, so a client that ignores this still renders a JSON editor.
+             */
+            ref?: string | null;
             /**
              * Required
              * @description Whether the constructor rejects the call without it.
@@ -4332,13 +4445,8 @@ export interface components {
              * @description Optional free text.
              */
             description?: string | null;
-            /**
-             * Filter
-             * @description The expression this universe was built from, when it was built by filtering. Null for a curated list.
-             */
-            filter?: {
-                [key: string]: unknown;
-            } | null;
+            /** @description The expression this universe was built from, when it was built by filtering. Null for a curated list. */
+            filter?: components["schemas"]["ExpressionNode"] | null;
             /**
              * Id
              * @description Stable identifier.
@@ -4389,13 +4497,8 @@ export interface components {
         UniverseCreate: {
             /** Description */
             description?: string | null;
-            /**
-             * Filter
-             * @description A serialised expression to build the membership from, instead of naming it. Mutually exclusive with a non-empty `identifiers`.
-             */
-            filter?: {
-                [key: string]: unknown;
-            } | null;
+            /** @description A serialised expression to build the membership from, instead of naming it. Mutually exclusive with a non-empty `identifiers`. */
+            filter?: components["schemas"]["ExpressionNode"] | null;
             /**
              * Identifiers
              * @description Members. Every one must exist in the loaded reference data. Required unless a filter is given.

@@ -66,6 +66,58 @@
         "title": "ActiveRiskPayload",
         "type": "object"
       },
+      "AllNode": {
+        "description": "Every operand must pass: `expressions.core.All`.",
+        "properties": {
+          "node": {
+            "const": "all",
+            "description": "Discriminator. Always 'all'.",
+            "title": "Node",
+            "type": "string"
+          },
+          "operands": {
+            "description": "The expressions that must all pass.",
+            "items": {
+              "$ref": "#/components/schemas/ExpressionNode"
+            },
+            "minItems": 1,
+            "title": "Operands",
+            "type": "array"
+          }
+        },
+        "required": [
+          "node",
+          "operands"
+        ],
+        "title": "AllNode",
+        "type": "object"
+      },
+      "AnyNode": {
+        "description": "At least one operand must pass: `expressions.core.Any_`.",
+        "properties": {
+          "node": {
+            "const": "any",
+            "description": "Discriminator. Always 'any'.",
+            "title": "Node",
+            "type": "string"
+          },
+          "operands": {
+            "description": "The expressions, any of which may pass.",
+            "items": {
+              "$ref": "#/components/schemas/ExpressionNode"
+            },
+            "minItems": 1,
+            "title": "Operands",
+            "type": "array"
+          }
+        },
+        "required": [
+          "node",
+          "operands"
+        ],
+        "title": "AnyNode",
+        "type": "object"
+      },
       "AssetView": {
         "description": "Response of `GET /beacon/{index_id}/assets/{identifier}`.",
         "properties": {
@@ -768,6 +820,47 @@
           "entries"
         ],
         "title": "CompareView",
+        "type": "object"
+      },
+      "ComparisonNode": {
+        "description": "A field, an operator and a value: `expressions.core.Comparison`.",
+        "properties": {
+          "comparison": {
+            "description": "How the field is compared to the value, spelled as the stored document spells it: gt, ge, lt, le, eq, ne, in, between.",
+            "enum": [
+              "gt",
+              "ge",
+              "lt",
+              "le",
+              "eq",
+              "ne",
+              "in",
+              "between"
+            ],
+            "title": "Comparison",
+            "type": "string"
+          },
+          "field": {
+            "$ref": "#/components/schemas/FieldNode",
+            "description": "The datapoint being compared."
+          },
+          "node": {
+            "const": "comparison",
+            "description": "Discriminator. Always 'comparison'.",
+            "title": "Node",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "node",
+          "field",
+          "comparison",
+          "value"
+        ],
+        "title": "ComparisonNode",
         "type": "object"
       },
       "ConcentrationPayload": {
@@ -1548,6 +1641,37 @@
         "title": "ExposuresView",
         "type": "object"
       },
+      "ExpressionNode": {
+        "description": "One node of a serialised expression, discriminated on `node`.\n\nThe grammar a screen is written in: a field, a comparison over one, or a\nboolean composition of either. Recursive — `all`, `any` and `not` carry\nnodes of this same union — so an arbitrarily nested screen is one type.\n\nA `RootModel` rather than a bare union so the union is a *named* schema in\nthis document: a recursive `$ref` needs a name to point at, and so does\n`ParameterSpec.ref`.",
+        "discriminator": {
+          "mapping": {
+            "all": "#/components/schemas/AllNode",
+            "any": "#/components/schemas/AnyNode",
+            "comparison": "#/components/schemas/ComparisonNode",
+            "field": "#/components/schemas/FieldNode",
+            "not": "#/components/schemas/NotNode"
+          },
+          "propertyName": "node"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FieldNode"
+          },
+          {
+            "$ref": "#/components/schemas/ComparisonNode"
+          },
+          {
+            "$ref": "#/components/schemas/AllNode"
+          },
+          {
+            "$ref": "#/components/schemas/AnyNode"
+          },
+          {
+            "$ref": "#/components/schemas/NotNode"
+          }
+        ],
+        "title": "ExpressionNode"
+      },
       "FactorExposure": {
         "description": "One factor loading.",
         "properties": {
@@ -1924,6 +2048,48 @@
           "name"
         ],
         "title": "FieldDescriptor",
+        "type": "object"
+      },
+      "FieldNode": {
+        "description": "A named datapoint: `expressions.core.Field`.\n\n`namespace` is the surface the value comes from and `dataset` narrows a\nfeature to one vendor's `TYPE`, so two sources can both ship a `revenue`\nwithout collision.",
+        "properties": {
+          "dataset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Narrows a feature to one dataset. Null on a reference or market field, which have no dataset to narrow.",
+            "title": "Dataset"
+          },
+          "name": {
+            "description": "The datapoint's name.",
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "The surface the datapoint comes from: 'reference', 'market' or 'features'. `GET /data/fields` lists what each one holds.",
+            "minLength": 1,
+            "title": "Namespace",
+            "type": "string"
+          },
+          "node": {
+            "const": "field",
+            "description": "Discriminator. Always 'field'.",
+            "title": "Node",
+            "type": "string"
+          }
+        },
+        "required": [
+          "node",
+          "namespace",
+          "name"
+        ],
+        "title": "FieldNode",
         "type": "object"
       },
       "Finding": {
@@ -2740,6 +2906,26 @@
         "title": "JobStatus",
         "type": "object"
       },
+      "NotNode": {
+        "description": "The negation of an expression: `expressions.core.Not`.",
+        "properties": {
+          "node": {
+            "const": "not",
+            "description": "Discriminator. Always 'not'.",
+            "title": "Node",
+            "type": "string"
+          },
+          "operand": {
+            "$ref": "#/components/schemas/ExpressionNode"
+          }
+        },
+        "required": [
+          "node",
+          "operand"
+        ],
+        "title": "NotNode",
+        "type": "object"
+      },
       "OptimisationJobStatus": {
         "description": "An `optimise:{run_id}` job. `result` is the solved portfolio.",
         "properties": {
@@ -3127,6 +3313,18 @@
             "description": "Position in the form, ascending.",
             "title": "Order",
             "type": "integer"
+          },
+          "ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Component schema this parameter's value must conform to, e.g. 'ExpressionNode' — resolve it under `components.schemas` in this document. Null for a scalar parameter. `type` stays the coarse render hint, so a client that ignores this still renders a JSON editor.",
+            "title": "Ref"
           },
           "required": {
             "description": "Whether the constructor rejects the call without it.",
@@ -5412,15 +5610,13 @@
           "filter": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/ExpressionNode"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "The expression this universe was built from, when it was built by filtering. Null for a curated list.",
-            "title": "Filter"
+            "description": "The expression this universe was built from, when it was built by filtering. Null for a curated list."
           },
           "id": {
             "description": "Stable identifier.",
@@ -5502,15 +5698,13 @@
           "filter": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/ExpressionNode"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "A serialised expression to build the membership from, instead of naming it. Mutually exclusive with a non-empty `identifiers`.",
-            "title": "Filter"
+            "description": "A serialised expression to build the membership from, instead of naming it. Mutually exclusive with a non-empty `identifiers`."
           },
           "identifiers": {
             "description": "Members. Every one must exist in the loaded reference data. Required unless a filter is given.",
