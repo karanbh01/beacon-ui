@@ -15,7 +15,7 @@ import {
   useUniverseMembers,
   useUniverses
 } from '../shared/strategyQueries'
-import { catalogueDisabled, cataloguePlaceholder } from '../shared/pickers'
+import { catalogueDisabled, cataloguePlaceholder, describeSkipped } from '../shared/pickers'
 import { useCoverage, useReferenceRows } from '../shared/queries'
 import { billions, buildRow, volume, type UniverseRow } from './universe'
 import { blankUniverse, isEditable, type DraftUniverse } from './members'
@@ -269,6 +269,16 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
             setSubject(tab.id, value)
           }}
         />
+
+        {/* A universe the server could not read is absent from the list
+            above, and a short list looks exactly like a complete one
+            (BN-174). Silent at zero, which is the ordinary case. */}
+        {describeSkipped(universes.data?.skipped) !== undefined && (
+          <span className="universe-skipped type-11">
+            {describeSkipped(universes.data?.skipped)}
+          </span>
+        )}
+
         {/* Point-in-time belongs to a universe's membership; on the overview
             there is none to date, and a control that does nothing is worse
             than an absent one. */}

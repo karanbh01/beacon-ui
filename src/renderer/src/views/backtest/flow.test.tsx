@@ -157,7 +157,9 @@ function makeClient(): BeaconClient {
       }
 
       // Nobody has back-tested anything here, which is what the header says.
-      if (path === '/beacon/backtests') return Promise.resolve([])
+      // An envelope since BN-174, not the bare array: the rows could not
+      // carry the skip count.
+      if (path === '/beacon/backtests') return Promise.resolve({ backtests: [], skipped: 0 })
 
       if (path === '/optimise/constraint-types') {
         return Promise.resolve({

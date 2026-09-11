@@ -21,7 +21,10 @@ export interface paths {
          *     `/beacon/{index_id}/record` serves the books.
          *
          *     A record that cannot be read is skipped with a warning rather than
-         *     failing the listing: one bad file must not hide every good one.
+         *     failing the listing: one bad file must not hide every good one. Since
+         *     BN-174 "cannot be read" means the same thing here as at `/record`, and
+         *     the count of what was skipped is published beside the rows — a listing
+         *     silently short is indistinguishable from a complete one.
          */
         get: operations["backtest_records_beacon_backtests_get"];
         put?: never;
@@ -137,7 +140,11 @@ export interface paths {
          *     Raises:
          *         DataNotFoundError: If the index has never been backtested
          *             successfully — the same answer, and the same pointer, as the
-         *             overview.
+         *             overview. Since BN-174 a record that cannot be parsed or
+         *             validated answers the same way rather than 500ing: it is the
+         *             document the listing skips, and a stored artefact the server
+         *             cannot interpret is indistinguishable, from here, from one that
+         *             was never written. The fault is logged at WARNING.
          */
         get: operations["backtest_record_beacon__index_id__record_get"];
         put?: never;
@@ -1230,6 +1237,25 @@ export interface components {
             volatility: number;
         };
         /**
+         * BacktestRecordCollection
+         * @description Response of `GET /beacon/backtests`.
+         *
+         *     An envelope rather than the bare array this used to return (BN-174). The
+         *     rows could not carry the skip count, and a listing that leaves documents
+         *     out without saying how many is making the same class of false statement as
+         *     a listing that 500s: the client is told something complete that is not.
+         */
+        BacktestRecordCollection: {
+            /** Backtests */
+            backtests: components["schemas"]["BacktestRecordRow"][];
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
+        };
+        /**
          * BacktestRecordRow
          * @description One stored backtest record, as a listing knows it (BN-162).
          *
@@ -1616,6 +1642,12 @@ export interface components {
         ConstraintSetCollection: {
             /** Constraint Sets */
             constraint_sets: components["schemas"]["ConstraintSet"][];
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
         };
         /**
          * ConstraintTypes
@@ -2476,6 +2508,12 @@ export interface components {
         IndexCollection: {
             /** Indices */
             indices: components["schemas"]["IndexDocument"][];
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
         };
         /**
          * IndexDeletion
@@ -4331,6 +4369,12 @@ export interface components {
          * @description Response of `GET /universes`.
          */
         UniverseCollection: {
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
             /** Universes */
             universes: components["schemas"]["Universe"][];
         };
@@ -4613,7 +4657,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BacktestRecordRow"][];
+                    "application/json": components["schemas"]["BacktestRecordCollection"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */

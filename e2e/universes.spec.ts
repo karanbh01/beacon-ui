@@ -470,3 +470,31 @@ test('deleting a parent says which optimised indices go with it', async ({ app, 
   await expect(window.getByText(/Deleted 2 indices/)).toBeVisible()
   await expect(overview.getByText('TECH10-OPT')).toHaveCount(0)
 })
+
+test('a listing that left a universe out says so (BU-185)', async ({ engine, window }) => {
+  /*
+   * BN-174. py-beacon's listings skip a document they cannot read and
+   * report the count, because a list short by one is otherwise identical
+   * to a complete one — the blank-picker lie of BU-181, moved one level
+   * out and now visible.
+   */
+  engine.skipUniverses(2)
+
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+
+  await expect(window.locator('.universe-skipped')).toContainText(
+    '2 could not be read and are missing from this list'
+  )
+  // And the picker still works: the universes that DID arrive are choices.
+  await expect(window.getByRole('combobox', { name: 'Universe' })).toBeEnabled()
+})
+
+test('a complete listing says nothing at all (BU-185)', async ({ window }) => {
+  // Silence is the common case; "0 could not be read" trains a reader to
+  // stop looking at the line.
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+
+  await expect(window.locator('.universe-skipped')).toHaveCount(0)
+})

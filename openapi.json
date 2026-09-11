@@ -345,6 +345,29 @@
         "title": "BacktestMetrics",
         "type": "object"
       },
+      "BacktestRecordCollection": {
+        "description": "Response of `GET /beacon/backtests`.\n\nAn envelope rather than the bare array this used to return (BN-174). The\nrows could not carry the skip count, and a listing that leaves documents\nout without saying how many is making the same class of false statement as\na listing that 500s: the client is told something complete that is not.",
+        "properties": {
+          "backtests": {
+            "items": {
+              "$ref": "#/components/schemas/BacktestRecordRow"
+            },
+            "title": "Backtests",
+            "type": "array"
+          },
+          "skipped": {
+            "default": 0,
+            "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "backtests"
+        ],
+        "title": "BacktestRecordCollection",
+        "type": "object"
+      },
       "BacktestRecordRow": {
         "description": "One stored backtest record, as a listing knows it (BN-162).\n\nThe row is deliberately thin — the id to fetch the record by, and when it\nwas captured. Names come from the index catalogue the client already\nholds, and everything else from `/beacon/{index_id}/record`.",
         "properties": {
@@ -948,6 +971,12 @@
             },
             "title": "Constraint Sets",
             "type": "array"
+          },
+          "skipped": {
+            "default": 0,
+            "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
+            "title": "Skipped",
+            "type": "integer"
           }
         },
         "required": [
@@ -2453,6 +2482,12 @@
             },
             "title": "Indices",
             "type": "array"
+          },
+          "skipped": {
+            "default": 0,
+            "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
+            "title": "Skipped",
+            "type": "integer"
           }
         },
         "required": [
@@ -5430,6 +5465,12 @@
       "UniverseCollection": {
         "description": "Response of `GET /universes`.",
         "properties": {
+          "skipped": {
+            "default": 0,
+            "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
+            "title": "Skipped",
+            "type": "integer"
+          },
           "universes": {
             "items": {
               "$ref": "#/components/schemas/Universe"
@@ -5901,18 +5942,14 @@
   "paths": {
     "/beacon/backtests": {
       "get": {
-        "description": "Every stored backtest record, newest first (BN-162).\n\nThe enumeration Beacon View's search bar needs: which indices HAVE a\nrecord, and when each was captured. One row per index — the record\nstore keeps the latest run only — and the row is deliberately thin;\n`/beacon/{index_id}/record` serves the books.\n\nA record that cannot be read is skipped with a warning rather than\nfailing the listing: one bad file must not hide every good one.",
+        "description": "Every stored backtest record, newest first (BN-162).\n\nThe enumeration Beacon View's search bar needs: which indices HAVE a\nrecord, and when each was captured. One row per index — the record\nstore keeps the latest run only — and the row is deliberately thin;\n`/beacon/{index_id}/record` serves the books.\n\nA record that cannot be read is skipped with a warning rather than\nfailing the listing: one bad file must not hide every good one. Since\nBN-174 \"cannot be read\" means the same thing here as at `/record`, and\nthe count of what was skipped is published beside the rows — a listing\nsilently short is indistinguishable from a complete one.",
         "operationId": "backtest_records_beacon_backtests_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/BacktestRecordRow"
-                  },
-                  "title": "Response Backtest Records Beacon Backtests Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/BacktestRecordCollection"
                 }
               }
             },
@@ -6642,7 +6679,7 @@
     },
     "/beacon/{index_id}/record": {
       "get": {
-        "description": "The latest run's books, nested: the record, not the derived view.\n\n`BacktestJobStatus.result` carries the run payload — rebased level,\nreturns, drawdown — which is what a chart wants. This is the other\nhalf BN-155 shaped and BN-158 finally serves: the portfolio book with\nits day-zero NAV, bounded positions and weights with true totals, and\nthe comparator books, null when the run had none.\n\nRaises:\n    DataNotFoundError: If the index has never been backtested\n        successfully — the same answer, and the same pointer, as the\n        overview.",
+        "description": "The latest run's books, nested: the record, not the derived view.\n\n`BacktestJobStatus.result` carries the run payload — rebased level,\nreturns, drawdown — which is what a chart wants. This is the other\nhalf BN-155 shaped and BN-158 finally serves: the portfolio book with\nits day-zero NAV, bounded positions and weights with true totals, and\nthe comparator books, null when the run had none.\n\nRaises:\n    DataNotFoundError: If the index has never been backtested\n        successfully — the same answer, and the same pointer, as the\n        overview. Since BN-174 a record that cannot be parsed or\n        validated answers the same way rather than 500ing: it is the\n        document the listing skips, and a stored artefact the server\n        cannot interpret is indistinguishable, from here, from one that\n        was never written. The fault is logged at WARNING.",
         "operationId": "backtest_record_beacon__index_id__record_get",
         "parameters": [
           {

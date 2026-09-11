@@ -362,7 +362,12 @@ export function useBacktestRun(jobId: string | undefined, ready: boolean) {
  * an instrument. The rows are the catalogue, named where the definition has
  * a name.
  */
-export function useIndexCatalogue(): { rows: Suggestion[]; loading: boolean } {
+export function useIndexCatalogue(): {
+  rows: Suggestion[]
+  loading: boolean
+  /** Indices the server could not read, so the bar's list is short (BN-174). */
+  skipped: number
+} {
   const indices = useIndices()
   const records = useBacktestRecords()
 
@@ -380,11 +385,11 @@ export function useIndexCatalogue(): { rows: Suggestion[]; loading: boolean } {
    * measured from the same instant (BU-168).
    */
   const rows = useMemo(
-    () => withBacktests(named, records.data ?? [], Date.now()),
+    () => withBacktests(named, records.data?.backtests ?? [], Date.now()),
     [named, records.data]
   )
 
-  return { rows, loading: indices.isPending }
+  return { rows, loading: indices.isPending, skipped: indices.data?.skipped ?? 0 }
 }
 
 export function useRunBacktest() {

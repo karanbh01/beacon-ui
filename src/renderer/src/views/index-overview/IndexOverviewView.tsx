@@ -6,6 +6,7 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useOverview } from '../shared/beaconQueries'
+import { describeSkipped } from '../shared/pickers'
 import { useIndexCatalogue, useIndices } from '../shared/strategyQueries'
 import type { Period } from '../shared/periods'
 import { RiskCorrelation } from './RiskCorrelation'
@@ -49,6 +50,23 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
   const [benchmark, setBenchmark] = useState('')
   const [comparators, setComparators] = useState<string[]>([])
 
+  /*
+   * The header's line, and what the catalogue could not read (BN-174).
+   *
+   * The query bar suggests from that catalogue, so a skipped index is one
+   * a reader cannot reach and cannot see is missing — the bar looks the
+   * same either way. Silent at zero, which is the ordinary case.
+   */
+  const meta = useMemo(() => {
+    const parts: string[] = []
+    if (overview.data !== undefined) {
+      parts.push(`${overview.data.name} · ${String(overview.data.observations)} observations`)
+    }
+    const short = describeSkipped(catalogue.skipped)
+    if (short !== undefined) parts.push(short)
+    return parts.length === 0 ? undefined : parts.join(' · ')
+  }, [overview.data, catalogue.skipped])
+
   /** Anything but itself: an index correlated with itself is 1.000. */
   const others = useMemo(
     () => (indices.data?.indices ?? []).map((index) => index.id).filter((id) => id !== indexId),
@@ -67,9 +85,7 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
         kind="query"
         subject={indexId}
         index={catalogue.rows}
-        {...(overview.data === undefined
-          ? {}
-          : { meta: `${overview.data.name} · ${String(overview.data.observations)} observations` })}
+        {...(meta === undefined ? {} : { meta })}
         onQuery={(next) => {
           setSubject(tab.id, next.toUpperCase())
         }}

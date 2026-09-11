@@ -40,3 +40,23 @@ export function cataloguePlaceholder(state: CatalogueState, empty: string): stri
 export function catalogueDisabled(state: CatalogueState, count: number): boolean {
   return state.isPending || state.isError || count === 0
 }
+
+/**
+ * That a listing left documents out (BU-185).
+ *
+ * A short list is not an empty one: the rows that arrived are real choices
+ * and the control stays usable, so this is a note beside it rather than a
+ * placeholder inside it. py-beacon's listings skip a document they cannot
+ * read and report the count (BN-174), which is the only way a client can
+ * tell a complete list from an incomplete one — they are otherwise
+ * identical, and that is the blank-picker lie moved one level out.
+ *
+ * Silence at zero. The common case is a complete listing, and a pane that
+ * says "0 could not be read" is noise that trains a reader to stop looking.
+ */
+export function describeSkipped(skipped: number | undefined): string | undefined {
+  if (skipped === undefined || skipped <= 0) return undefined
+  return skipped === 1
+    ? '1 could not be read and is missing from this list'
+    : `${String(skipped)} could not be read and are missing from this list`
+}

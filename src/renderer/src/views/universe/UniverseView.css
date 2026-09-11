@@ -55,3 +55,11 @@
   outline: 1px solid var(--accent);
   outline-offset: 2px;
 }
+
+/*
+ * A listing that left documents out (BU-185). Danger rather than muted:
+ * the picker beside it is offering a choice from an incomplete set.
+ */
+.universe-skipped {
+  color: var(--danger);
+}

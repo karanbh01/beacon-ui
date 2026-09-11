@@ -157,7 +157,7 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
         kind="query"
         subject={indexId}
         index={catalogue.rows}
-        meta={describeIndex(document.data?.name, lastRun(records.data, indexId))}
+        meta={describeIndex(document.data?.name, lastRun(records.data?.backtests, indexId))}
         onQuery={(next) => {
           setSubject(tab.id, next.toUpperCase())
         }}

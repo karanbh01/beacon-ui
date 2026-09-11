@@ -5,7 +5,7 @@ import { Select } from '../../components/Select/Select'
 import { useWorkspace } from '../../state/tabs.store'
 import { isDocumentId } from '../../api/ids'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { catalogueDisabled, cataloguePlaceholder } from '../shared/pickers'
+import { catalogueDisabled, cataloguePlaceholder, describeSkipped } from '../shared/pickers'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import {
   useDeleteIndex,
@@ -273,6 +273,17 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
                 ? 'eligible assets unknown'
                 : `${members.data.identifiers.length.toLocaleString('en-US')} eligible assets`}
             </span>
+
+            {/*
+              A universe the server could not read is missing from the list
+              above, and a short list looks exactly like a complete one
+              (BN-174). Silent at zero, which is the ordinary case.
+            */}
+            {describeSkipped(universes.data?.skipped) !== undefined && (
+              <span className="index-universe-skipped type-11">
+                {describeSkipped(universes.data?.skipped)}
+              </span>
+            )}
             <button
               type="button"
               className="index-link type-11"

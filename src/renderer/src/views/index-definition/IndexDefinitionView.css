@@ -23,6 +23,15 @@
   color: var(--text-muted);
 }
 
+/*
+ * A listing that left documents out (BU-185). Danger rather than muted:
+ * the picker beside it is offering a choice from an incomplete set, which
+ * is a different thing from a note about the set it did offer.
+ */
+.index-universe-skipped {
+  color: var(--danger);
+}
+
 /* Figma 321:1601 / 312:11136 — a text link, accent, no button chrome. */
 .index-link {
   padding: 0;

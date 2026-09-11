@@ -862,10 +862,22 @@ const ROUTES: Record<string, unknown> = {
       SectorBand: ['sector', 'min', 'max']
     }
   },
-  '/beacon/backtests': RECORDED.map((index_id) => ({
-    index_id,
-    run_at: STAMPED.includes(index_id) ? new Date(Date.now() - 3 * 86_400_000).toISOString() : null
-  })),
+  /*
+   * An envelope, not the bare array this used to be (BN-174).
+   *
+   * The rows could not carry the skip count, and a listing that leaves
+   * documents out without saying how many is making the same false
+   * statement as one that fails outright.
+   */
+  '/beacon/backtests': {
+    backtests: RECORDED.map((index_id) => ({
+      index_id,
+      run_at: STAMPED.includes(index_id)
+        ? new Date(Date.now() - 3 * 86_400_000).toISOString()
+        : null
+    })),
+    skipped: 0
+  },
   '/data/coverage': {
     identifiers_union: 512,
     cache_size_bytes: 14_680_064,
@@ -933,7 +945,28 @@ interface StubUniverse {
 
 let universes: StubUniverse[] = []
 
+/**
+ * A universe the server holds and cannot read (BN-174, BU-185).
+ *
+ * The listing skips it and reports the count; the file is still there, so
+ * the id stays taken and the document answers 404 on its own route. A
+ * short list is indistinguishable from a complete one without this number,
+ * which is the whole reason py-beacon publishes it — so the stub has to be
+ * able to produce a non-zero one or the pane that reports it is described
+ * rather than covered.
+ */
+let skippedUniverses = 0
+
+/**
+ * Indices are never skipped here.
+ *
+ * One catalogue with a skip and one without: the interesting case is a
+ * pane that says nothing at zero, and it needs a zero to stay silent for.
+ */
+const SKIPPED_INDICES = 0
+
 function resetUniverses(): void {
+  skippedUniverses = 0
   universes = [
     {
       id: 'GLOBAL',
@@ -961,7 +994,9 @@ function body(url: URL): unknown {
   // Whole documents, as the endpoint returns — the overview reads a universe
   // and a rebalance frequency off each row (BU-95). Ahead of the static map
   // because the catalogue changes when one is deleted.
-  if (path === '/indices') return { indices: indexIds.map((id) => indexDocument(id)) }
+  if (path === '/indices') {
+    return { indices: indexIds.map((id) => indexDocument(id)), skipped: SKIPPED_INDICES }
+  }
 
   if (Object.hasOwn(ROUTES, path)) return ROUTES[path]
 
@@ -1484,7 +1519,7 @@ function body(url: URL): unknown {
     return job
   }
 
-  if (path === '/universes') return { universes }
+  if (path === '/universes') return { universes, skipped: skippedUniverses }
 
   if (path.endsWith('/members') && path.startsWith('/universes/')) {
     const id = decodeURIComponent(path.slice('/universes/'.length, -'/members'.length))
@@ -1532,6 +1567,15 @@ function acceptSocket(request: IncomingMessage, socket: Duplex): boolean {
 export interface StubEngine {
   url: string
   close: () => Promise<void>
+  /**
+   * Make the universe listing incomplete (BN-174, BU-185).
+   *
+   * A corrupt file cannot be created through the API — the engine refuses
+   * to write one — so the only honest way to reach the state is to put the
+   * stub in it directly. Called from a test rather than seeded, because
+   * every other test wants the ordinary case where nothing is skipped.
+   */
+  skipUniverses: (count: number) => void
 }
 
 /**
@@ -2096,6 +2140,9 @@ export function startStubEngine(): Promise<StubEngine> {
       const port = typeof address === 'object' && address !== null ? address.port : 0
       resolve({
         url: `http://127.0.0.1:${String(port)}`,
+        skipUniverses: (count: number) => {
+          skippedUniverses = count
+        },
         close: () =>
           new Promise((done) => {
             for (const socket of upgraded) socket.destroy()
