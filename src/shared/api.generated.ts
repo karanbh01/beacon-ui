@@ -128,11 +128,11 @@ export interface paths {
          * Backtest Record
          * @description The latest run's books, nested: the record, not the derived view.
          *
-         *     `JobStatus.result` carries the run payload — rebased level, returns,
-         *     drawdown — which is what a chart wants. This is the other half BN-155
-         *     shaped and BN-158 finally serves: the portfolio book with its
-         *     day-zero NAV, bounded positions and weights with true totals, and the
-         *     comparator books, null when the run had none.
+         *     `BacktestJobStatus.result` carries the run payload — rebased level,
+         *     returns, drawdown — which is what a chart wants. This is the other
+         *     half BN-155 shaped and BN-158 finally serves: the portfolio book with
+         *     its day-zero NAV, bounded positions and weights with true totals, and
+         *     the comparator books, null when the run had none.
          *
          *     Raises:
          *         DataNotFoundError: If the index has never been backtested
@@ -1160,6 +1160,42 @@ export interface components {
             total_return: number;
         };
         /**
+         * BacktestJobStatus
+         * @description A `backtest:{index_id}` job. `result` is the run payload.
+         */
+        BacktestJobStatus: {
+            /**
+             * Error
+             * @description Failure reason, when status is failed.
+             */
+            error?: string | null;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Kind
+             * @description What the job is, e.g. 'backtest'.
+             */
+            kind: string;
+            /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
+             * Progress
+             * @description Fraction complete, 0.0 to 1.0.
+             */
+            progress: number;
+            /** @description Present only once the job has succeeded; null otherwise. */
+            result?: components["schemas"]["BacktestRunResult"] | null;
+            /**
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             */
+            status: string;
+        };
+        /**
          * BacktestMetrics
          * @description Headline metrics from a backtest run.
          *
@@ -1260,6 +1296,52 @@ export interface components {
             run_at?: string | null;
             /** Unfilled */
             unfilled?: components["schemas"]["UnfilledOrderPayload"][];
+        };
+        /**
+         * BacktestRunResult
+         * @description Result payload of a completed backtest job.
+         *
+         *     Every series here derives from the same NAV, rebased to 100: `returns` is
+         *     the level's percentage change, `drawdown` is the level against its running
+         *     peak, and `annual_returns` compound back to the total. A client that
+         *     recomputes any of them lands on these numbers exactly.
+         */
+        BacktestRunResult: {
+            /**
+             * Annual Returns
+             * @description Calendar year -> return. Compounds to total_return.
+             */
+            annual_returns: {
+                [key: string]: number;
+            };
+            /** @description Comparison against the requested external benchmark, if one was given. Null otherwise; `metrics.tracking_error` still reports replication accuracy against the tracked index either way. */
+            benchmark?: components["schemas"]["RelativeMetricsPayload"] | null;
+            /** @description Level against its running peak; 0 at a new high. */
+            drawdown: components["schemas"]["SeriesPayload"];
+            /** @description The tracked index, rebased to 100 on the same axis. Named `benchmark_level` before BN-155; renamed because the tracked index and the benchmark of record are different comparators, and this series is the former. */
+            index_level: components["schemas"]["SeriesPayload"];
+            /**
+             * Initial Capital
+             * @description Capital the simulation started with.
+             * @default 0
+             */
+            initial_capital: number;
+            /** @description Portfolio value, rebased to 100. */
+            level: components["schemas"]["SeriesPayload"];
+            metrics: components["schemas"]["BacktestMetrics"];
+            /**
+             * Rebalances
+             * @description Composition at each rebalance. Everything the view endpoints say about weights, attribution and individual names is derived from these, so a run is readable without recalculating the index. Daily weights are deliberately absent: they are reconstructed from these and the prices, and storing one per name per day would multiply the payload by the number of trading days to save an inexpensive calculation.
+             */
+            rebalances?: components["schemas"]["RebalanceSnapshot"][];
+            /** @description Period returns of `level`. */
+            returns: components["schemas"]["SeriesPayload"];
+            /**
+             * Total Costs
+             * @description Transaction costs paid across the run, for the cost drag.
+             * @default 0
+             */
+            total_costs: number;
         };
         /**
          * BatchReferenceResponse
@@ -2485,6 +2567,10 @@ export interface components {
         /**
          * JobCollection
          * @description Response of `GET /jobs`.
+         *
+         *     Untyped results on purpose: a listing spans every kind at once, so the
+         *     per-kind arms buy a client nothing it can use without reading `kind`
+         *     anyway. `GET /jobs/{job_id}` is where the typed result lives.
          */
         JobCollection: {
             /** Jobs */
@@ -2492,7 +2578,13 @@ export interface components {
         };
         /**
          * JobStatus
-         * @description State of one background job.
+         * @description State of one background job, with an untyped result.
+         *
+         *     The name and the shape are unchanged from before BN-172, deliberately:
+         *     `JobStatus` is already a published schema a client generates from, so the
+         *     generic arrived as a new base rather than by renaming this to
+         *     `JobStatus_Any_`. Still the right answer for a listing, which mixes kinds,
+         *     and the fallback arm of `AnyJobStatus` for a kind nothing models yet.
          */
         JobStatus: {
             /**
@@ -2523,6 +2615,42 @@ export interface components {
              * @description Present only once the job has succeeded; null otherwise.
              */
             result?: unknown;
+            /**
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             */
+            status: string;
+        };
+        /**
+         * OptimisationJobStatus
+         * @description An `optimise:{run_id}` job. `result` is the solved portfolio.
+         */
+        OptimisationJobStatus: {
+            /**
+             * Error
+             * @description Failure reason, when status is failed.
+             */
+            error?: string | null;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Kind
+             * @description What the job is, e.g. 'backtest'.
+             */
+            kind: string;
+            /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
+             * Progress
+             * @description Fraction complete, 0.0 to 1.0.
+             */
+            progress: number;
+            /** @description Present only once the job has succeeded; null otherwise. */
+            result?: components["schemas"]["OptimisationRunResult"] | null;
             /**
              * Status
              * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
@@ -2565,6 +2693,61 @@ export interface components {
              * @description Start of the window the risk model is estimated over.
              */
             start?: string | null;
+        };
+        /**
+         * OptimisationRunResult
+         * @description Result payload of a completed optimisation job.
+         */
+        OptimisationRunResult: {
+            /**
+             * Active Sum
+             * @description Sum of the active weights. Zero under full investment: rearranging weight cannot create any.
+             */
+            active_sum: number;
+            /**
+             * Binding
+             * @description Constraints the answer sits on, each traced back to the row that produced it where one can be identified. These are the rules that actually cost something.
+             */
+            binding?: {
+                [key: string]: string | null;
+            }[];
+            /** Constraint Set Id */
+            constraint_set_id: string;
+            /** Converged */
+            converged: boolean;
+            /** End */
+            end: string;
+            /**
+             * Heuristic
+             * @description True when a non-convex constraint forced a restricted re-solve, so the answer is feasible but not proven optimal.
+             */
+            heuristic: boolean;
+            /** Holdings */
+            holdings: number;
+            /** Index Id */
+            index_id: string;
+            /** Iterations */
+            iterations: number;
+            /** Objective */
+            objective: number;
+            /** Run Id */
+            run_id: string;
+            /** Solver Message */
+            solver_message: string;
+            /** Start */
+            start: string;
+            /** Tracking Error */
+            tracking_error: number;
+            /**
+             * Turnover
+             * @description One-way, against the index weights.
+             */
+            turnover: number;
+            /**
+             * Weights
+             * @description Every name, largest active position first.
+             */
+            weights: components["schemas"]["WeightRow"][];
         };
         /**
          * OptimiseRequest
@@ -2979,6 +3162,58 @@ export interface components {
             prices: components["schemas"]["TableFrame"];
         };
         /**
+         * RebalanceSnapshot
+         * @description The index's composition at one rebalance.
+         *
+         *     Both weight sets are carried. `weights` is what the index applied;
+         *     `uncapped_weights` is what the weighting scheme produced before any cap.
+         *     They are equal on an uncapped index, and the difference is the only way to
+         *     answer what capping cost — a question that cannot be reconstructed from the
+         *     applied weights alone.
+         */
+        RebalanceSnapshot: {
+            /**
+             * Announced
+             * @description When this composition was published, if earlier than `date`. Null when the index has no effective-date lag and the two coincide, so its presence is itself the signal that a lag applies.
+             */
+            announced?: string | null;
+            /**
+             * Cap
+             * @description Maximum single weight, if one applies.
+             */
+            cap?: number | null;
+            /**
+             * Capped
+             * @description Constituents held at the cap on this date.
+             */
+            capped?: string[];
+            /**
+             * Date
+             * @description Date these weights took effect, YYYY-MM-DD. Snapshots are keyed by the effective date because that is when the composition is in force.
+             */
+            date: string;
+            /**
+             * Redistributed
+             * @description Weight moved off capped names onto the rest.
+             * @default 0
+             */
+            redistributed: number;
+            /**
+             * Uncapped Weights
+             * @description Weights before capping. Equal to `weights` when no cap was applied.
+             */
+            uncapped_weights?: {
+                [key: string]: number;
+            };
+            /**
+             * Weights
+             * @description Applied weights, summing to 1.
+             */
+            weights: {
+                [key: string]: number;
+            };
+        };
+        /**
          * ReferenceEntry
          * @description One identifier's row in a batch reference response.
          */
@@ -3023,6 +3258,84 @@ export interface components {
             universes?: components["schemas"]["UniverseMembership"][];
         };
         /**
+         * RelativeMetricsPayload
+         * @description Performance against a benchmark, over their shared window.
+         */
+        RelativeMetricsPayload: {
+            /**
+             * Benchmark Return
+             * @description Fraction, not percent: 0.0523 means 5.23%.
+             */
+            benchmark_return: number;
+            /** Beta */
+            beta: number;
+            /** Correlation */
+            correlation: number;
+            /** End */
+            end: string;
+            /**
+             * Excess Return
+             * @description Portfolio minus benchmark; also the tracking difference.
+             */
+            excess_return: number;
+            /** @description The benchmark, rebased to 100 on the shared window. */
+            level: components["schemas"]["SeriesPayload"];
+            /**
+             * Observations
+             * @description Aligned dates used, which may be fewer than either series carried on its own.
+             */
+            observations: number;
+            reference: components["schemas"]["BenchmarkRef"];
+            /** Start */
+            start: string;
+            /**
+             * Total Return
+             * @description Fraction, not percent: 0.0523 means 5.23%.
+             */
+            total_return: number;
+            /**
+             * Tracking Error
+             * @description Annualised standard deviation of return differences.
+             */
+            tracking_error: number;
+        };
+        /**
+         * RenderJobStatus
+         * @description A `render:{render_id}` job. `result` describes the rendered document.
+         */
+        RenderJobStatus: {
+            /**
+             * Error
+             * @description Failure reason, when status is failed.
+             */
+            error?: string | null;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Kind
+             * @description What the job is, e.g. 'backtest'.
+             */
+            kind: string;
+            /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
+             * Progress
+             * @description Fraction complete, 0.0 to 1.0.
+             */
+            progress: number;
+            /** @description Present only once the job has succeeded; null otherwise. */
+            result?: components["schemas"]["RenderResult"] | null;
+            /**
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             */
+            status: string;
+        };
+        /**
          * RenderRequest
          * @description Body of `POST /reports/render`.
          */
@@ -3036,6 +3349,32 @@ export interface components {
              * Template Id
              * @description A stored template, or a built-in such as FACTSHEET-A4.
              */
+            template_id: string;
+        };
+        /**
+         * RenderResult
+         * @description Result payload of a completed render job.
+         */
+        RenderResult: {
+            /** Blocks */
+            blocks: number;
+            /**
+             * Bytes
+             * @description Size of the rendered document.
+             */
+            bytes: number;
+            /** Index Id */
+            index_id?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Render Id
+             * @description Fetch the PDF from GET /reports/renders/{render_id}.
+             */
+            render_id: string;
+            /** Rendered At */
+            rendered_at: string;
+            /** Template Id */
             template_id: string;
         };
         /**
@@ -3167,6 +3506,42 @@ export interface components {
         RiskModelCollection: {
             /** Risk Models */
             risk_models: components["schemas"]["RiskModelSummary"][];
+        };
+        /**
+         * RiskModelJobStatus
+         * @description A `risk:{model_id}` job. `result` is the estimated model.
+         */
+        RiskModelJobStatus: {
+            /**
+             * Error
+             * @description Failure reason, when status is failed.
+             */
+            error?: string | null;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Kind
+             * @description What the job is, e.g. 'backtest'.
+             */
+            kind: string;
+            /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
+             * Progress
+             * @description Fraction complete, 0.0 to 1.0.
+             */
+            progress: number;
+            /** @description Present only once the job has succeeded; null otherwise. */
+            result?: components["schemas"]["RiskModelView"] | null;
+            /**
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             */
+            status: string;
         };
         /**
          * RiskModelRequest
@@ -3454,6 +3829,90 @@ export interface components {
              * @description Series name, if it has one.
              */
             name?: string | null;
+        };
+        /**
+         * SyncJobResult
+         * @description Result payload of a completed data sync.
+         *
+         *     The narrowest honest description of what the sync job returns (BN-172):
+         *     `IngestResult.summary()` plus the two fields the job adds. Deliberately a
+         *     count-and-identifier summary rather than the data — the rows went into the
+         *     fetcher, and a client reads them back through the data endpoints.
+         */
+        SyncJobResult: {
+            /**
+             * Dataset
+             * @description Which dataset was synced: market or reference.
+             */
+            dataset: string;
+            /**
+             * Errors
+             * @description Identifier to the reason it did not come back.
+             */
+            errors?: {
+                [key: string]: string;
+            };
+            /**
+             * Failed
+             * @description Identifiers that did not.
+             */
+            failed: number;
+            /**
+             * Fetched
+             * @description Identifiers that returned data.
+             */
+            fetched: number;
+            /**
+             * Identifiers
+             * @description The identifiers that succeeded.
+             */
+            identifiers?: string[];
+            /**
+             * Rows
+             * @description Market-data rows fetched.
+             */
+            rows: number;
+            /**
+             * Rows Added
+             * @description Rows actually merged in, which is fewer than `rows` whenever the fetch overlapped data already held.
+             */
+            rows_added: number;
+        };
+        /**
+         * SyncJobStatus
+         * @description A `sync:{dataset}` job. `result` summarises what was fetched.
+         */
+        SyncJobStatus: {
+            /**
+             * Error
+             * @description Failure reason, when status is failed.
+             */
+            error?: string | null;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Kind
+             * @description What the job is, e.g. 'backtest'.
+             */
+            kind: string;
+            /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
+             * Progress
+             * @description Fraction complete, 0.0 to 1.0.
+             */
+            progress: number;
+            /** @description Present only once the job has succeeded; null otherwise. */
+            result?: components["schemas"]["SyncJobResult"] | null;
+            /**
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             */
+            status: string;
         };
         /**
          * SyncRequest
@@ -4007,6 +4466,23 @@ export interface components {
             name: string;
         };
         /**
+         * WeightRow
+         * @description One name's index, optimal and active weight.
+         */
+        WeightRow: {
+            /**
+             * Active Weight
+             * @description Optimal minus index. Sums to zero across the portfolio whenever both sides are fully invested.
+             */
+            active_weight: number;
+            /** Asset Id */
+            asset_id: string;
+            /** Index Weight */
+            index_weight: number;
+            /** Optimal Weight */
+            optimal_weight: number;
+        };
+        /**
          * WeightingSpec
          * @description The weighting group of the pipeline.
          */
@@ -4494,7 +4970,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["BacktestJobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -5074,7 +5550,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["SyncJobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -8175,7 +8651,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["SyncJobStatus"] | components["schemas"]["JobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -8269,7 +8745,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["SyncJobStatus"] | components["schemas"]["JobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -8929,7 +9405,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["OptimisationJobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -9216,7 +9692,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["RenderJobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -9970,7 +10446,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["RiskModelJobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */

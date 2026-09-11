@@ -227,9 +227,15 @@ export interface BeaconClient {
     /**
      * One job, including its result once it has succeeded (BU-137).
      *
-     * The result is untyped in the contract — one registry carries every
-     * kind of job — so a backtest's payload is read through
-     * `parseRun` rather than through a generated type.
+     * Typed since BN-185: the registry carries every kind of job, so this
+     * returns a union of per-kind statuses and a caller narrows on `kind`
+     * before touching `result`. There is deliberately no OpenAPI
+     * `discriminator` — kind strings carry a subject after the colon
+     * (`backtest:{index_id}`), so a discriminator would imply a
+     * schema-name match that is not true.
+     *
+     * A submission response needs no narrowing: `POST /beacon/{id}/backtest`
+     * declares `BacktestJobStatus` directly.
      */
     get: (jobId: string, signal?: AbortSignal) => Promise<ResponseOf<'/jobs/{job_id}'>>
   }

@@ -222,6 +222,67 @@
         "title": "AttributionView",
         "type": "object"
       },
+      "BacktestJobStatus": {
+        "description": "A `backtest:{index_id}` job. `result` is the run payload.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Failure reason, when status is failed.",
+            "title": "Error"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What the job is, e.g. 'backtest'.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "description": "Latest progress message.",
+            "title": "Message",
+            "type": "string"
+          },
+          "progress": {
+            "description": "Fraction complete, 0.0 to 1.0.",
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BacktestRunResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only once the job has succeeded; null otherwise."
+          },
+          "status": {
+            "description": "pending, running, succeeded, failed or cancelled. The last three are terminal.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "progress"
+        ],
+        "title": "BacktestJobStatus",
+        "type": "object"
+      },
       "BacktestMetrics": {
         "description": "Headline metrics from a backtest run.\n\nTracking figures are null when the run had no target index to compare to.",
         "properties": {
@@ -411,6 +472,79 @@
           "metrics"
         ],
         "title": "BacktestResultSummary",
+        "type": "object"
+      },
+      "BacktestRunResult": {
+        "description": "Result payload of a completed backtest job.\n\nEvery series here derives from the same NAV, rebased to 100: `returns` is\nthe level's percentage change, `drawdown` is the level against its running\npeak, and `annual_returns` compound back to the total. A client that\nrecomputes any of them lands on these numbers exactly.",
+        "properties": {
+          "annual_returns": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Calendar year -> return. Compounds to total_return.",
+            "title": "Annual Returns",
+            "type": "object"
+          },
+          "benchmark": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RelativeMetricsPayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Comparison against the requested external benchmark, if one was given. Null otherwise; `metrics.tracking_error` still reports replication accuracy against the tracked index either way."
+          },
+          "drawdown": {
+            "$ref": "#/components/schemas/SeriesPayload",
+            "description": "Level against its running peak; 0 at a new high."
+          },
+          "index_level": {
+            "$ref": "#/components/schemas/SeriesPayload",
+            "description": "The tracked index, rebased to 100 on the same axis. Named `benchmark_level` before BN-155; renamed because the tracked index and the benchmark of record are different comparators, and this series is the former."
+          },
+          "initial_capital": {
+            "default": 0.0,
+            "description": "Capital the simulation started with.",
+            "title": "Initial Capital",
+            "type": "number"
+          },
+          "level": {
+            "$ref": "#/components/schemas/SeriesPayload",
+            "description": "Portfolio value, rebased to 100."
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/BacktestMetrics"
+          },
+          "rebalances": {
+            "description": "Composition at each rebalance. Everything the view endpoints say about weights, attribution and individual names is derived from these, so a run is readable without recalculating the index. Daily weights are deliberately absent: they are reconstructed from these and the prices, and storing one per name per day would multiply the payload by the number of trading days to save an inexpensive calculation.",
+            "items": {
+              "$ref": "#/components/schemas/RebalanceSnapshot"
+            },
+            "title": "Rebalances",
+            "type": "array"
+          },
+          "returns": {
+            "$ref": "#/components/schemas/SeriesPayload",
+            "description": "Period returns of `level`."
+          },
+          "total_costs": {
+            "default": 0.0,
+            "description": "Transaction costs paid across the run, for the cost drag.",
+            "title": "Total Costs",
+            "type": "number"
+          }
+        },
+        "required": [
+          "level",
+          "returns",
+          "drawdown",
+          "annual_returns",
+          "index_level",
+          "metrics"
+        ],
+        "title": "BacktestRunResult",
         "type": "object"
       },
       "BatchReferenceResponse": {
@@ -2487,7 +2621,7 @@
         "type": "object"
       },
       "JobCollection": {
-        "description": "Response of `GET /jobs`.",
+        "description": "Response of `GET /jobs`.\n\nUntyped results on purpose: a listing spans every kind at once, so the\nper-kind arms buy a client nothing it can use without reading `kind`\nanyway. `GET /jobs/{job_id}` is where the typed result lives.",
         "properties": {
           "jobs": {
             "items": {
@@ -2504,7 +2638,7 @@
         "type": "object"
       },
       "JobStatus": {
-        "description": "State of one background job.",
+        "description": "State of one background job, with an untyped result.\n\nThe name and the shape are unchanged from before BN-172, deliberately:\n`JobStatus` is already a published schema a client generates from, so the\ngeneric arrived as a new base rather than by renaming this to\n`JobStatus_Any_`. Still the right answer for a listing, which mixes kinds,\nand the fallback arm of `AnyJobStatus` for a kind nothing models yet.",
         "properties": {
           "error": {
             "anyOf": [
@@ -2555,6 +2689,67 @@
           "progress"
         ],
         "title": "JobStatus",
+        "type": "object"
+      },
+      "OptimisationJobStatus": {
+        "description": "An `optimise:{run_id}` job. `result` is the solved portfolio.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Failure reason, when status is failed.",
+            "title": "Error"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What the job is, e.g. 'backtest'.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "description": "Latest progress message.",
+            "title": "Message",
+            "type": "string"
+          },
+          "progress": {
+            "description": "Fraction complete, 0.0 to 1.0.",
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OptimisationRunResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only once the job has succeeded; null otherwise."
+          },
+          "status": {
+            "description": "pending, running, succeeded, failed or cancelled. The last three are terminal.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "progress"
+        ],
+        "title": "OptimisationJobStatus",
         "type": "object"
       },
       "OptimisationRunRequest": {
@@ -2618,6 +2813,115 @@
           "constraint_set_id"
         ],
         "title": "OptimisationRunRequest",
+        "type": "object"
+      },
+      "OptimisationRunResult": {
+        "description": "Result payload of a completed optimisation job.",
+        "properties": {
+          "active_sum": {
+            "description": "Sum of the active weights. Zero under full investment: rearranging weight cannot create any.",
+            "title": "Active Sum",
+            "type": "number"
+          },
+          "binding": {
+            "description": "Constraints the answer sits on, each traced back to the row that produced it where one can be identified. These are the rules that actually cost something.",
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            "title": "Binding",
+            "type": "array"
+          },
+          "constraint_set_id": {
+            "title": "Constraint Set Id",
+            "type": "string"
+          },
+          "converged": {
+            "title": "Converged",
+            "type": "boolean"
+          },
+          "end": {
+            "title": "End",
+            "type": "string"
+          },
+          "heuristic": {
+            "description": "True when a non-convex constraint forced a restricted re-solve, so the answer is feasible but not proven optimal.",
+            "title": "Heuristic",
+            "type": "boolean"
+          },
+          "holdings": {
+            "title": "Holdings",
+            "type": "integer"
+          },
+          "index_id": {
+            "title": "Index Id",
+            "type": "string"
+          },
+          "iterations": {
+            "title": "Iterations",
+            "type": "integer"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "number"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "solver_message": {
+            "title": "Solver Message",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          },
+          "tracking_error": {
+            "title": "Tracking Error",
+            "type": "number"
+          },
+          "turnover": {
+            "description": "One-way, against the index weights.",
+            "title": "Turnover",
+            "type": "number"
+          },
+          "weights": {
+            "description": "Every name, largest active position first.",
+            "items": {
+              "$ref": "#/components/schemas/WeightRow"
+            },
+            "title": "Weights",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "index_id",
+          "constraint_set_id",
+          "start",
+          "end",
+          "weights",
+          "active_sum",
+          "tracking_error",
+          "turnover",
+          "holdings",
+          "heuristic",
+          "converged",
+          "iterations",
+          "objective",
+          "solver_message"
+        ],
+        "title": "OptimisationRunResult",
         "type": "object"
       },
       "OptimiseRequest": {
@@ -3274,6 +3578,76 @@
         "title": "PricesResponse",
         "type": "object"
       },
+      "RebalanceSnapshot": {
+        "description": "The index's composition at one rebalance.\n\nBoth weight sets are carried. `weights` is what the index applied;\n`uncapped_weights` is what the weighting scheme produced before any cap.\nThey are equal on an uncapped index, and the difference is the only way to\nanswer what capping cost — a question that cannot be reconstructed from the\napplied weights alone.",
+        "properties": {
+          "announced": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When this composition was published, if earlier than `date`. Null when the index has no effective-date lag and the two coincide, so its presence is itself the signal that a lag applies.",
+            "title": "Announced"
+          },
+          "cap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Maximum single weight, if one applies.",
+            "title": "Cap"
+          },
+          "capped": {
+            "description": "Constituents held at the cap on this date.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Capped",
+            "type": "array"
+          },
+          "date": {
+            "description": "Date these weights took effect, YYYY-MM-DD. Snapshots are keyed by the effective date because that is when the composition is in force.",
+            "title": "Date",
+            "type": "string"
+          },
+          "redistributed": {
+            "default": 0.0,
+            "description": "Weight moved off capped names onto the rest.",
+            "title": "Redistributed",
+            "type": "number"
+          },
+          "uncapped_weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Weights before capping. Equal to `weights` when no cap was applied.",
+            "title": "Uncapped Weights",
+            "type": "object"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Applied weights, summing to 1.",
+            "title": "Weights",
+            "type": "object"
+          }
+        },
+        "required": [
+          "date",
+          "weights"
+        ],
+        "title": "RebalanceSnapshot",
+        "type": "object"
+      },
       "ReferenceEntry": {
         "description": "One identifier's row in a batch reference response.",
         "properties": {
@@ -3329,6 +3703,135 @@
         "title": "ReferenceResponse",
         "type": "object"
       },
+      "RelativeMetricsPayload": {
+        "description": "Performance against a benchmark, over their shared window.",
+        "properties": {
+          "benchmark_return": {
+            "description": "Fraction, not percent: 0.0523 means 5.23%.",
+            "title": "Benchmark Return",
+            "type": "number"
+          },
+          "beta": {
+            "title": "Beta",
+            "type": "number"
+          },
+          "correlation": {
+            "title": "Correlation",
+            "type": "number"
+          },
+          "end": {
+            "title": "End",
+            "type": "string"
+          },
+          "excess_return": {
+            "description": "Portfolio minus benchmark; also the tracking difference.",
+            "title": "Excess Return",
+            "type": "number"
+          },
+          "level": {
+            "$ref": "#/components/schemas/SeriesPayload",
+            "description": "The benchmark, rebased to 100 on the shared window."
+          },
+          "observations": {
+            "description": "Aligned dates used, which may be fewer than either series carried on its own.",
+            "title": "Observations",
+            "type": "integer"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/BenchmarkRef"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          },
+          "total_return": {
+            "description": "Fraction, not percent: 0.0523 means 5.23%.",
+            "title": "Total Return",
+            "type": "number"
+          },
+          "tracking_error": {
+            "description": "Annualised standard deviation of return differences.",
+            "title": "Tracking Error",
+            "type": "number"
+          }
+        },
+        "required": [
+          "reference",
+          "observations",
+          "start",
+          "end",
+          "total_return",
+          "benchmark_return",
+          "excess_return",
+          "tracking_error",
+          "correlation",
+          "beta",
+          "level"
+        ],
+        "title": "RelativeMetricsPayload",
+        "type": "object"
+      },
+      "RenderJobStatus": {
+        "description": "A `render:{render_id}` job. `result` describes the rendered document.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Failure reason, when status is failed.",
+            "title": "Error"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What the job is, e.g. 'backtest'.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "description": "Latest progress message.",
+            "title": "Message",
+            "type": "string"
+          },
+          "progress": {
+            "description": "Fraction complete, 0.0 to 1.0.",
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RenderResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only once the job has succeeded; null otherwise."
+          },
+          "status": {
+            "description": "pending, running, succeeded, failed or cancelled. The last three are terminal.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "progress"
+        ],
+        "title": "RenderJobStatus",
+        "type": "object"
+      },
       "RenderRequest": {
         "description": "Body of `POST /reports/render`.",
         "properties": {
@@ -3354,6 +3857,58 @@
           "template_id"
         ],
         "title": "RenderRequest",
+        "type": "object"
+      },
+      "RenderResult": {
+        "description": "Result payload of a completed render job.",
+        "properties": {
+          "blocks": {
+            "title": "Blocks",
+            "type": "integer"
+          },
+          "bytes": {
+            "description": "Size of the rendered document.",
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "index_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "render_id": {
+            "description": "Fetch the PDF from GET /reports/renders/{render_id}.",
+            "title": "Render Id",
+            "type": "string"
+          },
+          "rendered_at": {
+            "title": "Rendered At",
+            "type": "string"
+          },
+          "template_id": {
+            "title": "Template Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "render_id",
+          "template_id",
+          "name",
+          "blocks",
+          "bytes",
+          "rendered_at"
+        ],
+        "title": "RenderResult",
         "type": "object"
       },
       "ReportTemplateCollection": {
@@ -3548,6 +4103,67 @@
           "risk_models"
         ],
         "title": "RiskModelCollection",
+        "type": "object"
+      },
+      "RiskModelJobStatus": {
+        "description": "A `risk:{model_id}` job. `result` is the estimated model.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Failure reason, when status is failed.",
+            "title": "Error"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What the job is, e.g. 'backtest'.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "description": "Latest progress message.",
+            "title": "Message",
+            "type": "string"
+          },
+          "progress": {
+            "description": "Fraction complete, 0.0 to 1.0.",
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskModelView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only once the job has succeeded; null otherwise."
+          },
+          "status": {
+            "description": "pending, running, succeeded, failed or cancelled. The last three are terminal.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "progress"
+        ],
+        "title": "RiskModelJobStatus",
         "type": "object"
       },
       "RiskModelRequest": {
@@ -4048,6 +4664,122 @@
           "data"
         ],
         "title": "SeriesPayload",
+        "type": "object"
+      },
+      "SyncJobResult": {
+        "description": "Result payload of a completed data sync.\n\nThe narrowest honest description of what the sync job returns (BN-172):\n`IngestResult.summary()` plus the two fields the job adds. Deliberately a\ncount-and-identifier summary rather than the data — the rows went into the\nfetcher, and a client reads them back through the data endpoints.",
+        "properties": {
+          "dataset": {
+            "description": "Which dataset was synced: market or reference.",
+            "title": "Dataset",
+            "type": "string"
+          },
+          "errors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Identifier to the reason it did not come back.",
+            "title": "Errors",
+            "type": "object"
+          },
+          "failed": {
+            "description": "Identifiers that did not.",
+            "title": "Failed",
+            "type": "integer"
+          },
+          "fetched": {
+            "description": "Identifiers that returned data.",
+            "title": "Fetched",
+            "type": "integer"
+          },
+          "identifiers": {
+            "description": "The identifiers that succeeded.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Identifiers",
+            "type": "array"
+          },
+          "rows": {
+            "description": "Market-data rows fetched.",
+            "title": "Rows",
+            "type": "integer"
+          },
+          "rows_added": {
+            "description": "Rows actually merged in, which is fewer than `rows` whenever the fetch overlapped data already held.",
+            "title": "Rows Added",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dataset",
+          "fetched",
+          "failed",
+          "rows",
+          "rows_added"
+        ],
+        "title": "SyncJobResult",
+        "type": "object"
+      },
+      "SyncJobStatus": {
+        "description": "A `sync:{dataset}` job. `result` summarises what was fetched.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Failure reason, when status is failed.",
+            "title": "Error"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What the job is, e.g. 'backtest'.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "description": "Latest progress message.",
+            "title": "Message",
+            "type": "string"
+          },
+          "progress": {
+            "description": "Fraction complete, 0.0 to 1.0.",
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SyncJobResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only once the job has succeeded; null otherwise."
+          },
+          "status": {
+            "description": "pending, running, succeeded, failed or cancelled. The last three are terminal.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "progress"
+        ],
+        "title": "SyncJobStatus",
         "type": "object"
       },
       "SyncRequest": {
@@ -4959,6 +5691,36 @@
         "title": "WatchlistUpsert",
         "type": "object"
       },
+      "WeightRow": {
+        "description": "One name's index, optimal and active weight.",
+        "properties": {
+          "active_weight": {
+            "description": "Optimal minus index. Sums to zero across the portfolio whenever both sides are fully invested.",
+            "title": "Active Weight",
+            "type": "number"
+          },
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "index_weight": {
+            "title": "Index Weight",
+            "type": "number"
+          },
+          "optimal_weight": {
+            "title": "Optimal Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "asset_id",
+          "index_weight",
+          "optimal_weight",
+          "active_weight"
+        ],
+        "title": "WeightRow",
+        "type": "object"
+      },
       "WeightingSpec": {
         "description": "The weighting group of the pipeline.",
         "properties": {
@@ -5657,7 +6419,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
+                  "$ref": "#/components/schemas/BacktestJobStatus"
                 }
               }
             },
@@ -5866,7 +6628,7 @@
     },
     "/beacon/{index_id}/record": {
       "get": {
-        "description": "The latest run's books, nested: the record, not the derived view.\n\n`JobStatus.result` carries the run payload — rebased level, returns,\ndrawdown — which is what a chart wants. This is the other half BN-155\nshaped and BN-158 finally serves: the portfolio book with its\nday-zero NAV, bounded positions and weights with true totals, and the\ncomparator books, null when the run had none.\n\nRaises:\n    DataNotFoundError: If the index has never been backtested\n        successfully — the same answer, and the same pointer, as the\n        overview.",
+        "description": "The latest run's books, nested: the record, not the derived view.\n\n`BacktestJobStatus.result` carries the run payload — rebased level,\nreturns, drawdown — which is what a chart wants. This is the other\nhalf BN-155 shaped and BN-158 finally serves: the portfolio book with\nits day-zero NAV, bounded positions and weights with true totals, and\nthe comparator books, null when the run had none.\n\nRaises:\n    DataNotFoundError: If the index has never been backtested\n        successfully — the same answer, and the same pointer, as the\n        overview.",
         "operationId": "backtest_record_beacon__index_id__record_get",
         "parameters": [
           {
@@ -6447,7 +7209,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
+                  "$ref": "#/components/schemas/SyncJobStatus"
                 }
               }
             },
@@ -10552,7 +11314,27 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/BacktestJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OptimisationJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RenderJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RiskModelJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SyncJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JobStatus"
+                    }
+                  ],
+                  "title": "Response Cancel Job Jobs  Job Id  Delete"
                 }
               }
             },
@@ -10664,7 +11446,27 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/BacktestJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OptimisationJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RenderJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RiskModelJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SyncJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JobStatus"
+                    }
+                  ],
+                  "title": "Response Get Job Jobs  Job Id  Get"
                 }
               }
             },
@@ -11429,7 +12231,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
+                  "$ref": "#/components/schemas/OptimisationJobStatus"
                 }
               }
             },
@@ -11780,7 +12582,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
+                  "$ref": "#/components/schemas/RenderJobStatus"
                 }
               }
             },
@@ -12680,7 +13482,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
+                  "$ref": "#/components/schemas/RiskModelJobStatus"
                 }
               }
             },
