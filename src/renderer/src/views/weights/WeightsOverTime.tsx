@@ -6,8 +6,9 @@ import { Select } from '../../components/Select/Select'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
 import { PercentCell } from '../../components/Table/cells'
-import { useBacktestRecord } from '../shared/beaconQueries'
+import { isAbsent, useBacktestRecord } from '../shared/beaconQueries'
 import { percent } from '../shared/indexMetrics'
+import { ViewError } from '../shared/ViewState'
 import { useGroupings } from './groupings'
 import {
   activeAgainst,
@@ -93,6 +94,9 @@ export function WeightsOverTime({
 
   const totals = useMemo(() => columnTotals(matrix), [matrix])
   const columns = useMemo(() => columnsFor(matrix, groupBy, active), [matrix, groupBy, active])
+  /** The engine holds a record for this index but could not serve it. */
+  const broken = record.isError && !isAbsent(record.error)
+
   /** Nothing to subtract: no benchmark named, or one with no history. */
   const missing = active && (benchmark === '' || (!against.isPending && theirs.dates.length === 0))
 
@@ -142,10 +146,18 @@ export function WeightsOverTime({
       {record.isPending && <p className="weights-note type-11">Reading the stored run…</p>}
 
       {/*
+        A record the engine holds and cannot serve is a fault, not an
+        absence, and "never back-tested" would be true of the wrong thing
+        (py-beacon #187). The two states read differently because a reader
+        can act on one of them.
+      */}
+      {broken && <ViewError error={record.error} />}
+
+      {/*
         Both sources live in a backtest result, so an index nobody has run
         has no history to show. Saying so beats an empty table.
       */}
-      {!record.isPending && mine.dates.length === 0 && (
+      {!record.isPending && !broken && mine.dates.length === 0 && (
         <p className="weights-note type-11">
           {indexId} has no stored run, and weights over time come from one. Back-test it to see how
           its holdings moved.
@@ -163,11 +175,17 @@ export function WeightsOverTime({
         the arithmetic would silently produce a column of dashes. Naming the
         reason beats letting the reader wonder which side is missing.
       */}
-      {active && benchmark !== '' && !against.isPending && theirs.dates.length === 0 && (
-        <p className="weights-note type-11">
-          {benchmark} has no stored run, so there are no benchmark weights to measure against.
-        </p>
-      )}
+      {active &&
+        benchmark !== '' &&
+        !against.isPending &&
+        theirs.dates.length === 0 &&
+        (against.isError && !isAbsent(against.error) ? (
+          <ViewError error={against.error} />
+        ) : (
+          <p className="weights-note type-11">
+            {benchmark} has no stored run, so there are no benchmark weights to measure against.
+          </p>
+        ))}
 
       {matrix.dates.length > 0 && !missing && (
         <>

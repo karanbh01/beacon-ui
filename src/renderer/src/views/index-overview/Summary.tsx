@@ -9,7 +9,7 @@ import { Table, type Column } from '../../components/Table/Table'
 import { WeightBar } from '../../components/WeightBar/WeightBar'
 import { useThemeMode } from '../../state/theme'
 import { relativeTime } from '../home/activityRows'
-import { useBacktestRecord, useOverview, useWeights } from '../shared/beaconQueries'
+import { isAbsent, useBacktestRecord, useOverview, useWeights } from '../shared/beaconQueries'
 import {
   fromFraction,
   lastValue,
@@ -135,6 +135,18 @@ export function Summary({ indexId }: SummaryProps): ReactElement {
           maxBodyHeight={420}
         />
       </Card>
+
+      {/*
+        A record the engine holds and cannot serve is a fault, not an
+        absence (py-beacon #187). Without this the Portfolio column simply
+        does not appear, which reads as "nobody ran one" — true of the
+        wrong thing, and the same mistake BU-162 fixed for a failed job.
+      */}
+      {stored.isError && !isAbsent(stored.error) && (
+        <p className="overview-note type-11">
+          This index has a stored run that could not be read: {stored.error.message}
+        </p>
+      )}
 
       <p className="overview-footnote type-11">
         {overview.data?.start.slice(0, 10) ?? '—'} → {overview.data?.end.slice(0, 10) ?? '—'} · last

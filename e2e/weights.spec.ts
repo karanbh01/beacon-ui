@@ -136,3 +136,18 @@ test('a benchmark with no run of its own says so rather than showing dashes', as
     'TECH10-OPT has no stored run, so there are no benchmark weights'
   )
 })
+
+test('a record the engine cannot read is a fault, not an absence', async ({ window }) => {
+  /*
+   * py-beacon #187: `/beacon/backtests` lists a record whose detail read
+   * fails, because the listing needs only `run_at` while the endpoint
+   * validates the whole payload. A pane told "never back-tested" there
+   * would be saying something true of the wrong thing — the same mistake
+   * BU-162 fixed for a failed job.
+   */
+  await openWeights(window, 'LEGACY-RUN')
+  await window.getByRole('radio', { name: 'Portfolio', exact: true }).click()
+
+  await expect(window.locator('.index-weights-view')).not.toContainText('has no stored run')
+  await expect(window.locator('.index-weights-view')).toContainText('failed to load')
+})

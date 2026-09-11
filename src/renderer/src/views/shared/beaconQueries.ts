@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { components } from '@shared/api.generated'
+import { ApiError } from '../../api/errors'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
 
@@ -45,6 +46,20 @@ export function useBacktestRecords() {
  * has back-tested, so it does not retry — the listing already said which
  * indices have one, and asking again cannot change that.
  */
+/**
+ * Absent, as opposed to broken (BU-177).
+ *
+ * A 404 means the engine has no record for this index, which is the
+ * ordinary state of one nobody has back-tested. Anything else — a 500 on a
+ * stored artefact the server cannot read, a dropped connection — is a
+ * fault, and reporting it as "never back-tested" tells the reader something
+ * true of the wrong thing. py-beacon's #187 is the engine half of exactly
+ * this: a record the listing promises and the detail endpoint then fails on.
+ */
+export function isAbsent(error: unknown): boolean {
+  return error instanceof ApiError && error.isNotFound
+}
+
 export function useBacktestRecord(indexId: string, enabled = true) {
   const client = useBeacon()
 

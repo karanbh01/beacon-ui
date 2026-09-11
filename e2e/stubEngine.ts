@@ -608,14 +608,30 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
 const OPTIMISED = 'TECH10-OPT'
 
 /**
+ * An index the catalogue lists a record for and the detail endpoint cannot
+ * serve (py-beacon #187).
+ *
+ * Their measured case: a record that parses but no longer validates against
+ * `BacktestResultSummary`, which the listing accepts — it needs only
+ * `run_at` — and the read then fails on. That is the forward-compatibility
+ * hazard of adding a required field, and it reaches a client as a promise
+ * the engine then breaks. A pane has to tell it apart from "never
+ * back-tested", so the stub can produce it.
+ */
+const UNREADABLE = 'LEGACY-RUN'
+
+/**
  * Indices the engine kept a backtest record for (BU-177).
  *
  * One source for both `/beacon/backtests` and `/beacon/{id}/record`, so the
- * catalogue cannot promise a run the record endpoint then refuses. Two of
- * them, because the Active face needs a benchmark with a history of its
- * own, and one without so "never back-tested" stays a reachable state.
+ * catalogue cannot promise a run the record endpoint then refuses — except
+ * for the one index where it deliberately does, above.
+ *
+ * Two readable ones, because the Active face needs a benchmark with a
+ * history of its own; and TECH10-OPT is in none of these lists, so "never
+ * back-tested" stays a reachable state.
  */
-const RECORDED = ['TECH10', 'EU-VALUE']
+const RECORDED = ['TECH10', 'EU-VALUE', UNREADABLE]
 
 /** Records py-beacon stamped with a time; the rest predate that (BN-162). */
 const STAMPED = ['TECH10']
@@ -626,7 +642,7 @@ const STAMPED = ['TECH10']
  * Two of them, so a benchmark can be chosen against one (BU-137) — the
  * measured and not-measured readings of a run are different code paths.
  */
-let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED]
+let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE]
 
 interface StubDerivation {
   parent: string
@@ -645,7 +661,7 @@ interface StubDerivation {
 const derivations = new Map<string, StubDerivation>()
 
 function resetIndices(): void {
-  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED]
+  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE]
   derivations.clear()
   derivations.set(OPTIMISED, {
     parent: 'TECH10',
@@ -1332,6 +1348,12 @@ function body(url: URL): unknown {
      * 404 for it, so a pane could be told a run existed and then be refused
      * it. One list, read by both (BU-177).
      */
+    // Listed, and unreadable: the engine holds bytes it can no longer
+    // interpret, which is not the same as holding nothing.
+    if (identifier === UNREADABLE) {
+      return refuse(500, 'INTERNAL_ERROR', `stored record for '${identifier}' failed to load`)
+    }
+
     if (!RECORDED.includes(identifier)) {
       return notFound(`backtest record for '${identifier}'`, 'RecordStore')
     }
