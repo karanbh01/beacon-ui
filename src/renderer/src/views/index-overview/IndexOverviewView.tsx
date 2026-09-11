@@ -1,58 +1,59 @@
-import { useMemo, type ReactElement } from 'react'
-import { LevelChart } from '../../charts/LevelChart'
-import { drawdown, maxDrawdown } from '../../charts/transform'
+import { useMemo, useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
-import { Card } from '../../components/Card/Card'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
-import { Stat, StatStrip } from '../../components/Stat/Stat'
-import { WeightBar } from '../../components/WeightBar/WeightBar'
-import { useThemeMode } from '../../state/theme'
+import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
-import { useOverview, useWeights } from '../shared/beaconQueries'
-import { useIndexCatalogue } from '../shared/strategyQueries'
-import {
-  fromFraction,
-  lastValue,
-  oneDay,
-  percent,
-  signedPercent,
-  sinceStart,
-  toPoints,
-  tone,
-  weightRows,
-  yearToDate
-} from '../shared/indexMetrics'
+import { useOverview } from '../shared/beaconQueries'
+import { useIndexCatalogue, useIndices } from '../shared/strategyQueries'
+import type { Period } from '../shared/periods'
+import { RiskCorrelation } from './RiskCorrelation'
+import { StatisticsDetail } from './StatisticsDetail'
+import { Summary } from './Summary'
 import './IndexOverviewView.css'
+
+type Face = 'summary' | 'statistics' | 'risk'
+
+const FACES: readonly { value: Face; label: string }[] = [
+  { value: 'summary', label: 'Summary' },
+  { value: 'statistics', label: 'Statistics Detail' },
+  { value: 'risk', label: 'Risk & Correlation' }
+]
 
 /**
  * Beacon View → Overview. Figma 234:8016.
  *
- * Whole-period metrics come from `/overview`; the period slices Figma also
- * shows — 1D, YTD, since base — are computed from the level series the same
- * response carried. A second round trip for numbers already implied by data
- * in hand would be slower and could disagree with the chart beneath them.
+ * Three faces since BU-176. The Summary is what this pane always was —
+ * whole-period metrics from `/overview`, with the period slices computed
+ * from the level series the same response carried. The other two answer
+ * what a reader asks next: how did it do per period, and how risky was it.
+ *
+ * Sub-tabs on a SegmentedControl rather than a second row of Tab chips,
+ * which would compete with the real tabs above. The benchmark and the
+ * period are held here, so a choice made on one face survives a move to the
+ * other — they are the same question asked twice.
  */
 export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactElement {
   // `pinnedDoc` is still read: a tab saved in a preset while this view was
   // pinned keeps working (BU-166).
   const indexId = subject ?? tab.pinnedDoc ?? ''
-  const mode = useThemeMode()
   const overview = useOverview(indexId)
-  const weights = useWeights(indexId)
   const catalogue = useIndexCatalogue()
+  const indices = useIndices()
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
   const setSubject = useWorkspace((state) => state.setSubject)
 
-  const level = useMemo(() => toPoints(overview.data?.level), [overview.data])
-  const worst = useMemo(() => maxDrawdown(drawdown(level)), [level])
-  const top = useMemo(
-    () => weightRows(weights.data?.weights ?? {}, weights.data?.capped ?? []).slice(0, 10),
-    [weights.data]
-  )
+  const [face, setFace] = useState<Face>('summary')
+  const [period, setPeriod] = useState<Period>('annual')
+  const [benchmark, setBenchmark] = useState('')
+  const [comparators, setComparators] = useState<string[]>([])
 
-  const metrics = overview.data?.metrics
+  /** Anything but itself: an index correlated with itself is 1.000. */
+  const others = useMemo(
+    () => (indices.data?.indices ?? []).map((index) => index.id).filter((id) => id !== indexId),
+    [indices.data, indexId]
+  )
 
   return (
     <div className="index-overview-view">
@@ -93,70 +94,40 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
         }
       />
 
+      <SegmentedControl
+        segments={FACES}
+        value={face}
+        onChange={setFace}
+        label="Overview section"
+        className="overview-faces"
+      />
+
       {indexId === '' && <ViewEmpty>Choose an index to see how it has done.</ViewEmpty>}
       {overview.isPending && indexId !== '' && <ViewLoading what={indexId} />}
       {overview.isError && <ViewError error={overview.error} />}
 
-      {overview.isSuccess && (
-        <>
-          <StatStrip>
-            <Stat label="INDEX LEVEL" value={lastValue(level)?.toFixed(2) ?? '—'} />
-            <Stat label="1D" value={signedPercent(oneDay(level), 2)} tone={tone(oneDay(level))} />
-            <Stat
-              label="YTD"
-              value={signedPercent(yearToDate(level))}
-              tone={tone(yearToDate(level))}
-            />
-            <Stat label="SINCE BASE" value={signedPercent(sinceStart(level))} />
-            <Stat label="CAGR" value={percent(fromFraction(metrics?.annualised_return))} />
-            <Stat label="VOL" value={percent(fromFraction(metrics?.volatility))} />
-            <Stat label="SHARPE" value={metrics?.sharpe_ratio.toFixed(2) ?? '—'} />
-            <Stat
-              label="MAX DD"
-              value={signedPercent(fromFraction(metrics?.max_drawdown))}
-              tone="negative"
-            />
-          </StatStrip>
+      {overview.isSuccess && face === 'summary' && <Summary indexId={indexId} />}
 
-          {level.length > 0 && (
-            <div className="overview-main-row">
-              <LevelChart
-                mode={mode}
-                series={[{ label: indexId, points: level }]}
-                panels={[
-                  {
-                    label: `drawdown · max ${signedPercent(worst?.value)}`,
-                    series: [{ points: drawdown(level), kind: 'area' }]
-                  }
-                ]}
-                note={`base ${overview.data.start.slice(0, 10)} · ${String(overview.data.rebalances)} rebalances`}
-                height={520}
-              />
+      {overview.isSuccess && face === 'statistics' && (
+        <StatisticsDetail
+          indexId={indexId}
+          period={period}
+          onPeriod={setPeriod}
+          benchmark={benchmark}
+          onBenchmark={setBenchmark}
+          others={others.map((id) => ({ value: id, label: id }))}
+        />
+      )}
 
-              <Card title="Top constituents" className="overview-constituents">
-                {top.length === 0 && <p className="type-11">No weights published yet.</p>}
-                {top.map((row) => (
-                  <div className="overview-weight" key={row.ticker}>
-                    <span className="overview-ticker">{row.ticker}</span>
-                    <WeightBar
-                      share={row.share}
-                      tone={row.capped ? 'accent' : 'default'}
-                      label={`${row.ticker} ${(row.weight * 100).toFixed(2)}%`}
-                    />
-                    <span className="overview-weight-value">{(row.weight * 100).toFixed(2)}%</span>
-                  </div>
-                ))}
-              </Card>
-            </div>
-          )}
-
-          <p className="overview-footnote type-11">
-            {overview.data.start.slice(0, 10)} → {overview.data.end.slice(0, 10)} · last rebalance{' '}
-            {overview.data.last_rebalance.slice(0, 10)} · effective N{' '}
-            {overview.data.concentration.effective_assets.toFixed(1)} · 1D, YTD and since-base are
-            derived from the level series
-          </p>
-        </>
+      {overview.isSuccess && face === 'risk' && (
+        <RiskCorrelation
+          indexId={indexId}
+          period={period}
+          onPeriod={setPeriod}
+          benchmarks={comparators}
+          onBenchmarks={setComparators}
+          others={others}
+        />
       )}
     </div>
   )

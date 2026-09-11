@@ -51,3 +51,43 @@
   max-width: 900px;
   color: var(--text-muted);
 }
+
+/*
+ * Sub-tabs (BU-176).
+ *
+ * A SegmentedControl rather than a second row of Tab chips: chips are the
+ * workspace's own grammar for "another document", and a row of them here
+ * would read as tabs that the tab bar does not know about. Left-aligned and
+ * on its own line, so it reads as belonging to the pane below rather than
+ * to the controls cluster on the header's right.
+ */
+.overview-faces {
+  align-self: flex-start;
+}
+
+/* One row of pickers above whichever face wants them. */
+.overview-controls {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Select supplies its own box, so inside a Field it drops back to bare. */
+.overview-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.overview-stats-card {
+  width: 800px;
+  max-width: 100%;
+}
+
+.overview-note {
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--text-muted);
+}

@@ -22,3 +22,8 @@ src/renderer/src/icons/svg/
 src/renderer/src/icons/registry.ts
 src/shared/api.generated.ts
 openapi.json
+
+# Claude Code's local settings. Tool-managed, git-ignored, and rewritten
+# whenever a permission is granted — formatting it is churn on a file that
+# is not project source and never reaches CI.
+.claude/

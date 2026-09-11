@@ -280,14 +280,112 @@ const PRICES = {
   })
 }
 
-/** The trading days a stored record's books are indexed by (BU-169). */
-const LEVEL_DATES = [
-  '2025-01-02T00:00:00',
-  '2025-01-03T00:00:00',
-  '2025-01-06T00:00:00',
-  '2025-01-07T00:00:00',
-  '2025-01-08T00:00:00'
-]
+/**
+ * A multi-year daily level series (BU-165, BU-176).
+ *
+ * Three years of business days, deterministic from a seed, because the
+ * statistics faces need history to have anything to say: a value at risk
+ * wants twenty returns before it will answer, a rolling window sixty, and
+ * annual buckets want more than one year to bucket into. Five points — what
+ * the record carries — exercises none of that.
+ *
+ * Not random. A stub that shuffles produces a test that fails one run in
+ * ten and cannot be reproduced from the failure.
+ */
+function levelSeries(seed: number, days = 780): { index: string[]; data: number[] } {
+  const index: string[] = []
+  const data: number[] = []
+
+  let value = 100
+  const day = new Date(Date.UTC(2023, 0, 2))
+  for (let i = 0; i < days; i++) {
+    // Business days only: a level series with Saturdays in it is not one.
+    while (day.getUTCDay() === 0 || day.getUTCDay() === 6) {
+      day.setUTCDate(day.getUTCDate() + 1)
+    }
+    value *= 1 + Math.sin((i + seed) / 11) / 200 + 0.0004
+    index.push(`${day.toISOString().slice(0, 10)}T00:00:00`)
+    data.push(Number(value.toFixed(4)))
+    day.setUTCDate(day.getUTCDate() + 1)
+  }
+
+  return { index, data }
+}
+
+/** Metrics computed FROM the series, so the stub cannot contradict itself. */
+function metricsOf(series: { index: string[]; data: number[] }): Record<string, number> {
+  const values = series.data
+  const first = values[0] ?? 100
+  const last = values[values.length - 1] ?? 100
+
+  const returns: number[] = []
+  for (let i = 1; i < values.length; i++) {
+    returns.push((values[i] ?? 0) / (values[i - 1] ?? 1) - 1)
+  }
+  const mean = returns.reduce((total, value) => total + value, 0) / returns.length
+  const variance =
+    returns.reduce((total, value) => total + (value - mean) ** 2, 0) / (returns.length - 1)
+  const volatility = Math.sqrt(variance * 252)
+
+  let peak = first
+  let drawdown = 0
+  for (const value of values) {
+    if (value > peak) peak = value
+    drawdown = Math.min(drawdown, (value - peak) / peak)
+  }
+
+  const years = values.length / 252
+  const annualised = (last / first) ** (1 / years) - 1
+
+  return {
+    total_return: Number((last / first - 1).toFixed(6)),
+    annualised_return: Number(annualised.toFixed(6)),
+    volatility: Number(volatility.toFixed(6)),
+    sharpe_ratio: Number((annualised / volatility).toFixed(4)),
+    max_drawdown: Number(drawdown.toFixed(6))
+  }
+}
+
+interface StubHolding {
+  identifier: string
+  weight: number
+  raw_weight: number
+  capped: boolean
+  shares_outstanding: number
+  delta_since_rebalance: number
+  risk_contribution: number
+  active_weight: number | null
+  active_risk_contribution: number | null
+}
+
+/**
+ * The ten names an index holds, summing to exactly 1.
+ *
+ * Two sit at the cap and carry the redistribution that put the rest above
+ * their raw weight, so a pane showing "capped" has something true to show.
+ */
+function holdings(): StubHolding[] {
+  const weights = [0.12, 0.12, 0.11, 0.11, 0.11, 0.1, 0.1, 0.09, 0.08, 0.06]
+
+  return weights.map((weight, position) => ({
+    identifier: `CMP${String(position).padStart(3, '0')}`,
+    weight,
+    raw_weight: position < 2 ? 0.15 : weight - 0.004,
+    capped: position < 2,
+    shares_outstanding: 1_200_000 + position * 35_000,
+    delta_since_rebalance: Number((Math.sin(position) / 200).toFixed(5)),
+    risk_contribution: Number((weight * 1.08).toFixed(5)),
+    active_weight: null,
+    active_risk_contribution: null
+  }))
+}
+
+/** One seed per index, so two indices are not the same line twice. */
+function seedFor(indexId: string): number {
+  let seed = 0
+  for (const character of indexId) seed = (seed * 31 + character.charCodeAt(0)) % 97
+  return seed
+}
 
 const IDENTIFIERS = Array.from({ length: 120 }, (_, i) => `CMP${String(i).padStart(3, '0')}`)
 
@@ -992,24 +1090,167 @@ function body(url: URL): unknown {
    * says so; anything else 404s, which is the ordinary answer for an index
    * nobody has back-tested.
    */
+  /*
+   * The index, recalculated (BU-165).
+   *
+   * Nothing served this before, so every pane reading it fell to its error
+   * state in E2E and the payload was described rather than covered. The
+   * metrics are computed from the level series rather than written beside
+   * it: a fixture whose Sharpe disagrees with its own line teaches a client
+   * to trust one of them arbitrarily.
+   */
+  if (/^\/beacon\/[^/]+\/overview$/.test(path)) {
+    const indexId = decodeURIComponent(path.split('/')[2] ?? '')
+    if (!indexIds.includes(indexId)) {
+      return notFound(`index '${indexId}'`, 'DocumentStore')
+    }
+
+    const level = levelSeries(seedFor(indexId))
+    const last = level.index[level.index.length - 1] ?? ''
+    return {
+      index_id: indexId,
+      name: indexId === OPTIMISED ? 'TECH10 optimised' : 'Beacon US Technology Top 10',
+      start: level.index[0] ?? '',
+      end: last,
+      observations: level.index.length,
+      rebalances: 12,
+      last_rebalance: last,
+      level: { name: 'level', ...level },
+      metrics: { ...metricsOf(level), tracking_error: 0.018, tracking_difference: 0.0012 },
+      concentration: {
+        herfindahl: 0.128,
+        effective_assets: 7.8,
+        top_weights: { '5': 0.62, '10': 1 },
+        largest: 0.12,
+        constituents: 10
+      }
+    }
+  }
+
+  /*
+   * What the index holds (BU-165).
+   *
+   * Ten names, two of them at the cap, summing to 1 — the composition the
+   * preview face already tells the same story about. `rows` carries the
+   * per-constituent detail BN-123 added; `weights` the bare map, because a
+   * client that reads only the map is still a valid one.
+   */
+  if (/^\/beacon\/[^/]+\/weights$/.test(path)) {
+    const indexId = decodeURIComponent(path.split('/')[2] ?? '')
+    if (!indexIds.includes(indexId)) {
+      return notFound(`index '${indexId}'`, 'DocumentStore')
+    }
+
+    const asof = url.searchParams.get('asof')
+    const level = levelSeries(seedFor(indexId))
+    const held = holdings()
+
+    return {
+      index_id: indexId,
+      as_of: asof ?? (level.index[level.index.length - 1] ?? '').slice(0, 10),
+      rebalance_date: '2025-06-20',
+      announced_date: null,
+      weights: Object.fromEntries(held.map((row) => [row.identifier, row.weight])),
+      capped: held.filter((row) => row.capped).map((row) => row.identifier),
+      cap: 0.12,
+      cap_redistributed: 0.06,
+      rows: held,
+      drift: {
+        since: '2025-06-20',
+        total_absolute: 0.082,
+        maximum: 0.021,
+        worst: 'CMP003',
+        turnover: 0.041
+      },
+      risk: null,
+      active_risk: null,
+      concentration: {
+        herfindahl: 0.104,
+        effective_assets: 9.6,
+        top_weights: { '5': 0.55, '10': 1 },
+        largest: 0.12,
+        constituents: held.length
+      }
+    }
+  }
+
+  /*
+   * Several indices on one rebased scale (BU-165).
+   *
+   * Rebased to 100 on the first date they all share, as py-beacon documents
+   * — which is what makes an excess return or a correlation computed from
+   * these two series an answer about the same days.
+   */
+  if (path === '/beacon/compare') {
+    const ids = url.searchParams.getAll('ids').flatMap((value) => value.split(','))
+    const unknown = ids.filter((id) => !indexIds.includes(id))
+    if (unknown.length > 0) {
+      return notFound(`index '${unknown[0] ?? ''}'`, 'DocumentStore')
+    }
+
+    const series = ids.map((id) => ({ id, level: levelSeries(seedFor(id)) }))
+    const shared = series
+      .map((entry) => new Set(entry.level.index))
+      .reduce((all, dates) => new Set([...all].filter((date) => dates.has(date))))
+    const dates = [...shared].sort()
+
+    return {
+      index_ids: ids,
+      start: dates[0] ?? '',
+      end: dates[dates.length - 1] ?? '',
+      observations: dates.length,
+      entries: series.map((entry) => {
+        const byDate = new Map(
+          entry.level.index.map((date, at) => [date, entry.level.data[at] ?? 0])
+        )
+        const base = byDate.get(dates[0] ?? '') ?? 100
+        const data = dates.map((date) =>
+          Number((((byDate.get(date) ?? base) / base) * 100).toFixed(4))
+        )
+        return {
+          index_id: entry.id,
+          total_return: Number(((data[data.length - 1] ?? 100) / 100 - 1).toFixed(6)),
+          level: { name: entry.id, index: dates, data }
+        }
+      })
+    }
+  }
+
   if (/^\/beacon\/[^/]+\/record$/.test(path)) {
     const identifier = decodeURIComponent(path.split('/')[2] ?? '')
     if (identifier !== 'TECH10') {
       return notFound(`backtest record for '${identifier}'`, 'RecordStore')
     }
 
-    const dates = LEVEL_DATES
+    /*
+     * The run reconciles with the index it ran on (BU-176).
+     *
+     * The last stretch of the SAME level series `/overview` serves, rather
+     * than five numbers of its own: a stored NAV that has no relationship
+     * to the line beside it draws two unrelated shapes on one chart and
+     * teaches nothing about either (taxonomy 10).
+     */
+    const level = levelSeries(seedFor(identifier))
+    const window = 120
+    const dates = level.index.slice(-window)
+    const levels = level.data.slice(-window)
+    const base = levels[0] ?? 100
+    const capital = 1_000_000
+
+    // Day zero first: the capital before anything traded, on the eve of the
+    // first trading day, which is what makes a record's NAV one point longer
+    // than its levels (BU-169).
+    const eve = level.index[level.index.length - window - 1] ?? '2024-12-31T00:00:00'
+    const nav = levels.map((value) => Number(((value / base) * capital).toFixed(2)))
+    const rebased = levels.map((value) => Number(((value / base) * 100).toFixed(4)))
+
     return {
       run_at: new Date(Date.now() - 3 * 86_400_000).toISOString(),
       portfolio: {
-        portfolio_id: 'TECH10',
-        initial_capital: 1_000_000,
-        // Day zero first: the capital before anything traded.
-        nav: {
-          index: ['2024-12-31T00:00:00', ...dates],
-          data: [1_000_000, 1_004_000, 1_011_500, 1_026_000, 1_019_000, 1_047_500]
-        },
-        cash: { index: dates, data: [10_000, 8_000, 7_500, 9_000, 6_000] },
+        portfolio_id: identifier,
+        initial_capital: capital,
+        nav: { index: [eve, ...dates], data: [capital, ...nav] },
+        cash: { index: dates, data: dates.map(() => 8_000) },
         weights: { index: [], columns: [], data: [] },
         weights_dates_total: 0,
         positions: { index: [], columns: [], data: [] },
@@ -1018,7 +1259,7 @@ function body(url: URL): unknown {
       },
       index: {
         target: {
-          levels: { index: dates, data: [100, 100.9, 102.1, 101.4, 104.2] },
+          levels: { index: dates, data: rebased },
           weights: { index: [], columns: [], data: [] },
           weights_dates_total: 0
         },
@@ -1026,15 +1267,7 @@ function body(url: URL): unknown {
       },
       benchmark: null,
       unfilled: [],
-      metrics: {
-        total_return: 0.0475,
-        annualised_return: 0.121,
-        volatility: 0.184,
-        sharpe_ratio: 0.66,
-        max_drawdown: -0.068,
-        tracking_error: 0.004,
-        tracking_difference: 0.0009
-      }
+      metrics: metricsOf({ index: dates, data: levels })
     }
   }
 

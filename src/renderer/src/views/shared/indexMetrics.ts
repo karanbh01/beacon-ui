@@ -1,7 +1,7 @@
 import type { components } from '@shared/api.generated'
 import type { Point } from '../../charts/transform'
-import type { SeriesPayload } from '../backtest/backtest'
-import { toPoints } from '../backtest/backtest'
+import type { SeriesPayload } from './seriesStats'
+import { toPoints } from './seriesStats'
 
 export { toPoints }
 

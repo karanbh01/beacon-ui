@@ -1,6 +1,6 @@
 import type { Point } from '../../charts/transform'
 import { annualisedVolatility, sinceStart } from '../shared/indexMetrics'
-import { cagr } from '../backtest/backtest'
+import { cagr } from '../shared/seriesStats'
 
 export interface MetricRow {
   metric: string

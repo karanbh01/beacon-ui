@@ -27,3 +27,16 @@ export function DeltaCell({ value }: { value: number }): ReactElement {
   if (value === 0) return <span>0.00</span>
   return <span className={value > 0 ? 'num-pos' : 'num-neg'}>{signed(value)}</span>
 }
+
+/**
+ * A signed percentage, toned (BU-176).
+ *
+ * `DeltaCell`'s sibling for columns whose unit is a percent: a return of
+ * "+20.00" in a column headed with an index id reads as points, not per
+ * cent, and the two are not the same claim.
+ */
+export function PercentCell({ value, dp = 2 }: { value: number; dp?: number }): ReactElement {
+  const text = `${value > 0 ? '+' : value < 0 ? '−' : ''}${Math.abs(value).toFixed(dp)}%`
+  if (value === 0) return <span>{text}</span>
+  return <span className={value > 0 ? 'num-pos' : 'num-neg'}>{text}</span>
+}
