@@ -1390,9 +1390,28 @@ export interface components {
         /**
          * BookPayload
          * @description One comparator's record on the wire.
+         *
+         *     Two different facts about weights, not two copies of one (BN-173):
+         *     `weights` is the daily panel — what the book actually HELD each day, drift
+         *     included — and `rebalances` is what each rebalance DECIDED. They agree only
+         *     on a rebalance date; everywhere else prices have moved the held weights
+         *     away from the decided ones. A client wanting decided weights reads
+         *     `rebalances` rather than resampling the panel, which cannot answer what
+         *     capping cost whatever it is resampled onto.
          */
         BookPayload: {
             levels: components["schemas"]["SeriesPayload"];
+            /**
+             * Rebalances
+             * @description What each rebalance decided — applied weights, their uncapped counterparts and the announcement date — in date order; most recent MAX_REBALANCES at most. The same rows the run payload publishes, kept here because the record is what survives the job result. Empty for a comparator supplied as a bare level series, which decided nothing.
+             */
+            rebalances?: components["schemas"]["RebalanceSnapshot"][];
+            /**
+             * Rebalances Total
+             * @description Rebalances the index actually had; larger than the rows served when the list was truncated.
+             * @default 0
+             */
+            rebalances_total: number;
             /** @description Daily weights, dates by identifier; most recent MAX_WEIGHT_DATES dates at most. Empty for a comparator supplied as a bare level series. */
             weights: components["schemas"]["TableFrame"];
             /** Weights Dates Total */
@@ -2872,6 +2891,11 @@ export interface components {
         /**
          * PortfolioBookPayload
          * @description The portfolio's books on the wire.
+         *
+         *     No `rebalances` here, unlike the index books (BN-173): a portfolio makes no
+         *     rebalance decision of its own — it trades toward one — so decided weights
+         *     would be a field with nothing honest to put in it. Its own model rather than
+         *     a shared base with `BookPayload`, which is what keeps that omission simple.
          */
         PortfolioBookPayload: {
             cash: components["schemas"]["SeriesPayload"];
@@ -3170,6 +3194,12 @@ export interface components {
          *     They are equal on an uncapped index, and the difference is the only way to
          *     answer what capping cost — a question that cannot be reconstructed from the
          *     applied weights alone.
+         *
+         *     Declared here, above the book payloads, because since BN-173 it is carried
+         *     by both: the transient run payload publishes the snapshots as
+         *     `rebalances[]`, and the durable record publishes the same rows on each
+         *     index book. One shape for one fact — a second model for the decided
+         *     weights would be free to drift from this one.
          */
         RebalanceSnapshot: {
             /**

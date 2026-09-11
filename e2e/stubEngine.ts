@@ -346,6 +346,85 @@ function metricsOf(series: { index: string[]; data: number[] }): Record<string, 
   }
 }
 
+/**
+ * The daily weights panel: dates by identifier (BN-186, BU-177).
+ *
+ * Drifts away from the decided weights between rebalances, because that is
+ * what held weights do — a panel that simply repeated the rebalance row
+ * would make the held/decided distinction untestable.
+ *
+ * One name enters part-way through and its earlier cells are null rather
+ * than zero: "not in the index" and "in it at 0.00%" are different facts
+ * and a client has to keep them apart.
+ */
+function heldPanel(
+  indexId: string,
+  dates: readonly string[]
+): {
+  index: string[]
+  columns: string[]
+  data: (number | null)[][]
+} {
+  const held = holdings(indexId)
+  const columns = [...held.map((row) => row.identifier), LATE_ENTRANT]
+
+  const data = dates.map((_date, day) => {
+    const drift = Math.sin(day / 9) / 400
+    const late = day > dates.length / 2
+
+    const raw = held.map((row, position) => row.weight + (position % 2 === 0 ? drift : -drift))
+    const total = raw.reduce((sum, weight) => sum + weight, 0) + (late ? 0.01 : 0)
+
+    return [
+      ...raw.map((weight) => Number((weight / total).toFixed(6))),
+      late ? Number((0.01 / total).toFixed(6)) : null
+    ]
+  })
+
+  return { index: [...dates], columns, data }
+}
+
+/** Weights as a map summing to exactly 1. */
+function normalise(pairs: readonly [string, number][]): Record<string, number> {
+  const total = pairs.reduce((sum, [, weight]) => sum + weight, 0)
+  return Object.fromEntries(
+    pairs.map(([name, weight]) => [name, Number((weight / total).toFixed(6))])
+  )
+}
+
+/** A name that joins the index part-way through the run. */
+const LATE_ENTRANT = 'CMP042'
+
+/**
+ * What each rebalance decided — quarterly, on the dates in the window.
+ *
+ * Applied weights beside their uncapped counterparts, so a pane showing
+ * what capping did has something true to show.
+ */
+function decidedSnapshots(indexId: string, dates: readonly string[]): Record<string, unknown>[] {
+  const held = holdings(indexId)
+  const every = Math.max(1, Math.floor(dates.length / 3))
+
+  return dates
+    .filter((_date, day) => day % every === 0)
+    .map((date, snapshot) => ({
+      date: date.slice(0, 10),
+      announced: null,
+      // Normalised, because a published composition sums to 1 — a fixture
+      // that does not would teach a reader to expect 100.05% (taxonomy 10).
+      weights: normalise(
+        held.map((row, position) => [
+          row.identifier,
+          row.weight + (position === snapshot ? 0.005 : 0)
+        ])
+      ),
+      uncapped_weights: Object.fromEntries(held.map((row) => [row.identifier, row.raw_weight])),
+      capped: held.filter((row) => row.capped).map((row) => row.identifier),
+      cap: 0.12,
+      redistributed: 0.06
+    }))
+}
+
 interface StubHolding {
   identifier: string
   weight: number
@@ -364,11 +443,25 @@ interface StubHolding {
  * Two sit at the cap and carry the redistribution that put the rest above
  * their raw weight, so a pane showing "capped" has something true to show.
  */
-function holdings(): StubHolding[] {
-  const weights = [0.12, 0.12, 0.11, 0.11, 0.11, 0.1, 0.1, 0.09, 0.08, 0.06]
+function holdings(indexId = 'TECH10'): StubHolding[] {
+  const weights =
+    indexId === 'TECH10'
+      ? [0.12, 0.12, 0.11, 0.11, 0.11, 0.1, 0.1, 0.09, 0.08, 0.06]
+      : [0.15, 0.14, 0.12, 0.11, 0.1, 0.09, 0.08, 0.08, 0.07, 0.06]
+
+  /*
+   * A different composition per index, overlapping in the middle (BU-177).
+   *
+   * Five names in common and five unique to each side, so an active weight
+   * has all three of its cases to show: a name both hold at different
+   * weights, one only this index holds, and one only the benchmark does.
+   * Identical compositions would make every active weight zero and the
+   * face would look broken while being arithmetically right.
+   */
+  const offset = indexId === 'TECH10' ? 0 : 5
 
   return weights.map((weight, position) => ({
-    identifier: `CMP${String(position).padStart(3, '0')}`,
+    identifier: `CMP${String(position + offset).padStart(3, '0')}`,
     weight,
     raw_weight: position < 2 ? 0.15 : weight - 0.004,
     capped: position < 2,
@@ -513,6 +606,19 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
  * one no stub could produce before.
  */
 const OPTIMISED = 'TECH10-OPT'
+
+/**
+ * Indices the engine kept a backtest record for (BU-177).
+ *
+ * One source for both `/beacon/backtests` and `/beacon/{id}/record`, so the
+ * catalogue cannot promise a run the record endpoint then refuses. Two of
+ * them, because the Active face needs a benchmark with a history of its
+ * own, and one without so "never back-tested" stays a reachable state.
+ */
+const RECORDED = ['TECH10', 'EU-VALUE']
+
+/** Records py-beacon stamped with a time; the rest predate that (BN-162). */
+const STAMPED = ['TECH10']
 
 /**
  * The catalogue, mutable since indices can be deleted (BN-157, BU-151).
@@ -740,10 +846,10 @@ const ROUTES: Record<string, unknown> = {
       SectorBand: ['sector', 'min', 'max']
     }
   },
-  '/beacon/backtests': [
-    { index_id: 'TECH10', run_at: new Date(Date.now() - 3 * 86_400_000).toISOString() },
-    { index_id: 'EU-VALUE', run_at: null }
-  ],
+  '/beacon/backtests': RECORDED.map((index_id) => ({
+    index_id,
+    run_at: STAMPED.includes(index_id) ? new Date(Date.now() - 3 * 86_400_000).toISOString() : null
+  })),
   '/data/coverage': {
     identifiers_union: 512,
     cache_size_bytes: 14_680_064,
@@ -1143,7 +1249,7 @@ function body(url: URL): unknown {
 
     const asof = url.searchParams.get('asof')
     const level = levelSeries(seedFor(indexId))
-    const held = holdings()
+    const held = holdings(indexId)
 
     return {
       index_id: indexId,
@@ -1218,7 +1324,15 @@ function body(url: URL): unknown {
 
   if (/^\/beacon\/[^/]+\/record$/.test(path)) {
     const identifier = decodeURIComponent(path.split('/')[2] ?? '')
-    if (identifier !== 'TECH10') {
+
+    /*
+     * Exactly the indices `/beacon/backtests` says have one.
+     *
+     * The two disagreed: the catalogue listed EU-VALUE and this answered
+     * 404 for it, so a pane could be told a run existed and then be refused
+     * it. One list, read by both (BU-177).
+     */
+    if (!RECORDED.includes(identifier)) {
       return notFound(`backtest record for '${identifier}'`, 'RecordStore')
     }
 
@@ -1245,7 +1359,9 @@ function body(url: URL): unknown {
     const rebased = levels.map((value) => Number(((value / base) * 100).toFixed(4)))
 
     return {
-      run_at: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+      run_at: STAMPED.includes(identifier)
+        ? new Date(Date.now() - 3 * 86_400_000).toISOString()
+        : null,
       portfolio: {
         portfolio_id: identifier,
         initial_capital: capital,
@@ -1260,8 +1376,15 @@ function body(url: URL): unknown {
       index: {
         target: {
           levels: { index: dates, data: rebased },
-          weights: { index: [], columns: [], data: [] },
-          weights_dates_total: 0
+          // Both halves of BN-186: the daily panel of what was HELD, and
+          // the snapshots of what was DECIDED. A client reading one and
+          // labelling it the other is the mistake the pair exists to make
+          // impossible, so the stub serves both and they disagree between
+          // rebalances exactly as the engine's do.
+          weights: heldPanel(identifier, dates),
+          weights_dates_total: dates.length,
+          rebalances: decidedSnapshots(identifier, dates),
+          rebalances_total: decidedSnapshots(identifier, dates).length
         },
         optimised: null
       },

@@ -40,13 +40,13 @@ test('summary draws the index, its weights and the run beside it', async ({ wind
 })
 
 test('an index nobody has run shows no portfolio column', async ({ window }) => {
-  // EU-VALUE has no stored record. An empty column would read as a
+  // TECH10-OPT has no stored record. An empty column would read as a
   // measurement that came out blank rather than one nobody made.
-  await openOverview(window, 'EU-VALUE')
+  await openOverview(window, 'TECH10-OPT')
 
   await expect(window.locator('.overview-stats-card')).toBeVisible()
   await expect(window.locator('.overview-stats-card').getByText('Portfolio')).toHaveCount(0)
-  await expect(window.getByText('EU-VALUE portfolio')).toHaveCount(0)
+  await expect(window.getByText('TECH10-OPT portfolio')).toHaveCount(0)
 })
 
 test('statistics detail buckets returns, and the period control changes them', async ({

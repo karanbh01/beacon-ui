@@ -36,7 +36,11 @@ export function DeltaCell({ value }: { value: number }): ReactElement {
  * cent, and the two are not the same claim.
  */
 export function PercentCell({ value, dp = 2 }: { value: number; dp?: number }): ReactElement {
-  const text = `${value > 0 ? '+' : value < 0 ? '−' : ''}${Math.abs(value).toFixed(dp)}%`
-  if (value === 0) return <span>{text}</span>
-  return <span className={value > 0 ? 'num-pos' : 'num-neg'}>{text}</span>
+  // A value that rounds to zero IS zero here: "−0.00%" reads as a fault in
+  // the arithmetic rather than as a position too small to show.
+  const rounded = Number(value.toFixed(dp))
+  const text = `${rounded > 0 ? '+' : rounded < 0 ? '−' : ''}${Math.abs(rounded).toFixed(dp)}%`
+
+  if (rounded === 0) return <span>{text}</span>
+  return <span className={rounded > 0 ? 'num-pos' : 'num-neg'}>{text}</span>
 }

@@ -609,10 +609,24 @@
         "type": "object"
       },
       "BookPayload": {
-        "description": "One comparator's record on the wire.",
+        "description": "One comparator's record on the wire.\n\nTwo different facts about weights, not two copies of one (BN-173):\n`weights` is the daily panel — what the book actually HELD each day, drift\nincluded — and `rebalances` is what each rebalance DECIDED. They agree only\non a rebalance date; everywhere else prices have moved the held weights\naway from the decided ones. A client wanting decided weights reads\n`rebalances` rather than resampling the panel, which cannot answer what\ncapping cost whatever it is resampled onto.",
         "properties": {
           "levels": {
             "$ref": "#/components/schemas/SeriesPayload"
+          },
+          "rebalances": {
+            "description": "What each rebalance decided — applied weights, their uncapped counterparts and the announcement date — in date order; most recent MAX_REBALANCES at most. The same rows the run payload publishes, kept here because the record is what survives the job result. Empty for a comparator supplied as a bare level series, which decided nothing.",
+            "items": {
+              "$ref": "#/components/schemas/RebalanceSnapshot"
+            },
+            "title": "Rebalances",
+            "type": "array"
+          },
+          "rebalances_total": {
+            "default": 0,
+            "description": "Rebalances the index actually had; larger than the rows served when the list was truncated.",
+            "title": "Rebalances Total",
+            "type": "integer"
           },
           "weights": {
             "$ref": "#/components/schemas/TableFrame",
@@ -3124,7 +3138,7 @@
         "type": "object"
       },
       "PortfolioBookPayload": {
-        "description": "The portfolio's books on the wire.",
+        "description": "The portfolio's books on the wire.\n\nNo `rebalances` here, unlike the index books (BN-173): a portfolio makes no\nrebalance decision of its own — it trades toward one — so decided weights\nwould be a field with nothing honest to put in it. Its own model rather than\na shared base with `BookPayload`, which is what keeps that omission simple.",
         "properties": {
           "cash": {
             "$ref": "#/components/schemas/SeriesPayload"
@@ -3579,7 +3593,7 @@
         "type": "object"
       },
       "RebalanceSnapshot": {
-        "description": "The index's composition at one rebalance.\n\nBoth weight sets are carried. `weights` is what the index applied;\n`uncapped_weights` is what the weighting scheme produced before any cap.\nThey are equal on an uncapped index, and the difference is the only way to\nanswer what capping cost — a question that cannot be reconstructed from the\napplied weights alone.",
+        "description": "The index's composition at one rebalance.\n\nBoth weight sets are carried. `weights` is what the index applied;\n`uncapped_weights` is what the weighting scheme produced before any cap.\nThey are equal on an uncapped index, and the difference is the only way to\nanswer what capping cost — a question that cannot be reconstructed from the\napplied weights alone.\n\nDeclared here, above the book payloads, because since BN-173 it is carried\nby both: the transient run payload publishes the snapshots as\n`rebalances[]`, and the durable record publishes the same rows on each\nindex book. One shape for one fact — a second model for the decided\nweights would be free to drift from this one.",
         "properties": {
           "announced": {
             "anyOf": [

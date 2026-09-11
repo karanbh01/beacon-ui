@@ -32,3 +32,25 @@
   max-width: 900px;
   color: var(--text-muted);
 }
+
+/* One row of pickers above whichever face wants them (BU-177). */
+.weights-controls {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Select supplies its own box, so inside a Field it drops back to bare. */
+.weights-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.weights-note {
+  margin: 0;
+  max-width: 640px;
+  color: var(--text-muted);
+}
