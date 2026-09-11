@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactElement } from 'react'
-import { FrontierChart, type FrontierDot, type Marker } from '../../charts/FrontierChart'
+import { FrontierChart } from '../../charts/FrontierChart'
 import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
@@ -10,6 +10,7 @@ import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { percent, signedPercent } from '../shared/indexMetrics'
 import { useFrontier } from '../shared/optimiseQueries'
+import { boundAnywhere, markersFor, plottable } from './frontier'
 import './FrontierPaneView.css'
 
 const RATES = ['0', '0.02', '0.04', '0.05'].map((rate) => ({
@@ -32,35 +33,9 @@ export function FrontierPaneView({ subject }: ViewProps): ReactElement {
   const mode = useThemeMode()
   const frontier = useFrontier(runId, Number(rate))
 
-  const points = useMemo<FrontierDot[]>(
-    () =>
-      (frontier.data?.points ?? []).map((point) => ({
-        volatility: point.volatility,
-        expectedReturn: point.expected_return ?? 0,
-        binding: point.binding ?? [],
-        heuristic: point.heuristic
-      })),
-    [frontier.data]
-  )
-
-  const markers = useMemo<Marker[]>(() => {
-    const data = frontier.data
-    if (data === undefined) return []
-    return [
-      {
-        label: 'min var',
-        volatility: data.minimum_variance.volatility,
-        expectedReturn: data.minimum_variance.expected_return ?? 0
-      },
-      {
-        label: 'tangency',
-        volatility: data.tangency.volatility,
-        expectedReturn: data.tangency.expected_return ?? 0
-      }
-    ]
-  }, [frontier.data])
-
-  const bound = useMemo(() => new Set(points.flatMap((point) => point.binding)), [points])
+  const { points, dropped } = useMemo(() => plottable(frontier.data?.points ?? []), [frontier.data])
+  const markers = useMemo(() => markersFor(frontier.data), [frontier.data])
+  const bound = useMemo(() => boundAnywhere(points), [points])
 
   return (
     <div className="frontier-view">
@@ -90,7 +65,11 @@ export function FrontierPaneView({ subject }: ViewProps): ReactElement {
             />
             <Stat
               label="TANGENCY"
-              value={`${signedPercent((frontier.data.tangency.expected_return ?? 0) * 100)} @ ${percent(frontier.data.tangency.volatility * 100)}`}
+              value={
+                frontier.data.tangency.expected_return == null
+                  ? '—'
+                  : `${signedPercent(frontier.data.tangency.expected_return * 100)} @ ${percent(frontier.data.tangency.volatility * 100)}`
+              }
             />
             <Stat
               label="MIN-VAR VOL"
@@ -111,14 +90,17 @@ export function FrontierPaneView({ subject }: ViewProps): ReactElement {
               mode={mode}
               markers={markers}
               riskFreeRate={frontier.data.risk_free_rate}
-              tangency={markers[1]}
+              tangency={markers.find((marker) => marker.label === 'tangency')}
               width={760}
               height={480}
             />
           )}
 
           <p className="frontier-footnote type-11">
-            {String(points.length)} points ·{' '}
+            {String(points.length)} points
+            {/* Said, not silently dropped: a curve missing a third of its
+                grid looks like a curve, not like missing data (BU-184). */}
+            {dropped > 0 && ` · ${String(dropped)} with no expected return, not drawn`} ·{' '}
             {bound.size === 0
               ? 'no constraint bound anywhere on the grid'
               : `binding somewhere on the grid: ${[...bound].join(', ')}`}{' '}

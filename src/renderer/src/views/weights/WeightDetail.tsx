@@ -116,7 +116,13 @@ export function WeightDetail({
               },
               {
                 label: 'top-5 weight',
-                value: percent((concentration?.top_weights['5'] ?? 0) * 100)
+                // An index with fewer than five names has no '5' bucket, and
+                // 0.0% there is the largest possible understatement of the
+                // thing this figure measures (BU-184).
+                value:
+                  concentration?.top_weights['5'] === undefined
+                    ? '—'
+                    : percent(concentration.top_weights['5'] * 100)
               },
               { label: 'HHI', value: concentration?.herfindahl.toFixed(3) ?? '—' },
               { label: 'effective N', value: concentration?.effective_assets.toFixed(1) ?? '—' },
