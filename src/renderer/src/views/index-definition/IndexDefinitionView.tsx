@@ -5,6 +5,7 @@ import { Select } from '../../components/Select/Select'
 import { useWorkspace } from '../../state/tabs.store'
 import { isDocumentId } from '../../api/ids'
 import type { ViewProps } from '../../shell/viewRegistry'
+import { catalogueDisabled, cataloguePlaceholder } from '../shared/pickers'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import {
   useDeleteIndex,
@@ -260,9 +261,9 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
                 label: universe.name
               }))}
               value={draft.universe?.universe_id ?? ''}
-              placeholder="No universes"
+              placeholder={cataloguePlaceholder(universes, 'No universes')}
               label="Starting universe"
-              disabled={(universes.data?.universes ?? []).length === 0}
+              disabled={catalogueDisabled(universes, (universes.data?.universes ?? []).length)}
               onChange={(value) => {
                 edit((current) => ({ ...current, universe: { universe_id: value } }))
               }}

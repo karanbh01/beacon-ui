@@ -15,6 +15,7 @@ import {
   useUniverseMembers,
   useUniverses
 } from '../shared/strategyQueries'
+import { catalogueDisabled, cataloguePlaceholder } from '../shared/pickers'
 import { useCoverage, useReferenceRows } from '../shared/queries'
 import { billions, buildRow, volume, type UniverseRow } from './universe'
 import { blankUniverse, isEditable, type DraftUniverse } from './members'
@@ -261,9 +262,9 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
             ...catalogue.map((universe) => ({ value: universe.id, label: universe.name }))
           ]}
           value={selected}
-          placeholder="No universes"
+          placeholder={cataloguePlaceholder(universes, 'No universes')}
           label="Universe"
-          disabled={catalogue.length === 0}
+          disabled={catalogueDisabled(universes, catalogue.length)}
           onChange={(value) => {
             setSubject(tab.id, value)
           }}
