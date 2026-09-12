@@ -1,4 +1,5 @@
 import type { components } from '@shared/api.generated'
+import { describe as describeExpression, type ExpressionNode } from './expression'
 
 export type IndexDocument = components['schemas']['IndexDocument']
 export type RuleSpec = components['schemas']['RuleSpec']
@@ -163,10 +164,27 @@ export function humanise(type: string): string {
  */
 export function describeRule(rule: RuleSpec): string {
   const params = rule.params ?? {}
+
+  /*
+   * A screen says what it screens for, not that it has an expression.
+   *
+   * The generic path would render the serialised tree, which is the one
+   * rule whose params are a structure rather than a scalar — and a row
+   * reading `Expression {"node":"all",...}` tells a reader nothing about
+   * what their index selects (BU-182).
+   */
+  const expression = params.expression
+  if (isNode(expression)) return describeExpression(expression)
+
   const entries = Object.entries(params).filter(([, value]) => value !== null)
   if (entries.length === 0) return RULE_WORDS[rule.type] ?? humanise(rule.type)
 
   return entries.map(([key, value]) => `${humanise(key)} ${format(value)}`).join(' · ')
+}
+
+/** Structurally a node: it has the discriminator the grammar turns on. */
+function isNode(value: unknown): value is ExpressionNode {
+  return typeof value === 'object' && value !== null && 'node' in value
 }
 
 function format(value: unknown): string {

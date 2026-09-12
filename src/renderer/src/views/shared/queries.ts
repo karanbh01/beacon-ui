@@ -354,3 +354,24 @@ export function useSaveWatchlist() {
     }
   })
 }
+
+/**
+ * Every datapoint an expression can name (BN-188, BU-182).
+ *
+ * The authority on how a field is SPELLED in a screen: py-beacon lowercases
+ * a stored column when it publishes it, so `SECTOR` is written
+ * `reference.sector`, and guessing that transformation here is how a screen
+ * comes to name a field the engine has never heard of.
+ */
+export function useFieldCatalogue() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.data.fields(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/data/fields', { signal })
+    },
+    enabled: client !== null
+  })
+}

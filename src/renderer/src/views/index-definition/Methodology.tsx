@@ -73,6 +73,9 @@ export function Methodology(props: MethodologyProps): ReactElement | null {
         stage={isWeighting(props.document, id) ? 'weighting' : 'selection'}
         // The cap lives on the weighting spec, so it is edited with it.
         extraParameters={isWeighting(props.document, id) ? [MAX_WEIGHT_PARAM] : []}
+        // A screen offers the values the index's own names actually take,
+        // so the editor needs to know which universe it is drawn from.
+        universeId={props.document.universe?.universe_id ?? ''}
         onApply={props.onApply}
         onCancel={() => {
           props.onSelect(undefined)

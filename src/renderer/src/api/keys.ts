@@ -22,6 +22,8 @@ export const keys = {
     reference: (identifier: string) => ['data', 'reference', identifier] as const,
     features: (identifier: string, date = '') => ['data', 'features', identifier, date] as const,
     featureCatalogue: () => ['data', 'feature-catalogue'] as const,
+    /** Every datapoint an expression can name (BN-188). */
+    fields: () => ['data', 'fields'] as const,
     table: (dataset: string, identifiers: readonly string[], offset: number, limit: number) =>
       ['data', 'table', dataset, identifiers.join(','), offset, limit] as const,
     // Keyed by the identifiers AND the fields: asking for adv_3m is a

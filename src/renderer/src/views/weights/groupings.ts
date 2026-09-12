@@ -1,8 +1,6 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { keys } from '../../api/keys'
-import { useBeacon } from '../../api/queryClient'
-import { filtersFor, labelFor } from '../universe/builder'
+import { labelFor } from '../universe/builder'
+import { useReferenceFacets } from '../shared/referenceFacets'
 
 export interface Grouping {
   /** Reference column, as the engine spells it. */
@@ -31,44 +29,20 @@ export interface Groupings {
  * because summing weights by market cap is not a question anyone asks.
  */
 export function useGroupings(identifiers: readonly string[]): Groupings {
-  const client = useBeacon()
-  const wanted = useMemo(() => [...new Set(identifiers)].sort(), [identifiers])
-
-  /*
-   * Every field, not the table's usual three.
-   *
-   * `useReferenceRows` defaults to the numeric columns a constituent table
-   * shows. Grouping needs the categorical ones, and which those are is the
-   * engine's answer rather than ours — so the request names no fields at
-   * all and takes what the reference frame holds.
-   */
-  const reference = useQuery({
-    queryKey: keys.data.referenceBatch(wanted, ['*']),
-    queryFn: ({ signal }) => {
-      if (client === null) throw new Error('No engine')
-      return client.data.referenceBatch(wanted, undefined, undefined, signal)
-    },
-    enabled: client !== null && wanted.length > 0
-  })
+  const facets = useReferenceFacets(identifiers)
 
   return useMemo(() => {
-    const entries = reference.data?.entries ?? []
-    const byIdentifier = new Map(
-      entries.filter((entry) => entry.found).map((entry) => [entry.identifier, entry.fields ?? {}])
-    )
-
-    const candidates = [...byIdentifier].map(([identifier, fields]) => ({ identifier, fields }))
-    const options = filtersFor(candidates)
+    const options = facets.specs
       .filter((spec) => spec.kind === 'category')
       .map((spec) => ({ field: spec.field, label: labelFor(spec.field) }))
 
     const groupOf = (field: string) => (identifier: string) => {
-      const value = byIdentifier.get(identifier)?.[field]
+      const value = facets.byIdentifier.get(identifier)?.[field]
       // Named rather than dropped: a name the reference data cannot place
       // still holds weight, and losing it would change the column total.
       return typeof value === 'string' && value !== '' ? value : 'Unclassified'
     }
 
-    return { options, groupOf, loading: reference.isPending && wanted.length > 0 }
-  }, [reference.data, reference.isPending, wanted.length])
+    return { options, groupOf, loading: facets.loading }
+  }, [facets])
 }

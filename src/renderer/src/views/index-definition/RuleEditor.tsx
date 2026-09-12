@@ -13,7 +13,26 @@ import {
   typesFor,
   type ParameterSpec
 } from './ruleCatalogue'
+import { ExpressionEditor } from './ExpressionEditor'
+import type { ExpressionNode } from './expression'
 import './RuleEditor.css'
+
+/**
+ * The stored tree out of the editor's string state.
+ *
+ * `RuleEditor` holds every parameter as text so one code path serves them
+ * all; a structured one is that text parsed. Unparseable means the rule
+ * carries something this cannot read, and `ExpressionEditor` says so rather
+ * than starting from blank — which would discard it on the next Apply.
+ */
+function parseExpression(value: string): ExpressionNode | undefined {
+  if (value.trim() === '') return undefined
+  try {
+    return JSON.parse(value) as ExpressionNode
+  } catch {
+    return undefined
+  }
+}
 
 export interface RuleEditorProps {
   rule: RuleSpec
@@ -24,6 +43,8 @@ export interface RuleEditorProps {
    * weighting's `max_weight`, and nothing else so far (BU-160).
    */
   extraParameters?: readonly ParameterSpec[]
+  /** The index's universe: the names whose reference values a screen offers. */
+  universeId?: string
   onApply: (rule: RuleSpec) => void
   onCancel: () => void
 }
@@ -32,13 +53,39 @@ export interface RuleEditorProps {
 function ParamField({
   param,
   value,
-  onChange
+  onChange,
+  universeId
 }: {
   param: ParameterSpec
   value: string
   onChange: (next: string) => void
+  universeId: string
 }): ReactElement {
   const label = param.required ? `${param.label} *` : param.label
+
+  /*
+   * A structured parameter renders from the schema it names (BN-188).
+   *
+   * `ref` is the catalogue saying "this value must conform to that
+   * component", which is what keeps the rule list self-describing: the
+   * alternative was keying on the parameter being CALLED `expression`, and
+   * then the catalogue stops describing itself at exactly the rule that
+   * needs it most. Any future structured parameter arrives working.
+   */
+  if (param.ref === 'ExpressionNode') {
+    return (
+      <div className="rule-editor-structured">
+        <span className="field-label">{label}</span>
+        <ExpressionEditor
+          value={parseExpression(value)}
+          onChange={(next) => {
+            onChange(next === undefined ? '' : JSON.stringify(next))
+          }}
+          universeId={universeId}
+        />
+      </div>
+    )
+  }
 
   if (param.choices !== null && param.choices !== undefined && param.choices.length > 0) {
     return (
@@ -105,6 +152,7 @@ export function RuleEditor({
   rule,
   stage = 'selection',
   extraParameters = [],
+  universeId = '',
   onApply,
   onCancel
 }: RuleEditorProps): ReactElement {
@@ -166,6 +214,7 @@ export function RuleEditor({
             key={param.name}
             param={param}
             value={current(param)}
+            universeId={universeId}
             onChange={(next) => {
               setEdited((all) => ({ ...all, [param.name]: next }))
             }}

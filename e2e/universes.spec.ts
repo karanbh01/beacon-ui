@@ -90,7 +90,7 @@ test('a universe is built by filtering the dataset, and previewed before it is s
 
   // A row at a time, as the index designer is built (BU-90).
   await window.getByRole('button', { name: /Add filter/ }).click()
-  await window.getByLabel('Row 01 dimension').selectOption('gics_sector')
+  await window.getByLabel('Row 01 dimension').selectOption('sector')
   await window.getByRole('button', { name: 'Row 01 values' }).click()
   await window.getByRole('checkbox', { name: 'Health Care' }).check()
   await window.keyboard.press('Escape')
@@ -260,7 +260,7 @@ test('the methodology card is the same width with an editor open', async ({ wind
   const card = window.locator('.methodology')
   const closed = await card.boundingBox()
 
-  await window.getByText('Gics sector Information Technology').click()
+  await window.getByText('Sector Information Technology').click()
   await expect(window.getByLabel('Rule type')).toBeVisible()
   const open = await card.boundingBox()
 

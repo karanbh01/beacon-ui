@@ -573,8 +573,18 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
     fields: {
       date_from: listedFrom(index),
       name: `${identifier} Corporation`,
-      gics_sector: ['Information Technology', 'Financials', 'Health Care'][index % 3],
-      gics_sub_industry: 'Application Software',
+      /*
+       * Named as the columns this stub DECLARES (BU-182).
+       *
+       * These were `gics_sector` and `gics_sub_industry`, which
+       * `REFERENCE_COLUMNS` does not list — so the stub refused
+       * `fields=gics_sector` with a 422 while serving a row that contained
+       * exactly that key, and `/data/fields` published `reference.sector`
+       * for a value no row held under that name. A screen built from the
+       * published field list could not find its own values.
+       */
+      sector: ['Information Technology', 'Financials', 'Health Care'][index % 3],
+      sub_industry: 'Application Software',
       region: ['United States', 'Europe', 'Japan'][index % 3],
       exchange: ['XNAS', 'XLON', 'XTKS'][index % 3],
       currency: ['USD', 'GBP', 'JPY'][index % 3],
@@ -729,7 +739,7 @@ function indexDocument(id: string): unknown {
     universe: { universe_id: 'US-LARGECAP' },
     pipeline: {
       selection: [
-        { id: 'rule-1', type: 'FilterRule', params: { gics_sector: 'Information Technology' } },
+        { id: 'rule-1', type: 'FilterRule', params: { sector: 'Information Technology' } },
         { id: 'rule-2', type: 'FilterRule', params: { min_free_float_market_cap: 50_000_000_000 } },
         { id: 'rule-3', type: 'RankRule', params: { by: 'free_float_market_cap', order: 'desc' } },
         { id: 'rule-4', type: 'SelectionRule', params: { top: 10 } }
@@ -777,6 +787,39 @@ const RULE_TYPES = {
           default: 0.0,
           label: 'Threshold',
           order: 3
+        }
+      ]
+    },
+    {
+      /*
+       * The rule that screens on reference data (BN-188, BU-182).
+       *
+       * `ref` is what keeps the catalogue self-describing: it names the
+       * component schema the value must conform to, so a client renders a
+       * structured control without keying on the parameter being CALLED
+       * `expression`. `type` stays the coarse render hint.
+       */
+      name: 'ExpressionRule',
+      label: 'Expression',
+      summary: 'Select instruments that satisfy an expression.',
+      parameters: [
+        {
+          name: 'expression',
+          type: 'json',
+          required: true,
+          default: null,
+          label: 'Expression',
+          ref: 'ExpressionNode',
+          order: 1
+        },
+        {
+          name: 'on_missing',
+          type: 'string',
+          required: false,
+          default: 'exclude',
+          label: 'Names without a value',
+          choices: ['exclude', 'include'],
+          order: 2
         }
       ]
     },
@@ -839,6 +882,34 @@ const RULE_TYPES = {
 const ROUTES: Record<string, unknown> = {
   '/health': { status: 'ok', version: '0.0.2', cache_age: 120 },
   '/indices/rule-types': RULE_TYPES,
+  /*
+   * Every datapoint an expression can name (BN-188).
+   *
+   * py-beacon LOWERCASES a stored column on the way out, so `SECTOR` is
+   * published as `reference.sector` while the reference row is keyed
+   * however the store spells it. The stub reproduces that, because a
+   * client that assumed the two matched would build screens naming fields
+   * the engine has never heard of and no test here would notice.
+   */
+  '/data/fields': {
+    namespaces: ['market', 'reference', 'actions', 'features'],
+    fields: [
+      ...REFERENCE_COLUMNS.filter((column) => column !== 'NAME').map((column) => ({
+        path: `reference.${column.toLowerCase()}`,
+        namespace: 'reference',
+        name: column.toLowerCase(),
+        dataset: null,
+        derived: false
+      })),
+      {
+        path: 'market.close',
+        namespace: 'market',
+        name: 'close',
+        dataset: null,
+        derived: false
+      }
+    ]
+  },
   /*
    * Stored backtest records, newest first (BN-162, BU-168).
    *

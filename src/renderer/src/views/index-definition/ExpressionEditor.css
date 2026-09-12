@@ -1,0 +1,65 @@
+/*
+ * A screen as rows (BU-182). The same grammar as a filter row in the
+ * universe builder and a constraint row in a set — a reader moving between
+ * them is doing the same thing in three places, and it should look it.
+ */
+.expression-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.expression-clause {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.expression-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.expression-input:focus {
+  outline: none;
+}
+
+/* Select supplies its own box, so inside a Field it drops back to bare. */
+.expression-inline-select {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.expression-action {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--chrome-border);
+  border-radius: 3px;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* Pressed is a state, not a hover: the clause is negated until told not to. */
+.expression-action[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.expression-note {
+  margin: 0;
+  max-width: 560px;
+  color: var(--text-muted);
+}
