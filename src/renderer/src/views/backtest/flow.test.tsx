@@ -263,11 +263,27 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     })
   })
 
+  it('previews nothing until a date is chosen and Run is pressed', async () => {
+    /*
+     * It used to resolve on mount, and again on every keystroke in the
+     * date field (BU-186). A preview is a job against a date somebody
+     * chose, so the pane waits to be asked.
+     */
+    mount(<ConstituentPreviewView tab={tabFor('prev')} subject="NEWIDX" />)
+
+    expect(await screen.findByText(/Choose a date to resolve this index at/)).toBeInTheDocument()
+    expect(calls.previewed).toEqual([])
+    expect(screen.getByRole('button', { name: 'Run preview' })).toBeDisabled()
+  })
+
   it('previews: the waterfall shows where each name dropped out', async () => {
     mount(<ConstituentPreviewView tab={tabFor('prev')} subject="NEWIDX" />)
 
+    await userEvent.type(await screen.findByLabelText('As of'), '2026-07-22')
+    await userEvent.click(screen.getByRole('button', { name: 'Run preview' }))
+
     expect(await screen.findByText('01 · FilterRule')).toBeInTheDocument()
-    expect(calls.previewed).toEqual([{ id: 'NEWIDX' }])
+    expect(calls.previewed).toEqual([{ id: 'NEWIDX', asOf: '2026-07-22' }])
 
     // AAPL survived, GOOGL was cut by rule 01.
     const rows = [...document.querySelectorAll('.tbl-row')]
@@ -277,6 +293,8 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
 
   it('previews at a chosen date, which is what makes turnover computable', async () => {
     mount(<ConstituentPreviewView tab={tabFor('prev')} subject="NEWIDX" />)
+    await userEvent.type(await screen.findByLabelText('As of'), '2026-07-22')
+    await userEvent.click(screen.getByRole('button', { name: 'Run preview' }))
     await screen.findByText('01 · FilterRule')
 
     await userEvent.type(screen.getByLabelText('Compare vs'), '2026-06-19')

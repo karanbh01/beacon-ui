@@ -3,6 +3,7 @@ import {
   CELL_GLYPH,
   cellState,
   describeRoom,
+  looksEquallyWeighted,
   oneWayTurnover,
   percent,
   solveOf,
@@ -237,5 +238,66 @@ describe('describeRoom (BU-173)', () => {
     expect(describeRoom({ label: 'x', kind: 'ineq', slack: 4, unit: 'bps', binding: false })).toBe(
       '4 bps'
     )
+  })
+})
+
+describe('sorting the preview (BU-186)', () => {
+  const assets = [
+    { identifier: 'LIGHT', included: true, capped: false, weight: 0.05 },
+    { identifier: 'OUT', included: false, capped: false, weight: 0 },
+    { identifier: 'HEAVY', included: true, capped: false, weight: 0.4 }
+  ] as PreviewAsset[]
+
+  it('puts the portfolio at the top, heaviest first', () => {
+    // Rank order meant the table opened on whatever the universe listed
+    // first, which is not what a reader came for.
+    expect(sortAssets(assets).map((asset) => asset.identifier)).toEqual(['HEAVY', 'LIGHT', 'OUT'])
+  })
+
+  it('keeps excluded names below every included one, however heavy', () => {
+    const withHeavyReject = [
+      { identifier: 'OUT', included: false, capped: false, weight: 0.9 },
+      { identifier: 'IN', included: true, capped: false, weight: 0.01 }
+    ] as PreviewAsset[]
+
+    expect(sortAssets(withHeavyReject)[0]?.identifier).toBe('IN')
+  })
+})
+
+describe('spotting the equal-weight fallback (BU-186)', () => {
+  const equal = [
+    { identifier: 'A', included: true, capped: false, weight: 0.25 },
+    { identifier: 'B', included: true, capped: false, weight: 0.25 },
+    { identifier: 'C', included: false, capped: false, weight: 0 }
+  ] as PreviewAsset[]
+
+  it('sees weights that are all the same, ignoring the excluded', () => {
+    /*
+     * py-beacon assigns equal weights when it can price nothing, and logs
+     * the reason somewhere no client can read. On a market-cap index this
+     * is the only evidence there is.
+     */
+    expect(looksEquallyWeighted(equal)).toBe(true)
+  })
+
+  it('says nothing about weights that actually differ', () => {
+    const varied = [
+      { identifier: 'A', included: true, capped: false, weight: 0.3 },
+      { identifier: 'B', included: true, capped: false, weight: 0.7 }
+    ] as PreviewAsset[]
+    expect(looksEquallyWeighted(varied)).toBe(false)
+  })
+
+  it('tolerates a basis point, since real arithmetic is not exact', () => {
+    const rounded = [
+      { identifier: 'A', included: true, capped: false, weight: 0.5 },
+      { identifier: 'B', included: true, capped: false, weight: 0.50001 }
+    ] as PreviewAsset[]
+    expect(looksEquallyWeighted(rounded)).toBe(true)
+  })
+
+  it('has nothing to say about one name, which is trivially equal', () => {
+    expect(looksEquallyWeighted([equal[0]] as PreviewAsset[])).toBe(false)
+    expect(looksEquallyWeighted([])).toBe(false)
   })
 })

@@ -405,6 +405,10 @@ test('previewing an optimised index shows the solve, not a waterfall (BU-173)', 
   await window.locator('.index-overview').getByText('TECH10-OPT', { exact: true }).click()
   await window.getByRole('button', { name: /Constituent Preview/ }).click()
 
+  // A preview runs when it is asked to, not on open (BU-186).
+  await window.getByLabel('As of').fill('2025-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
   const preview = window.locator('.constituent-preview-view')
   await expect(preview.getByText('min_tracking_error')).toBeVisible()
   await expect(preview.getByText('9 constituents')).toBeVisible()
@@ -438,6 +442,9 @@ test('previewing a rule-driven index still shows the waterfall (BU-173)', async 
   await openView(window, 'Index Definition')
   await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
   await window.getByRole('button', { name: /Constituent Preview/ }).click()
+
+  await window.getByLabel('As of').fill('2025-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
 
   const preview = window.locator('.constituent-preview-view')
   await expect(preview.getByText('01 · FilterRule')).toBeVisible()

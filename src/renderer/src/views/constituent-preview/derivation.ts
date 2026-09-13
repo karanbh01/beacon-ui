@@ -51,9 +51,43 @@ export const CELL_GLYPH: Record<CellState, string> = {
   gone: '·'
 }
 
-/** Included first, then the order the engine sent — which is rank order. */
+/**
+ * Heaviest first, and the excluded names after all of them.
+ *
+ * The engine sends rank order, which for a preview meant the table opened
+ * on whatever the universe happened to list first. The portfolio is what a
+ * reader came for, so the portfolio is at the top — and the names that
+ * dropped out are still there, below the ones that did not.
+ */
 export function sortAssets(assets: readonly PreviewAsset[]): PreviewAsset[] {
-  return [...assets].sort((a, b) => Number(b.included) - Number(a.included))
+  return [...assets].sort(
+    (a, b) => Number(b.included) - Number(a.included) || weightOf(b) - weightOf(a)
+  )
+}
+
+function weightOf(asset: PreviewAsset): number {
+  return asset.weight ?? asset.solved_weight ?? 0
+}
+
+/**
+ * Whether every included name carries the same weight (BU-186).
+ *
+ * py-beacon's `MarketCapWeighted` falls back to equal weights when it can
+ * price nothing — total market cap of zero — and logs a warning nobody in
+ * this app can see. So an index that says market-cap weighted and comes
+ * back equally weighted is the fallback, and this is how it is spotted.
+ *
+ * Tolerant to a basis point, because the engine's arithmetic on a genuine
+ * cap weighting will not produce exactly equal numbers and an exact
+ * comparison would only ever fire on the fallback by luck.
+ */
+export function looksEquallyWeighted(assets: readonly PreviewAsset[]): boolean {
+  const weights = assets.filter((asset) => asset.included).map(weightOf)
+  if (weights.length < 2) return false
+
+  const first = weights[0] ?? 0
+  if (first <= 0) return false
+  return weights.every((weight) => Math.abs(weight - first) < 0.0001)
 }
 
 export function percent(fraction: number | null | undefined, dp = 2): string {

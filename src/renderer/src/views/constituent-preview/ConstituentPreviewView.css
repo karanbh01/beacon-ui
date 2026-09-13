@@ -125,3 +125,14 @@
   color: var(--text-muted);
   text-decoration: line-through;
 }
+
+/*
+ * A result that is not what the methodology asked for (BU-186). Danger,
+ * because the number on screen is wrong rather than missing — the reader
+ * would otherwise have no reason to doubt it.
+ */
+.preview-warning {
+  margin: 0;
+  max-width: 900px;
+  color: var(--danger);
+}

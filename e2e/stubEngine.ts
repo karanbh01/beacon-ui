@@ -652,7 +652,21 @@ const STAMPED = ['TECH10']
  * Two of them, so a benchmark can be chosen against one (BU-137) — the
  * measured and not-measured readings of a run are different code paths.
  */
-let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE]
+/**
+ * An index weighted by market cap whose store cannot price anything
+ * (BU-186).
+ *
+ * py-beacon's `MarketCapWeighted` needs SHARES_OUTSTANDING in the market
+ * frame; without it every cap is zero, the total is zero, and it assigns
+ * EQUAL weights while logging a warning no client can see. So a pane shows
+ * a plausible equally weighted index under a market-cap heading.
+ *
+ * The stub reproduces the OBSERVABLE — equal weights and no cap data — not
+ * the cause, which is a missing column in a store this stub does not have.
+ */
+const UNPRICED = 'CAP-NOSHARES'
+
+let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED]
 
 interface StubDerivation {
   parent: string
@@ -671,7 +685,7 @@ interface StubDerivation {
 const derivations = new Map<string, StubDerivation>()
 
 function resetIndices(): void {
-  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE]
+  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED]
   derivations.clear()
   derivations.set(OPTIMISED, {
     parent: 'TECH10',
@@ -744,12 +758,15 @@ function indexDocument(id: string): unknown {
         { id: 'rule-3', type: 'RankRule', params: { by: 'free_float_market_cap', order: 'desc' } },
         { id: 'rule-4', type: 'SelectionRule', params: { top: 10 } }
       ],
-      weighting: {
-        id: 'weighting',
-        scheme: 'FreeFloatMarketCapWeighted',
-        params: {},
-        max_weight: 0.2
-      },
+      weighting:
+        id === UNPRICED
+          ? { id: 'weighting', scheme: 'MarketCapWeighted', params: { use_free_float: false } }
+          : {
+              id: 'weighting',
+              scheme: 'FreeFloatMarketCapWeighted',
+              params: {},
+              max_weight: 0.2
+            },
       treatment: { corporate_actions: 'ADJUST_DIVISOR' }
     }
   }
@@ -1737,11 +1754,20 @@ function previewFace(indexId: string, asOf: string, derived: boolean): unknown {
     return { ...common, steps: null, cap: null, cap_redistributed: 0, ...solvedPreview() }
   }
 
-  return { ...common, solve: null, ...walkedPreview() }
+  return { ...common, solve: null, ...walkedPreview(indexId) }
 }
 
 /** Ten names out of the universe, two of them at the cap. */
-function walkedPreview(): Record<string, unknown> {
+function walkedPreview(indexId: string): Record<string, unknown> {
+  /*
+   * The unpriced index comes back EQUALLY weighted (BU-186).
+   *
+   * Which is what py-beacon returns when `MarketCapWeighted` can price
+   * nothing: no cap, no redistribution, every weight identical, and not one
+   * word in the payload about why. Reproducing the observable is the only
+   * way a client's detection of it can be tested.
+   */
+  const unpriced = indexId === UNPRICED
   const kept = Array.from({ length: 10 }, (_, i) => `CMP${String(i).padStart(3, '0')}`)
   const cutBy1 = ['CMP010', 'CMP011']
   const cutBy2 = ['CMP012']
@@ -1753,9 +1779,9 @@ function walkedPreview(): Record<string, unknown> {
       included: true,
       excluded_by: null,
       excluded_at: null,
-      weight: index < 2 ? 0.12 : weight - 0.005,
-      uncapped_weight: index < 2 ? 0.15 : weight,
-      capped: index < 2,
+      weight: unpriced ? weight : index < 2 ? 0.12 : weight - 0.005,
+      uncapped_weight: unpriced ? weight : index < 2 ? 0.15 : weight,
+      capped: !unpriced && index < 2,
       source_weight: null,
       solved_weight: null,
       weight_delta: null
@@ -1772,8 +1798,8 @@ function walkedPreview(): Record<string, unknown> {
     ],
     assets,
     weights: Object.fromEntries(kept.map((identifier) => [identifier, weight])),
-    cap: 0.12,
-    cap_redistributed: 0.06
+    cap: unpriced ? null : 0.12,
+    cap_redistributed: unpriced ? 0 : 0.06
   }
 }
 
