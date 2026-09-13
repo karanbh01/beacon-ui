@@ -15,7 +15,7 @@ import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useOverview } from '../shared/beaconQueries'
 import { fromFraction, percent, signedPercent, sinceStart, toPoints } from '../shared/indexMetrics'
 import { useOpenRender, useRenderReport, useTemplates } from '../shared/reportQueries'
-import { useIndexCatalogue } from '../shared/strategyQueries'
+import { useIndex, useIndexCatalogue } from '../shared/strategyQueries'
 import { FACTSHEET_SECTIONS, orderedSelection, renderFilename, toggle } from './sections'
 import './FactsheetView.css'
 
@@ -40,6 +40,7 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
   const catalogue = useIndexCatalogue()
   const setSubject = useWorkspace((state) => state.setSubject)
   const overview = useOverview(indexId)
+  const document = useIndex(indexId)
   const render = useRenderReport()
   const open = useOpenRender()
   const jobs = useJobs((state) => state.jobs)
@@ -185,7 +186,15 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
               {section.id === 'key-facts' && overview.data !== undefined && (
                 <KVList>
                   <KV label="Index" value={overview.data.name} />
-                  <KV label="Base" value={overview.data.start.slice(0, 10)} />
+                  {/*
+                    The base date is the DOCUMENT's, not the first date the
+                    data happens to cover (BU-189). `OverviewView.start` is
+                    built from `level.index[0]` — where the series begins —
+                    and labelling that "Base" printed a different base date
+                    here from the one the editor shows.
+                  */}
+                  <KV label="Base" value={document.data?.base_date.slice(0, 10) ?? '—'} />
+                  <KV label="Data from" value={overview.data.start.slice(0, 10)} />
                   <KV label="Observations" value={String(overview.data.observations)} />
                   <KV label="Rebalances" value={String(overview.data.rebalances)} />
                 </KVList>

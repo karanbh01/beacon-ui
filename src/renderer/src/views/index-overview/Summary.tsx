@@ -106,7 +106,9 @@ export function Summary({ indexId }: SummaryProps): ReactElement {
                 series: [{ points: drawdown(level), kind: 'area' }]
               }
             ]}
-            note={`base ${overview.data?.start.slice(0, 10) ?? '—'} · ${String(overview.data?.rebalances ?? 0)} rebalances`}
+            // "from", not "base": `start` is where the level series begins,
+            // which is not the document's base date (BU-189).
+            note={`from ${overview.data?.start.slice(0, 10) ?? '—'} · ${String(overview.data?.rebalances ?? 0)} rebalances`}
             height={520}
           />
 
