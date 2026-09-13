@@ -8,13 +8,15 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useIndex, usePreviewIndex } from '../shared/strategyQueries'
-import { TABLE_REFERENCE_FIELDS, useReferenceRows } from '../shared/queries'
+import { TABLE_REFERENCE_FIELDS, useCoverage, useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
 import { billions } from '../universe/universe'
 import {
   CELL_GLYPH,
   cellState,
+  explainEqualWeights,
   looksEquallyWeighted,
+  marketCoverage,
   oneWayTurnover,
   percent,
   solveOf,
@@ -176,6 +178,10 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   )
   const caps = useReferenceRows(names, TABLE_REFERENCE_FIELDS, asOf)
 
+  // Which dates the market frame actually holds, for explaining a weighting
+  // that could not price anything.
+  const coverage = useCoverage()
+
   /*
    * Nothing runs until asked (BU-186).
    *
@@ -302,24 +308,27 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
       {preview.isError && <ViewError error={preview.error} />}
 
       {/*
-        The fallback nobody was told about (BU-186).
+        The fallback nobody was told about (BU-186, corrected in BU-187).
 
-        py-beacon's `MarketCapWeighted` cannot price a name without
-        SHARES_OUTSTANDING in the market frame. With none of them priced the
-        total cap is zero, and it assigns EQUAL weights and logs a warning
-        server-side — so the app draws a perfectly plausible equally
-        weighted index under a heading that says market-cap weighted, and
-        nothing anywhere says otherwise.
+        `MarketCapWeighted` prices a name on the EXACT date, with no
+        lookback. A date with no bar prices nothing, the total cap is zero,
+        and it assigns equal weights while logging server-side — so a
+        plausible equally weighted index appears under a market-cap heading.
+
+        The cap columns beside it are NOT the check: `server/reference.py`
+        looks back thirty days for those, so they can be full while the
+        weighting saw nothing. The date is the check, and `/data/coverage`
+        knows which dates the market frame holds.
 
         Detected rather than reported, because there is nothing in the
         response to report it with. Filed against py-beacon as their #191.
       */}
       {wantsCaps && preview.data !== undefined && looksEquallyWeighted(preview.data.assets) && (
         <p className="preview-warning type-11">
-          Every weight here is identical, on an index weighted by market capitalisation. py-beacon
-          falls back to equal weights when it can price nothing — check the market-cap columns
-          below: if they are empty, this store has no SHARES_OUTSTANDING and the weighting never
-          ran.
+          Every weight here is identical, on an index weighted by market capitalisation — py-beacon
+          fell back to equal weights because it could not price a single name at this date.{' '}
+          {explainEqualWeights(asOf, marketCoverage(coverage.data?.datasets))}. The market caps
+          below come from a thirty-day lookback, so they are no guide to what the weighting saw.
         </p>
       )}
 

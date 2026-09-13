@@ -58,12 +58,24 @@ test('a market-cap index shows both caps, and says when it fell back', async ({ 
    * weighted index appears under a market-cap heading.
    */
   await openPreview(window, 'CAP-NOSHARES')
-  await window.getByLabel('As of').fill('2025-06-30')
+  // Past the end of the stub's market data, which is the real shape of the
+  // fault: a date the frame has no bar for.
+  await window.getByLabel('As of').fill('2027-06-30')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   await expect(window.locator('.tbl-head')).toContainText('Mkt cap (bn)')
   await expect(window.locator('.tbl-head')).toContainText('FF mkt cap (bn)')
   await expect(window.locator('.preview-warning')).toContainText('Every weight here is identical')
+
+  /*
+   * And it names the DATE as the thing to check, not the cap columns.
+   * `MarketCapWeighted` reads the exact date with no lookback, while the
+   * caps beside it come from a thirty-day one — so full caps and an
+   * unweighted index are perfectly consistent, and telling a reader to
+   * check the caps sends them somewhere that cannot answer (BU-187).
+   */
+  await expect(window.locator('.preview-warning')).toContainText('market data ends')
+  await expect(window.locator('.preview-warning')).toContainText('no guide')
 })
 
 test('an equally weighted index says nothing about market caps', async ({ window }) => {
