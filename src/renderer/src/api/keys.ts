@@ -52,6 +52,8 @@ export const keys = {
     ruleTypes: () => ['strategy', 'rule-types'] as const,
     all: () => ['strategy'] as const,
     indices: () => ['strategy', 'indices'] as const,
+    /** Trading calendars the engine accepts (BN-180). */
+    calendars: () => ['strategy', 'calendars'] as const,
     index: (indexId: string) => ['strategy', 'index', indexId] as const,
     universes: () => ['strategy', 'universes'] as const,
     universeMembers: (universeId: string) => ['strategy', 'universe-members', universeId] as const

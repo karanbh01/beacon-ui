@@ -479,3 +479,64 @@ export function useRuleTypes() {
     staleTime: Infinity
   })
 }
+
+export type CalendarOption = components['schemas']['CalendarOption']
+
+/**
+ * Every trading calendar this server accepts (BN-180, BU-190).
+ *
+ * Read from the calendar package at request time rather than curated, so
+ * the valid set and the list a client offers cannot drift apart — the same
+ * reason `/indices/rule-types` exists. `calendar` is required on an index
+ * and there is no server-side default, so a client that guessed a MIC
+ * would produce a 422 the user could not diagnose from inside the app.
+ */
+export function useCalendars() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.strategy.calendars(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/indices/calendars', { signal })
+    },
+    enabled: client !== null
+  })
+}
+
+export interface CalendarGroup {
+  region: string
+  options: CalendarOption[]
+}
+
+/**
+ * Calendars by region, for a grouped picker.
+ *
+ * `region` is the timezone database's noun — "Europe", "America" — derived
+ * server-side from the calendar's own timezone rather than curated, so a
+ * region nobody anticipated arrives as a heading rather than as a gap.
+ *
+ * The two UTC calendars group under "UTC", which is not a region. That is
+ * deliberate on both sides and it sorts last, because a heading that is
+ * not a place should not sit between two that are.
+ */
+export function calendarGroups(calendars: readonly CalendarOption[]): CalendarGroup[] {
+  const byRegion = new Map<string, CalendarOption[]>()
+  for (const option of calendars) {
+    const group = byRegion.get(option.region)
+    if (group === undefined) byRegion.set(option.region, [option])
+    else group.push(option)
+  }
+
+  return [...byRegion]
+    .map(([region, options]) => ({
+      region,
+      options: [...options].sort((a, b) => a.name.localeCompare(b.name))
+    }))
+    .sort((a, b) => rank(a.region) - rank(b.region) || a.region.localeCompare(b.region))
+}
+
+/** Places before non-places; everything else alphabetical. */
+function rank(region: string): number {
+  return region === 'UTC' ? 1 : 0
+}

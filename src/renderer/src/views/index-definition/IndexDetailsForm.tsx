@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { Field } from '../../components/Field/Field'
 import { Select } from '../../components/Select/Select'
+import { calendarGroups, useCalendars } from '../shared/strategyQueries'
 import type { IndexDocument } from './pipeline'
 import './IndexDetailsForm.css'
 
@@ -22,15 +23,14 @@ const RETURN_TYPES = [
   { value: 'NET_TOTAL_RETURN', label: 'Total return (net)' }
 ]
 
-/**
- * Free text, not a list.
- *
- * A trading calendar is an exchange-calendars code — XNAS, XLON, and several
- * hundred more. Enumerating them here would be a list to maintain against a
- * package this app does not depend on, and would reject a valid code the
- * moment the two fell out of step.
+/*
+ * The calendar was free text until BN-180, because enumerating exchange
+ * codes here would have been a list to maintain against a package this app
+ * does not depend on. `GET /indices/calendars` publishes them from the
+ * package itself now, so the list is generated and cannot drift — and the
+ * field is required, which makes free text a 422 nobody could diagnose
+ * from inside the app (BU-190).
  */
-const CALENDAR_PLACEHOLDER = 'XNAS'
 
 export interface IndexDetailsFormProps {
   document: IndexDocument
@@ -55,6 +55,8 @@ export function IndexDetailsForm({
   onChange,
   idLocked
 }: IndexDetailsFormProps): ReactElement {
+  const calendars = useCalendars()
+
   const set = <K extends keyof IndexDocument>(key: K, value: IndexDocument[K]): void => {
     onChange((current) => ({ ...current, [key]: value }))
   }
@@ -151,14 +153,24 @@ export function IndexDetailsForm({
           />
         </Field>
 
-        <Field label="Calendar" width={110}>
-          <input
-            className="index-input"
-            aria-label="Calendar"
-            placeholder={CALENDAR_PLACEHOLDER}
-            value={document.calendar ?? ''}
-            onChange={(event) => {
-              set('calendar', event.target.value === '' ? null : event.target.value)
+        <Field label="Calendar *" width={180}>
+          <Select
+            className="index-inline-select"
+            groups={calendarGroups(calendars.data?.calendars ?? []).map((group) => ({
+              label: group.region,
+              options: group.options.map((option) => ({
+                value: option.code,
+                // The MIC beside the name, because the document stores the
+                // MIC and a reader checking a saved index sees that.
+                label: option.name === option.code ? option.code : `${option.name} · ${option.code}`
+              }))
+            }))}
+            value={document.calendar}
+            placeholder={calendars.isError ? 'Catalogue unavailable' : 'Choose…'}
+            disabled={calendars.isPending || calendars.isError}
+            label="Calendar"
+            onChange={(value) => {
+              set('calendar', value)
             }}
           />
         </Field>

@@ -53,6 +53,8 @@ function doc(overrides: Partial<IndexDocument> = {}): IndexDocument {
     rebalancing_frequency: 'QUARTERLY',
     return_type: 'PRICE',
     rebalance_day_rule: 'FIRST_BUSINESS_DAY',
+    // Required since BN-180; a document without one is a 422.
+    calendar: 'XNYS',
     effective_lag_sessions: 0,
     withholding_tax_rate: 0,
     universe: { universe_id: 'US-LARGECAP' },
@@ -275,10 +277,12 @@ describe('choosing, editing and removing rows (BU-160)', () => {
 
   it('says a scheme is missing before the engine is asked', () => {
     // `scheme` carries min_length 1, so an unchosen one is a 422 against the
-    // request body rather than a finding anybody could act on.
-    const findings = draftFindings(blankIndex('X'))
+    // request body rather than a finding anybody could act on. A blank draft
+    // also has no calendar, which BU-190 reports alongside rather than
+    // instead of this.
+    const chosen = { ...blankIndex('X'), calendar: 'XNYS' }
 
-    expect(findings.map((finding) => finding.code)).toEqual(['NO_WEIGHTING'])
+    expect(draftFindings(chosen).map((finding) => finding.code)).toEqual(['NO_WEIGHTING'])
     expect(draftFindings(doc())).toEqual([])
   })
 })
@@ -506,5 +510,45 @@ describe('what a delete takes with it (BU-170)', () => {
     })
 
     expect(said).toBe('Deleted 1 index: EU-VALUE.')
+  })
+})
+
+describe('a calendar is required (BU-190)', () => {
+  it('starts a new index without one, rather than guessing', () => {
+    /*
+     * `GET /indices/calendars` publishes `default: "XNYS"` as a suggestion
+     * for a form, and taking it would put New York's calendar on a EUR
+     * index for anyone who did not look — the exact case Karan overruled a
+     * server-side default to prevent. A pre-filled control guesses just as
+     * confidently as a constructor does.
+     */
+    expect(blankIndex('NEW').calendar).toBe('')
+  })
+
+  it('blocks the save until one is chosen', () => {
+    const codes = draftFindings(blankIndex('NEW')).map((finding) => finding.code)
+    expect(codes).toContain('NO_CALENDAR')
+  })
+
+  it('says nothing once there is one', () => {
+    const chosen = { ...blankIndex('NEW'), calendar: 'XNYS' }
+    expect(draftFindings(chosen).map((finding) => finding.code)).not.toContain('NO_CALENDAR')
+  })
+
+  it('reports it alongside the missing weighting, not instead of it', () => {
+    // Two things are wrong with a blank draft, and fixing one should not
+    // make the other disappear from the report.
+    const codes = draftFindings(blankIndex('NEW')).map((finding) => finding.code)
+    expect(codes).toEqual(['NO_CALENDAR', 'NO_WEIGHTING'])
+  })
+
+  it('still reports a missing calendar on a derived index', () => {
+    // A derivation has no weighting to choose, but it still rebalances.
+    const derived = {
+      ...blankIndex('NEW'),
+      pipeline: null,
+      derivation: { source_index_id: 'TECH10', objective: 'min_tracking_error', constraints: [] }
+    }
+    expect(draftFindings(derived).map((finding) => finding.code)).toEqual(['NO_CALENDAR'])
   })
 })

@@ -723,6 +723,7 @@ function derivedDocument(id: string, derivation: StubDerivation): unknown {
     return_type: 'NET_TOTAL_RETURN',
     rebalance_day_rule: 'THIRD_FRIDAY',
     effective_lag_sessions: 0,
+    calendar: 'XNYS',
     withholding_tax_rate: 0,
     // Exactly one of a pipeline-and-universe or a derivation: py-beacon
     // refuses a document carrying both, and so does this.
@@ -749,6 +750,7 @@ function indexDocument(id: string): unknown {
     return_type: 'NET_TOTAL_RETURN',
     rebalance_day_rule: 'THIRD_FRIDAY',
     effective_lag_sessions: 0,
+    calendar: 'XNYS',
     withholding_tax_rate: 0,
     universe: { universe_id: 'US-LARGECAP' },
     pipeline: {
@@ -899,6 +901,41 @@ const RULE_TYPES = {
 const ROUTES: Record<string, unknown> = {
   '/health': { status: 'ok', version: '0.0.2', cache_age: 120 },
   '/indices/rule-types': RULE_TYPES,
+  /*
+   * Every trading calendar the engine accepts (BN-180).
+   *
+   * Read from the calendar package at request time on a real engine, so
+   * the list cannot drift from the values it validates. A handful here,
+   * spanning every region shape a client has to render: a curated name, a
+   * name that falls back to its MIC, and the two UTC rows whose "region"
+   * is not a place.
+   *
+   * `default` is a suggestion for a form and NOT a server-side fallback —
+   * omitting `calendar` is still a 422, which is the whole point of the
+   * field being required.
+   */
+  '/indices/calendars': {
+    calendars: [
+      { code: 'XNYS', name: 'New York Stock Exchange', region: 'America', tz: 'America/New_York' },
+      { code: 'XNAS', name: 'Nasdaq', region: 'America', tz: 'America/New_York' },
+      { code: 'XTSE', name: 'Toronto Stock Exchange', region: 'America', tz: 'America/Toronto' },
+      { code: 'XLON', name: 'London Stock Exchange', region: 'Europe', tz: 'Europe/London' },
+      { code: 'XPAR', name: 'Euronext Paris', region: 'Europe', tz: 'Europe/Paris' },
+      { code: 'XTKS', name: 'Tokyo Stock Exchange', region: 'Asia', tz: 'Asia/Tokyo' },
+      // Uncurated: the name falls back to the MIC rather than the row
+      // disappearing, which is the failure mode worth covering.
+      { code: 'AIXK', name: 'AIXK', region: 'Asia', tz: 'Asia/Almaty' },
+      {
+        code: 'XASX',
+        name: 'Australian Securities Exchange',
+        region: 'Australia',
+        tz: 'Australia/Sydney'
+      },
+      { code: '24/7', name: '24/7', region: 'UTC', tz: 'UTC' },
+      { code: '24/5', name: '24/5', region: 'UTC', tz: 'UTC' }
+    ],
+    default: 'XNYS'
+  },
   /*
    * Every datapoint an expression can name (BN-188).
    *

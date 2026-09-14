@@ -7,8 +7,24 @@ export interface SelectOption {
   label: string
 }
 
-export interface SelectProps {
+export interface SelectGroup {
+  label: string
   options: readonly SelectOption[]
+}
+
+export interface SelectProps {
+  /** Flat options. Ignored when `groups` is given. */
+  options?: readonly SelectOption[]
+  /**
+   * Options under headings, for a list long enough that a flat one cannot
+   * be scanned (BU-190).
+   *
+   * A hundred trading calendars is not a list anybody reads top to bottom;
+   * eight regions of a dozen is. The grouping comes from the data — the
+   * calendar endpoint carries a region per row — rather than being decided
+   * here, so a heading nobody anticipated appears rather than being lost.
+   */
+  groups?: readonly SelectGroup[]
   value: string
   onChange: (value: string) => void
   /** Required: the control shows only its current value, never a label. */
@@ -38,6 +54,7 @@ export interface SelectProps {
  */
 export function Select({
   options,
+  groups,
   value,
   onChange,
   label,
@@ -45,12 +62,18 @@ export function Select({
   disabled = false,
   className
 }: SelectProps): ReactElement {
+  const flat = options ?? []
+  // The label shown on the box comes from whichever set was supplied.
+  const chosen = (groups === undefined ? flat : groups.flatMap((group) => group.options)).find(
+    (option) => option.value === value
+  )
+
   return (
     <span
       className={['select', disabled && 'select-disabled', className].filter(Boolean).join(' ')}
     >
       <span className="select-label" aria-hidden="true">
-        {options.find((option) => option.value === value)?.label ?? placeholder ?? value}
+        {chosen?.label ?? placeholder ?? value}
       </span>
       <ChevronIcon size={10} className="select-chevron" />
       <select
@@ -62,11 +85,21 @@ export function Select({
           onChange(event.target.value)
         }}
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+        {groups === undefined
+          ? flat.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))
+          : groups.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
       </select>
     </span>
   )

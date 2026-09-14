@@ -550,6 +550,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/indices/calendars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Calendars */
+        get: operations["calendars_indices_calendars_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/indices/preview": {
         parameters: {
             query?: never;
@@ -1009,10 +1026,34 @@ export interface paths {
         };
         /** Get Universe */
         get: operations["get_universe_universes__universe_id__get"];
-        /** Put Universe */
+        /**
+         * Put Universe
+         * @description Replace a universe, repairing an unreadable one if that is what it is.
+         *
+         *     A PUT carries a complete valid replacement, so over an unreadable
+         *     document it is a repair — and the read-only check cannot run, because
+         *     `source` is one of the fields the server cannot read. Refusing would
+         *     leave the document unfixable through the API, the same trap the delete
+         *     had (BN-177), so the check is skipped and logged. It is *not* skipped
+         *     for a document that reads: that is the whole point of it.
+         */
         put: operations["put_universe_universes__universe_id__put"];
         post?: never;
-        /** Delete Universe */
+        /**
+         * Delete Universe
+         * @description Remove a universe, whether or not the server can read it.
+         *
+         *     Removal needs the file to be PRESENT, not valid, so this asks existence
+         *     and not readability (BN-177). Going through a strict read made an
+         *     unreadable universe 500 here, which left the id occupied forever — only
+         *     deleting the file on the server could clear it.
+         *
+         *     The read-only check is skipped when the document cannot be read: you
+         *     cannot protect the contents of a file you cannot read, and refusing
+         *     would leave it permanently undeletable, which is strictly worse than the
+         *     risk it guards against. A seeded universe can be regenerated; a stuck id
+         *     cannot be cleared through the API at all.
+         */
         delete: operations["delete_universe_universes__universe_id__delete"];
         options?: never;
         head?: never;
@@ -1474,6 +1515,61 @@ export interface components {
             weights: components["schemas"]["TableFrame"];
             /** Weights Dates Total */
             weights_dates_total: number;
+        };
+        /**
+         * CalendarList
+         * @description Response of `GET /indices/calendars`.
+         *
+         *     `IndexDocument.calendar` is required (BN-180), so a client that cannot see
+         *     the accepted set has two bad options: hard-code a hundred-odd MICs, or ship
+         *     a free-text box that now fails a 422 on a mandatory field. This publishes
+         *     what the engine accepts, the way `/indices/rule-types` and
+         *     `/optimise/constraint-types` do — read from `exchange_calendars` at request
+         *     time, never a hand-kept copy, so the wire set cannot drift from the set the
+         *     calculation schedules on.
+         */
+        CalendarList: {
+            /**
+             * Calendars
+             * @description Every exchange MIC this server can schedule against, sorted by code, each with what a picker needs to render it. Around a hundred entries; served whole rather than paged, because a picker wants all of them and the payload is a few kilobytes.
+             */
+            calendars: components["schemas"]["CalendarOption"][];
+            /**
+             * Default
+             * @description The calendar code to preselect. The same value stored documents without a calendar were migrated to, so it is a reasonable default for a new index rather than an arbitrary one — but it is a suggestion for the form, not a server-side fallback: `IndexDocument.calendar` has no default and omitting it is a 422.
+             */
+            default: string;
+        };
+        /**
+         * CalendarOption
+         * @description One selectable trading calendar, as `GET /indices/calendars` serves it.
+         *
+         *     Every field is derived from `exchange_calendars` at request time except
+         *     `name`, which is curated and falls back to the code. Nothing here is a
+         *     hand-kept table of the calendar set itself, so the options a client offers
+         *     cannot drift from the calendars the schedule accepts.
+         */
+        CalendarOption: {
+            /**
+             * Code
+             * @description The exchange MIC, e.g. 'XNYS'. This is the value to send as `IndexDocument.calendar`; everything else on this row is for display.
+             */
+            code: string;
+            /**
+             * Name
+             * @description Display name, e.g. 'New York Stock Exchange'. Curated for the major venues only and **falls back to `code`** for the rest — `exchange_calendars` carries no friendly names, so a partial list that degrades to the MIC is the honest option. A row where `name` equals `code` is an uncurated calendar, not a broken one.
+             */
+            name: string;
+            /**
+             * Region
+             * @description Derived, not curated: the first segment of the calendar's own IANA timezone, so 'Europe/Oslo' gives 'Europe'. A noun as the tz database spells it — group headings are the client's wording, since 'Atlantic' and 'Pacific' have no distinct adjective and a mapping to one would be the hand-kept table this field exists to avoid. Two calendars sit on bare UTC and so report 'UTC', which is not a region; that is deliberate rather than a gap, and whether it becomes an 'Other' heading is the client's call.
+             */
+            region: string;
+            /**
+             * Tz
+             * @description The calendar's full IANA timezone, e.g. 'America/New_York'. Carried because `region` throws away the rest of it, and a client showing session times needs the whole zone.
+             */
+            tz: string;
         };
         /**
          * CarryDecomposition
@@ -2655,9 +2751,9 @@ export interface components {
             base_value: number;
             /**
              * Calendar
-             * @description Exchange MIC backing trading-day arithmetic, e.g. 'XNYS'. Null means Monday to Friday, which is what every index defined before this field used. Naming one requires the `calendars` extra — an index that declares a calendar must never quietly compute against a different one.
+             * @description Exchange MIC backing trading-day arithmetic, e.g. 'XNYS'. **Required since BN-180**, and the one field on this model that changed from optional to required. It used to default to null, meaning Monday to Friday — which schedules rebalances on 1 January, 4 July and 25 December, days no exchange has a session for. Stored documents without one were migrated to 'XNYS' by schema version 2. `GET /indices/calendars` publishes every value this server accepts, read from the calendar package itself, so a client renders a closed list instead of guessing a MIC.
              */
-            calendar?: string | null;
+            calendar: string;
             /**
              * Currency
              * @description Index currency.
@@ -2728,6 +2824,12 @@ export interface components {
         JobCollection: {
             /** Jobs */
             jobs: components["schemas"]["JobStatus"][];
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
         };
         /**
          * JobStatus
@@ -3214,7 +3316,10 @@ export interface components {
          *     total, and one row per name.
          */
         PreviewResponse: {
-            /** As Of */
+            /**
+             * As Of
+             * @description The date the preview was asked for, YYYY-MM-DD, echoed back unchanged. What the data was actually read from is `resolved_date`, which is earlier whenever `as_of` fell on a day the market was shut.
+             */
             as_of: string;
             /** Assets */
             assets: components["schemas"]["PreviewAsset"][];
@@ -3231,6 +3336,11 @@ export interface components {
             cap_redistributed: number;
             /** Index Id */
             index_id: string;
+            /**
+             * Resolved Date
+             * @description The market session `as_of` resolved to, YYYY-MM-DD: the latest one the data carries on or before it. A request for a weekend or a holiday resolves back to the session before it, which is the composition the index actually held that day rather than an approximation of one. Equal to `as_of` on a day the data has, and null only when `as_of` falls outside the data's coverage altogether.
+             */
+            resolved_date?: string | null;
             /** @description The optimisation at `as_of`. Null on a rule-driven index. */
             solve?: components["schemas"]["PreviewSolve"] | null;
             /**
@@ -3568,6 +3678,12 @@ export interface components {
              * @description Templates generated from a run rather than stored. These can be rendered but not edited: they are code, not documents.
              */
             built_in?: string[];
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
             /** Templates */
             templates: components["schemas"]["ReportTemplateDocument"][];
         };
@@ -3960,9 +4076,9 @@ export interface components {
             as_of: string;
             /**
              * Calendar
-             * @description Null means business days.
+             * @description Exchange MIC the dates were computed on. Always present since BN-180 made the calendar required.
              */
-            calendar?: string | null;
+            calendar: string;
             /**
              * Days Until
              * @description Calendar days from `as_of` to `next_rebalance`. Calendar days rather than sessions, because it is displayed as 'in 57 days' and a reader counts those on a wall calendar.
@@ -4620,6 +4736,12 @@ export interface components {
          * @description Response of `GET /data/watchlists`.
          */
         WatchlistCollection: {
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
             /** Watchlists */
             watchlists: components["schemas"]["Watchlist"][];
         };
@@ -7771,6 +7893,98 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SavedIndex"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    calendars_indices_calendars_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarList"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */

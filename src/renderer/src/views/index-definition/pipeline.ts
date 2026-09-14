@@ -498,19 +498,38 @@ export function describeDeleted(result: IndexDeletion): string {
  * body path — rather than as a finding anybody would act on.
  */
 export function draftFindings(document: IndexDocument): Finding[] {
-  // A derived index has no weighting to choose: its weights are solved, and
-  // the derivation is what py-beacon validates (BU-170).
-  if (isDerived(document) || hasWeighting(document)) return []
+  const findings: Finding[] = []
 
-  return [
-    {
-      path: 'pipeline.weighting.scheme',
+  /*
+   * A calendar is required and has no server default (BN-180, BU-190).
+   *
+   * Reported here rather than left to the round trip, for the same reason
+   * the weighting is: the request schema refuses it, so it comes back as a
+   * 422 about a missing field rather than as a finding pointing at the
+   * control that fills it.
+   */
+  if (document.calendar.trim() === '') {
+    findings.push({
+      path: 'calendar',
       rule_id: null,
       severity: 'error',
-      code: 'NO_WEIGHTING',
-      message: 'Choose a weighting scheme — py-beacon needs one to build the index.'
-    }
-  ]
+      code: 'NO_CALENDAR',
+      message: 'Choose a trading calendar — it decides which days the index rebalances on.'
+    })
+  }
+
+  // A derived index has no weighting to choose: its weights are solved, and
+  // the derivation is what py-beacon validates (BU-170).
+  if (isDerived(document) || hasWeighting(document)) return findings
+
+  findings.push({
+    path: 'pipeline.weighting.scheme',
+    rule_id: null,
+    severity: 'error',
+    code: 'NO_WEIGHTING',
+    message: 'Choose a weighting scheme — py-beacon needs one to build the index.'
+  })
+  return findings
 }
 
 export function removeRule(document: IndexDocument, id: string): IndexDocument {
@@ -609,6 +628,19 @@ export function blankIndex(id: string): IndexDocument {
     // defaulted field required — the server always sends one back.
     return_type: 'PRICE',
     rebalance_day_rule: 'FIRST_BUSINESS_DAY',
+    /*
+     * Empty on purpose, and NOT pre-filled from the endpoint's `default`
+     * (BU-190).
+     *
+     * `GET /indices/calendars` publishes `default: "XNYS"` as a suggestion
+     * for a form, and taking it would put New York's calendar on a EUR
+     * index for anyone who did not look — which is the exact case Karan
+     * overruled a server-side default to prevent. The whole value of the
+     * field being required is that the system stops guessing, and a
+     * pre-filled control guesses just as confidently as a constructor
+     * does. `draftFindings` blocks the save until one is chosen.
+     */
+    calendar: '',
     effective_lag_sessions: 0,
     withholding_tax_rate: 0,
     universe: { universe_id: null },

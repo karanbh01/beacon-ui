@@ -18,6 +18,8 @@ const SAVED: IndexDocument = {
   rebalancing_frequency: 'QUARTERLY',
   return_type: 'PRICE',
   rebalance_day_rule: 'FIRST_BUSINESS_DAY',
+  // Required since BN-180; a document without one is a 422.
+  calendar: 'XNYS',
   effective_lag_sessions: 0,
   withholding_tax_rate: 0,
   universe: { universe_id: 'US-LARGECAP' },
