@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from 'react'
+import { useEffect, useState, type ReactElement, type ReactNode } from 'react'
 import { ApiError, NetworkError } from '../../api/errors'
 import './ViewState.css'
 
@@ -13,6 +13,36 @@ import './ViewState.css'
 
 export function ViewLoading({ what }: { what: string }): ReactElement {
   return <p className="view-state type-11">Loading {what}…</p>
+}
+
+/**
+ * A wait long enough that "loading" stops being informative (BU-191).
+ *
+ * Resolving a pipeline over a large universe is genuinely slow — every
+ * name priced point-in-time, per rule — and a spinner that says the same
+ * thing at four seconds and four minutes leaves a reader unable to tell
+ * work from a hang. The elapsed count is the difference: it moves, so the
+ * app is alive, and it tells them how long they have been waiting.
+ */
+export function ViewWorking({ what, since }: { what: string; since: number }): ReactElement {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setNow(Date.now())
+    }, 1000)
+    return () => {
+      clearInterval(tick)
+    }
+  }, [])
+
+  const seconds = Math.max(0, Math.round((now - since) / 1000))
+  return (
+    <p className="view-state type-11">
+      Resolving {what}… {seconds}s
+      {seconds >= 30 && ' · a large universe takes a while; every name is priced at the date'}
+    </p>
+  )
 }
 
 export function ViewEmpty({ children }: { children: ReactNode }): ReactElement {

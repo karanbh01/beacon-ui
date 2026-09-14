@@ -6,7 +6,7 @@ import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { ViewEmpty, ViewError, ViewWorking } from '../shared/ViewState'
 import { useIndex, usePreviewIndex } from '../shared/strategyQueries'
 import { TABLE_REFERENCE_FIELDS, useCoverage, useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
@@ -150,6 +150,8 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const indexId = subject ?? ''
   const [asOf, setAsOf] = useState('')
   const [compareTo, setCompareTo] = useState('')
+  /** When the current preview began, for saying how long it has run. */
+  const [startedAt, setStartedAt] = useState<number | undefined>(undefined)
 
   const preview = usePreviewIndex()
   const comparison = usePreviewIndex()
@@ -193,6 +195,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const { mutate, reset } = preview
   const run = (): void => {
     if (indexId === '' || asOf === '') return
+    setStartedAt(Date.now())
     mutate({ indexId, asOf })
   }
 
@@ -304,7 +307,15 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         </ViewEmpty>
       )}
 
-      {preview.isPending && indexId !== '' && <ViewLoading what={indexId} />}
+      {/*
+        Elapsed, not just "loading" (BU-191). Resolving a pipeline over a
+        large universe prices every name at the date, and a message that
+        reads the same at four seconds and four minutes leaves a reader
+        unable to tell work from a hang.
+      */}
+      {preview.isPending && indexId !== '' && startedAt !== undefined && (
+        <ViewWorking what={indexId} since={startedAt} />
+      )}
       {preview.isError && <ViewError error={preview.error} />}
 
       {/*

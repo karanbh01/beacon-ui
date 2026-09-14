@@ -6,7 +6,7 @@ import { useWorkspace } from '../../state/tabs.store'
 import { isDocumentId } from '../../api/ids'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { catalogueDisabled, cataloguePlaceholder, describeSkipped } from '../shared/pickers'
-import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { ViewEmpty, ViewError, ViewLoading, ViewWorking } from '../shared/ViewState'
 import {
   useDeleteIndex,
   useIndices,
@@ -83,6 +83,8 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
 
   const [editingId, setEditingId] = useState<string | undefined>(undefined)
   const [previewedFor, setPreviewedFor] = useState<string | undefined>(undefined)
+  /** When the current validate began, for saying how long it has run. */
+  const [startedAt, setStartedAt] = useState<number | undefined>(undefined)
   /** What the last delete actually removed, in the engine's own count. */
   const [removed, setRemoved] = useState<string | undefined>(undefined)
 
@@ -165,7 +167,18 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
     return <ViewEmpty>No index definition named “{indexId}” on this engine.</ViewEmpty>
   }
 
+  /*
+   * Both halves of a validate, since the button fires both (BU-191).
+   *
+   * `validate` answers quickly; `preview` resolves the whole pipeline and
+   * is the one that takes minutes on a large universe. Treating only the
+   * first as "working" would re-enable the button while the expensive half
+   * was still running.
+   */
+  const working = validate.isPending || preview.isPending
+
   const run = (document: IndexDocument): void => {
+    setStartedAt(Date.now())
     validate.mutate(document)
     preview.mutate({ document })
     setPreviewedFor(JSON.stringify(document))
@@ -215,9 +228,9 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
               }}
               // Neither call can be made with no scheme chosen: the request
               // schema rejects the body before any of it is read (BU-160).
-              disabled={validate.isPending || !hasWeighting(draft)}
+              disabled={working || !hasWeighting(draft)}
             >
-              Validate
+              {working ? 'Validating…' : 'Validate'}
             </Button>
             <Button onClick={revert} disabled={!dirty}>
               Revert
@@ -243,6 +256,21 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
       />
 
       {save.isError && <ViewError error={save.error} />}
+
+      {/*
+        Validate and preview were the only mutations on this pane whose
+        failures went nowhere (BU-191). The card kept saying "not validated
+        yet" — true, and true of a request that came back refused as much
+        as of one nobody made, which is the distinction the reader needs.
+      */}
+      {validate.isError && <ViewError error={validate.error} />}
+      {preview.isError && <ViewError error={preview.error} />}
+
+      {/*
+        A pipeline over a large universe is genuinely slow, and a button
+        that only greys out is indistinguishable from one that did nothing.
+      */}
+      {working && startedAt !== undefined && <ViewWorking what={draft.id} since={startedAt} />}
 
       <IndexDetailsForm document={draft} onChange={edit} idLocked={saved !== undefined} />
 
