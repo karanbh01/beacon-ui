@@ -81,6 +81,20 @@ export function ViewError({ error }: { error: unknown }): ReactElement {
      * a hiccup and invites a retry that will fail identically; the message
      * beneath already says which pair to load, so the heading has only to
      * stop pointing the reader at the wrong remedy.
+     *
+     * KNOWN WRONG for one case, and deliberately not worked around here
+     * (py-beacon #207). `calculator.py` wraps the weighting call in a bare
+     * `except Exception` and re-raises as `CalculationError`, so a genuine
+     * crash — a scheme dividing by zero — arrives under this same code and
+     * is headed as a decision somebody made. There is nothing to change and
+     * the reader goes looking for it.
+     *
+     * The only thing separating them on the wire is a `WeightingScheme-`
+     * prefix on the calculation name; `detail` carries the same two fields
+     * either way, which was read rather than assumed. Keying on that prefix
+     * would be a hand-written mirror of an upstream detail, which is the
+     * failure this file already has three examples of. The code needs two
+     * values and the fix is upstream, so this waits for it.
      */
     return (
       <div className="view-state">

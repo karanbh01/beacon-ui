@@ -66,3 +66,29 @@ describe('the states a refusal must not be confused with', () => {
     expect(screen.queryByText('The engine refused to answer.')).not.toBeInTheDocument()
   })
 })
+
+describe('the one case this heading gets wrong', () => {
+  it('heads a wrapped crash as a refusal, which is upstream to fix', () => {
+    /*
+     * py-beacon #207. `calculator.py` wraps the weighting call in a bare
+     * `except Exception` and re-raises as `CalculationError`, so a scheme
+     * that divides by zero arrives under the same code as a deliberate
+     * refusal and is headed as a decision somebody made.
+     *
+     * Pinned rather than worked around. The only wire-level difference is a
+     * `WeightingScheme-` prefix on the calculation name, and keying on that
+     * would be a hand-written mirror of an upstream detail — the failure
+     * mode that produced three bugs in this repo already. When #207 splits
+     * the code this test fails, which is the point: the next reader learns
+     * why the branch is shaped as it is instead of rediscovering it.
+     */
+    const crash = apiError(
+      500,
+      'CALCULATION_ERROR',
+      "Error in calculation 'WeightingScheme-EqualWeighted': division by zero"
+    )
+    render(<ViewError error={crash} />)
+
+    expect(screen.getByText('The engine refused to answer.')).toBeInTheDocument()
+  })
+})
