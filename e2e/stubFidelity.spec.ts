@@ -98,3 +98,30 @@ test('the prices interval is echoed, not hard-coded', async ({ engine }) => {
 
   expect(payload.interval).toBe('monthly')
 })
+
+test('the overview carries dates, while its level series carries moments', async ({ engine }) => {
+  /*
+   * BN-187. `OverviewView.start`/`.end` changed from `2023-01-02T00:00:00`
+   * to `2023-01-02`, matching `CompareView` next door — the engine slices
+   * its own index there (`str(level.index[0])[:10]`) while the SERIES keeps
+   * its timestamps. So one payload carries both forms deliberately.
+   *
+   * A stub that sent timestamps for both would let a client parse the wrong
+   * one and pass here, which is the shape of every fidelity bug BU-88
+   * catalogued.
+   */
+  const { body } = await get(engine.url, '/beacon/TECH10/overview')
+  const overview = body as unknown as {
+    start: string
+    end: string
+    last_rebalance: string
+    level: { index: string[] }
+  }
+
+  expect(overview.start).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  expect(overview.end).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  // A snapshot's own date, which was never a timestamp.
+  expect(overview.last_rebalance).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  // And the series is unchanged, which is the half that makes this a trap.
+  expect(overview.level.index[0]).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+})

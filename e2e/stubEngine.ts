@@ -1455,14 +1455,24 @@ function body(url: URL): unknown {
 
     const level = levelSeries(seedFor(indexId))
     const last = level.index[level.index.length - 1] ?? ''
+    /*
+     * Dates, not moments (BN-187).
+     *
+     * The engine slices its own level index to ten characters here —
+     * `str(level.index[0])[:10]` — while the SERIES keeps its timestamps, so
+     * one payload carries both forms and a stub that sent timestamps for
+     * both would let a client parse the wrong one and pass.
+     */
+    const day = (value: string): string => value.slice(0, 10)
     return {
       index_id: indexId,
       name: indexId === OPTIMISED ? 'TECH10 optimised' : 'Beacon US Technology Top 10',
-      start: level.index[0] ?? '',
-      end: last,
+      start: day(level.index[0] ?? ''),
+      end: day(last),
       observations: level.index.length,
       rebalances: 12,
-      last_rebalance: last,
+      // A snapshot's own date, which was never a timestamp.
+      last_rebalance: day(last),
       level: { name: 'level', ...level },
       metrics: { ...metricsOf(level), tracking_error: 0.018, tracking_difference: 0.0012 },
       concentration: {

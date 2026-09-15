@@ -108,7 +108,7 @@ export function Summary({ indexId }: SummaryProps): ReactElement {
             ]}
             // "from", not "base": `start` is where the level series begins,
             // which is not the document's base date (BU-189).
-            note={`from ${overview.data?.start.slice(0, 10) ?? '—'} · ${String(overview.data?.rebalances ?? 0)} rebalances`}
+            note={`from ${overview.data?.start ?? '—'} · ${String(overview.data?.rebalances ?? 0)} rebalances`}
             height={520}
           />
 
@@ -151,8 +151,14 @@ export function Summary({ indexId }: SummaryProps): ReactElement {
       )}
 
       <p className="overview-footnote type-11">
-        {overview.data?.start.slice(0, 10) ?? '—'} → {overview.data?.end.slice(0, 10) ?? '—'} · last
-        rebalance {overview.data?.last_rebalance.slice(0, 10) ?? '—'} · effective N{' '}
+        {/*
+          Dates, not moments (BN-187). These three were sliced to ten
+          characters because `start` and `end` arrived as midnight
+          timestamps; they are `YYYY-MM-DD` now, and a slice that trims
+          nothing tells the next reader the field is longer than it is.
+        */}
+        {overview.data?.start ?? '—'} → {overview.data?.end ?? '—'} · last rebalance{' '}
+        {overview.data?.last_rebalance ?? '—'} · effective N{' '}
         {overview.data?.concentration.effective_assets.toFixed(1) ?? '—'} · 1D, YTD, since-base and
         the hit rate are derived from the level series
         {/*
