@@ -2161,7 +2161,7 @@ export interface components {
             code: string;
             /**
              * Detail
-             * @description Structured context, e.g. the offending field or rule.
+             * @description Structured context, e.g. the offending field or rule. An UNEXPECTED_CALCULATION_FAILURE additionally carries 'original_type': the class name of the exception that failed, so a crash can be told apart from a refusal without reading a server log.
              */
             detail?: {
                 [key: string]: unknown;

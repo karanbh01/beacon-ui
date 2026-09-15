@@ -768,7 +768,36 @@ const FX_UNVALUED_ERROR =
   'convertible, and converting at 1.0 — what the old log claimed — weights it as though the two ' +
   'currencies were the same money. Load the pair, or define the index in JPY.'
 
-let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE]
+/**
+ * A weighting that CRASHES rather than refuses (BN-194, py-beacon #207).
+ *
+ * `calculator.py` wraps `calculate_weights` in a bare `except Exception`, so
+ * a scheme that divides by zero reaches a client inside the envelope instead
+ * of as an unlabelled 500. It shared `CALCULATION_ERROR` with every
+ * deliberate refusal until BN-194, which meant this app headed a bug as a
+ * decision somebody made.
+ *
+ * Reachable from a PREVIEW: `build_preview` calls
+ * `calculate_constituent_weights`, which is the method holding that wrap —
+ * read rather than assumed, since guessing which paths reach a guard is how
+ * the last three of these went wrong.
+ *
+ * The calculation name deliberately matches a refusal's. py-beacon has a test
+ * proving the two can carry the same one, so a client tempted to branch on
+ * the `WeightingScheme-` prefix sees nothing here either.
+ */
+const CRASHING = 'WEIGHT-CRASH'
+
+const CRASHING_ERROR = refuse(
+  500,
+  'UNEXPECTED_CALCULATION_FAILURE',
+  "Calculation 'WeightingScheme-EqualWeighted' failed with an unexpected ZeroDivisionError: " +
+    'division by zero. This is a fault rather than a refusal: there is nothing in the request to ' +
+    'change, and it is worth reporting.',
+  { calculation_name: 'WeightingScheme-EqualWeighted', original_type: 'ZeroDivisionError' }
+)
+
+let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE, CRASHING]
 
 interface StubDerivation {
   parent: string
@@ -787,7 +816,7 @@ interface StubDerivation {
 const derivations = new Map<string, StubDerivation>()
 
 function resetIndices(): void {
-  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE]
+  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE, CRASHING]
   derivations.clear()
   derivations.set(OPTIMISED, {
     parent: 'TECH10',
@@ -2197,6 +2226,13 @@ export function startStubEngine(): Promise<StubEngine> {
           response
             .writeHead(FX_UNWEIGHTABLE_ERROR.status)
             .end(JSON.stringify(FX_UNWEIGHTABLE_ERROR.payload))
+          return
+        }
+
+        // And a weighting that crashes rather than refusing, which shares
+        // the path and nothing else (BN-194).
+        if (indexId === CRASHING) {
+          response.writeHead(CRASHING_ERROR.status).end(JSON.stringify(CRASHING_ERROR.payload))
           return
         }
 

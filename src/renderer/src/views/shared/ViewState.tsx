@@ -82,24 +82,42 @@ export function ViewError({ error }: { error: unknown }): ReactElement {
      * beneath already says which pair to load, so the heading has only to
      * stop pointing the reader at the wrong remedy.
      *
-     * KNOWN WRONG for one case, and deliberately not worked around here
-     * (py-beacon #207). `calculator.py` wraps the weighting call in a bare
-     * `except Exception` and re-raises as `CalculationError`, so a genuine
-     * crash — a scheme dividing by zero — arrives under this same code and
-     * is headed as a decision somebody made. There is nothing to change and
-     * the reader goes looking for it.
-     *
-     * The only thing separating them on the wire is a `WeightingScheme-`
-     * prefix on the calculation name; `detail` carries the same two fields
-     * either way, which was read rather than assumed. Keying on that prefix
-     * would be a hand-written mirror of an upstream detail, which is the
-     * failure this file already has three examples of. The code needs two
-     * values and the fix is upstream, so this waits for it.
+     * True of everything arriving under this code since BN-194. A crash
+     * used to share it — `calculator.py` wraps the weighting call in a bare
+     * `except Exception` — and was headed as a decision somebody made; the
+     * branch below catches those now, under a code of their own.
      */
     return (
       <div className="view-state">
         <p className="type-13">The engine refused to answer.</p>
         <p className="type-11">{error.message}</p>
+      </div>
+    )
+  }
+
+  if (error instanceof ApiError && error.code === 'UNEXPECTED_CALCULATION_FAILURE') {
+    /*
+     * A fault, not a decision (BN-194, py-beacon #207).
+     *
+     * Nobody wrote a guard for this, so there is nothing in the request to
+     * change and a reader told otherwise goes looking for it. `original_type`
+     * names the exception class, which is the difference between "report
+     * this" and "report this, it is a ZeroDivisionError".
+     *
+     * Kept apart from the refusal by the published CODE alone — never by the
+     * `WeightingScheme-` prefix one `except` block puts in the calculation
+     * name. py-beacon now has a test proving a refusal and a crash can carry
+     * the same name, so that prefix is provably not a signal rather than
+     * merely a bad thing to lean on.
+     */
+    const kind = typeof error.detail?.original_type === 'string' ? error.detail.original_type : null
+    return (
+      <div className="view-state">
+        <p className="type-13">The engine broke on this calculation.</p>
+        <p className="type-11">{error.message}</p>
+        {kind !== null && (
+          <p className="type-11">Raised a {kind} — worth reporting with the date.</p>
+        )}
       </div>
     )
   }

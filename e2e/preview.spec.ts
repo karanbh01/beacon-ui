@@ -220,3 +220,31 @@ test('a weighting that cannot convert refuses, and the pane says so', async ({ w
   // constituent list drawn beside one is a list nobody should trust.
   await expect(window.locator('.tbl-body')).toHaveCount(0)
 })
+
+test('a weighting that crashes is a fault, not a decision', async ({ window }) => {
+  /*
+   * BN-194 / py-beacon #207. `calculator.py` wraps the weighting call in a
+   * bare `except Exception`, so a scheme dividing by zero reaches a client
+   * inside the envelope. It shared a code with every deliberate refusal
+   * until the split, which meant this pane headed a bug as a decision
+   * somebody made — a reader goes looking for what to change, and there is
+   * nothing to find.
+   */
+  await openPreview(window, 'WEIGHT-CRASH')
+  await window.getByLabel('As of').fill('2025-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  await expect(window.locator('.view-state')).toContainText('The engine broke on this calculation.')
+  await expect(window.locator('.view-state')).not.toContainText('refused to answer')
+
+  // `original_type` tells a ZeroDivisionError from a KeyError without a
+  // server log, which is the difference between two bug reports.
+  await expect(window.locator('.view-state')).toContainText('Raised a ZeroDivisionError')
+
+  /*
+   * The calculation name is the same one a refusal carries. Branching on
+   * that `WeightingScheme-` prefix was the tempting shortcut before the
+   * split; this is the fixture that would catch anyone reaching for it.
+   */
+  await expect(window.locator('.view-state')).toContainText('WeightingScheme-EqualWeighted')
+})

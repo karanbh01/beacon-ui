@@ -67,27 +67,67 @@ describe('the states a refusal must not be confused with', () => {
   })
 })
 
-describe('the one case this heading gets wrong', () => {
-  it('heads a wrapped crash as a refusal, which is upstream to fix', () => {
+describe('a crash wearing a calculation error', () => {
+  /*
+   * BN-194 / py-beacon #207. This block replaces a test that pinned the
+   * WRONG behaviour on purpose: before the split, `calculator.py`'s bare
+   * `except Exception` re-raised a crash as `CalculationError`, so a scheme
+   * dividing by zero was headed "The engine refused to answer".
+   *
+   * The pinned test failing is how this change announced itself, which was
+   * the point of writing it that way.
+   */
+  const CRASH = new ApiError(500, {
+    code: 'UNEXPECTED_CALCULATION_FAILURE',
+    message:
+      "Calculation 'WeightingScheme-EqualWeighted' failed with an unexpected ZeroDivisionError: " +
+      'division by zero. This is a fault rather than a refusal: there is nothing in the request ' +
+      'to change, and it is worth reporting.',
+    detail: {
+      calculation_name: 'WeightingScheme-EqualWeighted',
+      original_type: 'ZeroDivisionError'
+    }
+  })
+
+  it('is headed as a fault, so nobody hunts for a remedy that is not there', () => {
+    render(<ViewError error={CRASH} />)
+
+    expect(screen.getByText('The engine broke on this calculation.')).toBeInTheDocument()
+    expect(screen.queryByText('The engine refused to answer.')).not.toBeInTheDocument()
+  })
+
+  it('names the exception class, which is the difference between two reports', () => {
+    render(<ViewError error={CRASH} />)
+    expect(screen.getByText(/Raised a ZeroDivisionError/)).toBeInTheDocument()
+  })
+
+  it('still renders without one, since detail is optional on the envelope', () => {
+    const bare = new ApiError(500, {
+      code: 'UNEXPECTED_CALCULATION_FAILURE',
+      message: "Calculation 'X' failed with an unexpected KeyError: 'k'."
+    })
+    render(<ViewError error={bare} />)
+
+    expect(screen.getByText('The engine broke on this calculation.')).toBeInTheDocument()
+    expect(screen.queryByText(/Raised a/)).not.toBeInTheDocument()
+  })
+
+  it('does not lean on the calculation name, which is not a signal', () => {
     /*
-     * py-beacon #207. `calculator.py` wraps the weighting call in a bare
-     * `except Exception` and re-raises as `CalculationError`, so a scheme
-     * that divides by zero arrives under the same code as a deliberate
-     * refusal and is headed as a decision somebody made.
-     *
-     * Pinned rather than worked around. The only wire-level difference is a
-     * `WeightingScheme-` prefix on the calculation name, and keying on that
-     * would be a hand-written mirror of an upstream detail — the failure
-     * mode that produced three bugs in this repo already. When #207 splits
-     * the code this test fails, which is the point: the next reader learns
-     * why the branch is shaped as it is instead of rediscovering it.
+     * The `WeightingScheme-` prefix was the only wire-level separator before
+     * the split, and branching on it was the tempting shortcut. py-beacon
+     * now has a test proving a refusal and a crash can carry the SAME name,
+     * so a client keying on it would see nothing. This is that from the
+     * other side: the identical name, headed as a refusal, because the code
+     * says so.
      */
-    const crash = apiError(
+    const refusalWithCrashLookingName = apiError(
       500,
       'CALCULATION_ERROR',
-      "Error in calculation 'WeightingScheme-EqualWeighted': division by zero"
+      "Error in calculation 'WeightingScheme-EqualWeighted': no JPY/USD rate on or before " +
+        '2025-06-30. Load the pair, or define the index in JPY.'
     )
-    render(<ViewError error={crash} />)
+    render(<ViewError error={refusalWithCrashLookingName} />)
 
     expect(screen.getByText('The engine refused to answer.')).toBeInTheDocument()
   })
