@@ -42,13 +42,7 @@ export function FrontierPaneView({ subject }: ViewProps): ReactElement {
       <PaneHeader kind="fields" controls={<Button chevron>Export</Button>}>
         <Field label="Run" width={200} value={runId === '' ? '—' : runId} />
         <Field label="Risk-free" width={110}>
-          <Select
-            className="frontier-inline-select"
-            options={RATES}
-            value={rate}
-            onChange={setRate}
-            label="Risk-free"
-          />
+          <Select options={RATES} value={rate} onChange={setRate} label="Risk-free" />
         </Field>
       </PaneHeader>
 

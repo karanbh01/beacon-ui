@@ -50,10 +50,13 @@ export interface SelectProps {
  * dark field, which is what Karan reported.
  *
  * `CheckSelect` met the same wall for multi-select and reached the same
- * conclusion; this brings the two into line, and both now draw on the shared
- * `.dropdown-surface` the search bar and the menu bar use. What that costs is
- * the keyboard behaviour the platform gave away, so it is reimplemented here:
- * arrows, Home and End, Enter, Escape, and typeahead.
+ * conclusion. The shape is the menu-bar search's and the ticker field's: ONE
+ * rounded rectangle that grows, not a field with a panel floating under it
+ * (BU-53, Figma 147:13). The closed box is the top of it, its bottom border
+ * is the rule, and the list continues the same rectangle downward.
+ *
+ * What that costs is the keyboard behaviour the platform gave away, so it is
+ * reimplemented here: arrows, Home and End, Enter, Escape, and typeahead.
  *
  * Distinct from SegmentedControl, which shows every option at once. Use that
  * for a small closed set (a date range), this for a set that grows.
@@ -181,7 +184,9 @@ export function Select({
 
   return (
     <span
-      className={['select', disabled && 'select-disabled', className].filter(Boolean).join(' ')}
+      className={['select', open && 'select-open', disabled && 'select-disabled', className]
+        .filter(Boolean)
+        .join(' ')}
       ref={box}
     >
       <button
@@ -205,7 +210,7 @@ export function Select({
       </button>
 
       {open && (
-        <div className="dropdown-surface select-panel" role="listbox" aria-label={label} ref={list}>
+        <div className="select-panel" role="listbox" aria-label={label} ref={list}>
           {(groups ?? [{ label: '', options: options ?? [] }]).map((group) => (
             <div key={group.label}>
               {group.label !== '' && <p className="popover-heading">{group.label}</p>}

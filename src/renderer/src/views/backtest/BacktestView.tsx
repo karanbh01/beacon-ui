@@ -214,7 +214,6 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
 
           <Field label="Benchmark" width={160}>
             <Select
-              className="backtest-inline-select"
               options={[
                 { value: '', label: 'None' },
                 ...others.map((index) => ({ value: index.id, label: index.id }))

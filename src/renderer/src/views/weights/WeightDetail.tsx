@@ -90,7 +90,6 @@ export function WeightDetail({
         />
         <Field label="Benchmark" width={170}>
           <Select
-            className="weights-inline-select"
             options={[
               { value: '', label: 'None' },
               ...others.map((id) => ({ value: id, label: id }))

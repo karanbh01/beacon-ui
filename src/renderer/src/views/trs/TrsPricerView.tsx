@@ -170,7 +170,6 @@ export function TrsPricerView(): ReactElement {
           <FieldRowGroup>
             <FieldRow label="Reset type">
               <Select
-                className="pricer-inline-select"
                 options={RESET_TYPES}
                 value={inputs.resetType}
                 onChange={(value) => {

@@ -82,7 +82,6 @@ export function StatisticsDetail({
         />
         <Field label="Benchmark" width={180}>
           <Select
-            className="overview-inline-select"
             options={[{ value: '', label: 'None' }, ...others]}
             value={benchmark}
             onChange={onBenchmark}

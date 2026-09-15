@@ -32,13 +32,6 @@
   outline: none;
 }
 
-.constraint-inline-select {
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: none;
-}
-
 .constraint-editor-note {
   padding-bottom: 6px;
   color: var(--text-muted);

@@ -108,7 +108,6 @@ export function OptimisationRunView({ tab, subject, pane }: ViewProps): ReactEle
       >
         <Field label="Index" width={160}>
           <Select
-            className="run-inline-select"
             options={(indices.data?.indices ?? []).map((index) => ({
               value: index.id,
               label: index.id
@@ -121,7 +120,6 @@ export function OptimisationRunView({ tab, subject, pane }: ViewProps): ReactEle
         </Field>
         <Field label="Constraint set" width={180}>
           <Select
-            className="run-inline-select"
             options={available.map((set) => ({ value: set.id, label: set.name }))}
             value={chosenSet}
             onChange={setConstraintSetId}
@@ -130,13 +128,7 @@ export function OptimisationRunView({ tab, subject, pane }: ViewProps): ReactEle
           />
         </Field>
         <Field label="Risk-free" width={110}>
-          <Select
-            className="run-inline-select"
-            options={RATES}
-            value={rate}
-            onChange={setRate}
-            label="Risk-free"
-          />
+          <Select options={RATES} value={rate} onChange={setRate} label="Risk-free" />
         </Field>
       </PaneHeader>
 

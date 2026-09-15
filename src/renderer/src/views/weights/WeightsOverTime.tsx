@@ -112,7 +112,6 @@ export function WeightsOverTime({
 
         <Field label="Aggregate by" width={170}>
           <Select
-            className="weights-inline-select"
             options={[
               { value: '', label: 'Constituent' },
               ...groupings.options.map((option) => ({
@@ -130,7 +129,6 @@ export function WeightsOverTime({
         {active && (
           <Field label="Benchmark" width={170}>
             <Select
-              className="weights-inline-select"
               options={[
                 { value: '', label: 'Choose…' },
                 ...others.map((id) => ({ value: id, label: id }))

@@ -123,7 +123,6 @@ export function RiskCorrelation({
         />
         <Field label="Confidence" width={120}>
           <Select
-            className="overview-inline-select"
             options={CONFIDENCES.map((value) => ({
               value: String(value),
               label: `${String(value * 100)}%`
@@ -168,7 +167,6 @@ export function RiskCorrelation({
       <div className="overview-controls">
         <Field label="Series" width={230}>
           <Select
-            className="overview-inline-select"
             options={CHART_SERIES.map((entry) => ({ value: entry.value, label: entry.label }))}
             value={shown}
             onChange={(value) => {

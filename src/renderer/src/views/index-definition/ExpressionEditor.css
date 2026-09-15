@@ -32,14 +32,6 @@
   outline: none;
 }
 
-/* Select supplies its own box, so inside a Field it drops back to bare. */
-.expression-inline-select {
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: none;
-}
-
 .expression-action {
   height: 22px;
   padding: 0 8px;

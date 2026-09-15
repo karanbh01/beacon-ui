@@ -45,11 +45,3 @@
 .index-input:disabled {
   color: var(--text-muted);
 }
-
-/* Select supplies its own box, so inside a Field it drops back to bare. */
-.index-inline-select {
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: none;
-}

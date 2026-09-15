@@ -58,7 +58,6 @@ export function Optimiser({ settings, onChange, types, derivation }: OptimiserPr
 
         <Field label="Objective" width={180}>
           <Select
-            className="backtest-inline-select"
             options={OBJECTIVES.map((value) => ({ value, label: value }))}
             value={settings.objective}
             onChange={(objective) => {

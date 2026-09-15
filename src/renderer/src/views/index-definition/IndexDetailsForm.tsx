@@ -91,7 +91,6 @@ export function IndexDetailsForm({
 
         <Field label="Currency" width={100}>
           <Select
-            className="index-inline-select"
             options={CURRENCIES}
             value={document.currency}
             onChange={(value) => {
@@ -129,7 +128,6 @@ export function IndexDetailsForm({
 
         <Field label="Rebalance frequency" width={150}>
           <Select
-            className="index-inline-select"
             options={FREQUENCIES}
             value={document.rebalancing_frequency}
             onChange={(value) => {
@@ -143,7 +141,6 @@ export function IndexDetailsForm({
       <div className="index-form-row">
         <Field label="Return type" width={170}>
           <Select
-            className="index-inline-select"
             options={RETURN_TYPES}
             value={document.return_type}
             onChange={(value) => {
@@ -155,7 +152,6 @@ export function IndexDetailsForm({
 
         <Field label="Calendar *" width={180}>
           <Select
-            className="index-inline-select"
             groups={calendarGroups(calendars.data?.calendars ?? []).map((group) => ({
               label: group.region,
               options: group.options.map((option) => ({

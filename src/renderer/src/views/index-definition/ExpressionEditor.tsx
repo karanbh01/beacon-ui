@@ -175,7 +175,6 @@ function ClauseRow({
     <div className="expression-clause">
       <Field label="Field" width={170}>
         <Select
-          className="expression-inline-select"
           label="Field"
           options={[...fields]}
           value={clause.path}
@@ -189,7 +188,6 @@ function ClauseRow({
 
       <Field label="Comparison" width={150}>
         <Select
-          className="expression-inline-select"
           label="Comparison"
           options={COMPARISONS.map((entry) => ({
             value: entry.value,
@@ -219,7 +217,6 @@ function ClauseRow({
           />
         ) : !multi && choices.length > 0 ? (
           <Select
-            className="expression-inline-select"
             label="Value"
             options={choices.map((choice) => ({ value: choice, label: choice }))}
             value={String(clause.value)}

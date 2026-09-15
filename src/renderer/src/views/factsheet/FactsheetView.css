@@ -7,13 +7,6 @@
   align-items: flex-start;
 }
 
-.factsheet-inline-select {
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: none;
-}
-
 .factsheet-main-row {
   display: flex;
   gap: 24px;

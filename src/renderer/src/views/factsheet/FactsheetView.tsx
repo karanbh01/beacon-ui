@@ -123,7 +123,6 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
       >
         <Field label="Template" width={220}>
           <Select
-            className="factsheet-inline-select"
             options={options}
             value={templateId}
             onChange={setTemplateId}

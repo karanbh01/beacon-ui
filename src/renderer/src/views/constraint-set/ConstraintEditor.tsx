@@ -76,7 +76,6 @@ export function ConstraintEditor({
       <div className="constraint-editor-fields">
         <Field label="Constraint type" width={200}>
           <Select
-            className="constraint-inline-select"
             options={Object.keys(catalogue).map((name) => ({ value: name, label: name }))}
             value={type}
             onChange={changeType}
