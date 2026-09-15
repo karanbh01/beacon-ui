@@ -32,7 +32,7 @@ test('nothing resolves until a date is chosen and Run is pressed', async ({ wind
 
   await window.getByRole('button', { name: 'Run preview' }).click()
   await expect(window.locator('.tbl-body').first()).toBeVisible()
-  await expect(window.getByText(/resolved 2025-06-30/)).toBeVisible()
+  await expect(window.getByText(/asked 2025-06-30/)).toBeVisible()
 })
 
 test('the portfolio is at the top, heaviest first', async ({ window }) => {
@@ -87,4 +87,30 @@ test('an equally weighted index says nothing about market caps', async ({ window
 
   await expect(window.locator('.preview-warning')).toHaveCount(0)
   await expect(window.locator('.tbl-head')).not.toContainText('Mkt cap')
+})
+
+test('the pre-cap weight is shown only where the cap bound', async ({ window }) => {
+  /*
+   * BU-192. py-beacon publishes `uncapped_weight` on a name the cap held
+   * and null on every other. This column fell back to the FINAL weight, so
+   * most rows showed their post-redistribution weight under a heading that
+   * said raw — which made redistribution look like it had reached only the
+   * capped names, and made the column look unrelated to market cap.
+   */
+  await openPreview(window, 'TECH10')
+  await window.getByLabel('As of').fill('2025-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  const rows = window.locator('.tbl-body .tbl-row')
+  await expect(rows.first()).toBeVisible()
+
+  // Capped names carry a real pre-cap figure, higher than the cap.
+  await expect(rows.first()).toContainText('15.00%')
+
+  // An uncapped name has none, and says so rather than repeating its
+  // final weight — which is what made redistribution look like it had
+  // reached nobody.
+  const uncapped = window.locator('.tbl-body .tbl-row', { hasText: 'CMP009' })
+  await expect(uncapped).toContainText('—')
+  await expect(uncapped).not.toContainText('9.50% —')
 })

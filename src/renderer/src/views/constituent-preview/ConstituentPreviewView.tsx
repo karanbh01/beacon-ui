@@ -113,10 +113,22 @@ function buildColumns(
   columns.push(
     {
       key: 'raw',
-      header: 'Raw w',
-      width: 90,
+      header: 'Pre-cap w',
+      width: 95,
       align: 'right',
-      render: (asset) => percent(asset.uncapped_weight ?? asset.weight)
+      /*
+       * Only where the cap bound (BU-192).
+       *
+       * py-beacon sets `uncapped_weight` on a name the cap held and null on
+       * every other — its own words: "Weight before capping, when the cap
+       * bound this name." This fell back to `weight`, so 167 of 172 rows
+       * showed their FINAL weight under a heading that said raw. Which made
+       * redistribution look like it had touched only the capped names, and
+       * made the raw column look unrelated to market cap: it was the
+       * post-redistribution weight all along, scaled by the very factor the
+       * column was being used to check.
+       */
+      render: (asset) => (asset.uncapped_weight == null ? '—' : percent(asset.uncapped_weight))
     },
     {
       key: 'weight',
@@ -178,7 +190,16 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
     () => (wantsCaps ? (preview.data?.assets ?? []).map((asset) => asset.identifier) : []),
     [wantsCaps, preview.data]
   )
-  const caps = useReferenceRows(names, TABLE_REFERENCE_FIELDS, asOf)
+  /*
+   * The date the ENGINE resolved to, not the one asked for (BN-181).
+   *
+   * A market cap read at a different date from the weights invites a
+   * comparison that cannot hold — which is exactly the comparison this
+   * column exists for. `resolved_date` is the session the weights were
+   * actually computed from, so the two columns now describe one day.
+   */
+  const pricedAt = preview.data?.resolved_date ?? preview.data?.as_of.slice(0, 10) ?? asOf
+  const caps = useReferenceRows(names, TABLE_REFERENCE_FIELDS, pricedAt)
 
   // Which dates the market frame actually holds, for explaining a weighting
   // that could not price anything.
@@ -397,9 +418,12 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
           />
           {solve === undefined ? (
             <p className="preview-footnote type-11">
-              {rows.length.toLocaleString('en-US')} names evaluated · resolved{' '}
-              {preview.data.as_of.slice(0, 10)} · ✓ passed · ✕ excluded here · · already out ·
-              preview describes the SAVED definition
+              {rows.length.toLocaleString('en-US')} names evaluated · asked{' '}
+              {preview.data.as_of.slice(0, 10)}
+              {pricedAt !== preview.data.as_of.slice(0, 10) && `, priced ${pricedAt}`} · ✓ passed ·
+              ✕ excluded here · · already out · the methodology re-resolved at that date, not the
+              weights the index has drifted to · pre-cap weight is published only where the cap
+              bound · preview describes the SAVED definition
             </p>
           ) : (
             <p className="preview-footnote type-11">

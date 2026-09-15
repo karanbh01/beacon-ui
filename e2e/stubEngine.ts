@@ -1817,7 +1817,17 @@ function walkedPreview(indexId: string): Record<string, unknown> {
       excluded_by: null,
       excluded_at: null,
       weight: unpriced ? weight : index < 2 ? 0.12 : weight - 0.005,
-      uncapped_weight: unpriced ? weight : index < 2 ? 0.15 : weight,
+      /*
+       * Null unless the cap bound (BU-192).
+       *
+       * The engine's own words: "Weight before capping, when the cap bound
+       * this name." This stub set it on EVERY row, which is more generous
+       * than py-beacon and is why a client falling back to the final
+       * weight passed here and lied against a real engine. A stub that is
+       * kinder than the thing it mirrors hides exactly the bugs it exists
+       * to catch.
+       */
+      uncapped_weight: !unpriced && index < 2 ? 0.15 : null,
       capped: !unpriced && index < 2,
       source_weight: null,
       solved_weight: null,
