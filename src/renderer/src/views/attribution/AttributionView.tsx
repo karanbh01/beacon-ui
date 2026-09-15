@@ -164,8 +164,17 @@ export function AttributionView({ tab, subject }: ViewProps): ReactElement {
         <>
           <Table columns={COLUMNS} rows={rows} getRowId={(row) => row.ticker} maxBodyHeight={560} />
           <p className="attribution-footnote type-11">
-            {view.start.slice(0, 10)} → {view.end.slice(0, 10)} · contributions sum to the index
-            return
+            {view.start.slice(0, 10)} → {view.end.slice(0, 10)}
+            {/*
+              The engine's start, which is one trading day after the one
+              asked for (BN-181): a period's return is earned by the weight
+              held at its start, so the window's own first date has no
+              complete period behind it and is dropped. Typing a From date
+              and reading a different one back is otherwise unexplained —
+              the query is echoed nowhere.
+            */}
+            {start !== '' && start !== view.start.slice(0, 10) && ' · first period dropped'} ·
+            contributions sum to the index return
           </p>
         </>
       )}

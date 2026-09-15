@@ -1124,9 +1124,15 @@ export interface components {
              * @description Names with no estimate, from either side.
              */
             uncovered?: string[];
-            /** Window End */
+            /**
+             * Window End
+             * @description Last date of the run's own level series, YYYY-MM-DD, on the same terms as `window_start`, which is the other end: a bound given to the price fetch, unchanged by what the store actually held.
+             */
             window_end?: string | null;
-            /** Window Start */
+            /**
+             * Window Start
+             * @description First date of the **run's own** level series, YYYY-MM-DD — the span the price fetch behind this estimate was given, not the dates prices came back on. It does not narrow: when the store covers less, the covariance is estimated from fewer observations and this still reports the run's span, so it is a bound rather than a measurement. Null when the run carries no level series. `window_end` is the other end.
+             */
             window_start?: string | null;
         };
         /**
@@ -1224,7 +1230,10 @@ export interface components {
              * @description Direct effect of transaction costs. Null at zero cost.
              */
             cost_drag?: number | null;
-            /** End */
+            /**
+             * End
+             * @description Last date a contribution was computed for, in the same full ISO-8601 form as `start`. Resolved: the latest date the run covers at or before the requested `end`, which defaults to the run's own last date. The `end` query is not echoed back. `start` is the other end.
+             */
             end: string;
             /** Index Id */
             index_id: string;
@@ -1234,7 +1243,10 @@ export interface components {
             reconciles: boolean;
             /** Residual */
             residual: number;
-            /** Start */
+            /**
+             * Start
+             * @description First date a contribution was computed for, as a full ISO-8601 timestamp. Resolved, and **one trading day later than the window's own first date**: a period's return is earned by the weight held at its start, so the first date in the window has no complete period behind it and is dropped. The `start` query is not echoed back anywhere, and when it is omitted the window defaults to the run's own span. `end` is the other end.
+             */
             start: string;
             /** Total Return */
             total_return: number;
@@ -1391,7 +1403,20 @@ export interface components {
             index?: components["schemas"]["IndexBooksPayload"];
             metrics: components["schemas"]["BacktestMetrics"];
             portfolio: components["schemas"]["PortfolioBookPayload"];
-            /** Run At */
+            /**
+             * Price Gaps
+             * @description Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data — a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.
+             */
+            price_gaps?: components["schemas"]["PriceGapPayload"][];
+            /**
+             * Rebalance Pricing
+             * @description What each rebalance priced from, in date order. `date` and `priced_from` differ only where the schedule landed on a day the market was shut, so the run states which session its trades were struck at rather than leaving it inferable from the weight snapshots.
+             */
+            rebalance_pricing?: components["schemas"]["RebalancePricingPayload"][];
+            /**
+             * Run At
+             * @description When this record was captured, ISO-8601 UTC with an offset — wall-clock at the moment the finished run was serialised, within a second of the backtest completing. **Not a market date, and not the period the backtest covered**: that span is the index of `portfolio.nav`. `BacktestRecordRow.run_at` on `GET /beacon/backtests` is the same stamp. Null only on records written before BN-162 began stamping them.
+             */
             run_at?: string | null;
             /** Unfilled */
             unfilled?: components["schemas"]["UnfilledOrderPayload"][];
@@ -1428,6 +1453,16 @@ export interface components {
             /** @description Portfolio value, rebased to 100. */
             level: components["schemas"]["SeriesPayload"];
             metrics: components["schemas"]["BacktestMetrics"];
+            /**
+             * Price Gaps
+             * @description Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data — a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.
+             */
+            price_gaps?: components["schemas"]["PriceGapPayload"][];
+            /**
+             * Rebalance Pricing
+             * @description What each rebalance priced from, in date order. `date` and `priced_from` differ only where the schedule landed on a day the market was shut, so the run states which session its trades were struck at rather than leaving it inferable from the weight snapshots.
+             */
+            rebalance_pricing?: components["schemas"]["RebalancePricingPayload"][];
             /**
              * Rebalances
              * @description Composition at each rebalance. Everything the view endpoints say about weights, attribution and individual names is derived from these, so a run is readable without recalculating the index. Daily weights are deliberately absent: they are reconstructed from these and the prices, and storing one per name per day would multiply the payload by the number of trading days to save an inexpensive calculation.
@@ -1513,7 +1548,10 @@ export interface components {
             rebalances_total: number;
             /** @description Daily weights, dates by identifier; most recent MAX_WEIGHT_DATES dates at most. Empty for a comparator supplied as a bare level series. */
             weights: components["schemas"]["TableFrame"];
-            /** Weights Dates Total */
+            /**
+             * Weights Dates Total
+             * @description Dates the book's daily weights panel actually covers — a count, not a date. Larger than the rows in `weights` whenever the panel was truncated to its most recent MAX_WEIGHT_DATES, and 0 for a comparator supplied as a bare level series. `rebalances_total` says the same thing for `rebalances`.
+             */
             weights_dates_total: number;
         };
         /**
@@ -1618,7 +1656,10 @@ export interface components {
          * @description Response of `GET /beacon/compare`.
          */
         CompareView: {
-            /** End */
+            /**
+             * End
+             * @description Last date every index covers, YYYY-MM-DD. Resolved by the same intersection as `start`, which is the other end: one index whose run stops early pulls this back for all of them.
+             */
             end: string;
             /** Entries */
             entries: components["schemas"]["CompareEntry"][];
@@ -1629,7 +1670,10 @@ export interface components {
              * @description Dates every index covers. Fewer than any one of them carries alone whenever their spans differ.
              */
             observations: number;
-            /** Start */
+            /**
+             * Start
+             * @description First date **every** index in `index_ids` covers, YYYY-MM-DD — the intersection of their level series, not the earliest start among them. Resolved: one index whose history begins later moves this forward for all of them, which is why each entry's level is rebased from here. Nothing was requested — `GET /beacon/compare` takes only `ids` — so there is no window to echo. `end` is the other end of the same shared span.
+             */
             start: string;
         };
         /**
@@ -2189,7 +2233,10 @@ export interface components {
          * @description Response of `GET /data/features`.
          */
         FeatureBatchResponse: {
-            /** As Of */
+            /**
+             * As Of
+             * @description The cutoff the features were read at, YYYY-MM-DD: the `date` query echoed back unchanged, or the last date the loaded market data carries when none was given. Never resolved back — a request for a weekend stays a weekend — because each feature independently takes the latest row published on or before it. What was actually read is each `entries[].features[].date`, the announcement date of the row that answered, which is usually earlier than this and differs from feature to feature.
+             */
             as_of: string;
             /** Entries */
             entries: components["schemas"]["FeatureBatchEntry"][];
@@ -2592,7 +2639,10 @@ export interface components {
             market_price?: number | null;
             /** @description Fair value across a tenor x rate grid, centred on this contract. */
             sensitivity: components["schemas"]["TableFrame"];
-            /** Time To Expiry */
+            /**
+             * Time To Expiry
+             * @description Years the contract was priced over, ACT/365 — what the calculation used, which is not always what the request sent. Computed from `valuation_date` to `expiry` when both were given, dates being the less ambiguous statement; the request's own `time_to_expiry` is echoed back only when the dates were omitted. Nothing is resolved against market data — this endpoint reads none.
+             */
             time_to_expiry: number;
         };
         /**
@@ -2982,7 +3032,10 @@ export interface components {
             constraint_set_id: string;
             /** Converged */
             converged: boolean;
-            /** End */
+            /**
+             * End
+             * @description Last date the constituent price frame carries, YYYY-MM-DD, resolved on the same terms as `start`, which is the other end: earlier than the requested `end` whenever the store stops short of it.
+             */
             end: string;
             /**
              * Heuristic
@@ -3001,7 +3054,10 @@ export interface components {
             run_id: string;
             /** Solver Message */
             solver_message: string;
-            /** Start */
+            /**
+             * Start
+             * @description First date the constituent price frame actually carries, YYYY-MM-DD — the window the risk model behind this solve was estimated over. Resolved rather than echoed: the request's `start` is a bound on the fetch, and this is later than it whenever the store does not reach back that far. `end` is the other end.
+             */
             start: string;
             /** Tracking Error */
             tracking_error: number;
@@ -3058,7 +3114,10 @@ export interface components {
          */
         OverviewView: {
             concentration: components["schemas"]["ConcentrationPayload"];
-            /** End */
+            /**
+             * End
+             * @description Last date the stored run's level series covers, in the same full ISO-8601 form as `start`. Resolved from the data: earlier than the end the backtest requested whenever the price store stops short of it. `start` is the other end.
+             */
             end: string;
             /** Index Id */
             index_id: string;
@@ -3072,7 +3131,10 @@ export interface components {
             observations: number;
             /** Rebalances */
             rebalances: number;
-            /** Start */
+            /**
+             * Start
+             * @description First date the stored run's level series covers, as a full ISO-8601 timestamp (`2023-01-02T00:00:00`, not `2023-01-02`). Resolved from the data rather than requested: it is **later than the index's `base_date`** whenever the price store does not reach back that far, so labelling it as the base date shows a different figure from the one the definition carries. `end` is the other end of the same series; the window the backtest was asked for is not published here.
+             */
             start: string;
         };
         /**
@@ -3432,6 +3494,27 @@ export interface components {
             rule_type?: string | null;
         };
         /**
+         * PriceGapPayload
+         * @description A day a name had no bar on a session that should have had one.
+         */
+        PriceGapPayload: {
+            /**
+             * Asset Id
+             * @description The name with no bar on that day.
+             */
+            asset_id: string;
+            /**
+             * Date
+             * @description The simulated day whose bar was missing, YYYY-MM-DD. A trading day out of the backtest, not a wall-clock stamp.
+             */
+            date: string;
+            /**
+             * Priced From
+             * @description The session the carried-forward price actually came from, YYYY-MM-DD; always earlier than `date`.
+             */
+            priced_from: string;
+        };
+        /**
          * PricesResponse
          * @description Response of `GET /data/prices/{identifier}`.
          */
@@ -3445,6 +3528,22 @@ export interface components {
             interval: string;
             /** @description Date-indexed market data. */
             prices: components["schemas"]["TableFrame"];
+        };
+        /**
+         * RebalancePricingPayload
+         * @description The session one rebalance's trades were priced from.
+         */
+        RebalancePricingPayload: {
+            /**
+             * Date
+             * @description The rebalance date from the weight schedule, YYYY-MM-DD.
+             */
+            date: string;
+            /**
+             * Priced From
+             * @description The session its prices were read from, YYYY-MM-DD. Equal to `date` for an ordinary rebalance; earlier when the schedule landed on a day the market was shut, which is the case worth reading.
+             */
+            priced_from: string;
         };
         /**
          * RebalanceSnapshot
@@ -3562,7 +3661,10 @@ export interface components {
             beta: number;
             /** Correlation */
             correlation: number;
-            /** End */
+            /**
+             * End
+             * @description Last shared date, in the same full ISO-8601 form as `start`, which is the other end. Resolved by the same intersection: earlier than the backtest's own end whenever the benchmark series stops first.
+             */
             end: string;
             /**
              * Excess Return
@@ -3577,7 +3679,10 @@ export interface components {
              */
             observations: number;
             reference: components["schemas"]["BenchmarkRef"];
-            /** Start */
+            /**
+             * Start
+             * @description First date the portfolio and the benchmark **share**, as a full ISO-8601 timestamp. Resolved: the two level series are intersected before anything is measured, so this is later than the backtest's own start whenever the benchmark's history begins later. `observations` counts the shared dates and `end` is the other end; the window the backtest requested is not carried here.
+             */
             start: string;
             /**
              * Total Return
@@ -3663,7 +3768,10 @@ export interface components {
              * @description Fetch the PDF from GET /reports/renders/{render_id}.
              */
             render_id: string;
-            /** Rendered At */
+            /**
+             * Rendered At
+             * @description When the PDF was written, ISO-8601 UTC with an offset — wall-clock at render time. **Not the as-of date of anything printed inside it**: the figures come from the index's latest completed backtest, whose own dates this does not carry, so rendering the same template twice gives two `rendered_at` values over identical content.
+             */
             rendered_at: string;
             /** Template Id */
             template_id: string;
@@ -3911,11 +4019,17 @@ export interface components {
             /** @description Annualised. */
             covariance: components["schemas"]["TableFrame"];
             diagnostics: components["schemas"]["RiskDiagnosticsPayload"];
-            /** End */
+            /**
+             * End
+             * @description The request's own `end`, echoed back unchanged on the same terms as `start`, which is the other bound. Null when the request omitted it.
+             */
             end?: string | null;
             /** Model Id */
             model_id: string;
-            /** Start */
+            /**
+             * Start
+             * @description The request's own `start`, echoed back unchanged — the bound the price fetch was given, not the first date prices were found on. Null when the request omitted it, which estimates over the whole stored history. No field here reports the dates the returns actually spanned; `diagnostics.observations` is the only measure of what survived. `end` is the other bound.
+             */
             start?: string | null;
             /**
              * Volatilities
@@ -3973,7 +4087,10 @@ export interface components {
              * @description Positive in backwardation, negative in contango.
              */
             annualised_roll: number;
-            /** As Of */
+            /**
+             * As Of
+             * @description The session both legs were priced from, YYYY-MM-DD: the latest date with a close on or before the `as_of` query, or the last date the store carries when none was given. Resolved rather than echoed — a request landing on a weekend or a holiday answers from the session before it — and the date asked for is not published anywhere. Both expiries are measured from this date, so it also sets `annualised_roll`.
+             */
             as_of: string;
             /** Back Expiry */
             back_expiry: string;
@@ -4294,7 +4411,10 @@ export interface components {
             financing_rate: number;
             /** Theoretical */
             theoretical: number;
-            /** Time To Expiry */
+            /**
+             * Time To Expiry
+             * @description Years from the response's `as_of` to `expiry`, ACT/365. Measured from the **resolved** session rather than the date asked for, so a request landing on a weekend or a holiday lengthens every tenor in the strip by however many days `as_of` resolved back.
+             */
             time_to_expiry: number;
         };
         /**
@@ -4302,7 +4422,10 @@ export interface components {
          * @description Response of `GET /derivatives/{index_id}/term-structure`.
          */
         TermStructureResponse: {
-            /** As Of */
+            /**
+             * As Of
+             * @description The session `spot` was read from, YYYY-MM-DD: the latest date with a close on or before the `as_of` query, or the last date the store carries when none was given. Resolved rather than echoed — a request landing on a weekend or a holiday answers from the session before it — and the date asked for is not published anywhere. Every `entries[].time_to_expiry` is measured from this date.
+             */
             as_of: string;
             /** Entries */
             entries: components["schemas"]["TermStructureEntry"][];
@@ -4337,14 +4460,20 @@ export interface components {
             amount: number;
             /** Days */
             days: number;
-            /** End */
+            /**
+             * End
+             * @description Day this financing period ends, YYYY-MM-DD: one `payment_frequency` step after `start`, which is the other end, except in the final period, which is truncated to the trade's `end_date`. `days` counts calendar days between the two.
+             */
             end: string;
             /**
              * Rate
              * @description Reference rate for the period: the fixing for the current one, the curve's forward for later ones.
              */
             rate: number;
-            /** Start */
+            /**
+             * Start
+             * @description First day of this financing period, YYYY-MM-DD. Derived from the request alone, never resolved against a calendar or market data: the schedule begins at `last_reset_date` — or `start_date` when no reset was given — and steps by `payment_frequency`. Business days are not observed, so a boundary can fall on a weekend. `end` is the other end.
+             */
             start: string;
         };
         /**
@@ -4366,6 +4495,7 @@ export interface components {
             } | null;
             /**
              * Dividend Yield
+             * @description Continuous dividend yield on the underlying, used **only** for the breakeven table, alongside `futures_prices` and `time_to_expiry`. `present_value`, both legs and `fair_spread_bps` ignore it: the total-return leg is `spot` against `initial_price`, and that ratio already carries whatever the underlying paid. Sending it without `futures_prices` changes nothing in the response.
              * @default 0
              */
             dividend_yield: number;
@@ -4535,7 +4665,10 @@ export interface components {
         UnfilledOrderPayload: {
             /** Asset Id */
             asset_id: string;
-            /** Date */
+            /**
+             * Date
+             * @description The rebalance date on which the buy fell short, YYYY-MM-DD. A simulated trading day out of the backtest, not a wall-clock stamp: re-running the same backtest produces the same date. `BacktestResultSummary.run_at` is the wall-clock one.
+             */
             date: string;
             /** Filled Quantity */
             filled_quantity: number;
