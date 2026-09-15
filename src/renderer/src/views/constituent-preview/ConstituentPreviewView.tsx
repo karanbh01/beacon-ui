@@ -68,38 +68,27 @@ function buildColumns(
     columns.push(...capColumns(caps, names, weighting.useFreeFloat, weighting.currency))
   }
 
-  columns.push(
-    {
-      key: 'raw',
-      header: 'Pre-cap w',
-      width: 95,
-      align: 'right',
-      /*
-       * Only where the cap bound (BU-192).
-       *
-       * py-beacon sets `uncapped_weight` on a name the cap held and null on
-       * every other — its own words: "Weight before capping, when the cap
-       * bound this name." This fell back to `weight`, so 167 of 172 rows
-       * showed their FINAL weight under a heading that said raw. Which made
-       * redistribution look like it had touched only the capped names, and
-       * made the raw column look unrelated to market cap: it was the
-       * post-redistribution weight all along, scaled by the very factor the
-       * column was being used to check.
-       */
-      render: (asset) => (asset.uncapped_weight == null ? '—' : percent(asset.uncapped_weight))
-    },
-    {
-      key: 'weight',
-      header: 'Weights',
-      width: 100,
-      align: 'right',
-      render: (asset) => (
-        <span className={asset.capped ? 'derivation-capped' : undefined}>
-          {percent(asset.weight)}
-        </span>
-      )
-    }
-  )
+  /*
+   * No pre-cap column (BU-197).
+   *
+   * BU-192 corrected it to read `uncapped_weight`, which py-beacon publishes
+   * only on a name the cap actually held — so the honest version was a column
+   * of dashes with a handful of figures in it. The fact it carried is already
+   * in the summary line's "capped" and "redistributed", and a column that is
+   * empty for all but a few rows costs every reader width to tell most of
+   * them nothing.
+   */
+  columns.push({
+    key: 'weight',
+    header: 'Weights',
+    width: 100,
+    align: 'right',
+    render: (asset) => (
+      <span className={asset.capped ? 'derivation-capped' : undefined}>
+        {percent(asset.weight)}
+      </span>
+    )
+  })
 
   return columns
 }
@@ -210,6 +199,13 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
     return buildColumns(preview.data, caps.byIdentifier, weighting)
   }, [preview.data, solve, caps.byIdentifier, weighting])
 
+  /*
+   * Working until BOTH halves are in: the resolve, and the caps that belong
+   * beside it. `caps.loading` is false when no caps were asked for, so an
+   * index that wants none is never held up by a request it never made.
+   */
+  const working = preview.isPending || caps.loading
+
   const summary =
     preview.data === undefined || solve !== undefined ? undefined : summarise(preview.data)
   const solved =
@@ -303,7 +299,17 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         reads the same at four seconds and four minutes leaves a reader
         unable to tell work from a hang.
       */}
-      {preview.isPending && indexId !== '' && startedAt !== undefined && (
+      {/*
+        The caps are part of the answer, not a decoration on it (BU-197).
+
+        They arrive in a separate request — several, above a thousand names,
+        since that is where the engine caps a batch — and the table was drawn
+        the moment the weights landed. So a chunk answering filled a
+        SCATTERED subset of a weight-sorted table, which is what Karan saw as
+        the caps loading name by name. Waiting costs a few seconds of blank
+        and buys a table that is right the first time it is read.
+      */}
+      {working && indexId !== '' && startedAt !== undefined && (
         <ViewWorking what={indexId} since={startedAt} />
       )}
       {preview.isError && <ViewError error={preview.error} />}
@@ -324,16 +330,20 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         Detected rather than reported, because there is nothing in the
         response to report it with. Filed against py-beacon as their #191.
       */}
-      {wantsCaps && preview.data !== undefined && looksEquallyWeighted(preview.data.assets) && (
-        <p className="preview-warning type-11">
-          Every weight here is identical, on an index weighted by market capitalisation — py-beacon
-          fell back to equal weights because it could not price a single name at this date.{' '}
-          {explainEqualWeights(asOf, marketCoverage(coverage.data?.datasets))}. The market caps
-          below come from a thirty-day lookback, so they are no guide to what the weighting saw.
-        </p>
-      )}
+      {wantsCaps &&
+        preview.data !== undefined &&
+        !working &&
+        looksEquallyWeighted(preview.data.assets) && (
+          <p className="preview-warning type-11">
+            Every weight here is identical, on an index weighted by market capitalisation —
+            py-beacon fell back to equal weights because it could not price a single name at this
+            date. {explainEqualWeights(asOf, marketCoverage(coverage.data?.datasets))}. The market
+            caps below come from a thirty-day lookback, so they are no guide to what the weighting
+            saw.
+          </p>
+        )}
 
-      {summary !== undefined && preview.data !== undefined && (
+      {summary !== undefined && preview.data !== undefined && !working && (
         <SummaryLine
           items={[
             { label: `${String(summary.constituents)} constituents`, value: indexId },
@@ -377,7 +387,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
 
       {solve !== undefined && <SolveConstraints solve={solve} />}
 
-      {preview.data !== undefined && rows.length > 0 && (
+      {preview.data !== undefined && rows.length > 0 && !working && (
         <>
           <Table
             columns={columns}
@@ -391,8 +401,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
               {preview.data.as_of.slice(0, 10)}
               {pricedAt !== preview.data.as_of.slice(0, 10) && `, priced ${pricedAt}`} · ✓ passed ·
               ✕ excluded here · · already out · the methodology re-resolved at that date, not the
-              weights the index has drifted to · pre-cap weight is published only where the cap
-              bound · preview describes the SAVED definition
+              weights the index has drifted to · preview describes the SAVED definition
             </p>
           ) : (
             <p className="preview-footnote type-11">

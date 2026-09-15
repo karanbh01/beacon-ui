@@ -50,12 +50,31 @@ const MIXED = rows({
 })
 
 describe('the currency a cap is in', () => {
-  it('names the index currency in the header, rather than leaving it assumed', () => {
-    // A EUR index converted into EUR and a USD one into USD are the same
-    // column with different contents, and the reader cannot see which from
-    // the numbers.
+  it('names the index currency in its own column, not in the header', () => {
+    /*
+     * A EUR index converted into EUR and a USD one into USD are the same
+     * column with different contents, and the reader cannot see which from
+     * the numbers. The header says which SIDE the figure is on; the column
+     * beside it says what that side actually is (BU-197).
+     */
     const built = capColumns(MIXED, ['JPSML'], false, 'EUR')
-    expect(built.map((column) => column.header)).toContain('Mkt cap (bn EUR)')
+    const index = built.find((column) => column.key === 'index_currency')
+
+    expect(built.map((column) => column.header)).toContain('Market Cap (bn Index Ccy)')
+    expect(index?.render(ASSET('JPSML'))).toBe('EUR')
+  })
+
+  it('reads local first, converted second, each pair followed by its unit', () => {
+    // The order the numbers are made in, and the one Karan asked for.
+    const built = capColumns(MIXED, ['JPSML'], false, 'USD')
+    expect(built.map((column) => column.key)).toEqual([
+      'market_cap_local',
+      'free_float_market_cap_local',
+      'local_currency',
+      'market_cap',
+      'free_float_market_cap',
+      'index_currency'
+    ])
   })
 
   it('shows the local figure beside it when the two can differ', () => {
@@ -77,7 +96,11 @@ describe('the currency a cap is in', () => {
      * two identical columns are worse than none.
      */
     const built = capColumns(MIXED, ['USBIG'], false, 'USD')
-    expect(built.map((column) => column.key)).toEqual(['market_cap', 'free_float_market_cap'])
+    expect(built.map((column) => column.key)).toEqual([
+      'market_cap',
+      'free_float_market_cap',
+      'index_currency'
+    ])
   })
 
   it('keeps the local pair as soon as one name is quoted elsewhere', () => {

@@ -63,8 +63,8 @@ test('a market-cap index shows both caps, and says when it fell back', async ({ 
   await window.getByLabel('As of').fill('2027-06-30')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
-  await expect(window.locator('.tbl-head')).toContainText('Mkt cap (bn USD)')
-  await expect(window.locator('.tbl-head')).toContainText('FF mkt cap (bn USD)')
+  await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Index Ccy)')
+  await expect(window.locator('.tbl-head')).toContainText('FF Market Cap (bn Index Ccy)')
   await expect(window.locator('.preview-warning')).toContainText('Every weight here is identical')
 
   /*
@@ -86,33 +86,23 @@ test('an equally weighted index says nothing about market caps', async ({ window
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   await expect(window.locator('.preview-warning')).toHaveCount(0)
-  await expect(window.locator('.tbl-head')).not.toContainText('Mkt cap')
+  await expect(window.locator('.tbl-head')).not.toContainText('Market Cap')
 })
 
-test('the pre-cap weight is shown only where the cap bound', async ({ window }) => {
+test('the pre-cap weight has no column of its own', async ({ window }) => {
   /*
-   * BU-192. py-beacon publishes `uncapped_weight` on a name the cap held
-   * and null on every other. This column fell back to the FINAL weight, so
-   * most rows showed their post-redistribution weight under a heading that
-   * said raw — which made redistribution look like it had reached only the
-   * capped names, and made the column look unrelated to market cap.
+   * BU-197. BU-192 corrected this column to read `uncapped_weight`, which
+   * py-beacon publishes only on a name the cap actually held — so the
+   * honest version was a column of dashes with a handful of figures in it.
+   * What it said is in the summary line, where it costs no width.
    */
   await openPreview(window, 'TECH10')
   await window.getByLabel('As of').fill('2025-06-30')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
-  const rows = window.locator('.tbl-body .tbl-row')
-  await expect(rows.first()).toBeVisible()
-
-  // Capped names carry a real pre-cap figure, higher than the cap.
-  await expect(rows.first()).toContainText('15.00%')
-
-  // An uncapped name has none, and says so rather than repeating its
-  // final weight — which is what made redistribution look like it had
-  // reached nobody.
-  const uncapped = window.locator('.tbl-body .tbl-row', { hasText: 'CMP009' })
-  await expect(uncapped).toContainText('—')
-  await expect(uncapped).not.toContainText('9.50% —')
+  await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
+  await expect(window.locator('.tbl-head')).not.toContainText('Pre-cap')
+  await expect(window.locator('.preview-footnote')).not.toContainText('pre-cap weight')
 })
 
 test('caps come in the index currency, with the local figure beside them', async ({ window }) => {
@@ -130,13 +120,26 @@ test('caps come in the index currency, with the local figure beside them', async
   await window.getByLabel('As of').fill('2027-06-30')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
-  const head = window.locator('.tbl-head')
-  await expect(head).toContainText('Mkt cap (bn USD)')
-  // The stub quotes its names in four currencies, so the local figure is a
-  // different number from the converted one and earns its column.
-  await expect(head).toContainText('Ccy')
-  await expect(head).toContainText('Mkt cap (bn local)')
-  await expect(head).toContainText('FF mkt cap (bn local)')
+  // Local first, converted second, each pair followed by its unit (BU-197).
+  //
+  // The wait is load-bearing: `allInnerTexts` reads once and does not retry,
+  // and the table now holds until the caps are in, so reading straight away
+  // reads an empty list and reports it as a header mismatch.
+  await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
+  const headers = await window.locator('.tbl-head .tbl-cell').allInnerTexts()
+  const caps = headers.filter((header) => /Market Cap|Ccy/.test(header))
+  expect(caps).toEqual([
+    'Market Cap (bn Local Ccy)',
+    'FF Market Cap (bn Local Ccy)',
+    'Local Ccy',
+    'Market Cap (bn Index Ccy)',
+    'FF Market Cap (bn Index Ccy)',
+    'Index Ccy'
+  ])
+
+  // The index currency, stated rather than left to be inferred from a header.
+  const row = window.locator('.tbl-row').first()
+  await expect(row).toContainText('USD')
 })
 
 test('a cap with no rate is a missing rate, not a missing cap', async ({ window }) => {
@@ -157,4 +160,38 @@ test('a cap with no rate is a missing rate, not a missing cap', async ({ window 
   // and both local halves still carry a number, which is the proof.
   await expect(row.locator('.cap-norate')).toHaveCount(2)
   await expect(row.locator('.cap-norate').first()).toHaveText('no rate')
+})
+
+test('the table waits for the caps rather than filling in as they land', async ({ window }) => {
+  /*
+   * BU-197. The caps come from a separate request — several of them above a
+   * thousand names, since that is where the engine caps a batch — and the
+   * table used to draw the moment the weights landed. Because the rows are
+   * sorted by weight and the chunks are cut alphabetically, each answer
+   * filled a scattered subset of the table: what Karan saw as the caps
+   * loading name by name.
+   */
+  let release = (): void => undefined
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await window.route(/\/data\/reference\?/, async (route) => {
+    await held
+    await route.continue()
+  })
+
+  await openPreview(window, 'CAP-NOSHARES')
+  await window.getByLabel('As of').fill('2027-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  // The resolve has answered and the table is still not drawn: a cap column
+  // full of dashes is a table that is wrong the first time it is read.
+  await expect(window.locator('.view-state')).toContainText('Resolving CAP-NOSHARES')
+  await expect(window.locator('.tbl-body')).toHaveCount(0)
+  // Nor the summary, so the pane moves from working to done in one step.
+  await expect(window.locator('.summary-line')).toHaveCount(0)
+
+  release()
+  await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
+  await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Local Ccy)')
 })

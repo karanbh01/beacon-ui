@@ -52,7 +52,7 @@ function allLocal(rows: CapRows, identifiers: readonly string[], currency: strin
  * below proves it by carrying a number. A dash would report the fault as an
  * absence and send the reader looking for share counts they already have.
  */
-function converted(rows: CapRows, identifier: string, key: 'full' | 'float'): ReactElement {
+function convertedCell(rows: CapRows, identifier: string, key: 'full' | 'float'): ReactElement {
   const value = number(rows, identifier, CONVERTED[key])
   if (value !== undefined) return <>{billions(value)}</>
 
@@ -87,51 +87,66 @@ export function capColumns(
   /** The index's currency — what the converted figures were converted into. */
   currency: string
 ): Column<PreviewAsset>[] {
-  const columns: Column<PreviewAsset>[] = [
-    {
-      key: 'market_cap',
-      header: `Mkt cap (bn ${currency})`,
-      width: 130,
-      align: 'right',
-      emphasis: !useFreeFloat,
-      render: (asset) => converted(rows, asset.identifier, 'full')
-    },
-    {
-      key: 'free_float_market_cap',
-      header: `FF mkt cap (bn ${currency})`,
-      width: 140,
-      align: 'right',
-      emphasis: useFreeFloat,
-      render: (asset) => converted(rows, asset.identifier, 'float')
-    }
-  ]
-
-  if (allLocal(rows, identifiers, currency)) return columns
-
-  // The unit belongs in its own column rather than after every number: it is
-  // one fact about the name, and repeating it twice per row is noise on a
-  // table this wide.
-  columns.push(
-    {
-      key: 'local_currency',
-      header: 'Ccy',
-      width: 55,
-      render: (asset) => text(rows, asset.identifier, 'local_currency') ?? '—'
-    },
+  /*
+   * Local first, converted second, each pair followed by its unit.
+   *
+   * The reading order Karan asked for, and it is the order the numbers are
+   * made in: the exchange reports a figure, the engine converts it, and the
+   * converted one is what stands beside the weight. The unit trails its pair
+   * rather than heading it, so a row scans as "this many, of those".
+   */
+  const local: Column<PreviewAsset>[] = [
     {
       key: 'market_cap_local',
-      header: 'Mkt cap (bn local)',
-      width: 130,
+      header: 'Market Cap (bn Local Ccy)',
+      width: 165,
       align: 'right',
       render: (asset) => billions(number(rows, asset.identifier, LOCAL.full))
     },
     {
       key: 'free_float_market_cap_local',
-      header: 'FF mkt cap (bn local)',
-      width: 140,
+      header: 'FF Market Cap (bn Local Ccy)',
+      width: 180,
       align: 'right',
       render: (asset) => billions(number(rows, asset.identifier, LOCAL.float))
+    },
+    {
+      key: 'local_currency',
+      header: 'Local Ccy',
+      width: 75,
+      render: (asset) => text(rows, asset.identifier, 'local_currency') ?? '—'
     }
-  )
-  return columns
+  ]
+
+  const converted: Column<PreviewAsset>[] = [
+    {
+      key: 'market_cap',
+      header: 'Market Cap (bn Index Ccy)',
+      width: 170,
+      align: 'right',
+      emphasis: !useFreeFloat,
+      render: (asset) => convertedCell(rows, asset.identifier, 'full')
+    },
+    {
+      key: 'free_float_market_cap',
+      header: 'FF Market Cap (bn Index Ccy)',
+      width: 185,
+      align: 'right',
+      emphasis: useFreeFloat,
+      render: (asset) => convertedCell(rows, asset.identifier, 'float')
+    },
+    {
+      // One value for the whole table, but it is the unit on the two columns
+      // beside it and the pair above reads wrong without its own.
+      key: 'index_currency',
+      header: 'Index Ccy',
+      width: 75,
+      render: () => currency
+    }
+  ]
+
+  // Nothing needed converting, so the local group repeats the converted one
+  // in full — and the converted group is the one that compares to a weight.
+  if (allLocal(rows, identifiers, currency)) return converted
+  return [...local, ...converted]
 }
