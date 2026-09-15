@@ -362,11 +362,12 @@ export interface paths {
          * Reference
          * @description One instrument's reference record, stored and derived.
          *
-         *     `fields` is honoured on the same terms as the batch form (BN-149).
-         *     Before that it was accepted and ignored, so `market_cap` came back
-         *     empty from here and populated from `/data/reference` -- a parameter
-         *     that looks supported while doing nothing, which is the failure a
-         *     client cannot diagnose.
+         *     `fields` and `currency` are honoured on the same terms as the batch
+         *     form: a parameter one of the two accepts and the other ignores is the
+         *     drift BN-149 closed here once already. Before it, `fields` was
+         *     accepted and ignored, so `market_cap` came back empty from here and
+         *     populated from `/data/reference` -- a parameter that looks supported
+         *     while doing nothing, which is the failure a client cannot diagnose.
          *
          *     Universe memberships are answered here and not there: they were not
          *     answerable when this endpoint was written, because no universe could
@@ -6756,6 +6757,8 @@ export interface operations {
                 date?: string | null;
                 /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
                 fields?: string[] | null;
+                /** @description ISO code the converted money fields (market_cap, free_float_market_cap) are converted into, e.g. EUR — name the index's currency to compare caps against its weights. USD by default. The unconverted figures come back in market_cap_local and free_float_market_cap_local regardless. */
+                currency?: string | null;
             };
             header?: never;
             path?: never;
@@ -6853,6 +6856,8 @@ export interface operations {
                 date?: string | null;
                 /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
                 fields?: string[] | null;
+                /** @description ISO code the converted money fields (market_cap, free_float_market_cap) are converted into, e.g. EUR — name the index's currency to compare caps against its weights. USD by default. The unconverted figures come back in market_cap_local and free_float_market_cap_local regardless. */
+                currency?: string | null;
             };
             header?: never;
             path: {
