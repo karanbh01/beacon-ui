@@ -7,6 +7,7 @@ import { ClientContext } from '../../api/queryClient'
 import { useWorkspace } from '../../state/tabs.store'
 import { UniverseView } from './UniverseView'
 import { billions, buildRow, volume } from './universe'
+import { choose, optionsOf } from '../../../../test/select'
 
 describe('volume', () => {
   it('reads as an order of magnitude rather than a count', () => {
@@ -175,7 +176,7 @@ describe('UniverseView', () => {
     mount()
     await screen.findByText('T000')
 
-    await userEvent.selectOptions(screen.getByLabelText('Universe'), 'US-LARGECAP')
+    await choose('Universe', 'US-LARGECAP')
     expect(useWorkspace.getState().tabs[0]?.subject).toBe('US-LARGECAP')
   })
 })
@@ -247,10 +248,7 @@ describe('opening with no universe chosen', () => {
     mount()
     await screen.findByText('T000')
 
-    const options = within(screen.getByLabelText('Universe'))
-      .getAllByRole('option')
-      .map((option) => option.textContent)
-    expect(options).toContain('All universes')
+    expect(await optionsOf('Universe')).toContain('All universes')
   })
 
   it('hides the as-of field, which has no membership to date', async () => {
@@ -356,10 +354,8 @@ async function addFilter(editor: HTMLElement, dimension: string, values: string[
   await userEvent.click(within(editor).getByRole('button', { name: /Add filter/ }))
 
   const number = String(before + 1).padStart(2, '0')
-  await userEvent.selectOptions(
-    await within(editor).findByLabelText(`Row ${number} dimension`),
-    dimension
-  )
+  await within(editor).findByRole('combobox', { name: `Row ${number} dimension` })
+  await choose(`Row ${number} dimension`, dimension, editor)
 
   // The values control is a checkbox dropdown (BU-91), so open it, tick, and
   // dismiss — a panel left open would sit over whatever the test looks at next.
@@ -388,9 +384,7 @@ describe('the universe builder', () => {
     const { editor } = await openBuilder()
     await userEvent.click(await within(editor).findByRole('button', { name: /Add filter/ }))
 
-    const options = within(within(editor).getByLabelText('Row 01 dimension'))
-      .getAllByRole('option')
-      .map((option) => option.textContent)
+    const options = await optionsOf('Row 01 dimension', editor)
 
     expect(options).toContain('Sector')
     expect(options).toContain('Adv 3m')
@@ -472,7 +466,7 @@ describe('the universe builder', () => {
     await addFilter(editor, 'SECTOR', ['Technology'])
 
     await userEvent.click(within(editor).getByRole('button', { name: /Add rank/ }))
-    await userEvent.selectOptions(within(editor).getByLabelText('Row 02 dimension'), 'adv_3m')
+    await choose('Row 02 dimension', 'adv_3m', editor)
     await userEvent.type(within(editor).getByLabelText('Row 02 count'), '1')
 
     // AAA out-trades BBB, and CCC out-trades BBB too — but the sector row ran
@@ -666,7 +660,7 @@ describe('getting back to the list', () => {
     mount()
     await screen.findByText('T000')
 
-    await userEvent.selectOptions(screen.getByLabelText('Universe'), '')
+    await choose('Universe', '')
 
     // The tab is the contract. Re-rendering on it is PaneHost's job — this
     // harness passes `subject` as a fixed prop, so nothing here would change.

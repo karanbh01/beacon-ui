@@ -8,6 +8,7 @@ import { ClientContext } from '../../api/queryClient'
 import { useWorkspace } from '../../state/tabs.store'
 import { IndexDefinitionView } from './IndexDefinitionView'
 import type { IndexDocument } from './pipeline'
+import { choose } from '../../../../test/select'
 
 const SAVED: IndexDocument = {
   id: 'TECH10',
@@ -452,7 +453,7 @@ describe('opened with no document', () => {
     await userEvent.click(await screen.findByText(SAVED.name))
     await screen.findByLabelText('Name')
 
-    await userEvent.selectOptions(screen.getByLabelText('Index'), '')
+    await choose('Index', '')
 
     expect(await screen.findByRole('button', { name: 'New index…' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Name')).toBeNull()

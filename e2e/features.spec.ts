@@ -1,4 +1,4 @@
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, choose } from './fixtures'
 
 /**
  * Data Explorer → Features (BU-99, reshaped by BU-113).
@@ -50,7 +50,7 @@ test('filters to one field', async ({ window }) => {
   await open(window, 'CMP001')
   await expect(window.getByText(/4 values/)).toBeVisible()
 
-  await window.getByLabel('Field').selectOption('eps')
+  await choose(window, 'Field', 'eps')
   await expect(window.getByText(/2 values of 4 held/)).toBeVisible()
   await expect(window.getByRole('cell', { name: 'Pe ratio' })).toHaveCount(0)
 })

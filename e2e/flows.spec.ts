@@ -1,4 +1,4 @@
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, choose } from './fixtures'
 
 /**
  * One flow per page, against the stub engine.
@@ -66,7 +66,7 @@ test('Strategy Builder → Universe fills every row from one request', async ({ 
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
   // The tab lands on the overview (BU-93), so open a universe to get a table.
-  await window.getByRole('combobox', { name: 'Universe' }).selectOption('GLOBAL')
+  await choose(window, 'Universe', 'GLOBAL')
 
   // BU-63: the table used to fetch a call per name and stop at 60. The stub
   // serves 120, so a row past that proves the batch is being used.
@@ -427,7 +427,7 @@ test('the chart draws the adjusted line or the traded one, never both', async ({
   // The footnote names the line, since two that differ only by dividends are
   // indistinguishable at chart scale (BU-129).
   await expect(window.getByText(/· unadjusted/)).toBeVisible()
-  await window.getByLabel('Prices', { exact: true }).selectOption('adjusted')
+  await choose(window, 'Prices', 'adjusted')
   await expect(window.getByText(/· adjusted/)).toBeVisible()
   await expect(window.getByText(/· unadjusted/)).toHaveCount(0)
 })
@@ -454,7 +454,7 @@ test('the chart flags corporate actions and draws a feature on its own axis', as
   // Singular, because there is one of them in a year of this window.
   await expect(window.getByText(/· 1 corporate action(?!s)/)).toBeVisible()
 
-  await window.getByLabel('Feature', { exact: true }).selectOption('pe_ratio')
+  await choose(window, 'Feature', 'pe_ratio')
   // Named with the axis it is read against, because a P/E and a price share
   // a calendar and nothing else.
   await expect(window.getByText('Pe ratio · right axis')).toBeVisible()

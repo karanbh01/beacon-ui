@@ -194,11 +194,15 @@
 
 .ticker-field-inline .ticker-surface-open {
   /* Open, it is a panel again: it has to read as lifted off the pane, and it
-     may be wider than the box — a 140px field cannot show a name. */
+     may be wider than the box — a 140px field cannot show a name.
+
+     The surface is the shared one (BU-196), opaque rather than glass. A field
+     dropdown sits over dense text, and frosting it makes both hard to read. */
   min-width: 240px;
-  background: var(--glass);
-  border: 1px solid var(--chrome-search-stroke);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  background: var(--dropdown-surface-bg);
+  border: 1px solid var(--dropdown-surface-stroke);
+  border-radius: var(--dropdown-surface-radius);
+  box-shadow: var(--dropdown-surface-shadow);
 }
 
 .ticker-field-inline .ticker-row {

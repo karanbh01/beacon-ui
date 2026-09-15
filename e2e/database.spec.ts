@@ -1,4 +1,4 @@
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, chooseLabel } from './fixtures'
 
 /**
  * Data Explorer → Database (BU-138).
@@ -111,13 +111,13 @@ test('reads every dataset the engine serves', async ({ window }) => {
   await openView(window, 'Database')
 
   for (const dataset of ['Reference', 'Corporate actions', 'Features']) {
-    await window.getByLabel('Dataset').selectOption({ label: dataset })
+    await chooseLabel(window, 'Dataset', dataset)
     await expect(window.locator('.tbl-row').first()).toBeVisible()
   }
 
   // RATE belongs to FX, not to market bars (BU-139), and the index column is
   // a row counter the endpoint resets before paging (BU-149).
-  await window.getByLabel('Dataset').selectOption({ label: 'Market' })
+  await chooseLabel(window, 'Dataset', 'Market')
   await expect(window.getByRole('columnheader', { name: 'RATE' })).toHaveCount(0)
   await expect(window.getByRole('columnheader', { name: 'Index' })).toHaveCount(0)
 })

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, choose } from './fixtures'
 
 /**
  * The Overview's three faces (BU-176).
@@ -74,7 +74,7 @@ test('a benchmark adds the columns it can fill, and nothing before that', async 
   await expect(window.locator('.tbl-head')).not.toContainText('Excess')
   await expect(window.locator('.index-overview-view')).toContainText('pick a benchmark')
 
-  await window.getByLabel('Benchmark').selectOption('EU-VALUE')
+  await choose(window, 'Benchmark', 'EU-VALUE')
 
   await expect(window.locator('.tbl-head')).toContainText('Excess')
   await expect(window.locator('.tbl-head')).toContainText('EU-VALUE')
@@ -105,12 +105,12 @@ test('risk shows one chart with three series behind a selector', async ({ window
   await expect(window.locator('.level-chart')).toHaveCount(1)
   await expect(window.getByText('drawdown', { exact: true })).toBeVisible()
 
-  await window.getByLabel('Series').selectOption('volatility')
+  await choose(window, 'Series', 'volatility')
   await expect(window.locator('.level-chart-key')).toContainText('volatility · 60d')
 
   // Rolling correlation has nothing to correlate against until one is picked,
   // and says so rather than drawing an empty chart.
-  await window.getByLabel('Series').selectOption('correlation')
+  await choose(window, 'Series', 'correlation')
   await expect(window.getByText('Choose an index to correlate against.')).toBeVisible()
 })
 

@@ -1,4 +1,4 @@
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, openSelect } from './fixtures'
 
 /**
  * A trading calendar is a required input (BN-180, BU-190).
@@ -14,26 +14,29 @@ test('the calendar list comes from the engine, grouped by region', async ({ wind
   await openView(window, 'Index Definition')
   await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
 
-  const calendar = window.getByLabel('Calendar')
+  const calendar = await openSelect(window, 'Calendar')
 
   /*
-   * Wait for the catalogue before reading it. `evaluateAll` takes whatever
-   * is in the DOM at that instant and does not retry, so asserting on it
-   * directly races the request — which passes in isolation off a warm
+   * Wait for the catalogue before reading it. `allTextContents` takes
+   * whatever is in the DOM at that instant and does not retry, so asserting
+   * on it directly races the request — which passes in isolation off a warm
    * cache and fails in a full run.
    */
-  await expect(calendar.locator('optgroup')).toHaveCount(5)
+  await expect(calendar.locator('.popover-heading')).toHaveCount(5)
 
   // Grouped from the region each row carries, not from a mapping here.
-  const regions = await calendar
-    .locator('optgroup')
-    .evaluateAll((groups) => groups.map((group) => group.getAttribute('label')))
-  expect(regions).toEqual(['America', 'Asia', 'Australia', 'Europe', 'UTC'])
+  expect(await calendar.locator('.popover-heading').allTextContents()).toEqual([
+    'America',
+    'Asia',
+    'Australia',
+    'Europe',
+    'UTC'
+  ])
 
   // A curated name, and an uncurated one falling back to its MIC rather
   // than vanishing from the only control that offers valid values.
-  await expect(calendar.locator('option[value="XNYS"]')).toContainText('New York Stock Exchange')
-  await expect(calendar.locator('option[value="AIXK"]')).toContainText('AIXK')
+  await expect(calendar.locator('[data-value="XNYS"]')).toContainText('New York Stock Exchange')
+  await expect(calendar.locator('[data-value="AIXK"]')).toContainText('AIXK')
 })
 
 test('a new index cannot be saved without one', async ({ window }) => {
@@ -55,5 +58,9 @@ test('a stored index shows the calendar it was migrated to', async ({ window }) 
   await openView(window, 'Index Definition')
   await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
 
-  await expect(window.getByLabel('Calendar')).toHaveValue('XNYS')
+  // The trigger shows the label, not the code — `toHaveValue` spoke to a
+  // native element and there is not one now (BU-196).
+  await expect(window.getByRole('combobox', { name: 'Calendar' })).toContainText(
+    'New York Stock Exchange'
+  )
 })

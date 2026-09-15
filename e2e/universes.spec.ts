@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, choose, openSelect } from './fixtures'
 
 /**
  * Creating and editing universes (BU-78, against BN-132).
@@ -13,7 +13,7 @@ test('the seeded universe is read-only, and says why', async ({ window }) => {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
   // The tab lands on the overview now (BU-93), so pick one first.
-  await window.getByRole('combobox', { name: 'Universe' }).selectOption('GLOBAL')
+  await choose(window, 'Universe', 'GLOBAL')
 
   await expect(window.getByText(/seeded by the engine/)).toBeVisible()
   // No Edit control at all, rather than one the engine would refuse. Scoped
@@ -38,7 +38,10 @@ test('a universe is created from pasted names and appears in the catalogue', asy
   await window.getByRole('button', { name: 'Create universe' }).click()
 
   // Selected, and its members are the ones pasted.
-  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveValue('TECH-TEN')
+  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveAttribute(
+    'data-value',
+    'TECH-TEN'
+  )
   await expect(window.locator('.tbl-row')).toHaveCount(3)
 })
 
@@ -65,13 +68,15 @@ test('a created universe is selectable in an index definition', async ({ window 
   await window.getByRole('textbox', { name: 'Paste identifiers' }).fill('CMP010 CMP011')
   await window.getByRole('button', { name: 'Add pasted' }).click()
   await window.getByRole('button', { name: 'Create universe' }).click()
-  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveValue('MY-SECTOR')
+  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveAttribute(
+    'data-value',
+    'MY-SECTOR'
+  )
 
   await openView(window, 'Index Definition')
   await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
-  const starting = window.getByRole('combobox', { name: 'Starting universe' })
-  await expect(starting).toBeVisible()
-  await starting.selectOption('MY-SECTOR')
+  await expect(window.getByRole('combobox', { name: 'Starting universe' })).toBeVisible()
+  await choose(window, 'Starting universe', 'MY-SECTOR')
 
   await expect(window.getByText('2 eligible assets')).toBeVisible()
 })
@@ -90,7 +95,7 @@ test('a universe is built by filtering the dataset, and previewed before it is s
 
   // A row at a time, as the index designer is built (BU-90).
   await window.getByRole('button', { name: /Add filter/ }).click()
-  await window.getByLabel('Row 01 dimension').selectOption('sector')
+  await choose(window, 'Row 01 dimension', 'sector')
   await window.getByRole('button', { name: 'Row 01 values' }).click()
   await window.getByRole('checkbox', { name: 'Health Care' }).check()
   await window.keyboard.press('Escape')
@@ -104,7 +109,10 @@ test('a universe is built by filtering the dataset, and previewed before it is s
 
   await window.getByRole('button', { name: 'Create universe' }).click()
 
-  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveValue('HEALTH-NAMES')
+  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveAttribute(
+    'data-value',
+    'HEALTH-NAMES'
+  )
   await expect(window.getByText('40 assets', { exact: false })).toBeVisible()
 })
 
@@ -127,7 +135,7 @@ test('a universe can be read as it stood on a past date', async ({ window }) => 
   // a name not listed yet must drop out rather than draw as a blank row.
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
-  await window.getByRole('combobox', { name: 'Universe' }).selectOption('GLOBAL')
+  await choose(window, 'Universe', 'GLOBAL')
 
   await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
 
@@ -177,7 +185,7 @@ test('an index definition can be created, which is what the tab is for', async (
   await expect(window.getByRole('textbox', { name: 'Name' })).toBeVisible()
 
   // And back out through the picker, since #103 removed the back arrow.
-  await window.getByRole('combobox', { name: 'Index' }).selectOption('')
+  await choose(window, 'Index', '')
   await expect(window.getByRole('button', { name: 'New index…' })).toBeVisible()
 })
 
@@ -187,7 +195,7 @@ test('market cap fills its column and becomes a filter', async ({ window }) => {
   // every row; it is a derived field now, asked for by name.
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
-  await window.getByRole('combobox', { name: 'Universe' }).selectOption('GLOBAL')
+  await choose(window, 'Universe', 'GLOBAL')
 
   const table = window.locator('.universe-view .tbl-row').first()
   await expect(table).toBeVisible()
@@ -197,13 +205,21 @@ test('market cap fills its column and becomes a filter', async ({ window }) => {
   await window.getByRole('button', { name: 'New universe…' }).click()
   await window.getByRole('button', { name: /Add filter/ }).click()
 
-  // The pool is the whole seeded universe plus its reference rows, so the
-  // dimensions appear only once that has arrived.
-  const dimensions = window.getByLabel('Row 01 dimension')
-  await expect
-    .poll(async () => dimensions.locator('option').allTextContents(), { timeout: 20_000 })
-    .toContain('Market cap')
-  expect(await dimensions.locator('option').allTextContents()).toContain('Free float market cap')
+  /*
+   * The pool is the whole seeded universe plus its reference rows, so the
+   * dimensions appear only once that has arrived. The options exist only
+   * while the list is open (BU-196), so each poll opens it — and closes it
+   * again with Escape, or the next open would toggle it shut.
+   */
+  const dimensions = async (): Promise<string[]> => {
+    const list = await openSelect(window, 'Row 01 dimension')
+    const labels = await list.locator('[role="option"]').allTextContents()
+    await window.keyboard.press('Escape')
+    return labels
+  }
+
+  await expect.poll(dimensions, { timeout: 20_000 }).toContain('Market cap')
+  expect(await dimensions()).toContain('Free float market cap')
 })
 
 test('a universe made here can be deleted, and a seeded one cannot', async ({ app, window }) => {
@@ -215,11 +231,14 @@ test('a universe made here can be deleted, and a seeded one cannot', async ({ ap
   await window.getByRole('textbox', { name: 'Paste identifiers' }).fill('CMP010 CMP011')
   await window.getByRole('button', { name: 'Add pasted' }).click()
   await window.getByRole('button', { name: 'Create universe' }).click()
-  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveValue('DISPOSABLE')
+  await expect(window.getByRole('combobox', { name: 'Universe' })).toHaveAttribute(
+    'data-value',
+    'DISPOSABLE'
+  )
 
   // Back to the list: the overview is what the tab shows with nothing
   // selected (BU-93).
-  await window.getByRole('combobox', { name: 'Universe' }).selectOption('')
+  await choose(window, 'Universe', '')
   const row = window.locator('.universe-overview .tbl-row', { hasText: 'Disposable' })
   await expect(row).toBeVisible()
 
@@ -304,7 +323,7 @@ test('a weighting is chosen, edited and taken away again', async ({ window }) =>
   await expect(window.getByRole('button', { name: 'Apply' })).toBeDisabled()
 
   // The engine's own list (BN-117), and the cap edited where it lives.
-  await window.getByLabel('Rule type').selectOption('MarketCapWeighted')
+  await choose(window, 'Rule type', 'MarketCapWeighted')
   await window.getByLabel('Max weight').fill('0.15')
   await window.getByRole('button', { name: 'Apply' }).click()
 

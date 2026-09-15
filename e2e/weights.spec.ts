@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, choose } from './fixtures'
 
 /**
  * The Weights pane's three faces (BU-177).
@@ -42,7 +42,7 @@ test('a benchmark adds its weight and the difference from it', async ({ window }
   // as a benchmark holding nothing rather than one nobody named.
   await expect(window.locator('.tbl-head')).not.toContainText('Active')
 
-  await window.getByLabel('Benchmark').selectOption('EU-VALUE')
+  await choose(window, 'Benchmark', 'EU-VALUE')
 
   await expect(window.locator('.tbl-head')).toContainText('EU-VALUE w')
   await expect(window.locator('.tbl-head')).toContainText('Active')
@@ -92,7 +92,7 @@ test('aggregation rolls names into groups and keeps the total', async ({ window 
 
   // The dimensions come from the reference data, not a declared list, so
   // whatever the engine carries is what can be grouped on.
-  await window.getByLabel('Aggregate by').selectOption('country_domicile')
+  await choose(window, 'Aggregate by', 'country_domicile')
 
   await expect(window.locator('.tbl-head')).toContainText('Group')
   await expect(window.locator('.tbl-body .tbl-row').first()).toContainText(/US|IE|JP/)
@@ -107,7 +107,7 @@ test('active subtracts the benchmark, and the actives sum to zero', async ({ win
 
   await expect(window.locator('.index-weights-view')).toContainText('Choose a benchmark')
 
-  await window.getByLabel('Benchmark').selectOption('EU-VALUE')
+  await choose(window, 'Benchmark', 'EU-VALUE')
 
   // Both sides fully invested, so the overweights pay for the underweights.
   await expect(window.locator('.index-weights-view')).toContainText(/Σ active\s*0\.00%/)
@@ -130,7 +130,7 @@ test('a benchmark with no run of its own says so rather than showing dashes', as
 }) => {
   await openWeights(window, 'TECH10')
   await window.getByRole('radio', { name: 'Active' }).click()
-  await window.getByLabel('Benchmark').selectOption('TECH10-OPT')
+  await choose(window, 'Benchmark', 'TECH10-OPT')
 
   await expect(window.locator('.index-weights-view')).toContainText(
     'TECH10-OPT has no stored run, so there are no benchmark weights'

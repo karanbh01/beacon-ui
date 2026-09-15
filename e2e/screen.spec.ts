@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, choose, openSelect } from './fixtures'
 
 /**
  * Screening an index on reference data (BU-182).
@@ -15,7 +15,7 @@ async function openScreen(window: Page): Promise<void> {
   await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
 
   // A universe whose names carry reference rows, so values can be offered.
-  await window.getByLabel('Starting universe').selectOption('GLOBAL')
+  await choose(window, 'Starting universe', 'GLOBAL')
 
   await window
     .getByRole('button', { name: /Add rule/ })
@@ -34,9 +34,9 @@ async function openScreen(window: Page): Promise<void> {
    * which is the shape of the one failure seen in a full suite run and
    * never reproduced in isolation.
    */
-  const type = window.getByLabel('Rule type')
-  await expect(type.locator('option[value="ExpressionRule"]')).toHaveCount(1)
-  await type.selectOption('ExpressionRule')
+  const type = await openSelect(window, 'Rule type')
+  await expect(type.locator('[data-value="ExpressionRule"]')).toHaveCount(1)
+  await type.locator('[data-value="ExpressionRule"]').click()
 }
 
 test('a structured parameter renders from its schema, not from its name', async ({ window }) => {
@@ -51,7 +51,10 @@ test('a structured parameter renders from its schema, not from its name', async 
   await expect(window.locator('.expression-editor')).toBeVisible()
   await expect(window.getByRole('button', { name: /Add clause/ })).toBeVisible()
   // `on_missing` is a real choice, and excluded-by-default is the engine's.
-  await expect(window.getByLabel('Names without a value')).toHaveValue('exclude')
+  await expect(window.getByRole('combobox', { name: 'Names without a value' })).toHaveAttribute(
+    'data-value',
+    'exclude'
+  )
 })
 
 test('the fields are the ones the engine publishes', async ({ window }) => {
@@ -61,18 +64,18 @@ test('the fields are the ones the engine publishes', async ({ window }) => {
   // `/data/fields` spells a stored column lowercased — SECTOR becomes
   // `reference.sector` — and guessing that here is how a screen names a
   // datapoint the engine has never heard of.
-  const field = window.getByLabel('Field')
-  await expect(field.locator('option[value="reference.sector"]')).toHaveCount(1)
-  await expect(field.locator('option[value="reference.country_domicile"]')).toHaveCount(1)
+  const field = await openSelect(window, 'Field')
+  await expect(field.locator('[data-value="reference.sector"]')).toHaveCount(1)
+  await expect(field.locator('[data-value="reference.country_domicile"]')).toHaveCount(1)
   // Reference only for now: a market field has no closed set of values.
-  await expect(field.locator('option[value="market.close"]')).toHaveCount(0)
+  await expect(field.locator('[data-value="market.close"]')).toHaveCount(0)
 })
 
 test('the values are the ones the universe actually holds', async ({ window }) => {
   await openScreen(window)
   await window.getByRole('button', { name: /Add clause/ }).click()
-  await window.getByLabel('Field').selectOption('reference.sector')
-  await window.getByLabel('Comparison').selectOption('in')
+  await choose(window, 'Field', 'reference.sector')
+  await choose(window, 'Comparison', 'in')
 
   // A closed set, from the universe's own reference rows rather than a list
   // maintained here — so it is right whenever the data is.
@@ -84,8 +87,8 @@ test('the values are the ones the universe actually holds', async ({ window }) =
 test('a screen says what it screens for, and comes back the same', async ({ window }) => {
   await openScreen(window)
   await window.getByRole('button', { name: /Add clause/ }).click()
-  await window.getByLabel('Field').selectOption('reference.sector')
-  await window.getByLabel('Comparison').selectOption('in')
+  await choose(window, 'Field', 'reference.sector')
+  await choose(window, 'Comparison', 'in')
 
   await window.getByRole('button', { name: 'Value' }).click()
   await window.getByRole('checkbox', { name: 'Financials' }).check()
@@ -103,15 +106,21 @@ test('a screen says what it screens for, and comes back the same', async ({ wind
   // Reopened, the clause is the one that was written — not a blank editor,
   // which would discard the screen on the next Apply.
   await row.locator('.methodology-main').click()
-  await expect(window.getByLabel('Field')).toHaveValue('reference.sector')
-  await expect(window.getByLabel('Comparison')).toHaveValue('in')
+  await expect(window.getByRole('combobox', { name: 'Field' })).toHaveAttribute(
+    'data-value',
+    'reference.sector'
+  )
+  await expect(window.getByRole('combobox', { name: 'Comparison' })).toHaveAttribute(
+    'data-value',
+    'in'
+  )
 })
 
 test('two clauses join, and the join is a choice', async ({ window }) => {
   await openScreen(window)
 
   await window.getByRole('button', { name: /Add clause/ }).click()
-  await window.getByLabel('Field').selectOption('reference.sector')
+  await choose(window, 'Field', 'reference.sector')
 
   // One clause needs no combinator: it is not joining anything.
   await expect(window.getByRole('radio', { name: 'Match all' })).toHaveCount(0)

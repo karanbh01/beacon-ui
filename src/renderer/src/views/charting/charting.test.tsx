@@ -8,6 +8,7 @@ import { ClientContext } from '../../api/queryClient'
 import { resolveSubject } from '../../state/tabs.logic'
 import { useWorkspace } from '../../state/tabs.store'
 import { ChartingView } from './ChartingView'
+import { choose } from '../../../../test/select'
 
 /**
  * An engine that answers with no rows.
@@ -165,9 +166,14 @@ describe('range and interval', () => {
 
     // The parameter means "the source's own frequency"; the loaded market
     // data is daily, so the label and the value deliberately differ.
-    expect(screen.getByLabelText('Interval')).toHaveValue('native')
+    // The trigger shows the label and carries the value as an attribute --
+    // it is not an input any more (BU-196).
+    expect(screen.getByRole('combobox', { name: 'Interval' })).toHaveAttribute(
+      'data-value',
+      'native'
+    )
 
-    await userEvent.selectOptions(screen.getByLabelText('Interval'), 'weekly')
+    await choose('Interval', 'weekly')
     expect(screen.getByText(/3M weekly|1Y weekly/)).toBeInTheDocument()
   })
 })
@@ -180,7 +186,7 @@ describe('adjusted or unadjusted (BU-129)', () => {
     // by "price" until someone asks for the other one.
     expect(screen.getByText(/unadjusted/)).toBeInTheDocument()
 
-    await userEvent.selectOptions(screen.getByLabelText('Prices'), 'adjusted')
+    await choose('Prices', 'adjusted')
 
     // One line at a time — the footnote names it rather than a legend
     // holding two that differ only by dividends.

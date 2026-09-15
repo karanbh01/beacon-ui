@@ -2,13 +2,24 @@
  * Figma 302:3069. Same box as Button — 5/12 padding, 6 gap, 4 radius — since
  * the two sit side by side in every controls row and any difference reads as
  * a mistake.
+ *
+ * The open list is the app's own surface rather than the platform's
+ * (BU-196): `.dropdown-surface` and `.popover-row`, the same vocabulary the
+ * search bar and the menu bar use. Opaque, not glass — that is the surface's
+ * standing choice for a dense list of words, and Karan asked for it again
+ * here.
  */
 
 .select {
   position: relative;
   display: inline-flex;
+}
+
+.select-trigger {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
   padding: 5px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -19,35 +30,80 @@
   line-height: normal;
   color: var(--text-secondary);
   white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The value takes the room; the chevron keeps its own. */
+.select-value {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .select-chevron {
   flex: none;
 }
 
-/*
- * The native element covers the box and is invisible, so clicking anywhere
- * opens the platform list while the text and chevron above stay themed.
- */
-.select-native {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  font: inherit;
-}
-
 .select-disabled {
   opacity: 0.45;
 }
 
-.select-disabled .select-native {
+.select-disabled .select-trigger {
   cursor: default;
 }
 
-.select:focus-within {
+.select-trigger:focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: 1px;
+}
+
+/*
+ * Hangs under the trigger and takes at least its width, so a long option
+ * does not force the closed control wide — the field row's geometry is
+ * fixed and the list is free.
+ */
+.select-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  min-width: 100%;
+  max-width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.select-option {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/*
+ * The highlight follows the KEYBOARD, so it cannot be :hover — the pointer
+ * may be resting anywhere while the arrows move the selection. `.popover-row`
+ * brings a hover rule of its own; this has to out-specify it.
+ */
+.select-panel .select-option-active {
+  background: var(--sidebar-active-bg);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* What is already chosen, which is a different fact from what is highlighted. */
+.select-option-chosen {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/*
+ * The field box has to let the panel out.
+ *
+ * `.field-box` is a 28px frame around a value and clips what overflows it, so
+ * an open list was rendered and then cut off at the border — which looks
+ * exactly like a dropdown that does not drop down. TickerField hit the same
+ * wall and answers it the same way.
+ */
+.field-box:has(.select) {
+  overflow: visible;
 }

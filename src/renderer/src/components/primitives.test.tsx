@@ -8,6 +8,7 @@ import { Checkbox } from './Checkbox/Checkbox'
 import { KV, KVList } from './KV/KV'
 import { SegmentedControl } from './SegmentedControl/SegmentedControl'
 import { Select } from './Select/Select'
+import { choose } from '../../../test/select'
 
 describe('Card', () => {
   it('omits the header entirely when there is nothing to put in it', () => {
@@ -174,7 +175,7 @@ describe('Select', () => {
     const { container } = render(
       <Select options={OPTIONS} value="core-tech" onChange={() => undefined} label="Watchlist" />
     )
-    expect(container.querySelector('.select-label')?.textContent).toBe('Core Tech')
+    expect(container.querySelector('.select-value')?.textContent).toBe('Core Tech')
   })
 
   it('falls back to the value when nothing matches it', () => {
@@ -182,7 +183,7 @@ describe('Select', () => {
     const { container } = render(
       <Select options={OPTIONS} value="gone" onChange={() => undefined} label="Watchlist" />
     )
-    expect(container.querySelector('.select-label')?.textContent).toBe('gone')
+    expect(container.querySelector('.select-value')?.textContent).toBe('gone')
   })
 
   it('says why there is nothing to choose instead of collapsing to an empty box', () => {
@@ -196,14 +197,14 @@ describe('Select', () => {
         disabled
       />
     )
-    expect(container.querySelector('.select-label')?.textContent).toBe('No watchlists')
+    expect(container.querySelector('.select-value')?.textContent).toBe('No watchlists')
   })
 
   it('reports the chosen value', async () => {
     const onChange = vi.fn()
     render(<Select options={OPTIONS} value="core-tech" onChange={onChange} label="Watchlist" />)
 
-    await userEvent.selectOptions(screen.getByLabelText('Watchlist'), 'watch')
+    await choose('Watchlist', 'watch')
     expect(onChange).toHaveBeenCalledWith('watch')
   })
 

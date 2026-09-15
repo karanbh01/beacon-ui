@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, openPage, test } from './fixtures'
+import { expect, openPage, test, openSelect } from './fixtures'
 
 /**
  * Setting up a backtest (BU-174).
@@ -174,10 +174,9 @@ test('an optimised index can be the benchmark, which is the point of one', async
    */
   await openBacktest(window, 'TECH10')
 
-  const benchmark = window.getByLabel('Benchmark')
-  await expect(benchmark.locator('option', { hasText: 'TECH10-OPT' })).toHaveCount(1)
-
-  await benchmark.selectOption('TECH10-OPT')
+  const benchmark = await openSelect(window, 'Benchmark')
+  await expect(benchmark.locator('[data-value="TECH10-OPT"]')).toHaveCount(1)
+  await benchmark.locator('[data-value="TECH10-OPT"]').click()
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
   await expect(window.getByText('Back-tested TECH10.')).toBeVisible()

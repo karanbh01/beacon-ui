@@ -3,6 +3,7 @@ import {
   _electron as electron,
   test as base,
   type ElectronApplication,
+  type Locator,
   type Page
 } from '@playwright/test'
 import { startStubEngine, type StubEngine } from './stubEngine'
@@ -125,4 +126,44 @@ export async function openPage(window: Page, label: string): Promise<void> {
 export async function openView(window: Page, title: string): Promise<void> {
   await window.getByRole('button', { name: 'New tab' }).click()
   await window.getByRole('menuitem', { name: title, exact: true }).click()
+}
+
+/**
+ * Choose from a `Select` (BU-196).
+ *
+ * The control draws its own list now rather than hiding a native `<select>`,
+ * so Playwright's `selectOption` no longer applies — it speaks to a real
+ * `<select>` element and there is not one. Opening and clicking is what a
+ * user does, and it exercises the popup that replaced it, which the old
+ * call never touched.
+ *
+ * `name` matches the control's `aria-label`; `value` is the option's stored
+ * value, so a call reads the same as the `selectOption` it replaced and does
+ * not break when a display label is reworded.
+ */
+export async function choose(window: Page, name: string, value: string): Promise<void> {
+  await window.getByRole('combobox', { name, exact: true }).click()
+  await window
+    .getByRole('listbox', { name, exact: true })
+    .locator(`[role="option"][data-value="${value}"]`)
+    .click()
+}
+
+/**
+ * Open a `Select` and hand back its list, for a test that inspects the
+ * options before choosing — which is most of what `option` locators used to
+ * do against the native element. The options exist only while it is open.
+ */
+export async function openSelect(window: Page, name: string): Promise<Locator> {
+  await window.getByRole('combobox', { name, exact: true }).click()
+  return window.getByRole('listbox', { name, exact: true })
+}
+
+/** The same, for the few places that know an option by its text. */
+export async function chooseLabel(window: Page, name: string, label: string): Promise<void> {
+  await window.getByRole('combobox', { name, exact: true }).click()
+  await window
+    .getByRole('listbox', { name, exact: true })
+    .getByRole('option', { name: label, exact: true })
+    .click()
 }
