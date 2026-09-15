@@ -136,3 +136,15 @@
   max-width: 900px;
   color: var(--danger);
 }
+
+/*
+ * A converted cap with no rate to convert it (BN-189).
+ *
+ * Muted and in words, because it is not a number and not a missing one: the
+ * local figure in the same row is populated. A dash here would report the
+ * fault as an absence.
+ */
+.cap-norate {
+  color: var(--text-muted);
+  font-style: italic;
+}

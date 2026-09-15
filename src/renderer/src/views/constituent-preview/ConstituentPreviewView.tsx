@@ -10,7 +10,6 @@ import { ViewEmpty, ViewError, ViewWorking } from '../shared/ViewState'
 import { useIndex, usePreviewIndex } from '../shared/strategyQueries'
 import { TABLE_REFERENCE_FIELDS, useCoverage, useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
-import { billions } from '../universe/universe'
 import {
   CELL_GLYPH,
   cellState,
@@ -28,57 +27,15 @@ import {
   type PreviewAsset,
   type PreviewResponse
 } from './derivation'
+import { capColumns, type CapRows } from './capColumns'
 import { SolveConstraints } from './Solve'
 import { solveColumns } from './solveColumns'
 import './ConstituentPreviewView.css'
 
-/**
- * Market caps, for an index weighted by them (BU-186).
- *
- * Both, always, when either is shown. `use_free_float` decides which one
- * the weights came FROM, and seeing only that one leaves a reader unable
- * to tell a small company from a closely held one — which is the whole
- * distinction the parameter exists to make.
- *
- * Derived market fields rather than stored reference ones: py-beacon
- * computes a cap as price × shares × fx at request time, which is why they
- * have to be asked for by name. That is also the same arithmetic
- * `MarketCapWeighted` does, so a dash in this column and an equal-weighted
- * index are the same missing datum seen twice.
- */
-function capColumns(
-  caps: ReadonlyMap<string, Record<string, unknown>>,
-  useFreeFloat: boolean
-): Column<PreviewAsset>[] {
-  const read = (identifier: string, field: string): number | undefined => {
-    const value = caps.get(identifier)?.[field]
-    return typeof value === 'number' ? value : undefined
-  }
-
-  return [
-    {
-      key: 'market_cap',
-      header: 'Mkt cap (bn)',
-      width: 110,
-      align: 'right',
-      emphasis: !useFreeFloat,
-      render: (asset) => billions(read(asset.identifier, 'market_cap'))
-    },
-    {
-      key: 'free_float_market_cap',
-      header: 'FF mkt cap (bn)',
-      width: 120,
-      align: 'right',
-      emphasis: useFreeFloat,
-      render: (asset) => billions(read(asset.identifier, 'free_float_market_cap'))
-    }
-  ]
-}
-
 function buildColumns(
   preview: PreviewResponse,
-  caps: ReadonlyMap<string, Record<string, unknown>>,
-  weighting: { scheme: string; useFreeFloat: boolean } | undefined
+  caps: CapRows,
+  weighting: { scheme: string; useFreeFloat: boolean; currency: string } | undefined
 ): Column<PreviewAsset>[] {
   const columns: Column<PreviewAsset>[] = [
     {
@@ -107,7 +64,8 @@ function buildColumns(
   // Only where the weights are made of them, so every other index keeps a
   // table narrow enough to read.
   if (weighting?.scheme === 'MarketCapWeighted') {
-    columns.push(...capColumns(caps, weighting.useFreeFloat))
+    const names = preview.assets.map((asset) => asset.identifier)
+    columns.push(...capColumns(caps, names, weighting.useFreeFloat, weighting.currency))
   }
 
   columns.push(
@@ -177,12 +135,23 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
    * pane's own footnote has said so since it was written.
    */
   const scheme = document.data === undefined ? undefined : pipelineOf(document.data)?.weighting
+  /*
+   * The index's own currency, which is what the caps have to be converted
+   * into to stand beside the weights (BN-189). USD is the engine's default
+   * rather than a fact about this index, so it is only the fallback for a
+   * document that has not said.
+   */
+  const currency = document.data?.currency ?? 'USD'
   const weighting = useMemo(
     () =>
       scheme === undefined
         ? undefined
-        : { scheme: scheme.scheme, useFreeFloat: scheme.params?.use_free_float === true },
-    [scheme]
+        : {
+            scheme: scheme.scheme,
+            useFreeFloat: scheme.params?.use_free_float === true,
+            currency
+          },
+    [scheme, currency]
   )
   const wantsCaps = weighting?.scheme === 'MarketCapWeighted'
 
@@ -199,7 +168,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
    * actually computed from, so the two columns now describe one day.
    */
   const pricedAt = preview.data?.resolved_date ?? preview.data?.as_of.slice(0, 10) ?? asOf
-  const caps = useReferenceRows(names, TABLE_REFERENCE_FIELDS, pricedAt)
+  const caps = useReferenceRows(names, TABLE_REFERENCE_FIELDS, pricedAt, currency)
 
   // Which dates the market frame actually holds, for explaining a weighting
   // that could not price anything.

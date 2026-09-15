@@ -63,8 +63,8 @@ test('a market-cap index shows both caps, and says when it fell back', async ({ 
   await window.getByLabel('As of').fill('2027-06-30')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
-  await expect(window.locator('.tbl-head')).toContainText('Mkt cap (bn)')
-  await expect(window.locator('.tbl-head')).toContainText('FF mkt cap (bn)')
+  await expect(window.locator('.tbl-head')).toContainText('Mkt cap (bn USD)')
+  await expect(window.locator('.tbl-head')).toContainText('FF mkt cap (bn USD)')
   await expect(window.locator('.preview-warning')).toContainText('Every weight here is identical')
 
   /*
@@ -113,4 +113,48 @@ test('the pre-cap weight is shown only where the cap bound', async ({ window }) 
   const uncapped = window.locator('.tbl-body .tbl-row', { hasText: 'CMP009' })
   await expect(uncapped).toContainText('—')
   await expect(uncapped).not.toContainText('9.50% —')
+})
+
+test('caps come in the index currency, with the local figure beside them', async ({ window }) => {
+  /*
+   * BU-195, BN-189. A cap used to arrive converted into a hard-coded USD
+   * while the weighting converted into the index's own currency, so a EUR
+   * index showed dollar caps beside euro weights — the column that exists
+   * to explain a weight could not be held against one.
+   *
+   * The header has to NAME the currency. Two indices in different
+   * currencies otherwise render the same column with different contents
+   * and nothing on screen says which.
+   */
+  await openPreview(window, 'CAP-NOSHARES')
+  await window.getByLabel('As of').fill('2027-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  const head = window.locator('.tbl-head')
+  await expect(head).toContainText('Mkt cap (bn USD)')
+  // The stub quotes its names in four currencies, so the local figure is a
+  // different number from the converted one and earns its column.
+  await expect(head).toContainText('Ccy')
+  await expect(head).toContainText('Mkt cap (bn local)')
+  await expect(head).toContainText('FF mkt cap (bn local)')
+})
+
+test('a cap with no rate is a missing rate, not a missing cap', async ({ window }) => {
+  /*
+   * The engine nulls the converted half only and leaves the local half
+   * standing, because the local figure is knowable whatever the FX
+   * situation. A dash in the converted column would report that as an
+   * absence and send a reader after share counts the row already has.
+   */
+  await openPreview(window, 'CAP-NOSHARES')
+  await window.getByLabel('As of').fill('2027-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  // CMP007 is the stub's one rateless name: a currency with no pair.
+  const row = window.locator('.tbl-row', { hasText: 'CMP007' }).first()
+  await expect(row).toContainText('CHF')
+  // Both converted halves, because one missing rate defeats both of them —
+  // and both local halves still carry a number, which is the proof.
+  await expect(row.locator('.cap-norate')).toHaveCount(2)
+  await expect(row.locator('.cap-norate').first()).toHaveText('no rate')
 })

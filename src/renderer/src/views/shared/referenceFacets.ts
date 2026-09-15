@@ -34,7 +34,7 @@ export function useReferenceFacets(identifiers: readonly string[]): ReferenceFac
     queryKey: keys.data.referenceBatch(wanted, ['*']),
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.data.referenceBatch(wanted, undefined, undefined, signal)
+      return client.data.referenceBatch(wanted, undefined, undefined, undefined, signal)
     },
     enabled: client !== null && wanted.length > 0
   })

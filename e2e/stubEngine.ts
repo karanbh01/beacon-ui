@@ -564,7 +564,53 @@ function listedFrom(index: number): string {
   return index % 4 === 0 ? '2020-01-01' : '2015-01-01'
 }
 
-function referenceEntry(identifier: string, index: number): Record<string, unknown> {
+/**
+ * What one unit of a currency is worth in USD.
+ *
+ * CHF is deliberately absent. The engine nulls the CONVERTED half of a money
+ * field when it has no rate and leaves the local half standing (BN-189), and
+ * a stub with a rate for everything cannot show the difference between "no
+ * cap" and "no rate" — which is the whole reason the pair exists.
+ */
+const RATES: Record<string, number> = { USD: 1, GBP: 1.27, JPY: 0.0067, EUR: 1.09 }
+
+const CURRENCIES = ['USD', 'GBP', 'JPY']
+
+/** The currency each synthetic name reports in. */
+function localCurrency(index: number): string {
+  // One rateless name, so the unconvertible case is reachable. Reserved the
+  // way REFERENCE_ONLY is: no other fixture depends on CMP007's currency.
+  if (index === 7) return 'CHF'
+  return CURRENCIES[index % CURRENCIES.length] ?? 'USD'
+}
+
+/**
+ * A local money figure in the currency the caller asked for (BN-189).
+ *
+ * Null when either leg has no rate. Same-currency SHORT-CIRCUITS rather than
+ * multiplying by 1.0 — the engine does, and it is why a client may assert
+ * `market_cap === market_cap_local` exactly for a name that needed no
+ * conversion rather than approximately.
+ */
+function convert(value: number, from: string, into: string): number | null {
+  if (from === into) return value
+  const rate = RATES[from]
+  const target = RATES[into]
+  if (rate === undefined || target === undefined) return null
+  return (value * rate) / target
+}
+
+function referenceEntry(
+  identifier: string,
+  index: number,
+  /** What the money fields convert into. The engine's default is USD. */
+  into = 'USD'
+): Record<string, unknown> {
+  const local = localCurrency(index)
+  const floatCap = 3.16e12 - index * 1.1e10
+  // Larger than the free float, as it must be: free float is a subset.
+  const fullCap = floatCap / 0.73
+
   return {
     identifier,
     found: true,
@@ -587,14 +633,26 @@ function referenceEntry(identifier: string, index: number): Record<string, unkno
       sub_industry: 'Application Software',
       region: ['United States', 'Europe', 'Japan'][index % 3],
       exchange: ['XNAS', 'XLON', 'XTKS'][index % 3],
-      currency: ['USD', 'GBP', 'JPY'][index % 3],
+      currency: local,
       country_listing: ['US', 'GB', 'JP'][index % 3],
       // Deliberately not the listing country for some names: that difference
       // is the whole reason the engine keeps two columns.
       country_domicile: ['US', 'IE', 'JP'][index % 3],
-      free_float_market_cap: 3.16e12 - index * 1.1e10,
-      // Larger than the free float, as it must be: free float is a subset.
-      market_cap: (3.16e12 - index * 1.1e10) / 0.73,
+      /*
+       * Both halves and both codes, together (BN-189).
+       *
+       * The engine sends the pair whenever either is asked for, "because a
+       * client that has to request the unit separately from the number is a
+       * client that will one day render the number without it". A stub that
+       * sent only the converted figure would let this app do exactly that
+       * and pass.
+       */
+      free_float_market_cap: convert(floatCap, local, into),
+      market_cap: convert(fullCap, local, into),
+      free_float_market_cap_local: floatCap,
+      market_cap_local: fullCap,
+      local_currency: local,
+      market_cap_currency: into,
       adv_3m: 4_182_000 - index * 9_000
     }
   }
@@ -1300,6 +1358,7 @@ function body(url: URL): unknown {
     const wanted = url.searchParams.getAll('identifiers').flatMap((value) => value.split(','))
     const ids = wanted.length > 0 ? wanted : IDENTIFIERS
     const date = url.searchParams.get('date') ?? ''
+    const into = url.searchParams.get('currency') ?? 'USD'
 
     // An unknown column is a HARD refusal — the whole batch, not a null in
     // one field. BU-85 shipped three invented column names because this
@@ -1324,7 +1383,7 @@ function body(url: URL): unknown {
     // yet listed comes back `found: false` with no fields, exactly as a real
     // engine answers it, rather than being omitted from the response.
     const entries = ids.map((identifier, index) => {
-      const entry = referenceEntry(identifier, index)
+      const entry = referenceEntry(identifier, index, into)
       if (date === '' || date >= listedFrom(index)) return entry
       return { identifier, found: false, fields: null }
     })
@@ -1344,7 +1403,14 @@ function body(url: URL): unknown {
 
     return {
       identifier,
-      fields: referenceEntry(identifier, Math.max(index, 0)).fields,
+      // Honoured here on the same terms as the batch form. A parameter one
+      // of the two accepts and the other ignores is the drift BN-149 closed
+      // on this endpoint once already.
+      fields: referenceEntry(
+        identifier,
+        Math.max(index, 0),
+        url.searchParams.get('currency') ?? 'USD'
+      ).fields,
       /*
        * Where this instrument is used (BN-132, BU-143).
        *

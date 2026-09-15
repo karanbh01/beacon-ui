@@ -86,16 +86,18 @@ export function useReferenceBatch(
    * "valid then" is py-beacon's, and reimplementing it here from DATE_FROM
    * and DATE_TO would be a second copy to keep in step.
    */
-  date = ''
+  date = '',
+  /** What the money fields convert into (BN-189). USD when unsaid. */
+  currency = ''
 ) {
   const client = useBeacon()
   const wanted = identifiers.slice(0, REFERENCE_BATCH_LIMIT)
 
   return useQuery({
-    queryKey: keys.data.referenceBatch(wanted, fields, date),
+    queryKey: keys.data.referenceBatch(wanted, fields, date, currency),
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.data.referenceBatch(wanted, fields, date, signal)
+      return client.data.referenceBatch(wanted, fields, date, currency, signal)
     },
     enabled: client !== null && wanted.length > 0
   })
@@ -125,7 +127,9 @@ export interface ReferenceRows {
 export function useReferenceRows(
   identifiers: readonly string[],
   fields: readonly string[] = TABLE_REFERENCE_FIELDS,
-  date = ''
+  date = '',
+  /** What the money fields convert into (BN-189). USD when unsaid. */
+  currency = ''
 ): ReferenceRows {
   const client = useBeacon()
 
@@ -140,10 +144,10 @@ export function useReferenceRows(
 
   const results = useQueries({
     queries: chunks.map((ids) => ({
-      queryKey: keys.data.referenceBatch(ids, fields, date),
+      queryKey: keys.data.referenceBatch(ids, fields, date, currency),
       queryFn: ({ signal }: { signal: AbortSignal }) => {
         if (client === null) throw new Error('No engine')
-        return client.data.referenceBatch(ids, fields, date, signal)
+        return client.data.referenceBatch(ids, fields, date, currency, signal)
       },
       enabled: client !== null
     }))

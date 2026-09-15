@@ -192,6 +192,15 @@ export interface BeaconClient {
       identifiers: readonly string[],
       fields?: readonly string[],
       date?: string,
+      /**
+       * What the money fields are converted INTO (BN-189). USD when unsaid.
+       *
+       * Name the index's own currency and a cap is comparable with a weight;
+       * leave it and a EUR index shows dollar caps beside euro weights,
+       * which is the mislabelling BN-188 made visible. The unconverted
+       * figure comes back as `*_local` either way.
+       */
+      currency?: string,
       signal?: AbortSignal
     ) => Promise<ResponseOf<'/data/reference'>>
     corporateActions: (
@@ -440,12 +449,13 @@ export function createClient(options: ClientOptions): BeaconClient {
           },
           ...(signal === undefined ? {} : { signal })
         }),
-      referenceBatch: (identifiers, fields, date, signal) =>
+      referenceBatch: (identifiers, fields, date, currency, signal) =>
         get('/data/reference', {
           query: {
             identifiers: [...identifiers],
             ...(fields === undefined ? {} : { fields: [...fields] }),
-            ...(date === undefined || date === '' ? {} : { date })
+            ...(date === undefined || date === '' ? {} : { date }),
+            ...(currency === undefined || currency === '' ? {} : { currency })
           },
           ...(signal === undefined ? {} : { signal })
         }),
