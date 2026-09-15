@@ -724,7 +724,51 @@ const STAMPED = ['TECH10']
  */
 const UNPRICED = 'CAP-NOSHARES'
 
-let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED]
+/**
+ * Two indices holding a name the engine cannot convert (BN-188, BN-191).
+ *
+ * Before #204 a missing FX pair did not merely drop a constituent: the level
+ * published a 50% overnight loss with no market move, flat forever after,
+ * while the weights panel went on listing the dropped name at 0.0. An index
+ * that cannot value a constituent now refuses instead.
+ *
+ * TWO, because the refusal comes from different guards on different paths
+ * and only py-beacon's measurement says which:
+ *
+ * - A market-cap weighting refuses in `MarketCapWeighted`, which a PREVIEW
+ *   reaches — selection and weighting is all a preview does.
+ * - Valuation refuses in `ConstituentMarketValues`, which lives in the daily
+ *   calculation loop, so only a backtest JOB reaches it. A preview of that
+ *   index succeeds, which is the combination worth having on record: the
+ *   pane shows a clean set of constituents and the run then fails.
+ *
+ * `FX_UNVALUED` stays out of the catalogue, the way NO-UNIVERSE does, so no
+ * other test trips over it.
+ */
+const FX_UNWEIGHTABLE = 'FX-NOCAP'
+const FX_UNVALUED = 'FX-NOVALUE'
+
+/** py-beacon's own words, assembled the way `CalculationError` assembles them. */
+function calculationError(name: string, details: string): Refusal {
+  return refuse(500, 'CALCULATION_ERROR', `Error in calculation '${name}': ${details}`)
+}
+
+const FX_UNWEIGHTABLE_ERROR = calculationError(
+  'MarketCapWeighted',
+  "no JPY/USD rate on or before 2025-06-30, so JPCO's market cap cannot be expressed in USD. " +
+    'Using its local number instead would compare it with the rest of the universe on magnitude ' +
+    'alone, which is a different index under the same heading. Load the pair, or drop the name ' +
+    'from the universe.'
+)
+
+const FX_UNVALUED_ERROR =
+  "Error in calculation 'ConstituentMarketValues': no JPY/USD rate on or before 2025-01-02, so " +
+  "JPCO's market value of 1e+12 JPY cannot be expressed in USD. Excluding it from the aggregate " +
+  '— the old answer — silently restates the index over the constituents that happen to be ' +
+  'convertible, and converting at 1.0 — what the old log claimed — weights it as though the two ' +
+  'currencies were the same money. Load the pair, or define the index in JPY.'
+
+let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE]
 
 interface StubDerivation {
   parent: string
@@ -743,7 +787,7 @@ interface StubDerivation {
 const derivations = new Map<string, StubDerivation>()
 
 function resetIndices(): void {
-  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED]
+  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE]
   derivations.clear()
   derivations.set(OPTIMISED, {
     parent: 'TECH10',
@@ -2142,6 +2186,20 @@ export function startStubEngine(): Promise<StubEngine> {
           return
         }
 
+        /*
+         * A weighting that cannot weigh (BN-188).
+         *
+         * Reachable from a preview, which is the half that surprised me:
+         * a preview does selection and weighting and nothing else, so the
+         * valuation refusal below cannot reach it and this one can.
+         */
+        if (indexId === FX_UNWEIGHTABLE) {
+          response
+            .writeHead(FX_UNWEIGHTABLE_ERROR.status)
+            .end(JSON.stringify(FX_UNWEIGHTABLE_ERROR.payload))
+          return
+        }
+
         response.writeHead(200).end(JSON.stringify(previewPayload(indexId, asOf)))
       })
       return
@@ -2180,26 +2238,39 @@ export function startStubEngine(): Promise<StubEngine> {
          * would let the app render that failure any way it liked — which is
          * how it came to render it as a 404 from the overview.
          */
-        const failed = indexId === EMPTY_UNIVERSE
-        const job = failed
-          ? {
-              job_id: jobId,
-              kind: 'backtest',
-              status: 'failed',
-              progress: 0.05,
-              message: 'Calculating the index and simulating the tracking portfolio.',
-              result: null,
-              error: EMPTY_UNIVERSE_ERROR
-            }
-          : {
-              job_id: jobId,
-              kind: 'backtest',
-              status: 'succeeded',
-              progress: 1,
-              message: 'done',
-              result: backtestResult(parsed.benchmark !== undefined && parsed.benchmark !== null),
-              error: null
-            }
+        /*
+         * And a run that cannot VALUE what it holds (BN-191, py-beacon #204).
+         *
+         * A different refusal from the one above and on a different path:
+         * `ConstituentMarketValues` lives in the daily calculation loop, so
+         * a preview never reaches it and only the job can report it.
+         */
+        const error =
+          indexId === EMPTY_UNIVERSE
+            ? EMPTY_UNIVERSE_ERROR
+            : indexId === FX_UNVALUED
+              ? FX_UNVALUED_ERROR
+              : undefined
+        const job =
+          error !== undefined
+            ? {
+                job_id: jobId,
+                kind: 'backtest',
+                status: 'failed',
+                progress: 0.05,
+                message: 'Calculating the index and simulating the tracking portfolio.',
+                result: null,
+                error
+              }
+            : {
+                job_id: jobId,
+                kind: 'backtest',
+                status: 'succeeded',
+                progress: 1,
+                message: 'done',
+                result: backtestResult(parsed.benchmark !== undefined && parsed.benchmark !== null),
+                error: null
+              }
 
         jobs.set(jobId, job)
         response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))

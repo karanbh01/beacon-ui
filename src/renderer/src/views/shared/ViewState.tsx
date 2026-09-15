@@ -71,6 +71,25 @@ export function ViewError({ error }: { error: unknown }): ReactElement {
     )
   }
 
+  if (error instanceof ApiError && error.code === 'CALCULATION_ERROR') {
+    /*
+     * A refusal is not a failure to load (py-beacon #204).
+     *
+     * The engine reached the data, understood it, and declined to publish a
+     * number it cannot stand behind — a missing FX pair, before #204, showed
+     * as a 50% overnight loss with no market move. "Could not load" reads as
+     * a hiccup and invites a retry that will fail identically; the message
+     * beneath already says which pair to load, so the heading has only to
+     * stop pointing the reader at the wrong remedy.
+     */
+    return (
+      <div className="view-state">
+        <p className="type-13">The engine refused to answer.</p>
+        <p className="type-11">{error.message}</p>
+      </div>
+    )
+  }
+
   if (error instanceof ApiError && error.isNotFound) {
     return (
       <div className="view-state">

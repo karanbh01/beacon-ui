@@ -181,3 +181,22 @@ test('an optimised index can be the benchmark, which is the point of one', async
 
   await expect(window.getByText('Back-tested TECH10.')).toBeVisible()
 })
+
+test('a run that cannot value a constituent fails, and names the pair', async ({ window }) => {
+  /*
+   * py-beacon #204 (BN-191). The valuation guard lives in the daily
+   * calculation loop, which a preview never enters — so an index can
+   * preview cleanly and then fail here. That combination is the reason
+   * this is a separate fixture from the weighting refusal.
+   */
+  await openBacktest(window, 'FX-NOVALUE')
+  await window.getByRole('button', { name: 'Run backtest' }).click()
+
+  await expect(window.getByText('The backtest did not run.')).toBeVisible()
+  await expect(window.getByText(/no JPY\/USD rate/).first()).toBeVisible()
+  // The engine's reasoning, not a summary of it: both wrong answers it
+  // declines to give are what tells a reader why it stopped.
+  await expect(window.getByText(/silently restates the index/).first()).toBeVisible()
+
+  await expect(window.getByRole('button', { name: 'Open overview' })).toHaveCount(0)
+})

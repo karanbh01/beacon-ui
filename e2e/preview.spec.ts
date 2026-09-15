@@ -195,3 +195,28 @@ test('the table waits for the caps rather than filling in as they land', async (
   await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
   await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Local Ccy)')
 })
+
+test('a weighting that cannot convert refuses, and the pane says so', async ({ window }) => {
+  /*
+   * py-beacon #204 (BN-188/BN-191). A missing FX pair used to drop the
+   * constituent and publish a level over the rest: a 50% overnight loss
+   * with no market move, flat forever after, the dropped name still listed
+   * at 0.0. An index that cannot value a constituent now refuses.
+   *
+   * A preview reaches the WEIGHTING's guard — selection and weighting is
+   * all a preview does — so this is the half of the refusal that lands
+   * here rather than on a job.
+   */
+  await openPreview(window, 'FX-NOCAP')
+  await window.getByLabel('As of').fill('2025-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  // py-beacon's own words, and specific enough to act on: which pair, which
+  // name, and the two things it refuses to do instead.
+  await expect(window.locator('.view-state')).toContainText('no JPY/USD rate')
+  await expect(window.locator('.view-state')).toContainText('Load the pair')
+
+  // And no table behind it. A refusal is not an empty result, and a
+  // constituent list drawn beside one is a list nobody should trust.
+  await expect(window.locator('.tbl-body')).toHaveCount(0)
+})
