@@ -132,7 +132,7 @@ function buildColumns(
     },
     {
       key: 'weight',
-      header: 'Final w',
+      header: 'Weights',
       width: 100,
       align: 'right',
       render: (asset) => (
