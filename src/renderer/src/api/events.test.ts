@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { eventsUrl, isTerminal, parseEvent } from './events'
 import { activeJobs, useJobs } from './jobs'
 import { invalidationsFor, keys } from './keys'
@@ -201,5 +201,55 @@ describe('formatAge', () => {
     // cache_age is null when py-beacon has no data configured.
     expect(formatAge(null)).toBeUndefined()
     expect(formatAge(undefined)).toBeUndefined()
+  })
+})
+
+describe('an event the socket cannot read (BU-204)', () => {
+  /*
+   * py-beacon removed an `except Exception` and two tests failed at once —
+   * the swallow had kept a test double alive that never implemented the
+   * contract, for as long as it had existed. The parser here can swallow the
+   * same way: a job event whose shape moved is dropped, the tray never
+   * updates, and there is no error, no failed request and nothing to search
+   * for. Same symptom as the stub route that answered 404 behind a prefix
+   * match: a control that looks deliberately switched off.
+   */
+  let warned: string[]
+
+  beforeEach(() => {
+    warned = []
+    vi.spyOn(console, 'warn').mockImplementation((message: string) => {
+      warned.push(message)
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('says so when a known event is unreadable', () => {
+    expect(parseEvent({ type: 'job', status: 'running' })).toBeUndefined()
+    expect(warned.join(' ')).toContain('no job_id')
+  })
+
+  it('names which field was missing, since that is the whole diagnosis', () => {
+    expect(parseEvent({ type: 'job', job_id: 'j1' })).toBeUndefined()
+    expect(warned.join(' ')).toContain('no status')
+  })
+
+  it('stays silent for a type this build has never heard of', () => {
+    /*
+     * The half that must NOT warn. Forward compatibility is why the parser
+     * is permissive: every new event kind py-beacon publishes would
+     * otherwise fill the console of every older client.
+     */
+    expect(parseEvent({ type: 'universe.reindexed', id: 'GLOBAL' })).toBeUndefined()
+    expect(warned).toEqual([])
+  })
+
+  it('stays silent for something that is not an event at all', () => {
+    expect(parseEvent('hello')).toBeUndefined()
+    expect(parseEvent(null)).toBeUndefined()
+    expect(warned).toEqual([])
   })
 })

@@ -45,11 +45,37 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * The socket is loopback and the server is ours, but a malformed frame must
  * not take the renderer down — an unparseable event is dropped, not thrown.
  */
+/**
+ * An event we recognise and cannot read (BU-204).
+ *
+ * Distinct from one we do not recognise, which is dropped in silence on
+ * purpose: a `type` this build has never heard of is py-beacon ahead of us,
+ * and forward compatibility is the whole reason the parser is permissive.
+ *
+ * A KNOWN type with an unreadable payload is the opposite — a contract that
+ * moved, or a fake that never implemented it. Dropped silently it produces a
+ * job tray that simply never updates: no error, no failed request, nothing
+ * to search for. py-beacon found the same shape in an `except Exception`
+ * that had kept a broken test double alive for as long as it existed, and
+ * the lesson generalises: a swallow that cannot tell those two apart will
+ * eventually hide the second one.
+ */
+function unreadable(type: string, why: string): void {
+  console.warn(`[beacon] dropped a ${type} event: ${why}`)
+}
+
 export function parseEvent(raw: unknown): BeaconEvent | undefined {
   if (!isRecord(raw)) return undefined
 
   if (raw.type === 'job') {
-    if (typeof raw.job_id !== 'string' || typeof raw.status !== 'string') return undefined
+    if (typeof raw.job_id !== 'string') {
+      unreadable('job', 'no job_id')
+      return undefined
+    }
+    if (typeof raw.status !== 'string') {
+      unreadable('job', 'no status')
+      return undefined
+    }
     const progress = typeof raw.progress === 'number' ? raw.progress : 0
     return {
       type: 'job',
@@ -66,7 +92,10 @@ export function parseEvent(raw: unknown): BeaconEvent | undefined {
   }
 
   if (raw.type === 'data.freshness') {
-    if (typeof raw.dataset !== 'string') return undefined
+    if (typeof raw.dataset !== 'string') {
+      unreadable('data.freshness', 'no dataset')
+      return undefined
+    }
     return {
       type: 'data.freshness',
       dataset: raw.dataset,
@@ -74,6 +103,8 @@ export function parseEvent(raw: unknown): BeaconEvent | undefined {
     }
   }
 
+  // An unknown type, which is py-beacon ahead of this build. Silent by
+  // design: every new event kind they publish would otherwise warn.
   return undefined
 }
 
