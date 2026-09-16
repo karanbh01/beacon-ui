@@ -7,6 +7,8 @@ import {
   looksEquallyWeighted,
   marketCoverage,
   oneWayTurnover,
+  scheduleNote,
+  schedulePlaceholder,
   percent,
   solveOf,
   solveRows,
@@ -354,5 +356,59 @@ describe('marketCoverage', () => {
   it('has nothing to say before coverage arrives', () => {
     expect(marketCoverage(undefined)).toBeUndefined()
     expect(marketCoverage([])).toBeUndefined()
+  })
+})
+
+describe('what the As-of control offers (BU-202)', () => {
+  const settled = { isPending: false, isError: false }
+
+  it('invites a choice once there are dates', () => {
+    expect(schedulePlaceholder(settled, 27)).toBe('Choose a rebalance')
+  })
+
+  it('tells a request in flight from an empty schedule', () => {
+    /*
+     * Four ways to have no dates and only one of them is the index's fault.
+     * A single "no dates" would report a pending request, a refusal, and an
+     * index too new to have rebalanced as though they were the same thing —
+     * the fault-as-absence shape, in the one place a reader cannot ask again.
+     */
+    expect(schedulePlaceholder({ isPending: true, isError: false }, 0)).toBe(
+      'Loading the schedule…'
+    )
+  })
+
+  it('points at the definition when the engine could not answer', () => {
+    // A schedule needs a calendar, a frequency and a base date. All three
+    // live in the definition, which is where the reader has to go.
+    expect(schedulePlaceholder({ isPending: false, isError: true }, 0)).toBe(
+      'No schedule — see the definition'
+    )
+  })
+
+  it('says an index has simply not rebalanced yet', () => {
+    expect(schedulePlaceholder(settled, 0)).toBe('No rebalance has passed yet')
+  })
+
+  it('prefers the dates it has over any explanation for having none', () => {
+    // A background refetch must not blank a control the reader is using.
+    expect(schedulePlaceholder({ isPending: true, isError: true }, 4)).toBe('Choose a rebalance')
+  })
+})
+
+describe('a schedule that came back short (BU-202)', () => {
+  it('says nothing when the list is complete', () => {
+    expect(scheduleNote(27, 27)).toBeUndefined()
+  })
+
+  it('says so rather than leaving a short dropdown to be discovered', () => {
+    // We ask for 512, so this should never fire — and a dropdown that is
+    // silently short is the fault-as-absence shape in the one place a
+    // reader cannot ask again.
+    expect(scheduleNote(512, 640)).toContain('512 most recent of 640')
+  })
+
+  it('stays quiet with nothing at all, where the placeholder speaks instead', () => {
+    expect(scheduleNote(0, 0)).toBeUndefined()
   })
 })

@@ -200,6 +200,38 @@ export function useSaveUniverse() {
  * editor's current state, which has no cache key — two drafts of the same
  * index are different inputs with the same id.
  */
+/**
+ * How far back to ask for rebalances (BN-195).
+ *
+ * The engine caps `limit` at 512, which it chose to clear any schedule a
+ * real index can produce — over forty years of monthly rebalances — rather
+ * than to ration anything. So this asks for all of it: a dropdown offering
+ * the four most recent dates of twenty-seven is a list a reader cannot tell
+ * is short.
+ */
+export const SCHEDULE_LIMIT = 512
+
+/**
+ * When an index rebalances.
+ *
+ * Computed by the engine from the frequency, the calendar and the day rule.
+ * Deriving it here would mean reimplementing `THIRD_FRIDAY` resolution and
+ * holiday roll-back against a Python original — right for most dates, and so
+ * wrong in a way nobody notices for months.
+ */
+export function useSchedule(indexId: string) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.strategy.schedule(indexId, SCHEDULE_LIMIT),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.indices.schedule(indexId, SCHEDULE_LIMIT, signal)
+    },
+    enabled: client !== null && indexId !== ''
+  })
+}
+
 export function useValidateIndex() {
   const client = useBeacon()
 

@@ -62,6 +62,10 @@ export const keys = {
     /** Trading calendars the engine accepts (BN-180). */
     calendars: () => ['strategy', 'calendars'] as const,
     index: (indexId: string) => ['strategy', 'index', indexId] as const,
+    // Keyed by the limit: the same index answers with different lists under
+    // a different one, so two callers asking for different depths must not
+    // share an entry.
+    schedule: (indexId: string, limit: number) => ['strategy', 'schedule', indexId, limit] as const,
     universes: () => ['strategy', 'universes'] as const,
     universeMembers: (universeId: string) => ['strategy', 'universe-members', universeId] as const
   },

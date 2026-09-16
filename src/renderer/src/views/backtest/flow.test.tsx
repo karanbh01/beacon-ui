@@ -13,6 +13,7 @@ import { ConstituentPreviewView } from '../constituent-preview/ConstituentPrevie
 import { IndexDefinitionView } from '../index-definition/IndexDefinitionView'
 import type { IndexDocument } from '../index-definition/pipeline'
 import { BacktestView } from './BacktestView'
+import { choose } from '../../../../test/select'
 
 /**
  * BU-27 acceptance: define → preview → backtest, end to end.
@@ -65,6 +66,22 @@ function makeClient(): BeaconClient {
         return Promise.resolve({ index: document, findings: [] })
       },
       validate: () => Promise.resolve({ valid: true, findings: [] }),
+      // The dates the As-of control offers (BU-202). Quarterly third
+      // Fridays, as every fixture document here declares.
+      schedule: () =>
+        Promise.resolve({
+          index_id: 'NEWIDX',
+          as_of: '2026-08-04',
+          calendar: 'XNYS',
+          rebalancing_frequency: 'QUARTERLY',
+          rebalance_day_rule: 'THIRD_FRIDAY',
+          next_rebalance: '2026-09-18',
+          days_until: 45,
+          recent: ['2026-01-16', '2026-04-17', '2026-07-17'],
+          recent_total: 3,
+          upcoming: ['2026-09-18'],
+          upcoming_total: 1
+        }),
       preview: (id: string, body: { as_of?: string }) => {
         calls.previewed.push(body.as_of === undefined ? { id } : { id, asOf: body.as_of })
         return Promise.resolve({
@@ -273,7 +290,9 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
      */
     mount(<ConstituentPreviewView tab={tabFor('prev')} subject="NEWIDX" />)
 
-    expect(await screen.findByText(/Choose a date to resolve this index at/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Choose a rebalance date to resolve this index at/)
+    ).toBeInTheDocument()
     expect(calls.previewed).toEqual([])
     expect(screen.getByRole('button', { name: 'Run preview' })).toBeDisabled()
   })
@@ -281,11 +300,12 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
   it('previews: the waterfall shows where each name dropped out', async () => {
     mount(<ConstituentPreviewView tab={tabFor('prev')} subject="NEWIDX" />)
 
-    await userEvent.type(await screen.findByLabelText('As of'), '2026-07-22')
+    await screen.findByRole('combobox', { name: 'As of' })
+    await choose('As of', '2026-07-17')
     await userEvent.click(screen.getByRole('button', { name: 'Run preview' }))
 
     expect(await screen.findByText('01 · FilterRule')).toBeInTheDocument()
-    expect(calls.previewed).toEqual([{ id: 'NEWIDX', asOf: '2026-07-22' }])
+    expect(calls.previewed).toEqual([{ id: 'NEWIDX', asOf: '2026-07-17' }])
 
     // AAPL survived, GOOGL was cut by rule 01.
     const rows = [...document.querySelectorAll('.tbl-row')]
@@ -301,13 +321,14 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
      * second one. The Weights pane holds the first.
      */
     mount(<ConstituentPreviewView tab={tabFor('prev')} subject="NEWIDX" />)
-    await userEvent.type(await screen.findByLabelText('As of'), '2026-07-22')
+    await screen.findByRole('combobox', { name: 'As of' })
+    await choose('As of', '2026-07-17')
     await userEvent.click(screen.getByRole('button', { name: 'Run preview' }))
     await screen.findByText('01 · FilterRule')
 
     expect(screen.queryByLabelText('Compare vs')).not.toBeInTheDocument()
     // One resolve, for the date that was asked for.
-    expect(calls.previewed.map((call) => call.asOf)).toEqual(['2026-07-22'])
+    expect(calls.previewed.map((call) => call.asOf)).toEqual(['2026-07-17'])
   })
 
   it('back-tests: submits a job, follows the feed, and leaves the result to the Overview', async () => {

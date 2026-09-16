@@ -125,3 +125,27 @@ test('the overview carries dates, while its level series carries moments', async
   // And the series is unchanged, which is the half that makes this a trap.
   expect(overview.level.index[0]).toMatch(/^\d{4}-\d{2}-\d{2}T/)
 })
+
+test('the schedule answers with the whole history when asked for it', async ({ engine }) => {
+  const { status, body } = await get(engine.url, '/indices/TECH10/schedule?limit=512')
+  const view = body as unknown as {
+    recent: string[]
+    recent_total: number
+    upcoming: string[]
+    upcoming_total: number
+  }
+
+  expect(status).toBe(200)
+  expect(view.recent.length).toBe(view.recent_total)
+  expect(view.recent.length).toBeGreaterThan(20)
+
+  /*
+   * The lookahead is a SEPARATE bound from the trim (BN-195). Raising
+   * `limit` buys more history and cannot produce further future dates — a
+   * stub that extended both would let a client believe otherwise and pass.
+   */
+  const strip = await get(engine.url, '/indices/TECH10/schedule')
+  const four = strip.body as unknown as { recent: string[]; upcoming_total: number }
+  expect(four.recent).toHaveLength(4)
+  expect(view.upcoming_total).toBe(four.upcoming_total)
+})

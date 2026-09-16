@@ -4225,14 +4225,26 @@ export interface components {
             rebalancing_frequency: string;
             /**
              * Recent
-             * @description Rebalances already passed, most recent last.
+             * @description Rebalances already passed, most recent last. Trimmed to the `limit` most recent; `recent_total` says how many there were.
              */
             recent?: string[];
             /**
+             * Recent Total
+             * @description Rebalances between the base date and `as_of` — the length `recent` would have had before the `limit` trim, so equal to it when nothing was trimmed. A client reads these two together to tell 'these are all of them' from 'the last four of many'.
+             * @default 0
+             */
+            recent_total: number;
+            /**
              * Upcoming
-             * @description Scheduled rebalances after `as_of`, soonest first.
+             * @description Scheduled rebalances after `as_of`, soonest first. Trimmed to the `limit` soonest; `upcoming_total` says how many were found.
              */
             upcoming?: string[];
+            /**
+             * Upcoming Total
+             * @description Rebalances the lookahead projection found after `as_of` — the length `upcoming` would have had before the `limit` trim, not the number that will ever occur. The projection runs a fixed few periods ahead and `limit` does not extend it, so this is a bound on what was computed, not on the schedule, which has no end.
+             * @default 0
+             */
+            upcoming_total: number;
         };
         /**
          * SeriesPayload
@@ -8989,6 +9001,8 @@ export interface operations {
             query?: {
                 /** @description Date to answer from, YYYY-MM-DD. Defaults to today. */
                 asof?: string | null;
+                /** @description Maximum dates per list, at most 512 and 4 by default. It bounds `recent` and `upcoming` separately rather than the two together, so a limit of 10 can return 20 dates. Raising it yields more history only: the lookahead is a separate bound, so it cannot produce further future dates. */
+                limit?: number;
             };
             header?: never;
             path: {

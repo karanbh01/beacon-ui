@@ -797,6 +797,41 @@ const CRASHING_ERROR = refuse(
   { calculation_name: 'WeightingScheme-EqualWeighted', original_type: 'ZeroDivisionError' }
 )
 
+/**
+ * The rebalance schedule the engine projects (BN-195).
+ *
+ * Quarterly on the third Friday from a 2019-12-31 base, which is what every
+ * index document here declares — so the dates a client offers as choices are
+ * the dates its own fixtures rebalance on.
+ *
+ * Two bounds, not one, and they are the reason this is computed rather than
+ * listed. `limit` trims each list; the LOOKAHEAD is separate and fixed, so
+ * asking for more history cannot produce further future dates. A stub that
+ * extended both would let a client believe `limit` buys a longer forecast,
+ * which is exactly the inference py-beacon wrote `upcoming_total`'s
+ * description to prevent.
+ */
+const SCHEDULE_LOOKAHEAD = 4
+
+function thirdFriday(year: number, month: number): string {
+  const first = new Date(Date.UTC(year, month, 1))
+  // 0=Sunday. The first Friday, then two weeks on.
+  const offset = (5 - first.getUTCDay() + 7) % 7
+  const day = new Date(Date.UTC(year, month, 1 + offset + 14))
+  return day.toISOString().slice(0, 10)
+}
+
+/** Every quarterly third Friday from the base to `today`, oldest first. */
+function rebalanceDates(today: string): string[] {
+  const dates: string[] = []
+  for (let year = 2020; year <= Number(today.slice(0, 4)) + 1; year++) {
+    for (const month of [2, 5, 8, 11]) {
+      dates.push(thirdFriday(year, month))
+    }
+  }
+  return dates
+}
+
 let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE, CRASHING]
 
 interface StubDerivation {
@@ -1258,6 +1293,44 @@ function body(url: URL): unknown {
 
   if (path === '/data/identifiers') return searchIdentifiers(url)
 
+  if (/^\/indices\/[^/]+\/schedule$/.test(path)) {
+    const indexId = decodeURIComponent(path.split('/')[2] ?? '')
+    if (!indexIds.includes(indexId)) {
+      return notFound(`index '${indexId}'`, 'DocumentStore')
+    }
+
+    // Min 1, max 512, default 4 — and out of range is a 422, not a clamp.
+    const asked = url.searchParams.get('limit')
+    const limit = asked === null ? 4 : Number(asked)
+    if (!Number.isInteger(limit) || limit < 1 || limit > 512) {
+      return refuse(422, 'VALIDATION_ERROR', 'limit must be between 1 and 512')
+    }
+
+    const today = '2026-08-04'
+    const all = rebalanceDates(today)
+    const past = all.filter((date) => date <= today)
+    // The lookahead is its OWN bound: `limit` trims what was projected and
+    // cannot extend the projection.
+    const projected = all.filter((date) => date > today).slice(0, SCHEDULE_LOOKAHEAD)
+
+    return {
+      index_id: indexId,
+      rebalancing_frequency: 'QUARTERLY',
+      rebalance_day_rule: 'THIRD_FRIDAY',
+      calendar: 'XNYS',
+      as_of: today,
+      next_rebalance: projected[0] ?? null,
+      days_until: 42,
+      recent: past.slice(-limit),
+      recent_total: past.length,
+      upcoming: projected.slice(0, limit),
+      upcoming_total: projected.length
+    }
+  }
+
+  // Ahead of the catch-all below, which reads anything under /indices/ as
+  // a document id and answers `undefined` — a 404 — for a path with a
+  // second segment. A sub-resource has to be matched before it.
   if (path.startsWith('/indices/')) {
     const id = decodeURIComponent(path.slice('/indices/'.length))
     if (id === '' || id.includes('/')) return undefined

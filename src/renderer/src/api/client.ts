@@ -280,6 +280,20 @@ export interface BeaconClient {
     previewDocument: (
       body: BodyOf<'post', '/indices/preview'>
     ) => Promise<WriteResponse<'post', '/indices/preview'>>
+    /**
+     * When this index rebalances, computed by the engine (BN-195).
+     *
+     * `limit` bounds each list separately and defaults to 4 server-side; ask
+     * for the whole history rather than a strip when the dates are being
+     * offered as choices. `recent_total` says whether what came back is all
+     * of them — raising `limit` cannot extend `upcoming`, which is bounded by
+     * a fixed lookahead instead.
+     */
+    schedule: (
+      id: string,
+      limit?: number,
+      signal?: AbortSignal
+    ) => Promise<ResponseOf<'/indices/{index_id}/schedule'>>
     /** The catalogue that makes a real methodology form possible (#43). */
     ruleTypes: (signal?: AbortSignal) => Promise<ResponseOf<'/indices/rule-types'>>
   }
@@ -489,6 +503,12 @@ export function createClient(options: ClientOptions): BeaconClient {
     },
     indices: {
       list: (signal) => get('/indices', { ...(signal === undefined ? {} : { signal }) }),
+      schedule: (id, limit, signal) =>
+        get('/indices/{index_id}/schedule', {
+          params: { index_id: id },
+          ...(limit === undefined ? {} : { query: { limit } }),
+          ...(signal === undefined ? {} : { signal })
+        }),
       get: (id, signal) =>
         get('/indices/{index_id}', {
           params: { index_id: id },

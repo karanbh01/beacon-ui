@@ -260,3 +260,36 @@ export function marketCoverage(
 ): DatasetCoverage | undefined {
   return datasets?.find((dataset) => dataset.dataset === 'market')
 }
+
+/**
+ * What the As-of control says when it has nothing to offer (BU-202).
+ *
+ * Four states, because "no dates" arrives four ways and only one of them is
+ * the index's fault. A single "no dates" would report a request still in
+ * flight, an engine that refused, and an index too new to have rebalanced as
+ * though they were the same thing.
+ */
+export function schedulePlaceholder(
+  query: { isPending: boolean; isError: boolean },
+  offered: number
+): string {
+  if (offered > 0) return 'Choose a rebalance'
+  if (query.isPending) return 'Loading the schedule…'
+  if (query.isError) return 'No schedule — see the definition'
+  return 'No rebalance has passed yet'
+}
+
+/**
+ * Said only when the schedule came back short (BU-202).
+ *
+ * `recent_total` is what the list would have been before the engine's
+ * `limit` trim, so the two together tell "all of them" from "the last few of
+ * many". We ask for 512 — beyond forty years of monthly rebalances — so this
+ * should never fire; a dropdown that is silently short is exactly the
+ * fault-as-absence this repo keeps filing, and the cost of saying so is four
+ * lines.
+ */
+export function scheduleNote(offered: number, total: number): string | undefined {
+  if (total <= offered) return undefined
+  return `Showing the ${String(offered)} most recent of ${String(total)} rebalances — the engine capped the list.`
+}

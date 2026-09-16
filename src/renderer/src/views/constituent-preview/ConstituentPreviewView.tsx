@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
+import { Select } from '../../components/Select/Select'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError } from '../shared/ViewState'
-import { useIndex, usePreviewIndex } from '../shared/strategyQueries'
+import { useIndex, usePreviewIndex, useSchedule } from '../shared/strategyQueries'
 import { TABLE_REFERENCE_FIELDS, useCoverage, useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
 import {
@@ -19,6 +20,8 @@ import {
   percent,
   solveOf,
   solveRows,
+  scheduleNote,
+  schedulePlaceholder,
   sortAssets,
   summarise,
   summariseSolve,
@@ -108,6 +111,21 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const indexId = subject ?? ''
   const [asOf, setAsOf] = useState('')
   const preview = usePreviewIndex()
+  const schedule = useSchedule(indexId)
+  /*
+   * Newest first, because that is the order a reader looks for one in — the
+   * engine sends `recent` oldest-first, which is right for a series and
+   * wrong for a menu.
+   */
+  const shortSchedule = scheduleNote(
+    schedule.data?.recent?.length ?? 0,
+    schedule.data?.recent_total ?? 0
+  )
+  const rebalances = useMemo(
+    () =>
+      [...(schedule.data?.recent ?? [])].reverse().map((date) => ({ value: date, label: date })),
+    [schedule.data]
+  )
   const document = useIndex(indexId)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
@@ -236,27 +254,41 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
           </>
         }
       >
-        <Field label="As of" width={130}>
-          <input
-            className="preview-input"
-            type="date"
-            aria-label="As of"
+        {/*
+          Rebalance dates, not a free date (BU-202).
+
+          The pane re-resolves the methodology and deliberately shows no
+          drift, so every date between two rebalances resolves to the
+          portfolio of the rebalance before it. A date field invited a
+          question this view cannot answer differently; the schedule is the
+          set of dates where the answer actually changes.
+
+          Past only. A future rebalance has no data to resolve against, and
+          offering one produces the equal-weight fallback under a heading
+          that says market cap.
+        */}
+        <Field label="As of" width={150}>
+          <Select
+            label="As of"
             value={asOf}
-            onChange={(event) => {
-              setAsOf(event.target.value)
-            }}
+            onChange={setAsOf}
+            options={rebalances}
+            placeholder={schedulePlaceholder(schedule, rebalances.length)}
+            disabled={rebalances.length === 0}
           />
         </Field>
       </PaneHeader>
 
       {indexId === '' && <ViewEmpty>Open this from an index definition to preview it.</ViewEmpty>}
 
+      {shortSchedule !== undefined && <p className="preview-warning type-11">{shortSchedule}</p>}
+
       {/* Waiting to be asked, which is a different state from having no
           answer: the pane is ready and the reader has not chosen a date. */}
       {indexId !== '' && preview.data === undefined && !preview.isPending && !preview.isError && (
         <ViewEmpty>
           {asOf === ''
-            ? 'Choose a date to resolve this index at, then run the preview.'
+            ? 'Choose a rebalance date to resolve this index at, then run the preview.'
             : `Run the preview to resolve ${indexId} at ${asOf}.`}
         </ViewEmpty>
       )}

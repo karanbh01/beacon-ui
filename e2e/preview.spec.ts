@@ -1,4 +1,4 @@
-import { expect, openPage, openView, test } from './fixtures'
+import { expect, openPage, openView, test, choose, openSelect } from './fixtures'
 
 /**
  * The Constituent Preview as a job (BU-186).
@@ -20,24 +20,24 @@ async function openPreview(
 test('nothing resolves until a date is chosen and Run is pressed', async ({ window }) => {
   await openPreview(window, 'TECH10')
 
-  await expect(window.getByText(/Choose a date to resolve this index at/)).toBeVisible()
+  await expect(window.getByText(/Choose a rebalance date to resolve this index at/)).toBeVisible()
   await expect(window.getByRole('button', { name: 'Run preview' })).toBeDisabled()
   // No table, because nothing was asked for.
   await expect(window.locator('.tbl-body')).toHaveCount(0)
 
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await expect(window.getByRole('button', { name: 'Run preview' })).toBeEnabled()
   // Still nothing: a date is not a request.
   await expect(window.locator('.tbl-body')).toHaveCount(0)
 
   await window.getByRole('button', { name: 'Run preview' }).click()
   await expect(window.locator('.tbl-body').first()).toBeVisible()
-  await expect(window.getByText(/asked 2025-06-30/)).toBeVisible()
+  await expect(window.getByText(/asked 2026-06-19/)).toBeVisible()
 })
 
 test('the portfolio is at the top, heaviest first', async ({ window }) => {
   await openPreview(window, 'TECH10')
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   const rows = window.locator('.tbl-body .tbl-row')
@@ -58,9 +58,7 @@ test('a market-cap index shows both caps, and says when it fell back', async ({ 
    * weighted index appears under a market-cap heading.
    */
   await openPreview(window, 'CAP-NOSHARES')
-  // Past the end of the stub's market data, which is the real shape of the
-  // fault: a date the frame has no bar for.
-  await window.getByLabel('As of').fill('2027-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Index Ccy)')
@@ -73,8 +71,14 @@ test('a market-cap index shows both caps, and says when it fell back', async ({ 
    * caps beside it come from a thirty-day one — so full caps and an
    * unweighted index are perfectly consistent, and telling a reader to
    * check the caps sends them somewhere that cannot answer (BU-187).
+   *
+   * The date here is a rebalance INSIDE the store's range, since BU-202's
+   * dropdown no longer offers one past the end — which is the better
+   * outcome: a whole class of confusing preview is now unreachable. The
+   * past-the-end wording keeps its unit test.
    */
-  await expect(window.locator('.preview-warning')).toContainText('market data ends')
+  await expect(window.locator('.preview-warning')).toContainText('no market bar on 2026-06-19')
+  await expect(window.locator('.preview-warning')).toContainText('does not look back')
   await expect(window.locator('.preview-warning')).toContainText('no guide')
 })
 
@@ -82,7 +86,7 @@ test('an equally weighted index says nothing about market caps', async ({ window
   // The warning is about a contradiction. An index that asked for equal
   // weights and got them is not one.
   await openPreview(window, 'TECH10')
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   await expect(window.locator('.preview-warning')).toHaveCount(0)
@@ -97,7 +101,7 @@ test('the pre-cap weight has no column of its own', async ({ window }) => {
    * What it said is in the summary line, where it costs no width.
    */
   await openPreview(window, 'TECH10')
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
@@ -117,7 +121,7 @@ test('caps come in the index currency, with the local figure beside them', async
    * and nothing on screen says which.
    */
   await openPreview(window, 'CAP-NOSHARES')
-  await window.getByLabel('As of').fill('2027-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   // Local first, converted second, each pair followed by its unit (BU-197).
@@ -150,7 +154,7 @@ test('a cap with no rate is a missing rate, not a missing cap', async ({ window 
    * absence and send a reader after share counts the row already has.
    */
   await openPreview(window, 'CAP-NOSHARES')
-  await window.getByLabel('As of').fill('2027-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   // CMP007 is the stub's one rateless name: a currency with no pair.
@@ -181,7 +185,7 @@ test('the table waits for the caps rather than filling in as they land', async (
   })
 
   await openPreview(window, 'CAP-NOSHARES')
-  await window.getByLabel('As of').fill('2027-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   // The resolve has answered and the table is still not drawn: a cap column
@@ -208,7 +212,7 @@ test('a weighting that cannot convert refuses, and the pane says so', async ({ w
    * here rather than on a job.
    */
   await openPreview(window, 'FX-NOCAP')
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   // py-beacon's own words, and specific enough to act on: which pair, which
@@ -231,7 +235,7 @@ test('a weighting that crashes is a fault, not a decision', async ({ window }) =
    * nothing to find.
    */
   await openPreview(window, 'WEIGHT-CRASH')
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   await expect(window.locator('.view-state')).toContainText('The engine broke on this calculation.')
@@ -269,7 +273,7 @@ test('the footer carries the work, and the pane no longer counts seconds', async
   await expect(status.locator('.footer-dot')).toHaveClass(/dot-success/)
 
   await openPreview(window, 'TECH10')
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   const running = window.locator('.footer-status', { hasText: 'previewing' })
@@ -291,8 +295,45 @@ test('the pane compares nothing, because it resolves one date', async ({ window 
   await expect(window.getByLabel('As of')).toBeVisible()
   await expect(window.getByLabel('Compare vs')).toHaveCount(0)
 
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
   await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
   await expect(window.locator('.summary-line')).not.toContainText('turnover')
+})
+
+test('as-of offers the rebalance schedule, newest first and past only', async ({ window }) => {
+  /*
+   * BU-202. The pane re-resolves the methodology and deliberately shows no
+   * drift, so every date between two rebalances resolves to the portfolio
+   * of the rebalance before it — a free date field invited a question this
+   * view cannot answer differently.
+   *
+   * The dates are the ENGINE's: `THIRD_FRIDAY` resolution and holiday
+   * roll-back reimplemented here would be right for most dates, and so
+   * wrong in a way nobody notices for months.
+   */
+  await openPreview(window, 'TECH10')
+
+  const list = await openSelect(window, 'As of')
+  const dates = await list.locator('[role="option"]').allInnerTexts()
+
+  // Newest first: the order a reader looks for one in, not the order a
+  // series is stored in.
+  expect(dates[0]).toBe('2026-06-19')
+  expect([...dates].sort().reverse()).toEqual(dates)
+
+  // The whole history, not the engine's four-period default strip — and
+  // nothing in the future, which has no data to resolve against.
+  expect(dates.length).toBeGreaterThan(20)
+  expect(dates.some((date) => date > '2026-08-04')).toBe(false)
+})
+
+test('an index whose schedule cannot be read says where to look', async ({ window }) => {
+  // Not "no dates": a schedule needs a calendar, a frequency and a base
+  // date, all of which live in the definition.
+  await window.route(/\/schedule/, (route) => route.abort())
+  await openPreview(window, 'TECH10')
+
+  await expect(window.getByRole('combobox', { name: 'As of' })).toContainText('No schedule')
+  await expect(window.getByRole('button', { name: 'Run preview' })).toBeDisabled()
 })

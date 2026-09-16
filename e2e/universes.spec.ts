@@ -424,8 +424,9 @@ test('previewing an optimised index shows the solve, not a waterfall (BU-173)', 
   await window.locator('.index-overview').getByText('TECH10-OPT', { exact: true }).click()
   await window.getByRole('button', { name: /Constituent Preview/ }).click()
 
-  // A preview runs when it is asked to, not on open (BU-186).
-  await window.getByLabel('As of').fill('2025-06-30')
+  // A preview runs when it is asked to, not on open (BU-186), and at a
+  // rebalance rather than an arbitrary date (BU-202).
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   const preview = window.locator('.constituent-preview-view')
@@ -462,7 +463,7 @@ test('previewing a rule-driven index still shows the waterfall (BU-173)', async 
   await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
   await window.getByRole('button', { name: /Constituent Preview/ }).click()
 
-  await window.getByLabel('As of').fill('2025-06-30')
+  await choose(window, 'As of', '2026-06-19')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   const preview = window.locator('.constituent-preview-view')
