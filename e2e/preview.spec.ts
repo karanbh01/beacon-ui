@@ -248,3 +248,51 @@ test('a weighting that crashes is a fault, not a decision', async ({ window }) =
    */
   await expect(window.locator('.view-state')).toContainText('WeightingScheme-EqualWeighted')
 })
+
+test('the footer carries the work, and the pane no longer counts seconds', async ({ window }) => {
+  /*
+   * BU-201. The elapsed counter could only speak for its own pane, so work
+   * left running while the reader moved on was invisible from everywhere
+   * else. The footer answers for the whole app.
+   */
+  let release = (): void => undefined
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await window.route(/\/indices\/[^/]+\/preview/, async (route) => {
+    await held
+    await route.continue()
+  })
+
+  const status = window.locator('.footer-status', { hasText: 'background processes' })
+  await expect(status).toContainText('all background processes complete')
+  await expect(status.locator('.footer-dot')).toHaveClass(/dot-success/)
+
+  await openPreview(window, 'TECH10')
+  await window.getByLabel('As of').fill('2025-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  const running = window.locator('.footer-status', { hasText: 'previewing' })
+  await expect(running).toBeVisible()
+  await expect(running.locator('.footer-dot')).toHaveClass(/dot-working/)
+
+  release()
+  await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
+  await expect(status).toContainText('all background processes complete')
+})
+
+test('the pane compares nothing, because it resolves one date', async ({ window }) => {
+  /*
+   * Compare-vs resolved the index a second time to report turnover between
+   * two dates. That is a question about a schedule; this pane answers one
+   * about a methodology, and the Weights pane holds the other.
+   */
+  await openPreview(window, 'TECH10')
+  await expect(window.getByLabel('As of')).toBeVisible()
+  await expect(window.getByLabel('Compare vs')).toHaveCount(0)
+
+  await window.getByLabel('As of').fill('2025-06-30')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+  await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
+  await expect(window.locator('.summary-line')).not.toContainText('turnover')
+})

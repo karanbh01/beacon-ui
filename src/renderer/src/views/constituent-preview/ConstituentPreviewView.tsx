@@ -6,7 +6,7 @@ import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { ViewEmpty, ViewError, ViewWorking } from '../shared/ViewState'
+import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useIndex, usePreviewIndex } from '../shared/strategyQueries'
 import { TABLE_REFERENCE_FIELDS, useCoverage, useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
@@ -16,7 +16,6 @@ import {
   explainEqualWeights,
   looksEquallyWeighted,
   marketCoverage,
-  oneWayTurnover,
   percent,
   solveOf,
   solveRows,
@@ -108,12 +107,7 @@ function buildColumns(
 export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): ReactElement {
   const indexId = subject ?? ''
   const [asOf, setAsOf] = useState('')
-  const [compareTo, setCompareTo] = useState('')
-  /** When the current preview began, for saying how long it has run. */
-  const [startedAt, setStartedAt] = useState<number | undefined>(undefined)
-
   const preview = usePreviewIndex()
-  const comparison = usePreviewIndex()
   const document = useIndex(indexId)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
@@ -174,7 +168,6 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const { mutate, reset } = preview
   const run = (): void => {
     if (indexId === '' || asOf === '') return
-    setStartedAt(Date.now())
     mutate({ indexId, asOf })
   }
 
@@ -212,10 +205,6 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
     preview.data === undefined || solve === undefined
       ? undefined
       : summariseSolve(preview.data, solve)
-  const turnover =
-    preview.data === undefined || comparison.data === undefined
-      ? undefined
-      : oneWayTurnover(comparison.data.weights, preview.data.weights)
 
   return (
     <div className="constituent-preview-view">
@@ -258,27 +247,6 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
             }}
           />
         </Field>
-        {/*
-          Turnover between two dates, which is a question about a schedule.
-          A solve reports its distance from the parent instead, so the field
-          would drive a figure this face does not show — and a control that
-          does nothing is worse than an absent one.
-        */}
-        {solve === undefined && (
-          <Field label="Compare vs" width={130}>
-            <input
-              className="preview-input"
-              type="date"
-              aria-label="Compare vs"
-              value={compareTo}
-              onChange={(event) => {
-                const next = event.target.value
-                setCompareTo(next)
-                if (next !== '' && indexId !== '') comparison.mutate({ indexId, asOf: next })
-              }}
-            />
-          </Field>
-        )}
       </PaneHeader>
 
       {indexId === '' && <ViewEmpty>Open this from an index definition to preview it.</ViewEmpty>}
@@ -300,18 +268,16 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         unable to tell work from a hang.
       */}
       {/*
-        The caps are part of the answer, not a decoration on it (BU-197).
+        Acknowledged here, counted in the footer (BU-201).
 
-        They arrive in a separate request — several, above a thousand names,
-        since that is where the engine caps a batch — and the table was drawn
-        the moment the weights landed. So a chunk answering filled a
-        SCATTERED subset of a weight-sorted table, which is what Karan saw as
-        the caps loading name by name. Waiting costs a few seconds of blank
-        and buys a table that is right the first time it is read.
+        The elapsed counter this replaces could only speak for its own pane,
+        so work left running while the reader moved on was invisible. The
+        footer says what is still going, for the whole app; this line only
+        has to stop the pane reading as broken while it waits, which a blank
+        one does.
       */}
-      {working && indexId !== '' && startedAt !== undefined && (
-        <ViewWorking what={indexId} since={startedAt} />
-      )}
+      {working && indexId !== '' && <ViewEmpty>Resolving {indexId}…</ViewEmpty>}
+
       {preview.isError && <ViewError error={preview.error} />}
 
       {/*
@@ -355,11 +321,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
                   ? 'uncapped'
                   : `${String(summary.capped)} at ${percent(summary.cap, 1)}`
             },
-            { label: 'redistributed', value: percent(summary.redistributed) },
-            {
-              label: 'one-way turnover',
-              value: turnover === undefined ? 'pick a date' : percent(turnover)
-            }
+            { label: 'redistributed', value: percent(summary.redistributed) }
           ]}
         />
       )}

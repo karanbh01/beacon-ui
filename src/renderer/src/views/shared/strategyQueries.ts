@@ -10,6 +10,7 @@ import { useBacktestRecords } from './beaconQueries'
 import type { ConstraintRow } from './optimiseQueries'
 import { withBacktests } from './indexSuggestions'
 import { useBeacon } from '../../api/queryClient'
+import { workKey } from '../../api/work'
 
 export type IndexDocument = components['schemas']['IndexDocument']
 export type ValidationReport = components['schemas']['ValidationReport']
@@ -203,6 +204,7 @@ export function useValidateIndex() {
   const client = useBeacon()
 
   return useMutation({
+    mutationKey: workKey('validating'),
     mutationFn: (document: IndexDocument) => {
       if (client === null) throw new Error('No engine')
       return client.indices.validate(document)
@@ -227,6 +229,7 @@ export function usePreviewIndex() {
   const client = useBeacon()
 
   return useMutation({
+    mutationKey: workKey('previewing'),
     mutationFn: ({ indexId, asOf }: { indexId: string; asOf?: string }) => {
       if (client === null) throw new Error('No engine')
       return client.indices.preview(indexId, asOf === undefined ? {} : { as_of: asOf })
@@ -245,6 +248,7 @@ export function usePreviewDocument() {
   const client = useBeacon()
 
   return useMutation({
+    mutationKey: workKey('previewing'),
     mutationFn: ({ document, asOf }: { document: IndexDocument; asOf?: string }) => {
       if (client === null) throw new Error('No engine')
       return client.indices.previewDocument({
@@ -396,6 +400,7 @@ export function useRunBacktest() {
   const client = useBeacon()
 
   return useMutation({
+    mutationKey: workKey('backtest'),
     mutationFn: (options: BacktestOptions) => {
       if (client === null) throw new Error('No engine')
       return client.write('post', '/beacon/{index_id}/backtest', {
@@ -433,6 +438,7 @@ export function useOptimiseIndex() {
   const queries = useQueryClient()
 
   return useMutation({
+    mutationKey: workKey('optimising'),
     mutationFn: (options: OptimiseOptions) => {
       if (client === null) throw new Error('No engine')
       return client.write('post', '/indices/{index_id}/optimise', {

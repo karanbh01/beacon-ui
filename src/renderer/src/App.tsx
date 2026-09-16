@@ -21,6 +21,7 @@ import { usePresets, type Preset } from './state/presets'
 import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
 import type { ViewOption } from './shell/viewRegistry'
+import { useBackgroundWork } from './api/work'
 
 type BridgeState = { status: 'pending' } | { status: 'ok'; info: AppInfo } | { status: 'failed' }
 
@@ -62,6 +63,7 @@ function AppBody(): ReactElement {
   const engine = useEngine()
   const update = useUpdate()
   const dataAge = useDataAge()
+  const work = useBackgroundWork()
   const selectTab = useWorkspace((state) => state.selectTab)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
   const jobs = useJobs((state) => state.jobs)
@@ -203,6 +205,10 @@ function AppBody(): ReactElement {
         // Real freshness from /health's cache_age, refreshed when py-beacon
         // publishes a data.freshness event rather than on a timer.
         ...(dataAge === undefined ? {} : { dataUpdated: dataAge }),
+        // Everything running anywhere in the app, in one place (BU-201). It
+        // sits beside data freshness because it answers the same kind of
+        // question: is what I am looking at finished?
+        work,
         ...(appVersion === undefined ? {} : { version: appVersion }),
         // electron-updater, live from main. Nothing downloads unasked, so
         // this is also the control surface — see ADR-0004.

@@ -21,6 +21,15 @@ export interface FooterProps {
   engine?: { state: EngineState; version?: string; detail?: string }
   /** e.g. "2h ago". BU-21 supplies it from freshness events. */
   dataUpdated?: string
+  /**
+   * What is running in the background, in words (BU-201).
+   *
+   * An empty list is a state worth showing rather than an absence: "all
+   * background processes complete" is the answer to "is anything still
+   * going?", and a slot that disappears when the answer is no leaves the
+   * reader unable to tell finished from never started.
+   */
+  work?: { running: readonly string[] }
   version?: string
   /** Live from electron-updater via main (BU-34). */
   update?: UpdateState
@@ -55,6 +64,19 @@ function engineLabel(state: EngineState, version?: string): string {
   if (state === 'stopped') return 'engine stopped'
   if (state === 'starting') return 'engine starting…'
   return version === undefined ? 'engine connected' : `engine connected · py-beacon ${version}`
+}
+
+/**
+ * What the background slot says.
+ *
+ * Named while there is one thing, counted while there are several: "2
+ * background processes running" is more use than two verbs run together, and
+ * a reader who wants the detail has the job tray.
+ */
+function workLabel(running: readonly string[]): string {
+  if (running.length === 0) return 'all background processes complete'
+  if (running.length === 1) return `${running[0] ?? 'working'}…`
+  return `${String(running.length)} background processes running`
 }
 
 /** Text when there is nothing to click, a button when there is. */
@@ -100,6 +122,7 @@ function UpdateSlot({
 export function Footer({
   engine = { state: 'connected' },
   dataUpdated,
+  work,
   version,
   update,
   onUpdateAction,
@@ -121,6 +144,16 @@ export function Footer({
         <span className="footer-status">
           <span className="footer-dot dot-accent" aria-hidden="true" />
           data updated · {dataUpdated}
+        </span>
+      )}
+
+      {work !== undefined && (
+        <span className="footer-status">
+          <span
+            className={`footer-dot ${work.running.length === 0 ? 'dot-success' : 'dot-working'}`}
+            aria-hidden="true"
+          />
+          {workLabel(work.running)}
         </span>
       )}
 

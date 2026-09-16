@@ -293,17 +293,21 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     expect(rows[1]?.textContent).toContain('✕')
   })
 
-  it('previews at a chosen date, which is what makes turnover computable', async () => {
+  it('previews at the chosen date, and only when asked', async () => {
+    /*
+     * Compare-vs went in BU-201. It resolved the index a second time to
+     * compute turnover between two dates, which is a question about a
+     * schedule rather than about a methodology — and this pane answers the
+     * second one. The Weights pane holds the first.
+     */
     mount(<ConstituentPreviewView tab={tabFor('prev')} subject="NEWIDX" />)
     await userEvent.type(await screen.findByLabelText('As of'), '2026-07-22')
     await userEvent.click(screen.getByRole('button', { name: 'Run preview' }))
     await screen.findByText('01 · FilterRule')
 
-    await userEvent.type(screen.getByLabelText('Compare vs'), '2026-06-19')
-
-    await waitFor(() => {
-      expect(calls.previewed.some((call) => call.asOf === '2026-06-19')).toBe(true)
-    })
+    expect(screen.queryByLabelText('Compare vs')).not.toBeInTheDocument()
+    // One resolve, for the date that was asked for.
+    expect(calls.previewed.map((call) => call.asOf)).toEqual(['2026-07-22'])
   })
 
   it('back-tests: submits a job, follows the feed, and leaves the result to the Overview', async () => {

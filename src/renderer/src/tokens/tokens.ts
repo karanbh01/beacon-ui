@@ -13,6 +13,7 @@ export type ColorToken =
   | 'accent'
   | 'success'
   | 'danger'
+  | 'working'
   | 'chrome-border'
   | 'chrome-icon'
   | 'chrome-text'
@@ -48,6 +49,7 @@ export const COLORS: Record<ThemeMode, Record<ColorToken, string>> = {
     'accent': '#4a88c7',
     'success': '#4e9455',
     'danger': '#8f2f2a',
+    'working': '#b5741f',
     'chrome-border': '#b1997d',
     'chrome-icon': '#62513c',
     'chrome-text': '#62513c',
@@ -77,6 +79,7 @@ export const COLORS: Record<ThemeMode, Record<ColorToken, string>> = {
     'accent': '#6fa7dc',
     'success': '#5fa867',
     'danger': '#e09a92',
+    'working': '#d9954a',
     'chrome-border': '#373737',
     'chrome-icon': '#7f7f7f',
     'chrome-text': '#7f7f7f',

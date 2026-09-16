@@ -45,6 +45,15 @@
   background: var(--danger);
 }
 
+/*
+ * Work in flight. Not accent — accent means "this is the active thing", and
+ * a job running is a state of the app rather than a selection — and not
+ * danger, because nothing is wrong.
+ */
+.dot-working {
+  background: var(--working);
+}
+
 .footer-right {
   display: inline-flex;
   align-items: center;

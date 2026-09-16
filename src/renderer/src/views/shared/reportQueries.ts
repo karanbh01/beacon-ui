@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { components } from '@shared/api.generated'
 import { useBeacon } from '../../api/queryClient'
+import { workKey } from '../../api/work'
 
 export type ReportTemplate = components['schemas']['ReportTemplateDocument']
 export type TemplateCollection = components['schemas']['ReportTemplateCollection']
@@ -71,6 +72,7 @@ export function useRenderReport() {
   const client = useBeacon()
 
   return useMutation({
+    mutationKey: workKey('rendering report'),
     mutationFn: (options: RenderOptions) => {
       if (client === null) throw new Error('No engine')
       return client.reports.render({

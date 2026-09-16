@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { components } from '@shared/api.generated'
 import { useBeacon } from '../../api/queryClient'
+import { workKey } from '../../api/work'
 
 export type ConstraintSet = components['schemas']['ConstraintSet']
 export type ConstraintRow = components['schemas']['ConstraintRow']
@@ -101,6 +102,7 @@ export function useValidateConstraintSet() {
   const client = useBeacon()
 
   return useMutation({
+    mutationKey: workKey('validating'),
     mutationFn: (set: ConstraintSet) => {
       if (client === null) throw new Error('No engine')
       return client.write('post', '/optimise/constraint-sets/validate', { body: set })
@@ -120,6 +122,7 @@ export function useRunOptimisation() {
   const client = useBeacon()
 
   return useMutation({
+    mutationKey: workKey('optimising'),
     mutationFn: (options: RunOptions) => {
       if (client === null) throw new Error('No engine')
       return client.write('post', '/optimise/runs', {
@@ -198,6 +201,7 @@ export function useEstimateRiskModel() {
   const client = useBeacon()
 
   return useMutation({
+    mutationKey: workKey('estimating risk model'),
     mutationFn: ({ modelId, intensity }: { modelId: string; intensity?: number }) => {
       if (client === null) throw new Error('No engine')
       return client.write('post', '/risk-models/{model_id}/estimate', {
