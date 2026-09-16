@@ -798,6 +798,28 @@ const CRASHING_ERROR = refuse(
 )
 
 /**
+ * A date the store does not reach (BN-179, BN-182).
+ *
+ * There is no equal-weight fallback any more. `MarketCapWeighted` either
+ * weights by real caps or refuses — an index that comes out equal-weighted
+ * because the caps could not be read is a different index under the same
+ * heading, and nothing downstream looks wrong enough for anyone to ask.
+ *
+ * Inside the coverage a date with no bar is a closed market and resolves
+ * BACK to the last session, so a weekend needs no warning and gets none.
+ * Only past the last bar is a refusal, because there the same read would be
+ * a stale print presented as the current one.
+ */
+const PAST_THE_END_ERROR = calculationError(
+  'MarketCapWeighted',
+  'cannot weight at 2026-08-21: the market data runs 2021-01-04 to ' +
+    '2026-08-03, so that date lies outside it. Inside the range a date with no bar is a ' +
+    'closed market and resolves back to the last session on or before it; outside it nothing ' +
+    'is known, and carrying a price forward would answer a different question in this ' +
+    "one's date. Ask for a date on or before 2026-08-03, or refresh the store."
+)
+
+/**
  * The rebalance schedule the engine projects (BN-195).
  *
  * Quarterly on the third Friday from a 2019-12-31 base, which is what every
@@ -2040,12 +2062,14 @@ function previewFace(indexId: string, asOf: string, derived: boolean): unknown {
 /** Ten names out of the universe, two of them at the cap. */
 function walkedPreview(indexId: string): Record<string, unknown> {
   /*
-   * The unpriced index comes back EQUALLY weighted (BU-186).
+   * The unpriced index still comes back equally weighted HERE, and that is
+   * now only a fixture shape rather than a claim about the engine (BU-203).
    *
-   * Which is what py-beacon returns when `MarketCapWeighted` can price
-   * nothing: no cap, no redistribution, every weight identical, and not one
-   * word in the payload about why. Reproducing the observable is the only
-   * way a client's detection of it can be tested.
+   * BN-179 removed the equal-weight fallback: `MarketCapWeighted` refuses
+   * when it cannot price a name, and `/indices/{id}/preview` answers with
+   * the refusal — which is what `UNPRICED` produces above, before this runs.
+   * These weights are reached only by the derived face, which has its own
+   * reasons to be flat.
    */
   const unpriced = indexId === UNPRICED
   const kept = Array.from({ length: 10 }, (_, i) => `CMP${String(i).padStart(3, '0')}`)
@@ -2327,6 +2351,21 @@ export function startStubEngine(): Promise<StubEngine> {
         // the path and nothing else (BN-194).
         if (indexId === CRASHING) {
           response.writeHead(CRASHING_ERROR.status).end(JSON.stringify(CRASHING_ERROR.payload))
+          return
+        }
+
+        /*
+         * Past the last bar, the weighting refuses (BN-179, BN-182).
+         *
+         * The market frame ends 2026-08-03 and the schedule runs to today,
+         * so a rebalance in that gap is a date a reader can legitimately
+         * choose and the engine cannot answer. The unpriced index is the one
+         * whose monthly schedule reaches into it.
+         */
+        if (indexId === UNPRICED && asOf > '2026-08-03') {
+          response
+            .writeHead(PAST_THE_END_ERROR.status)
+            .end(JSON.stringify(PAST_THE_END_ERROR.payload))
           return
         }
 

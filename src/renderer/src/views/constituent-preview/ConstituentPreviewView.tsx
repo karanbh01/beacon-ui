@@ -9,14 +9,11 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useIndex, usePreviewIndex, useSchedule } from '../shared/strategyQueries'
-import { TABLE_REFERENCE_FIELDS, useCoverage, useReferenceRows } from '../shared/queries'
+import { TABLE_REFERENCE_FIELDS, useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
 import {
   CELL_GLYPH,
   cellState,
-  explainEqualWeights,
-  looksEquallyWeighted,
-  marketCoverage,
   percent,
   solveOf,
   solveRows,
@@ -171,10 +168,6 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const pricedAt = preview.data?.resolved_date ?? preview.data?.as_of.slice(0, 10) ?? asOf
   const caps = useReferenceRows(names, TABLE_REFERENCE_FIELDS, pricedAt, currency)
 
-  // Which dates the market frame actually holds, for explaining a weighting
-  // that could not price anything.
-  const coverage = useCoverage()
-
   /*
    * Nothing runs until asked (BU-186).
    *
@@ -311,35 +304,6 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
       {working && indexId !== '' && <ViewEmpty>Resolving {indexId}…</ViewEmpty>}
 
       {preview.isError && <ViewError error={preview.error} />}
-
-      {/*
-        The fallback nobody was told about (BU-186, corrected in BU-187).
-
-        `MarketCapWeighted` prices a name on the EXACT date, with no
-        lookback. A date with no bar prices nothing, the total cap is zero,
-        and it assigns equal weights while logging server-side — so a
-        plausible equally weighted index appears under a market-cap heading.
-
-        The cap columns beside it are NOT the check: `server/reference.py`
-        looks back thirty days for those, so they can be full while the
-        weighting saw nothing. The date is the check, and `/data/coverage`
-        knows which dates the market frame holds.
-
-        Detected rather than reported, because there is nothing in the
-        response to report it with. Filed against py-beacon as their #191.
-      */}
-      {wantsCaps &&
-        preview.data !== undefined &&
-        !working &&
-        looksEquallyWeighted(preview.data.assets) && (
-          <p className="preview-warning type-11">
-            Every weight here is identical, on an index weighted by market capitalisation —
-            py-beacon fell back to equal weights because it could not price a single name at this
-            date. {explainEqualWeights(asOf, marketCoverage(coverage.data?.datasets))}. The market
-            caps below come from a thirty-day lookback, so they are no guide to what the weighting
-            saw.
-          </p>
-        )}
 
       {summary !== undefined && preview.data !== undefined && !working && (
         <SummaryLine

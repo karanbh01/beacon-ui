@@ -50,35 +50,13 @@ test('the portfolio is at the top, heaviest first', async ({ window }) => {
   await expect(rows.last()).toContainText('CMP012')
 })
 
-test('a market-cap index shows both caps, and says when it fell back', async ({ window }) => {
-  /*
-   * py-beacon's MarketCapWeighted needs SHARES_OUTSTANDING to price a
-   * name. Without it every cap is zero, it assigns EQUAL weights, and it
-   * logs the reason somewhere no client can read — so a plausible equally
-   * weighted index appears under a market-cap heading.
-   */
+test('a market-cap index shows both caps', async ({ window }) => {
   await openPreview(window, 'CAP-NOSHARES')
   await choose(window, 'As of', '2026-07-17')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Index Ccy)')
   await expect(window.locator('.tbl-head')).toContainText('FF Market Cap (bn Index Ccy)')
-  await expect(window.locator('.preview-warning')).toContainText('Every weight here is identical')
-
-  /*
-   * And it names the DATE as the thing to check, not the cap columns.
-   * `MarketCapWeighted` reads the exact date with no lookback, while the
-   * caps beside it come from a thirty-day one — so full caps and an
-   * unweighted index are perfectly consistent, and telling a reader to
-   * check the caps sends them somewhere that cannot answer (BU-187).
-   *
-   * The date here is a rebalance INSIDE the store's range. The other case —
-   * a rebalance PAST the end of the data — is still reachable and covered
-   * below; BU-202 narrowed the input, it did not remove that class.
-   */
-  await expect(window.locator('.preview-warning')).toContainText('no market bar on 2026-07-17')
-  await expect(window.locator('.preview-warning')).toContainText('does not look back')
-  await expect(window.locator('.preview-warning')).toContainText('no guide')
 })
 
 test('an equally weighted index says nothing about market caps', async ({ window }) => {
@@ -337,15 +315,17 @@ test('an index whose schedule cannot be read says where to look', async ({ windo
   await expect(window.getByRole('button', { name: 'Run preview' })).toBeDisabled()
 })
 
-test('a rebalance past the end of the data still says so', async ({ window }) => {
+test('a rebalance past the end of the data is refused, not approximated', async ({ window }) => {
   /*
-   * The case BU-202 did NOT remove, and which I briefly believed it had.
+   * BN-179 removed the equal-weight fallback and BN-182 made dates resolve
+   * BACKWARDS inside the coverage. So a weekend or a holiday needs no
+   * warning — it reads the last session, which is the composition the index
+   * actually held. Past the last bar the same read would be a stale print
+   * presented as the current one, and the engine refuses instead.
    *
-   * The schedule runs to today; the price store stops wherever it stops.
-   * Prices lag, so an index rebalances in the gap between the last bar and
-   * now — and those dates are offered, correctly, because they are real
-   * rebalances. Resolving at one produces the equal-weight fallback, and
-   * the explanation has to name the DATA rather than the date.
+   * This pane used to DETECT that fallback and explain it, because there
+   * was nothing in the payload to report it with. There is now: a refusal
+   * that names the date asked for and the data's actual end.
    */
   await openPreview(window, 'CAP-NOSHARES')
 
@@ -354,6 +334,12 @@ test('a rebalance past the end of the data still says so', async ({ window }) =>
   await choose(window, 'As of', '2026-08-21')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
-  await expect(window.locator('.preview-warning')).toContainText('market data ends 2026-08-03')
-  await expect(window.locator('.preview-warning')).toContainText('no price on 2026-08-21')
+  await expect(window.locator('.view-state')).toContainText('The engine refused to answer.')
+  await expect(window.locator('.view-state')).toContainText('cannot weight at 2026-08-21')
+  await expect(window.locator('.view-state')).toContainText('runs 2021-01-04 to 2026-08-03')
+  // The remedy, in the engine's words: both halves of it are here.
+  await expect(window.locator('.view-state')).toContainText('Ask for a date on or before')
+
+  // And no table behind it. A refusal is not a result.
+  await expect(window.locator('.tbl-body')).toHaveCount(0)
 })

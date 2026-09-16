@@ -69,27 +69,6 @@ function weightOf(asset: PreviewAsset): number {
   return asset.weight ?? asset.solved_weight ?? 0
 }
 
-/**
- * Whether every included name carries the same weight (BU-186).
- *
- * py-beacon's `MarketCapWeighted` falls back to equal weights when it can
- * price nothing — total market cap of zero — and logs a warning nobody in
- * this app can see. So an index that says market-cap weighted and comes
- * back equally weighted is the fallback, and this is how it is spotted.
- *
- * Tolerant to a basis point, because the engine's arithmetic on a genuine
- * cap weighting will not produce exactly equal numbers and an exact
- * comparison would only ever fire on the fallback by luck.
- */
-export function looksEquallyWeighted(assets: readonly PreviewAsset[]): boolean {
-  const weights = assets.filter((asset) => asset.included).map(weightOf)
-  if (weights.length < 2) return false
-
-  const first = weights[0] ?? 0
-  if (first <= 0) return false
-  return weights.every((weight) => Math.abs(weight - first) < 0.0001)
-}
-
 export function percent(fraction: number | null | undefined, dp = 2): string {
   if (fraction === null || fraction === undefined) return '—'
   return `${(fraction * 100).toFixed(dp)}%`
@@ -216,50 +195,6 @@ export function summariseSolve(preview: PreviewResponse, solve: PreviewSolve): S
 }
 
 export type DatasetCoverage = components['schemas']['DatasetCoverage']
-
-/**
- * Why a market-cap weighting came back equally weighted (BU-187).
- *
- * py-beacon's `MarketCapWeighted` prices a name with
- * `fetch_market_data(ticker, date, date)` — the EXACT date, no lookback. A
- * date the market frame has no bar for prices nothing, the total cap is
- * zero, and it assigns equal weights while logging server-side.
- *
- * The preview's own cap columns do not fall over the same way, because
- * `server/reference.py` looks back thirty days and takes the last print on
- * or before the date. That asymmetry is why the table can show healthy
- * market caps beside weights that never used them — and why "the caps are
- * empty" was the wrong thing to tell a reader to check.
- *
- * So the question is whether the chosen date is one the market data
- * actually covers, which `/data/coverage` answers per dataset.
- */
-export function explainEqualWeights(
-  asOf: string,
-  market: DatasetCoverage | undefined
-): string | undefined {
-  const end = market?.end?.slice(0, 10)
-  if (end !== undefined && asOf > end) {
-    return `market data ends ${end}, so there is no price on ${asOf} to weight by`
-  }
-
-  const start = market?.start?.slice(0, 10)
-  if (start !== undefined && asOf < start) {
-    return `market data starts ${start}, so there is no price on ${asOf} to weight by`
-  }
-
-  // Inside the range and still unpriced: a weekend, a holiday, or a gap.
-  // Naming the mechanism beats guessing which, and the reader can try a
-  // neighbouring date to find out.
-  return `no market bar on ${asOf} exactly — the weighting needs one, and does not look back`
-}
-
-/** The market dataset, which is the one a cap weighting reads. */
-export function marketCoverage(
-  datasets: readonly DatasetCoverage[] | undefined
-): DatasetCoverage | undefined {
-  return datasets?.find((dataset) => dataset.dataset === 'market')
-}
 
 /**
  * What the As-of control says when it has nothing to offer (BU-202).

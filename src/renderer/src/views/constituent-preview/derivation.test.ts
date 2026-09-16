@@ -3,9 +3,6 @@ import {
   CELL_GLYPH,
   cellState,
   describeRoom,
-  explainEqualWeights,
-  looksEquallyWeighted,
-  marketCoverage,
   oneWayTurnover,
   scheduleNote,
   schedulePlaceholder,
@@ -17,7 +14,6 @@ import {
   summariseSolve,
   waterfallColumns,
   type PreviewAsset,
-  type DatasetCoverage,
   type PreviewResponse,
   type PreviewSolve,
   type PreviewStep
@@ -266,96 +262,6 @@ describe('sorting the preview (BU-186)', () => {
     ] as PreviewAsset[]
 
     expect(sortAssets(withHeavyReject)[0]?.identifier).toBe('IN')
-  })
-})
-
-describe('spotting the equal-weight fallback (BU-186)', () => {
-  const equal = [
-    { identifier: 'A', included: true, capped: false, weight: 0.25 },
-    { identifier: 'B', included: true, capped: false, weight: 0.25 },
-    { identifier: 'C', included: false, capped: false, weight: 0 }
-  ] as PreviewAsset[]
-
-  it('sees weights that are all the same, ignoring the excluded', () => {
-    /*
-     * py-beacon assigns equal weights when it can price nothing, and logs
-     * the reason somewhere no client can read. On a market-cap index this
-     * is the only evidence there is.
-     */
-    expect(looksEquallyWeighted(equal)).toBe(true)
-  })
-
-  it('says nothing about weights that actually differ', () => {
-    const varied = [
-      { identifier: 'A', included: true, capped: false, weight: 0.3 },
-      { identifier: 'B', included: true, capped: false, weight: 0.7 }
-    ] as PreviewAsset[]
-    expect(looksEquallyWeighted(varied)).toBe(false)
-  })
-
-  it('tolerates a basis point, since real arithmetic is not exact', () => {
-    const rounded = [
-      { identifier: 'A', included: true, capped: false, weight: 0.5 },
-      { identifier: 'B', included: true, capped: false, weight: 0.50001 }
-    ] as PreviewAsset[]
-    expect(looksEquallyWeighted(rounded)).toBe(true)
-  })
-
-  it('has nothing to say about one name, which is trivially equal', () => {
-    expect(looksEquallyWeighted([equal[0]] as PreviewAsset[])).toBe(false)
-    expect(looksEquallyWeighted([])).toBe(false)
-  })
-})
-
-describe('explaining an equal-weight fallback (BU-187)', () => {
-  const market = {
-    dataset: 'market',
-    configured: true,
-    identifiers: 4564,
-    field_count: 6,
-    frequency: 'daily',
-    start: '2019-01-02',
-    end: '2026-08-31'
-  } as DatasetCoverage
-
-  it('names the end of the data when the date is past it', () => {
-    /*
-     * The real case. `MarketCapWeighted` reads the EXACT date with no
-     * lookback, so a date past the last bar prices nothing — while the
-     * preview's own cap columns look back thirty days and stay full.
-     */
-    expect(explainEqualWeights('2026-09-11', market)).toContain('market data ends 2026-08-31')
-  })
-
-  it('names the start when the date is before the data', () => {
-    expect(explainEqualWeights('2018-01-01', market)).toContain('market data starts 2019-01-02')
-  })
-
-  it('names the mechanism when the date is inside the range', () => {
-    // A weekend, a holiday or a gap. Which one is a guess; that the
-    // weighting needs a bar on that exact date is not.
-    expect(explainEqualWeights('2026-01-04', market)).toContain('no market bar on 2026-01-04')
-    expect(explainEqualWeights('2026-01-04', market)).toContain('does not look back')
-  })
-
-  it('still explains the mechanism with no coverage to check against', () => {
-    expect(explainEqualWeights('2026-09-11', undefined)).toContain('does not look back')
-  })
-})
-
-describe('marketCoverage', () => {
-  it('picks the dataset a cap weighting reads', () => {
-    const datasets = [
-      { dataset: 'reference' },
-      { dataset: 'market', end: '2026-08-31' }
-    ] as DatasetCoverage[]
-
-    expect(marketCoverage(datasets)?.end).toBe('2026-08-31')
-  })
-
-  it('has nothing to say before coverage arrives', () => {
-    expect(marketCoverage(undefined)).toBeUndefined()
-    expect(marketCoverage([])).toBeUndefined()
   })
 })
 
