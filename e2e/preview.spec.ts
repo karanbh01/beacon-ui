@@ -58,7 +58,7 @@ test('a market-cap index shows both caps, and says when it fell back', async ({ 
    * weighted index appears under a market-cap heading.
    */
   await openPreview(window, 'CAP-NOSHARES')
-  await choose(window, 'As of', '2026-06-19')
+  await choose(window, 'As of', '2026-07-17')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Index Ccy)')
@@ -72,12 +72,11 @@ test('a market-cap index shows both caps, and says when it fell back', async ({ 
    * unweighted index are perfectly consistent, and telling a reader to
    * check the caps sends them somewhere that cannot answer (BU-187).
    *
-   * The date here is a rebalance INSIDE the store's range, since BU-202's
-   * dropdown no longer offers one past the end — which is the better
-   * outcome: a whole class of confusing preview is now unreachable. The
-   * past-the-end wording keeps its unit test.
+   * The date here is a rebalance INSIDE the store's range. The other case —
+   * a rebalance PAST the end of the data — is still reachable and covered
+   * below; BU-202 narrowed the input, it did not remove that class.
    */
-  await expect(window.locator('.preview-warning')).toContainText('no market bar on 2026-06-19')
+  await expect(window.locator('.preview-warning')).toContainText('no market bar on 2026-07-17')
   await expect(window.locator('.preview-warning')).toContainText('does not look back')
   await expect(window.locator('.preview-warning')).toContainText('no guide')
 })
@@ -121,7 +120,7 @@ test('caps come in the index currency, with the local figure beside them', async
    * and nothing on screen says which.
    */
   await openPreview(window, 'CAP-NOSHARES')
-  await choose(window, 'As of', '2026-06-19')
+  await choose(window, 'As of', '2026-07-17')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   // Local first, converted second, each pair followed by its unit (BU-197).
@@ -154,7 +153,7 @@ test('a cap with no rate is a missing rate, not a missing cap', async ({ window 
    * absence and send a reader after share counts the row already has.
    */
   await openPreview(window, 'CAP-NOSHARES')
-  await choose(window, 'As of', '2026-06-19')
+  await choose(window, 'As of', '2026-07-17')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   // CMP007 is the stub's one rateless name: a currency with no pair.
@@ -185,7 +184,7 @@ test('the table waits for the caps rather than filling in as they land', async (
   })
 
   await openPreview(window, 'CAP-NOSHARES')
-  await choose(window, 'As of', '2026-06-19')
+  await choose(window, 'As of', '2026-07-17')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
   // The resolve has answered and the table is still not drawn: a cap column
@@ -336,4 +335,25 @@ test('an index whose schedule cannot be read says where to look', async ({ windo
 
   await expect(window.getByRole('combobox', { name: 'As of' })).toContainText('No schedule')
   await expect(window.getByRole('button', { name: 'Run preview' })).toBeDisabled()
+})
+
+test('a rebalance past the end of the data still says so', async ({ window }) => {
+  /*
+   * The case BU-202 did NOT remove, and which I briefly believed it had.
+   *
+   * The schedule runs to today; the price store stops wherever it stops.
+   * Prices lag, so an index rebalances in the gap between the last bar and
+   * now — and those dates are offered, correctly, because they are real
+   * rebalances. Resolving at one produces the equal-weight fallback, and
+   * the explanation has to name the DATA rather than the date.
+   */
+  await openPreview(window, 'CAP-NOSHARES')
+
+  // The store ends 2026-08-03 and today is 2026-09-01, so the August third
+  // Friday is a real past rebalance the data does not reach.
+  await choose(window, 'As of', '2026-08-21')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  await expect(window.locator('.preview-warning')).toContainText('market data ends 2026-08-03')
+  await expect(window.locator('.preview-warning')).toContainText('no price on 2026-08-21')
 })

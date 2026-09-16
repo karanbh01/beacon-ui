@@ -821,11 +821,22 @@ function thirdFriday(year: number, month: number): string {
   return day.toISOString().slice(0, 10)
 }
 
-/** Every quarterly third Friday from the base to `today`, oldest first. */
-function rebalanceDates(today: string): string[] {
+/**
+ * Today, for the schedule.
+ *
+ * A month past the end of the market data on purpose, which puts the August
+ * third Friday inside the gap. A store that reaches today is not a store
+ * anybody has: prices lag, so an index rebalances between the last bar and
+ * now, and a client offering those dates has to cope with resolving at one.
+ */
+const SCHEDULE_TODAY = '2026-09-01'
+
+/** Third Fridays from the base to `today`, oldest first. */
+function rebalanceDates(today: string, monthly: boolean): string[] {
   const dates: string[] = []
+  const months = monthly ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] : [2, 5, 8, 11]
   for (let year = 2020; year <= Number(today.slice(0, 4)) + 1; year++) {
-    for (const month of [2, 5, 8, 11]) {
+    for (const month of months) {
       dates.push(thirdFriday(year, month))
     }
   }
@@ -912,7 +923,17 @@ function indexDocument(id: string): unknown {
     currency: 'USD',
     base_date: '2019-12-31',
     base_value: 100,
-    rebalancing_frequency: 'QUARTERLY',
+    /*
+     * Monthly for the unpriced one, quarterly for the rest.
+     *
+     * Price data lags today in any real deployment, so an index rebalances
+     * in the gap between the end of the store and now — and a monthly
+     * schedule is what makes that gap wide enough to land in. Quarterly
+     * indices here skip it entirely, which made the whole "resolved at a
+     * date the store does not reach" case unreachable from the preview pane
+     * and let me believe BU-202 had removed it.
+     */
+    rebalancing_frequency: id === UNPRICED ? 'MONTHLY' : 'QUARTERLY',
     return_type: 'NET_TOTAL_RETURN',
     rebalance_day_rule: 'THIRD_FRIDAY',
     effective_lag_sessions: 0,
@@ -1306,8 +1327,8 @@ function body(url: URL): unknown {
       return refuse(422, 'VALIDATION_ERROR', 'limit must be between 1 and 512')
     }
 
-    const today = '2026-08-04'
-    const all = rebalanceDates(today)
+    const today = SCHEDULE_TODAY
+    const all = rebalanceDates(today, indexId === UNPRICED)
     const past = all.filter((date) => date <= today)
     // The lookahead is its OWN bound: `limit` trims what was projected and
     // cannot extend the projection.
@@ -1315,7 +1336,7 @@ function body(url: URL): unknown {
 
     return {
       index_id: indexId,
-      rebalancing_frequency: 'QUARTERLY',
+      rebalancing_frequency: indexId === UNPRICED ? 'MONTHLY' : 'QUARTERLY',
       rebalance_day_rule: 'THIRD_FRIDAY',
       calendar: 'XNYS',
       as_of: today,
