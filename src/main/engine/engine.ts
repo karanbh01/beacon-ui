@@ -66,6 +66,17 @@ export function describeExit(code: number | null, signal: string | null): string
 export interface EngineOptions {
   /** Connect to an already-running server instead of spawning one. */
   serverUrl?: string | undefined
+  /**
+   * The bearer this process presents, when attaching to a server it did not
+   * start (BU-206).
+   *
+   * A spawned server is handed a token we generated, so the two always
+   * agree. An ATTACHED one was started by somebody else and has its own —
+   * and until this existed we sent it a fresh random string it had never
+   * seen, so the documented "run py-beacon yourself" loop could only work
+   * against a server that did not check. Ignored when spawning.
+   */
+  serverToken?: string | undefined
   /** Pin the interpreter. */
   pythonPath?: string | undefined
   appRoot?: string
@@ -125,7 +136,14 @@ export class Engine extends EventEmitter {
     // 32 bytes of entropy. The server rejects an empty token and this never
     // leaves the machine, but a guessable one would let any local process
     // drive the engine.
-    this.token = randomBytes(32).toString('hex')
+    //
+    // Unless we are attaching, where the token belongs to whoever started
+    // the server and generating one would just be a 401 nobody could
+    // diagnose from this side.
+    this.token =
+      options.serverToken === undefined || options.serverToken === ''
+        ? randomBytes(32).toString('hex')
+        : options.serverToken
   }
 
   getState(): EngineState {

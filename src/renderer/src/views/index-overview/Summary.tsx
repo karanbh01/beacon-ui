@@ -24,6 +24,7 @@ import {
 } from '../shared/indexMetrics'
 import { hitRate } from '../shared/periods'
 import { toPoints as runPoints } from '../shared/seriesStats'
+import { describeNarrowing } from './narrowing'
 
 export interface SummaryProps {
   indexId: string
@@ -51,6 +52,7 @@ export function Summary({ indexId }: SummaryProps): ReactElement {
 
   const level = useMemo(() => toPoints(overview.data?.level), [overview.data])
   const run = useMemo(() => parseRecord(stored.data), [stored.data])
+  const narrowed = describeNarrowing(stored.data?.index?.target?.calendar_coverage)
   const nav = useMemo(() => runPoints(run?.level), [run])
 
   const worst = useMemo(() => maxDrawdown(drawdown(level)), [level])
@@ -144,6 +146,16 @@ export function Summary({ indexId }: SummaryProps): ReactElement {
         does not appear, which reads as "nobody ran one" — true of the
         wrong thing, and the same mistake BU-162 fixed for a failed job.
       */}
+      {/*
+        A window the calendar could not cover (BN-198, BU-205).
+        
+        The levels really do span the shorter range, so the chart above is
+        correct and silently answers a smaller question than the one asked.
+        Reading it off `index.target`, which is the book a calculated index
+        produces; a book built from a bare level series is always null.
+      */}
+      {narrowed !== undefined && <p className="overview-note type-11">{narrowed}</p>}
+
       {stored.isError && !isAbsent(stored.error) && (
         <p className="overview-note type-11">
           This index has a stored run that could not be read: {stored.error.message}

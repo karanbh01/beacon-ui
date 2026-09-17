@@ -747,6 +747,17 @@
       "BookPayload": {
         "description": "One comparator's record on the wire.\n\nTwo different facts about weights, not two copies of one (BN-173):\n`weights` is the daily panel — what the book actually HELD each day, drift\nincluded — and `rebalances` is what each rebalance DECIDED. They agree only\non a rebalance date; everywhere else prices have moved the held weights\naway from the decided ones. A client wanting decided weights reads\n`rebalances` rather than resampling the panel, which cannot answer what\ncapping cost whatever it is resampled onto.",
         "properties": {
+          "calendar_coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalendarCoveragePayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set only when the index's calendar could not cover the whole requested range, in which case `levels` spans covered_start to covered_end rather than the dates asked for. Null on an ordinary run, and on a comparator supplied as a bare level series, which has no calendar of its own. A range the calendar could cover *none* of refuses instead, so it never arrives here."
+          },
           "levels": {
             "$ref": "#/components/schemas/SeriesPayload"
           },
@@ -780,6 +791,57 @@
           "weights_dates_total"
         ],
         "title": "BookPayload",
+        "type": "object"
+      },
+      "CalendarCoveragePayload": {
+        "description": "The window asked for beside the one the calendar could offer (BN-198).\n\nPresent only when the calendar narrowed the run, so its presence is the\nsignal. A window the calendar covers *nothing* of never reaches a result at\nall — that refuses, because an empty index is a failure wearing a success.",
+        "properties": {
+          "calendar": {
+            "description": "MIC of the calendar that narrowed the range.",
+            "title": "Calendar",
+            "type": "string"
+          },
+          "covered_end": {
+            "description": "Last date the calendar could speak for, ISO 8601.",
+            "title": "Covered End",
+            "type": "string"
+          },
+          "covered_start": {
+            "description": "First date the calendar could speak for, ISO 8601. The index has no level before this.",
+            "title": "Covered Start",
+            "type": "string"
+          },
+          "requested_end": {
+            "description": "Last date the run asked for, ISO 8601.",
+            "title": "Requested End",
+            "type": "string"
+          },
+          "requested_start": {
+            "description": "First date the run asked for, ISO 8601. Not the date it produced — see covered_start.",
+            "title": "Requested Start",
+            "type": "string"
+          },
+          "trimmed_end": {
+            "description": "Whether the calendar's published sessions stop before requested_end. A different remedy from trimmed_start: the sessions do not exist yet rather than not at all.",
+            "title": "Trimmed End",
+            "type": "boolean"
+          },
+          "trimmed_start": {
+            "description": "Whether the calendar's history does not reach back to requested_start. Published so a client never compares dates to find out; the remedy is a different calendar or a later base date.",
+            "title": "Trimmed Start",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "calendar",
+          "requested_start",
+          "requested_end",
+          "covered_start",
+          "covered_end",
+          "trimmed_start",
+          "trimmed_end"
+        ],
+        "title": "CalendarCoveragePayload",
         "type": "object"
       },
       "CalendarList": {

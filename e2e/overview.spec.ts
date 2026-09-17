@@ -131,3 +131,38 @@ test('correlations are against the indices the reader picks', async ({ window })
   // A real number, computed from returns on the dates both series share.
   await expect(correlation.locator('.tbl-row').first()).toContainText(/[01]\.\d{3}|−0\.\d{3}/)
 })
+
+test('a window the calendar narrowed says so, and which end', async ({ window }) => {
+  /*
+   * BU-205 / BN-198. Karan's rule for py-beacon #211 was refuse if empty,
+   * report if partial — and the reporting half is the one that fails in
+   * silence. The levels really do span the shorter range, so the chart is
+   * correct and answers a smaller question than the one asked.
+   *
+   * XTKS, XHKG and XBOM refuse to widen past their default bounds where
+   * XNYS and XLON go back to 1900, so this is a Tokyo index over a window
+   * its calendar cannot reach.
+   */
+  await openOverview(window, 'EU-VALUE')
+
+  const note = window.locator('.overview-note', { hasText: 'calendar' })
+  await expect(note).toContainText('covers 1997-01-06 → 1998-12-31')
+  await expect(note).toContainText('not the 1996-01-02 → 1998-12-31 it asked for')
+
+  // The remedy for a trimmed START: those sessions never existed, so the
+  // fix is the base date or another calendar — never "wait", which is the
+  // advice for the other end.
+  await expect(note).toContainText('XTKS has no sessions that early')
+  await expect(note).toContainText('move the base date to 1997-01-06')
+  await expect(note).not.toContainText('wait')
+})
+
+test('an ordinary run says nothing about calendars', async ({ window }) => {
+  // Null coverage is the signal. A run that covered what it asked for has
+  // nothing to explain, and a notice on every overview would train the
+  // reader to skip the one that matters.
+  await openOverview(window, 'TECH10')
+
+  await expect(window.locator('.level-chart')).toBeVisible()
+  await expect(window.locator('.overview-note', { hasText: 'calendar' })).toHaveCount(0)
+})

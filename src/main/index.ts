@@ -22,6 +22,9 @@ const engine = new Engine({
   // Set BEACON_SERVER_URL to attach to a server you are running yourself,
   // rather than having this process spawn and own one.
   serverUrl: process.env.BEACON_SERVER_URL,
+  // The bearer that server expects. Only meaningful alongside the URL: a
+  // server we spawn is handed a token we made.
+  serverToken: process.env.BEACON_API_TOKEN,
   pythonPath: process.env.BEACON_PYTHON,
   appRoot: app.getAppPath(),
   // Only when packaged: a dev run must keep using the sibling checkout, and

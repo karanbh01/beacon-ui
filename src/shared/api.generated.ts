@@ -1545,6 +1545,8 @@ export interface components {
          *     capping cost whatever it is resampled onto.
          */
         BookPayload: {
+            /** @description Set only when the index's calendar could not cover the whole requested range, in which case `levels` spans covered_start to covered_end rather than the dates asked for. Null on an ordinary run, and on a comparator supplied as a bare level series, which has no calendar of its own. A range the calendar could cover *none* of refuses instead, so it never arrives here. */
+            calendar_coverage?: components["schemas"]["CalendarCoveragePayload"] | null;
             levels: components["schemas"]["SeriesPayload"];
             /**
              * Rebalances
@@ -1564,6 +1566,51 @@ export interface components {
              * @description Dates the book's daily weights panel actually covers — a count, not a date. Larger than the rows in `weights` whenever the panel was truncated to its most recent MAX_WEIGHT_DATES, and 0 for a comparator supplied as a bare level series. `rebalances_total` says the same thing for `rebalances`.
              */
             weights_dates_total: number;
+        };
+        /**
+         * CalendarCoveragePayload
+         * @description The window asked for beside the one the calendar could offer (BN-198).
+         *
+         *     Present only when the calendar narrowed the run, so its presence is the
+         *     signal. A window the calendar covers *nothing* of never reaches a result at
+         *     all — that refuses, because an empty index is a failure wearing a success.
+         */
+        CalendarCoveragePayload: {
+            /**
+             * Calendar
+             * @description MIC of the calendar that narrowed the range.
+             */
+            calendar: string;
+            /**
+             * Covered End
+             * @description Last date the calendar could speak for, ISO 8601.
+             */
+            covered_end: string;
+            /**
+             * Covered Start
+             * @description First date the calendar could speak for, ISO 8601. The index has no level before this.
+             */
+            covered_start: string;
+            /**
+             * Requested End
+             * @description Last date the run asked for, ISO 8601.
+             */
+            requested_end: string;
+            /**
+             * Requested Start
+             * @description First date the run asked for, ISO 8601. Not the date it produced — see covered_start.
+             */
+            requested_start: string;
+            /**
+             * Trimmed End
+             * @description Whether the calendar's published sessions stop before requested_end. A different remedy from trimmed_start: the sessions do not exist yet rather than not at all.
+             */
+            trimmed_end: boolean;
+            /**
+             * Trimmed Start
+             * @description Whether the calendar's history does not reach back to requested_start. Published so a client never compares dates to find out; the remedy is a different calendar or a later base date.
+             */
+            trimmed_start: boolean;
         };
         /**
          * CalendarList

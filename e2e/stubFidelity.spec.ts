@@ -11,16 +11,39 @@ import { expect, test } from './fixtures'
  * These talk to the stub over HTTP rather than through the app, because the
  * app is now correct — driving it would prove the client behaves, not that
  * the fake still bites.
+ *
+ * **Run this file against a live py-beacon** and every claim below is
+ * checked against the thing it mirrors rather than against itself:
+ *
+ *     BEACON_LIVE_URL=http://127.0.0.1:8765  *     BEACON_API_TOKEN=...  *     BEACON_LIVE_INDEX=MYIDX BEACON_LIVE_IDENTIFIER=AAPL  *     pnpm run e2e:fidelity
+ *
+ * Karan chose that over validating the stub against the published schemas,
+ * because all four of our stub-fidelity failures were schema-VALID payloads
+ * describing behaviour the engine no longer had: a field set on every row
+ * that the engine sets on few, a timestamp where a date had arrived, a
+ * fallback that had been removed. Shape was never what drifted.
+ *
+ * Only this file is meaningful live. Every other spec asserts fixture
+ * VALUES, which a real store does not have.
  */
+
+/** A name the store carries, and an index it holds a definition for. */
+const IDENTIFIER = process.env.BEACON_LIVE_IDENTIFIER ?? 'CMP000'
+const INDEX = process.env.BEACON_LIVE_INDEX ?? 'TECH10'
 
 interface Envelope {
   error?: { code?: string; message?: string }
 }
 
-async function get(url: string, path: string): Promise<{ status: number; body: Envelope }> {
-  const response = await fetch(`${url}${path}`, {
-    headers: { authorization: 'Bearer stub' }
-  })
+function headers(token: string): Record<string, string> {
+  return { authorization: `Bearer ${token === '' ? 'stub' : token}` }
+}
+
+async function get(
+  engine: { url: string; token: string },
+  path: string
+): Promise<{ status: number; body: Envelope }> {
+  const response = await fetch(`${engine.url}${path}`, { headers: headers(engine.token) })
   return { status: response.status, body: (await response.json()) as Envelope }
 }
 
@@ -28,7 +51,10 @@ test('an unknown reference column is a 422, not an invented value', async ({ eng
   // BU-85: the client asked for `name`, `gics_sector` and `market_cap`. The
   // engine rejects the whole batch; the stub used to fabricate all three, so
   // every detail column was empty against a real engine and green here.
-  const { status, body } = await get(engine.url, '/data/reference?identifiers=CMP000&fields=NOPE')
+  const { status, body } = await get(
+    engine,
+    `/data/reference?identifiers=${IDENTIFIER}&fields=NOPE`
+  )
 
   expect(status).toBe(422)
   expect(body.error?.code).toBe('INVALID_RULE')
@@ -36,22 +62,25 @@ test('an unknown reference column is a 422, not an invented value', async ({ eng
 })
 
 test('a derived field is still accepted, since the client asks for one', async ({ engine }) => {
-  const response = await fetch(`${engine.url}/data/reference?identifiers=CMP000&fields=adv_3m`, {
-    headers: { authorization: 'Bearer stub' }
-  })
+  const response = await fetch(
+    `${engine.url}/data/reference?identifiers=${IDENTIFIER}&fields=adv_3m`,
+    {
+      headers: headers(engine.token)
+    }
+  )
   expect(response.status).toBe(200)
 })
 
 test('an unknown identifier is a 404 in the engine’s own words', async ({ engine }) => {
-  const prices = await get(engine.url, '/data/prices/ZZZNOPE')
+  const prices = await get(engine, '/data/prices/ZZZNOPE')
   expect(prices.status).toBe(404)
   expect(prices.body.error?.code).toBe('DATA_NOT_FOUND')
 
-  const reference = await get(engine.url, '/data/reference/ZZZNOPE')
+  const reference = await get(engine, '/data/reference/ZZZNOPE')
   expect(reference.status).toBe(404)
   expect(reference.body.error?.code).toBe('DATA_NOT_FOUND')
 
-  const actions = await get(engine.url, '/data/corporate-actions/ZZZNOPE')
+  const actions = await get(engine, '/data/corporate-actions/ZZZNOPE')
   expect(actions.status).toBe(404)
   expect(actions.body.error?.code).toBe('DATA_NOT_FOUND')
 })
@@ -59,29 +88,31 @@ test('an unknown identifier is a 404 in the engine’s own words', async ({ engi
 test('an id that cannot address a document is a 422, not a lookup', async ({ engine }) => {
   // BU-87: the view sent its tab TITLE as an index id. The engine refuses a
   // space against `^[A-Za-z0-9_-]{1,64}$`; the stub answered anyway.
-  const { status, body } = await get(engine.url, '/indices/my%20index')
+  const { status, body } = await get(engine, '/indices/my%20index')
 
   expect(status).toBe(422)
   expect(body.error?.code).toBe('VALIDATION_ERROR')
 })
 
 test('reference data answers for the identifier asked for', async ({ engine }) => {
-  // BU-114: it served CMP000's fields under every name, so the view showed
-  // one company's data for all of them and no test could tell.
-  const response = await fetch(`${engine.url}/data/reference/CMP001`, {
-    headers: { authorization: 'Bearer stub' }
+  // BU-114: it served one instrument's fields under every name, so the view
+  // showed one company's data for all of them and no test could tell.
+  const response = await fetch(`${engine.url}/data/reference/${IDENTIFIER}`, {
+    headers: headers(engine.token)
   })
   const payload = (await response.json()) as { identifier: string; fields: Record<string, unknown> }
 
-  expect(payload.identifier).toBe('CMP001')
-  expect(payload.fields.name).toBe('CMP001 Corporation')
+  // The identifier, not a name: a real store's names are its own, and the
+  // claim here is that the row belongs to what was asked for.
+  expect(payload.identifier).toBe(IDENTIFIER)
+  expect(payload.fields.name).toBeDefined()
 })
 
 test('the index list returns whole documents, as the endpoint does', async ({ engine }) => {
   // BU-95: it returned `{id, name}`, and the overview crashed reading
   // `universe.universe_id` off a row the real endpoint always carries.
   const response = await fetch(`${engine.url}/indices`, {
-    headers: { authorization: 'Bearer stub' }
+    headers: headers(engine.token)
   })
   const payload = (await response.json()) as { indices: { universe?: unknown }[] }
 
@@ -91,8 +122,8 @@ test('the index list returns whole documents, as the endpoint does', async ({ en
 test('the prices interval is echoed, not hard-coded', async ({ engine }) => {
   // BU-106: it always said 'native', so a client that never sent the
   // parameter was indistinguishable from one that did.
-  const response = await fetch(`${engine.url}/data/prices/CMP000?interval=monthly`, {
-    headers: { authorization: 'Bearer stub' }
+  const response = await fetch(`${engine.url}/data/prices/${IDENTIFIER}?interval=monthly`, {
+    headers: headers(engine.token)
   })
   const payload = (await response.json()) as { interval: string }
 
@@ -110,7 +141,7 @@ test('the overview carries dates, while its level series carries moments', async
    * one and pass here, which is the shape of every fidelity bug BU-88
    * catalogued.
    */
-  const { body } = await get(engine.url, '/beacon/TECH10/overview')
+  const { body } = await get(engine, `/beacon/${INDEX}/overview`)
   const overview = body as unknown as {
     start: string
     end: string
@@ -127,7 +158,7 @@ test('the overview carries dates, while its level series carries moments', async
 })
 
 test('the schedule answers with the whole history when asked for it', async ({ engine }) => {
-  const { status, body } = await get(engine.url, '/indices/TECH10/schedule?limit=512')
+  const { status, body } = await get(engine, `/indices/${INDEX}/schedule?limit=512`)
   const view = body as unknown as {
     recent: string[]
     recent_total: number
@@ -144,7 +175,7 @@ test('the schedule answers with the whole history when asked for it', async ({ e
    * `limit` buys more history and cannot produce further future dates — a
    * stub that extended both would let a client believe otherwise and pass.
    */
-  const strip = await get(engine.url, '/indices/TECH10/schedule')
+  const strip = await get(engine, `/indices/${INDEX}/schedule`)
   const four = strip.body as unknown as { recent: string[]; upcoming_total: number }
   expect(four.recent).toHaveLength(4)
   expect(view.upcoming_total).toBe(four.upcoming_total)

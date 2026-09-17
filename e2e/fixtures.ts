@@ -71,6 +71,30 @@ export const test = base.extend<BeaconFixtures>({
   // would be read as depending on everything, so the rule is wrong here.
   // eslint-disable-next-line no-empty-pattern
   engine: async ({}, use) => {
+    /*
+     * A live engine instead of the fake, when asked (BU-206).
+     *
+     * `BEACON_LIVE_URL` points the fidelity suite at a running py-beacon, so
+     * every claim the stub is built on is checked against the thing it
+     * mirrors rather than against itself. Karan chose this over schema
+     * validation because all four of our stub-fidelity failures were
+     * schema-VALID payloads describing behaviour the engine no longer had —
+     * shape was never the problem.
+     *
+     * Only `stubFidelity.spec.ts` is meaningful this way: every other file
+     * asserts fixture VALUES, which a real store does not have.
+     */
+    const live = process.env.BEACON_LIVE_URL
+    if (live !== undefined && live !== '') {
+      await use({
+        url: live,
+        token: process.env.BEACON_API_TOKEN ?? '',
+        skipUniverses: () => undefined,
+        close: () => Promise.resolve()
+      })
+      return
+    }
+
     const engine = await startStubEngine()
     await use(engine)
     await engine.close()
@@ -82,6 +106,8 @@ export const test = base.extend<BeaconFixtures>({
       env: {
         ...process.env,
         BEACON_SERVER_URL: engine.url,
+        // Only set against a live engine; the stub does not check it.
+        ...(engine.token === '' ? {} : { BEACON_API_TOKEN: engine.token }),
         BEACON_NO_SYNTHETIC: '1',
         // Nothing should reach GitHub from a test run.
         BEACON_NO_UPDATE: '1'

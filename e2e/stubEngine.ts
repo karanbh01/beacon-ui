@@ -1831,7 +1831,32 @@ function body(url: URL): unknown {
           weights: heldPanel(identifier, dates),
           weights_dates_total: dates.length,
           rebalances: decidedSnapshots(identifier, dates),
-          rebalances_total: decidedSnapshots(identifier, dates).length
+          rebalances_total: decidedSnapshots(identifier, dates).length,
+          /*
+           * A window the calendar could not cover (BN-198).
+           *
+           * Null on an ordinary run, which is the whole signal. `EU-VALUE`
+           * carries one because the reporting half of Karan's refuse-or-
+           * report rule is the half that fails SILENTLY: the levels really
+           * do span the shorter range, so a chart drawn over them is
+           * correct and answers a smaller question than the one asked.
+           *
+           * Trimmed at the START only, deliberately. The two flags carry
+           * opposite remedies and a fixture that set both would let a
+           * client render one sentence for two situations and pass.
+           */
+          calendar_coverage:
+            identifier === 'EU-VALUE'
+              ? {
+                  calendar: 'XTKS',
+                  requested_start: '1996-01-02',
+                  requested_end: '1998-12-31',
+                  covered_start: '1997-01-06',
+                  covered_end: '1998-12-31',
+                  trimmed_start: true,
+                  trimmed_end: false
+                }
+              : null
         },
         optimised: null
       },
@@ -1956,6 +1981,11 @@ function acceptSocket(request: IncomingMessage, socket: Duplex): boolean {
 
 export interface StubEngine {
   url: string
+  /**
+   * The bearer to present. Empty for the stub, which does not check — a
+   * live engine's is whatever it was started with (BU-206).
+   */
+  token: string
   close: () => Promise<void>
   /**
    * Make the universe listing incomplete (BN-174, BU-185).
@@ -2600,6 +2630,8 @@ export function startStubEngine(): Promise<StubEngine> {
       const port = typeof address === 'object' && address !== null ? address.port : 0
       resolve({
         url: `http://127.0.0.1:${String(port)}`,
+        // Empty: this stub answers whatever bearer it is given.
+        token: '',
         skipUniverses: (count: number) => {
           skippedUniverses = count
         },
