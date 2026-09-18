@@ -150,6 +150,22 @@ function backtestResult(withBenchmark: boolean): Record<string, unknown> {
     level,
     // Renamed from `benchmark_level` in BN-155: the tracked index, rebased.
     index_level: indexLevel,
+    /*
+     * FLAT, and nothing reads them yet — vary both before anything does.
+     *
+     * py-beacon found two bugs that no test could see because the fixtures
+     * were convenient: a single-name book at 100% weight makes an FX rate
+     * cancel between the buy and the valuation, and a flat rate series makes
+     * a look-ahead invisible because the wrong rate equals the right one.
+     * Not a fixture asserting a world that ended — a fixture whose easy
+     * shape is exactly the shape that cannot see the defect.
+     *
+     * A constant 0.0004 return and a drawdown of zero everywhere are that
+     * shape. Any chart drawn over them renders correctly however it is
+     * wired: an off-by-one index, a reversed series and a correct one are
+     * the same picture. The Risk pane is safe today only because it
+     * computes drawdown itself from the level series, which moves.
+     */
     returns: { index: level.index.slice(1), data: level.data.slice(1).map(() => 0.0004) },
     drawdown: { index: level.index, data: level.data.map(() => 0) },
     annual_returns: { '2025': 0.1042, '2026': 0.0631 },
