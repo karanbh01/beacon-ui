@@ -77,6 +77,16 @@ function unreadable(type: string, why: string): void {
  * A bare string is still accepted, because an older py-beacon sends one and
  * Karan updates the two repos separately. A message with no code reads as
  * an unclassified failure, which is exactly what it is.
+ *
+ * **Why this tolerance is safe, when the rule says most are not.** A
+ * tolerance is dangerous when it can absorb a cause other than the one it
+ * was built for — the second cause then being invisible precisely because
+ * the tolerance is working. This one cannot: `JobStatus.error` is typed
+ * `ErrorDetail | None`, so a current engine physically cannot emit a
+ * string; py-beacon measured an un-migrated document and the route answers
+ * 422 rather than passing one through. The only thing that can reach this
+ * branch is an older engine, which is exactly and solely the case it exists
+ * for. Delete it when the two repos can no longer be that far apart.
  */
 function faultOf(raw: unknown): Fault | undefined {
   if (typeof raw === 'string') return { code: 'UNCLASSIFIED_FAILURE', message: raw }

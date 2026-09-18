@@ -53,6 +53,19 @@ export function catalogueDisabled(state: CatalogueState, count: number): boolean
  *
  * Silence at zero. The common case is a complete listing, and a pane that
  * says "0 could not be read" is noise that trains a reader to stop looking.
+ *
+ * **The count means three things, and this sentence deliberately names
+ * none of them** (py-beacon #214). A skipped document is damaged JSON, or
+ * one written by a NEWER py-beacon than the one running, or one this
+ * build's model no longer accepts. Only the first is bad data; the second
+ * is two-machine drift and its remedy is "upgrade the engine", which is
+ * nothing like "restore this file".
+ *
+ * The server can already tell two of the three apart and discards the
+ * distinction into one counter. Until #214 publishes counts by cause, a
+ * client cannot know which — so this says what it knows and stops. Naming
+ * the likeliest cause would be right most of the time and would send a
+ * reader to the wrong remedy the rest, which is worse than saying less.
  */
 export function describeSkipped(skipped: number | undefined): string | undefined {
   if (skipped === undefined || skipped <= 0) return undefined
