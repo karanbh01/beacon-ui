@@ -17,6 +17,7 @@ import {
   percent,
   solveOf,
   solveRows,
+  messageOf,
   scheduleNote,
   schedulePlaceholder,
   sortAssets,
@@ -34,7 +35,16 @@ import './ConstituentPreviewView.css'
 function buildColumns(
   preview: PreviewResponse,
   caps: CapRows,
-  weighting: { scheme: string; useFreeFloat: boolean; currency: string } | undefined
+  weighting: { scheme: string; useFreeFloat: boolean; currency: string } | undefined,
+  /**
+   * Whether the cap request FAILED, as distinct from answering nothing.
+   *
+   * A column of dashes says "this store has no caps for these names". A
+   * failed request says nothing of the kind, and drawing the same thing for
+   * both reports a fault as an absence — the shape this repo has filed five
+   * times. So the columns come out and a notice goes up instead.
+   */
+  capsFailed: boolean
 ): Column<PreviewAsset>[] {
   const columns: Column<PreviewAsset>[] = [
     {
@@ -62,7 +72,7 @@ function buildColumns(
 
   // Only where the weights are made of them, so every other index keeps a
   // table narrow enough to read.
-  if (weighting?.scheme === 'MarketCapWeighted') {
+  if (weighting?.scheme === 'MarketCapWeighted' && !capsFailed) {
     const names = preview.assets.map((asset) => asset.identifier)
     columns.push(...capColumns(caps, names, weighting.useFreeFloat, weighting.currency))
   }
@@ -200,8 +210,8 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const columns = useMemo(() => {
     if (preview.data === undefined) return []
     if (solve !== undefined) return solveColumns()
-    return buildColumns(preview.data, caps.byIdentifier, weighting)
-  }, [preview.data, solve, caps.byIdentifier, weighting])
+    return buildColumns(preview.data, caps.byIdentifier, weighting, caps.error !== undefined)
+  }, [preview.data, solve, caps.byIdentifier, caps.error, weighting])
 
   /*
    * Working until BOTH halves are in: the resolve, and the caps that belong
@@ -275,6 +285,19 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
       {indexId === '' && <ViewEmpty>Open this from an index definition to preview it.</ViewEmpty>}
 
       {shortSchedule !== undefined && <p className="preview-warning type-11">{shortSchedule}</p>}
+
+      {/*
+        The caps could not be read, which is not the same as there being
+        none (BU-208). The weights and the waterfall came from a different
+        request and are fine, so the table stays and only the columns that
+        have no data behind them come out.
+      */}
+      {wantsCaps && caps.error !== undefined && (
+        <p className="preview-warning type-11">
+          Market caps could not be read, so those columns are not shown — the weights beside them
+          are the engine&rsquo;s and are unaffected. {messageOf(caps.error)}
+        </p>
+      )}
 
       {/* Waiting to be asked, which is a different state from having no
           answer: the pane is ready and the reader has not chosen a date. */}

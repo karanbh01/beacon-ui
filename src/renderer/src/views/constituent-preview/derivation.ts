@@ -228,3 +228,13 @@ export function scheduleNote(offered: number, total: number): string | undefined
   if (total <= offered) return undefined
   return `Showing the ${String(offered)} most recent of ${String(total)} rebalances — the engine capped the list.`
 }
+
+/**
+ * An engine fault in words, for a notice that is not the whole pane.
+ *
+ * `ViewError` owns the case where a failure IS the answer; this is for one
+ * that cost a column while the rest of the view stands.
+ */
+export function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : 'The engine gave no reason.'
+}

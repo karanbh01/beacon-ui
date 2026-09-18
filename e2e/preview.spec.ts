@@ -343,3 +343,36 @@ test('a rebalance past the end of the data is refused, not approximated', async 
   // And no table behind it. A refusal is not a result.
   await expect(window.locator('.tbl-body')).toHaveCount(0)
 })
+
+test('caps that could not be read are a fault, not a column of dashes', async ({ window }) => {
+  /*
+   * py-beacon #215, and the gap it exposed here. Asking for `market_cap`
+   * on a store with no `FREE_FLOAT` column answers a bare 500 — and a
+   * store with prices and share counts and no free float is ordinary
+   * rather than broken, so this is a state Karan can reach.
+   *
+   * `useReferenceRows` returned an empty map either way, so a failed
+   * request and an engine with nothing to say drew the same dashes. That
+   * is the fault-as-absence shape this repo has filed five times, in its
+   * own code this time.
+   */
+  await window.route(/\/data\/reference\?/, (route) =>
+    route.fulfill({ status: 500, contentType: 'text/plain', body: 'Internal Server Error' })
+  )
+
+  await openPreview(window, 'CAP-NOSHARES')
+  await choose(window, 'As of', '2026-07-17')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  const warning = window.locator('.preview-warning', { hasText: 'Market caps' })
+  await expect(warning).toContainText('could not be read')
+
+  // The columns come out rather than drawing dashes that would read as
+  // "this store has no caps for these names".
+  await expect(window.locator('.tbl-head')).not.toContainText('Market Cap')
+
+  // And the rest of the table stands: the weights came from a different
+  // request and nothing is wrong with them.
+  await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
+  await expect(window.locator('.tbl-head')).toContainText('Weights')
+})

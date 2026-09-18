@@ -122,6 +122,19 @@ export interface ReferenceRows {
   byIdentifier: ReadonlyMap<string, Record<string, unknown>>
   /** True until every chunk has answered; counts are not final before. */
   loading: boolean
+  /**
+   * Why there are no rows, when that is a fault rather than an answer
+   * (BU-208).
+   *
+   * Without this a failed request and an engine with nothing to say are the
+   * same empty map, so a pane draws a column of dashes either way. That is
+   * the fault-as-absence shape this repo has now filed five times, and
+   * py-beacon #215 is a live instance of it: asking for `market_cap` on a
+   * store with no `FREE_FLOAT` column answers a bare 500, and a store with
+   * prices and share counts and no free float is ordinary rather than
+   * broken.
+   */
+  error: unknown
 }
 
 export function useReferenceRows(
@@ -169,7 +182,10 @@ export function useReferenceRows(
 
   return {
     byIdentifier,
-    loading: chunks.length > 0 && results.some((result) => result.isPending)
+    loading: chunks.length > 0 && results.some((result) => result.isPending),
+    // The first fault, not a list: they are chunks of one question and a
+    // reader acts on the reason, which is the same for all of them.
+    error: results.find((result) => result.isError)?.error
   }
 }
 
