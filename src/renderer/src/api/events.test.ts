@@ -124,17 +124,24 @@ describe('job tracking', () => {
     expect(activeJobs(useJobs.getState().jobs)).toHaveLength(0)
   })
 
-  it('keeps the failure reason', () => {
+  it('keeps the failure reason, with the code that says which kind it is', () => {
+    /*
+     * BN-199 made this the same `{code, message, detail}` envelope an HTTP
+     * error carries. It was a bare string, which is why the job path was
+     * the one place a deliberate refusal and a crash reached the reader
+     * under the same heading.
+     */
     useJobs.getState().apply({
       type: 'job',
       job_id: 'j1',
       kind: 'backtest',
       status: 'failed',
       progress: 0.3,
-      error: 'no data for TECH10'
+      error: { code: 'CALCULATION_ERROR', message: 'no data for TECH10' }
     })
 
-    expect(useJobs.getState().jobs.j1?.error).toBe('no data for TECH10')
+    expect(useJobs.getState().jobs.j1?.error?.code).toBe('CALCULATION_ERROR')
+    expect(useJobs.getState().jobs.j1?.error?.message).toBe('no data for TECH10')
   })
 
   it('clears settled jobs after their window, keeping running ones', () => {
@@ -251,5 +258,44 @@ describe('an event the socket cannot read (BU-204)', () => {
     expect(parseEvent('hello')).toBeUndefined()
     expect(parseEvent(null)).toBeUndefined()
     expect(warned).toEqual([])
+  })
+})
+
+describe("a failed job's envelope (BN-199)", () => {
+  const failed = (error: unknown) =>
+    parseEvent({ type: 'job', job_id: 'j1', kind: 'backtest', status: 'failed', error })
+
+  it('carries the code, so a refusal and a crash stop looking alike', () => {
+    const event = failed({ code: 'CALCULATION_ERROR', message: 'no JPY/USD rate' })
+    expect(event).toMatchObject({ error: { code: 'CALCULATION_ERROR' } })
+  })
+
+  it('keeps detail, which is where original_type lives', () => {
+    const event = failed({
+      code: 'UNEXPECTED_CALCULATION_FAILURE',
+      message: 'division by zero',
+      detail: { original_type: 'ZeroDivisionError' }
+    })
+    expect(event).toMatchObject({ error: { detail: { original_type: 'ZeroDivisionError' } } })
+  })
+
+  it('reads an older engine’s bare string as unclassified', () => {
+    /*
+     * py-beacon sent prose until BN-199 and Karan updates the two repos
+     * separately, so this is a real state rather than a defensive one. A
+     * message with no code IS an unclassified failure — which is also the
+     * code py-beacon gives jobs that failed before the change.
+     */
+    expect(failed('no data for TECH10')).toMatchObject({
+      error: { code: 'UNCLASSIFIED_FAILURE', message: 'no data for TECH10' }
+    })
+  })
+
+  it('drops an envelope it cannot read rather than inventing a code', () => {
+    // A code we guessed would be rendered as a heading we chose, which is
+    // the whole failure this envelope exists to end.
+    expect(failed({ message: 'no code here' })).toMatchObject({ status: 'failed' })
+    expect(failed({ message: 'no code here' })?.type === 'job' ? true : false).toBe(true)
+    expect((failed({ message: 'no code here' }) as { error?: unknown }).error).toBeUndefined()
   })
 })

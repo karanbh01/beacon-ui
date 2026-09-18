@@ -8,7 +8,7 @@ import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { ViewError } from '../shared/ViewState'
+import { FaultNotice, ViewError, type Fault } from '../shared/ViewState'
 import { relativeTime } from '../home/activityRows'
 import { useBacktestRecords } from '../shared/beaconQueries'
 import type { BacktestRecordRow } from '../shared/indexSuggestions'
@@ -88,11 +88,22 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
    * a dropped frame can leave silent.
    */
   const submitted = ranAt === undefined ? undefined : jobs[ranAt]
-  const failure =
+  /*
+   * The envelope, not a string (BN-199).
+   *
+   * A failed job used to carry bare prose, which is why this pane headed a
+   * deliberate refusal and a genuine crash identically while the HTTP path
+   * told them apart carefully. It carries `{code, message, detail}` now —
+   * the same type an ApiError does — so `FaultNotice` renders both.
+   */
+  const failure: Fault | undefined =
     submitted?.status === 'failed'
-      ? (submitted.error ?? submitted.message)
+      ? (submitted.error ?? { code: 'UNCLASSIFIED_FAILURE', message: submitted.message })
       : status.data?.status === 'failed'
-        ? (status.data.error ?? 'The engine gave no reason.')
+        ? (status.data.error ?? {
+            code: 'UNCLASSIFIED_FAILURE',
+            message: 'The engine gave no reason.'
+          })
         : undefined
 
   const finished = failure === undefined && running === undefined && status.data !== undefined
@@ -343,14 +354,13 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
         </div>
       )}
 
-      {failure !== undefined && (
-        <div className="view-state">
-          <p className="type-13">The backtest did not run.</p>
-          {/* The engine's own words: it names the field to look at, which no
-              paraphrase here could do as well. */}
-          <p className="type-11">{failure}</p>
-        </div>
-      )}
+      {/*
+        Headed by what KIND of failure it was, not by the pane it happened
+        in (BU-207). "The backtest did not run" was true of a refusal and a
+        crash alike and told the reader nothing about which; `FaultNotice`
+        reads the code, and the engine's own words follow either way.
+      */}
+      {failure !== undefined && <FaultNotice fault={failure} />}
 
       {finished && ranFor !== undefined && (
         <div className="backtest-done">

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { isTerminal, type JobEvent, type JobStatus } from './events'
+import type { Fault } from '../views/shared/ViewState'
 
 export interface TrackedJob {
   jobId: string
@@ -7,7 +8,7 @@ export interface TrackedJob {
   status: JobStatus
   progress: number
   message: string
-  error?: string
+  error?: Fault
   /** When it reached a terminal state, for auto-dismiss. */
   settledAt?: number
 }

@@ -49,29 +49,27 @@ export function ViewEmpty({ children }: { children: ReactNode }): ReactElement {
   return <p className="view-state type-11">{children}</p>
 }
 
-export function ViewError({ error }: { error: unknown }): ReactElement {
-  if (error instanceof NetworkError) {
-    return (
-      <div className="view-state">
-        <p className="type-13">The Beacon engine is not reachable.</p>
-        <p className="type-11">Check the footer — it reports what the python process is doing.</p>
-      </div>
-    )
-  }
+/**
+ * A coded fault, wherever it arrived from (BU-207).
+ *
+ * The same `{code, message, detail}` envelope reaches this app two ways: on
+ * a non-2xx response, and — since BN-199 — on a failed job. They were
+ * rendered by two different paths, so a refusal and a crash looked alike on
+ * a job while being carefully told apart over HTTP. One renderer, because
+ * the distinction belongs to the error rather than to how it travelled.
+ *
+ * The message is always py-beacon's, verbatim. A paraphrase cannot name the
+ * field to change, and the heading is the only part we are better placed to
+ * write than they are.
+ */
+export interface Fault {
+  code: string
+  message: string
+  detail?: Record<string, unknown> | null
+}
 
-  if (error instanceof ApiError && error.code === 'CONFIGURATION_ERROR') {
-    return (
-      <div className="view-state">
-        <p className="type-13">This engine has no data source.</p>
-        <p className="type-11">
-          py-beacon is running, but <code>python -m beacon.server</code> was started without one, so
-          no market data can be served. See issue #40.
-        </p>
-      </div>
-    )
-  }
-
-  if (error instanceof ApiError && error.code === 'CALCULATION_ERROR') {
+export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
+  if (fault.code === 'CALCULATION_ERROR') {
     /*
      * A refusal is not a failure to load (py-beacon #204).
      *
@@ -90,12 +88,12 @@ export function ViewError({ error }: { error: unknown }): ReactElement {
     return (
       <div className="view-state">
         <p className="type-13">The engine refused to answer.</p>
-        <p className="type-11">{error.message}</p>
+        <p className="type-11">{fault.message}</p>
       </div>
     )
   }
 
-  if (error instanceof ApiError && error.code === 'UNEXPECTED_CALCULATION_FAILURE') {
+  if (fault.code === 'UNEXPECTED_CALCULATION_FAILURE') {
     /*
      * A fault, not a decision (BN-194, py-beacon #207).
      *
@@ -110,14 +108,51 @@ export function ViewError({ error }: { error: unknown }): ReactElement {
      * the same name, so that prefix is provably not a signal rather than
      * merely a bad thing to lean on.
      */
-    const kind = typeof error.detail?.original_type === 'string' ? error.detail.original_type : null
+    const kind = typeof fault.detail?.original_type === 'string' ? fault.detail.original_type : null
     return (
       <div className="view-state">
         <p className="type-13">The engine broke on this calculation.</p>
-        <p className="type-11">{error.message}</p>
+        <p className="type-11">{fault.message}</p>
         {kind !== null && (
           <p className="type-11">Raised a {kind} — worth reporting with the date.</p>
         )}
+      </div>
+    )
+  }
+
+  /*
+   * An unclassified failure, which BN-199 gives a code rather than a null
+   * (`UNCLASSIFIED_FAILURE`, on jobs that failed before it existed), and
+   * anything else we have no branch for. The generic wording is right for
+   * both: we do not know whether it was decided or broken, and claiming
+   * either would be worse than admitting neither.
+   */
+  return (
+    <div className="view-state">
+      <p className="type-13">Could not load.</p>
+      <p className="type-11">{fault.message}</p>
+    </div>
+  )
+}
+
+export function ViewError({ error }: { error: unknown }): ReactElement {
+  if (error instanceof NetworkError) {
+    return (
+      <div className="view-state">
+        <p className="type-13">The Beacon engine is not reachable.</p>
+        <p className="type-11">Check the footer — it reports what the python process is doing.</p>
+      </div>
+    )
+  }
+
+  if (error instanceof ApiError && error.code === 'CONFIGURATION_ERROR') {
+    return (
+      <div className="view-state">
+        <p className="type-13">This engine has no data source.</p>
+        <p className="type-11">
+          py-beacon is running, but <code>python -m beacon.server</code> was started without one, so
+          no market data can be served. See issue #40.
+        </p>
       </div>
     )
   }
@@ -141,6 +176,10 @@ export function ViewError({ error }: { error: unknown }): ReactElement {
       </div>
     )
   }
+
+  // Coded, but nothing above is about its STATUS — so it is the same fault
+  // a job would carry, and gets the same renderer.
+  if (error instanceof ApiError) return <FaultNotice fault={error} />
 
   return (
     <div className="view-state">

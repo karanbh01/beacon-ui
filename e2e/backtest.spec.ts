@@ -76,7 +76,14 @@ test('a run that cannot happen says why, in py-beacon’s own words', async ({ w
   await openBacktest(window, 'NO-UNIVERSE')
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
-  await expect(window.getByText('The backtest did not run.')).toBeVisible()
+  /*
+   * Headed by what KIND of failure it was, not by the pane (BU-207).
+   * "The backtest did not run" was true of a refusal and a crash alike;
+   * since BN-199 a job carries the same `{code, message}` an HTTP error
+   * does, so this is the same heading the preview pane shows for the same
+   * kind of refusal.
+   */
+  await expect(window.getByText('The engine refused to answer.')).toBeVisible()
   await expect(window.getByText(/universe_identifiers/).first()).toBeVisible()
 
   // And no success state behind it: a run that failed was not handed over.
@@ -192,11 +199,46 @@ test('a run that cannot value a constituent fails, and names the pair', async ({
   await openBacktest(window, 'FX-NOVALUE')
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
-  await expect(window.getByText('The backtest did not run.')).toBeVisible()
+  await expect(window.getByText('The engine refused to answer.')).toBeVisible()
   await expect(window.getByText(/no JPY\/USD rate/).first()).toBeVisible()
   // The engine's reasoning, not a summary of it: both wrong answers it
   // declines to give are what tells a reader why it stopped.
   await expect(window.getByText(/silently restates the index/).first()).toBeVisible()
 
   await expect(window.getByRole('button', { name: 'Open overview' })).toHaveCount(0)
+})
+
+test('a job that crashed is headed as a fault, not as a decision', async ({ window }) => {
+  /*
+   * BN-199 / BU-207. The job path was the one place a deliberate refusal
+   * and a genuine crash reached the reader identically, because `job.error`
+   * was prose with no code — while the HTTP path had spent two py-beacon
+   * issues learning to tell them apart. One envelope now, one renderer.
+   */
+  // The POLL, not the submission: the pane learns a job's fate from
+  // `GET /jobs/{id}` here, because the stub carries no event socket.
+  await window.route(/\/jobs\/[^/]+$/, async (route) => {
+    const response = await route.fetch()
+    const job = (await response.json()) as Record<string, unknown>
+    await route.fulfill({
+      json: {
+        ...job,
+        status: 'failed',
+        error: {
+          code: 'UNEXPECTED_CALCULATION_FAILURE',
+          message: "Calculation 'backtest' failed with an unexpected KeyError: 'CMP999'.",
+          detail: { original_type: 'KeyError' }
+        }
+      }
+    })
+  })
+
+  await openBacktest(window, 'TECH10')
+  await window.getByRole('button', { name: 'Run backtest' }).click()
+
+  await expect(window.getByText('The engine broke on this calculation.')).toBeVisible()
+  await expect(window.getByText(/Raised a KeyError/)).toBeVisible()
+  // And not the refusal heading, which would send a reader looking for
+  // something in the request to change.
+  await expect(window.getByText('The engine refused to answer.')).toHaveCount(0)
 })

@@ -1,3 +1,5 @@
+import type { Fault } from '../views/shared/ViewState'
+
 /**
  * The event feed py-beacon publishes on `/ws?token=…`.
  *
@@ -23,7 +25,7 @@ export interface JobEvent {
   /** 0.0 to 1.0, clamped server-side. */
   progress: number
   message?: string
-  error?: string | null
+  error?: Fault
   result?: unknown
 }
 
@@ -64,6 +66,30 @@ function unreadable(type: string, why: string): void {
   console.warn(`[beacon] dropped a ${type} event: ${why}`)
 }
 
+/**
+ * A job's failure, as the envelope every other error uses (BN-199).
+ *
+ * It was a bare string until then, which is why the job path was the one
+ * place a deliberate refusal and a crash reached the reader under the same
+ * heading. It now carries the same `{code, message, detail}` a non-2xx
+ * response does, so the same renderer handles both.
+ *
+ * A bare string is still accepted, because an older py-beacon sends one and
+ * Karan updates the two repos separately. A message with no code reads as
+ * an unclassified failure, which is exactly what it is.
+ */
+function faultOf(raw: unknown): Fault | undefined {
+  if (typeof raw === 'string') return { code: 'UNCLASSIFIED_FAILURE', message: raw }
+  if (!isRecord(raw)) return undefined
+  if (typeof raw.code !== 'string' || typeof raw.message !== 'string') return undefined
+
+  return {
+    code: raw.code,
+    message: raw.message,
+    ...(isRecord(raw.detail) ? { detail: raw.detail } : {})
+  }
+}
+
 export function parseEvent(raw: unknown): BeaconEvent | undefined {
   if (!isRecord(raw)) return undefined
 
@@ -77,6 +103,7 @@ export function parseEvent(raw: unknown): BeaconEvent | undefined {
       return undefined
     }
     const progress = typeof raw.progress === 'number' ? raw.progress : 0
+    const fault = faultOf(raw.error)
     return {
       type: 'job',
       job_id: raw.job_id,
@@ -86,7 +113,7 @@ export function parseEvent(raw: unknown): BeaconEvent | undefined {
       // an out-of-range value renders a progress bar past its track.
       progress: Math.min(Math.max(progress, 0), 1),
       ...(typeof raw.message === 'string' ? { message: raw.message } : {}),
-      ...(typeof raw.error === 'string' ? { error: raw.error } : {}),
+      ...(fault === undefined ? {} : { error: fault }),
       ...(raw.result === undefined ? {} : { result: raw.result })
     }
   }

@@ -46,7 +46,7 @@ function JobRow({ job, onDismiss }: { job: TrackedJob; onDismiss: () => void }):
       </div>
 
       <p className={failed ? 'job-message job-message-failed' : 'job-message'}>
-        {job.error ?? job.message}
+        {job.error?.message ?? job.message}
       </p>
     </div>
   )

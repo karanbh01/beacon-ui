@@ -234,6 +234,11 @@ function tablePage(dataset: string, url: URL): unknown {
 const EMPTY_UNIVERSE = 'NO-UNIVERSE'
 
 /** py-beacon's own words (BN-161), because the app renders them verbatim. */
+/** A job's failure, shaped as the envelope every other error uses (BN-199). */
+function jobFault(code: string, message: string, detail?: unknown): Record<string, unknown> {
+  return { code, message, ...(detail === undefined ? {} : { detail }) }
+}
+
 const EMPTY_UNIVERSE_ERROR =
   "the calculation for index 'NO-UNIVERSE' is empty — it never held a single constituent — so " +
   "there is nothing to simulate. The likely omission is the definition's universe_identifiers " +
@@ -2446,9 +2451,9 @@ export function startStubEngine(): Promise<StubEngine> {
          */
         const error =
           indexId === EMPTY_UNIVERSE
-            ? EMPTY_UNIVERSE_ERROR
+            ? jobFault('CALCULATION_ERROR', EMPTY_UNIVERSE_ERROR)
             : indexId === FX_UNVALUED
-              ? FX_UNVALUED_ERROR
+              ? jobFault('CALCULATION_ERROR', FX_UNVALUED_ERROR)
               : undefined
         const job =
           error !== undefined

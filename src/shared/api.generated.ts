@@ -1267,11 +1267,8 @@ export interface components {
          * @description A `backtest:{index_id}` job. `result` is the run payload.
          */
         BacktestJobStatus: {
-            /**
-             * Error
-             * @description Failure reason, when status is failed.
-             */
-            error?: string | null;
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
             /** Job Id */
             job_id: string;
             /**
@@ -2950,11 +2947,8 @@ export interface components {
          *     and the fallback arm of `AnyJobStatus` for a kind nothing models yet.
          */
         JobStatus: {
-            /**
-             * Error
-             * @description Failure reason, when status is failed.
-             */
-            error?: string | null;
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
             /** Job Id */
             job_id: string;
             /**
@@ -3001,11 +2995,8 @@ export interface components {
          * @description An `optimise:{run_id}` job. `result` is the solved portfolio.
          */
         OptimisationJobStatus: {
-            /**
-             * Error
-             * @description Failure reason, when status is failed.
-             */
-            error?: string | null;
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
             /** Job Id */
             job_id: string;
             /**
@@ -3758,11 +3749,8 @@ export interface components {
          * @description A `render:{render_id}` job. `result` describes the rendered document.
          */
         RenderJobStatus: {
-            /**
-             * Error
-             * @description Failure reason, when status is failed.
-             */
-            error?: string | null;
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
             /** Job Id */
             job_id: string;
             /**
@@ -3975,11 +3963,8 @@ export interface components {
          * @description A `risk:{model_id}` job. `result` is the estimated model.
          */
         RiskModelJobStatus: {
-            /**
-             * Error
-             * @description Failure reason, when status is failed.
-             */
-            error?: string | null;
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
             /** Job Id */
             job_id: string;
             /**
@@ -4367,11 +4352,8 @@ export interface components {
          * @description A `sync:{dataset}` job. `result` summarises what was fetched.
          */
         SyncJobStatus: {
-            /**
-             * Error
-             * @description Failure reason, when status is failed.
-             */
-            error?: string | null;
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
             /** Job Id */
             job_id: string;
             /**
