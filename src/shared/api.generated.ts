@@ -2712,6 +2712,16 @@ export interface components {
             cache_age?: number | null;
             data_source: components["schemas"]["DataSourceStatus"];
             /**
+             * Fx Policy
+             * @description How this installation reads an exchange rate on a day the pair printed none: CARRY_FORWARD uses the last rate in force, EXACT_DAY refuses unless the rate is dated that day. A modelling assumption rather than a preference — the same holding converts to different money under the two, and every conversion in the library obeys whichever is set. Null when no data source is configured, since nothing is being converted.
+             */
+            fx_policy?: string | null;
+            /**
+             * Max Price Staleness Days
+             * @description How long a name may go without trading before this installation drops it from an index and from a backtest's targets. Null means keep everything regardless, which is the default and what the library did before the setting existed. A modelling choice, not a preference: it changes index membership, so two runs either side of a change are different indices. Also null when no data source is configured.
+             */
+            max_price_staleness_days?: number | null;
+            /**
              * Status
              * @description 'ok' when the process is serving.
              */

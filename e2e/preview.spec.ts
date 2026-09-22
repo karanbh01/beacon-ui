@@ -101,21 +101,23 @@ test('caps come in the index currency, with the local figure beside them', async
   await choose(window, 'As of', '2026-07-17')
   await window.getByRole('button', { name: 'Run preview' }).click()
 
-  // Local first, converted second, each pair followed by its unit (BU-197).
+  // Local first, converted second, each pair followed by its unit, and the
+  // date the whole row was priced from last (BU-197, BU-210).
   //
   // The wait is load-bearing: `allInnerTexts` reads once and does not retry,
   // and the table now holds until the caps are in, so reading straight away
   // reads an empty list and reports it as a header mismatch.
   await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
   const headers = await window.locator('.tbl-head .tbl-cell').allInnerTexts()
-  const caps = headers.filter((header) => /Market Cap|Ccy/.test(header))
+  const caps = headers.filter((header) => /Market Cap|Ccy|Priced/.test(header))
   expect(caps).toEqual([
     'Market Cap (bn Local Ccy)',
     'FF Market Cap (bn Local Ccy)',
     'Local Ccy',
     'Market Cap (bn Index Ccy)',
     'FF Market Cap (bn Index Ccy)',
-    'Index Ccy'
+    'Index Ccy',
+    'Priced'
   ])
 
   // The index currency, stated rather than left to be inferred from a header.
@@ -375,4 +377,41 @@ test('caps that could not be read are a fault, not a column of dashes', async ({
   // request and nothing is wrong with them.
   await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
   await expect(window.locator('.tbl-head')).toContainText('Weights')
+})
+
+test('a cap says how old it is, and an old one says so', async ({ window }) => {
+  /*
+   * BU-210 / BN-210, and the close of BU-188. The cap used to be bounded by
+   * a thirty-day window measured from the requested date while the weighting
+   * walked back per name without limit — so a name quiet longer than that
+   * showed a BLANK cap beside a real weight. py-beacon's reproduction:
+   *
+   *   LOUD   0.75   300000000.0
+   *   QUIET  0.25          None
+   *
+   * The weight was correct, which is what made it bad: nothing was wrong
+   * except that the reader could not check it. The bound is gone; the
+   * thirty days survive as the staleness threshold, and the date the row
+   * was priced from is published beside the number.
+   */
+  await openPreview(window, 'CAP-NOSHARES')
+  await choose(window, 'As of', '2026-07-17')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+  await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
+
+  // The ordinary case: a date, unremarkable, and not absent.
+  const fresh = window.locator('.tbl-row', { hasText: 'CMP000' }).first()
+  await expect(fresh).toContainText('2026-08-03')
+  await expect(fresh.locator('.cap-stale')).toHaveCount(0)
+
+  // CMP003 is the quiet one. A cap AND its age, where there used to be a dash.
+  const quiet = window.locator('.tbl-row', { hasText: 'CMP003' }).first()
+  await expect(quiet.locator('.cap-stale')).toContainText('2026-04-17 · stale')
+  await expect(quiet).not.toContainText('—')
+
+  // Said once for the table as well, since a reader scanning weights should
+  // not have to notice a colour to know some rows are older than the rest.
+  await expect(window.locator('.preview-warning', { hasText: 'last priced' })).toContainText(
+    '1 name was last priced more than 30 days before this date'
+  )
 })

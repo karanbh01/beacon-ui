@@ -148,3 +148,14 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+/*
+ * A cap priced longer ago than the engine's staleness threshold (BN-210).
+ *
+ * Muted rather than alarming: the number is TRUE — it is what the company
+ * was worth at its last print, and the weight beside it came from the same
+ * one. It needs to be noticeable, not to look like an error.
+ */
+.cap-stale {
+  color: var(--working);
+}

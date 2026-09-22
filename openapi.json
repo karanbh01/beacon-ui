@@ -2686,6 +2686,30 @@
           "data_source": {
             "$ref": "#/components/schemas/DataSourceStatus"
           },
+          "fx_policy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How this installation reads an exchange rate on a day the pair printed none: CARRY_FORWARD uses the last rate in force, EXACT_DAY refuses unless the rate is dated that day. A modelling assumption rather than a preference — the same holding converts to different money under the two, and every conversion in the library obeys whichever is set. Null when no data source is configured, since nothing is being converted.",
+            "title": "Fx Policy"
+          },
+          "max_price_staleness_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How long a name may go without trading before this installation drops it from an index and from a backtest's targets. Null means keep everything regardless, which is the default and what the library did before the setting existed. A modelling choice, not a preference: it changes index membership, so two runs either side of a change are different indices. Also null when no data source is configured.",
+            "title": "Max Price Staleness Days"
+          },
           "status": {
             "description": "'ok' when the process is serving.",
             "title": "Status",

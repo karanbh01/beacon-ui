@@ -20,10 +20,24 @@ export interface WaterfallColumn {
  */
 export function waterfallColumns(steps: readonly PreviewStep[]): WaterfallColumn[] {
   return steps
-    .filter((step) => step.position > 0)
+    .filter((step) => step.position !== 0)
+    .sort((a, b) => a.position - b.position)
     .map((step) => ({
       key: step.rule_id ?? `step-${String(step.position)}`,
-      header: `${String(step.position).padStart(2, '0')} · ${step.rule_type ?? 'rule'}`,
+      /*
+       * Numbered only where the number means something (BN-211).
+       *
+       * Rules are the definition's, in the order it lists them. The
+       * staleness rung is not one — it sits at position -1 because the
+       * threshold is an installation-wide setting rather than part of any
+       * methodology, and it runs before the rules so that none of them
+       * evaluates against a stale close. "-1 · StalePrice" would invite a
+       * reader to look for it in their own pipeline.
+       */
+      header:
+        step.position > 0
+          ? `${String(step.position).padStart(2, '0')} · ${step.rule_type ?? 'rule'}`
+          : (step.rule_type ?? 'rule'),
       position: step.position
     }))
 }

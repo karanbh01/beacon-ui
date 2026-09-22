@@ -27,7 +27,7 @@ import {
   type PreviewAsset,
   type PreviewResponse
 } from './derivation'
-import { capColumns, type CapRows } from './capColumns'
+import { capColumns, staleCount, type CapRows } from './capColumns'
 import { SolveConstraints } from './Solve'
 import { solveColumns } from './solveColumns'
 import './ConstituentPreviewView.css'
@@ -203,6 +203,8 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   // not the pane's — the same index can be either between two saves.
   const solve = preview.data === undefined ? undefined : solveOf(preview.data)
 
+  const stale = wantsCaps ? staleCount(caps.byIdentifier, names) : 0
+
   const rows = useMemo(() => {
     if (preview.data === undefined) return []
     return solve === undefined ? sortAssets(preview.data.assets) : solveRows(preview.data.assets)
@@ -292,6 +294,23 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         request and are fine, so the table stays and only the columns that
         have no data behind them come out.
       */}
+      {/*
+        Old prices, said once rather than left to be noticed (BN-210).
+        
+        A stale cap is a TRUE statement about a company that has not traded
+        — the number is real and the weight beside it was computed from the
+        same print. It is only misleading if nothing says how old it is,
+        which is what the blank cap #188 started from was: the engine now
+        answers with the figure and its date, and this counts the rows a
+        reader should look at twice.
+      */}
+      {stale > 0 && (
+        <p className="preview-warning type-11">
+          {stale === 1 ? '1 name was' : `${String(stale)} names were`} last priced more than 30 days
+          before this date — those caps are real, and older than the rest.
+        </p>
+      )}
+
       {wantsCaps && caps.error !== undefined && (
         <p className="preview-warning type-11">
           Market caps could not be read, so those columns are not shown — the weights beside them

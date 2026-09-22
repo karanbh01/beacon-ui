@@ -595,6 +595,9 @@ function listedFrom(index: number): string {
  */
 const RATES: Record<string, number> = { USD: 1, GBP: 1.27, JPY: 0.0067, EUR: 1.09 }
 
+/** The last day the stub's market frame carries, matching `/data/coverage`. */
+const LAST_BAR = '2026-08-03'
+
 const CURRENCIES = ['USD', 'GBP', 'JPY']
 
 /** The currency each synthetic name reports in. */
@@ -674,6 +677,22 @@ function referenceEntry(
       market_cap_local: fullCap,
       local_currency: local,
       market_cap_currency: into,
+      /*
+       * How old the numbers above are (BN-210).
+       *
+       * The cap used to be bounded by a thirty-day window, so a name quiet
+       * longer than that came back NULL beside a real weight — the engine
+       * walked back per name without limit and the two halves of one row
+       * were read on different rules. The bound is gone; the thirty days
+       * survive only as the staleness threshold.
+       *
+       * CMP003 is the quiet one, so a client's rendering of an old cap has
+       * something to render. `price_is_stale` is the SERVER's arithmetic:
+       * a stub that made the client subtract two dates would be testing
+       * the wrong half.
+       */
+      priced_from: index === 3 ? '2026-04-17' : LAST_BAR,
+      price_is_stale: index === 3,
       adv_3m: 4_182_000 - index * 9_000
     }
   }

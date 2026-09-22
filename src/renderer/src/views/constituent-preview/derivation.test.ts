@@ -318,3 +318,49 @@ describe('a schedule that came back short (BU-202)', () => {
     expect(scheduleNote(0, 0)).toBeUndefined()
   })
 })
+
+describe('a rung that is not a rule (BN-211)', () => {
+  /*
+   * py-beacon publishes a staleness exclusion at position -1, under the
+   * reserved rule id `stale-price`, so "a reader of the provenance record
+   * sees a reason rather than an unexplained drop". This filtered on
+   * `position > 0` — kept because position 0 is the starting universe — so
+   * the rung was dropped, and a name excluded by it showed dots across
+   * every rule column with nothing saying why. Their fix, defeated here.
+   */
+  const STEPS = [
+    { position: 0, remaining: 100 },
+    { position: -1, rule_id: 'stale-price', rule_type: 'StalePrice', remaining: 98 },
+    { position: 1, rule_id: 'r1', rule_type: 'FilterRule', remaining: 40 }
+  ] as unknown as PreviewStep[]
+
+  it('shows the staleness rung', () => {
+    expect(waterfallColumns(STEPS).map((column) => column.key)).toContain('stale-price')
+  })
+
+  it('still drops the universe, which is a starting point rather than a rung', () => {
+    expect(waterfallColumns(STEPS).map((column) => column.position)).not.toContain(0)
+  })
+
+  it('runs it before the rules, because that is when it runs', () => {
+    expect(waterfallColumns(STEPS).map((column) => column.position)).toEqual([-1, 1])
+  })
+
+  it('does not number it, since the number is not a place in the methodology', () => {
+    // "-1 · StalePrice" would invite a reader to look for it in their own
+    // pipeline. The threshold is an installation setting; no definition
+    // declares it.
+    const [staleness] = waterfallColumns(STEPS)
+    expect(staleness?.header).toBe('StalePrice')
+  })
+
+  it('still numbers the rules, which ARE places in the methodology', () => {
+    expect(waterfallColumns(STEPS)[1]?.header).toBe('01 · FilterRule')
+  })
+
+  it('marks a name the rung excluded as cut there and gone after', () => {
+    const asset = { identifier: 'X', excluded_at: -1 } as unknown as PreviewAsset
+    expect(cellState(asset, -1)).toBe('cut')
+    expect(cellState(asset, 1)).toBe('gone')
+  })
+})

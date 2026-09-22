@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { capColumns, type CapRows } from './capColumns'
+import { capColumns, staleCount, type CapRows } from './capColumns'
 import type { PreviewAsset } from './derivation'
 
 /**
@@ -73,7 +73,8 @@ describe('the currency a cap is in', () => {
       'local_currency',
       'market_cap',
       'free_float_market_cap',
-      'index_currency'
+      'index_currency',
+      'priced_from'
     ])
   })
 
@@ -99,7 +100,8 @@ describe('the currency a cap is in', () => {
     expect(built.map((column) => column.key)).toEqual([
       'market_cap',
       'free_float_market_cap',
-      'index_currency'
+      'index_currency',
+      'priced_from'
     ])
   })
 
@@ -164,5 +166,76 @@ describe('a name the reference batch had no row for', () => {
      */
     const built = capColumns(MIXED, ['JPSML', 'MISSING'], false, 'USD')
     expect(cell(built, 'local_currency', ASSET('MISSING'))).toBe('—')
+  })
+})
+
+describe('how old a cap is (BU-210, BN-210)', () => {
+  /*
+   * What #188 was actually asking for. The cap used to be bounded by a
+   * thirty-day window measured from the requested date, while the weighting
+   * walked back per name without limit — so a name quiet longer than that
+   * showed a blank cap beside a real weight. py-beacon reproduced it:
+   *
+   *   LOUD   0.75   300000000.0
+   *   QUIET  0.25          None
+   *
+   * The weight was CORRECT, which is what made it bad: nothing was wrong
+   * except that the reader could not check it. The bound is gone now and
+   * the thirty days survive only as the staleness threshold.
+   */
+  const AGED = rows({
+    QUIET: {
+      market_cap: 100_000_000_000,
+      market_cap_local: 100_000_000_000,
+      local_currency: 'USD',
+      priced_from: '2025-04-15',
+      price_is_stale: true
+    },
+    LOUD: {
+      market_cap: 300_000_000_000,
+      market_cap_local: 300_000_000_000,
+      local_currency: 'USD',
+      priced_from: '2025-06-30',
+      price_is_stale: false
+    }
+  })
+
+  it('shows the cap that used to be blank', () => {
+    const built = capColumns(AGED, ['QUIET'], false, 'USD')
+    expect(cell(built, 'market_cap', ASSET('QUIET'))).toBe('100')
+  })
+
+  it('publishes the date it was priced from, beside the number', () => {
+    const built = capColumns(AGED, ['QUIET'], false, 'USD')
+    expect(cell(built, 'priced_from', ASSET('LOUD'))).toBe('2025-06-30')
+  })
+
+  it('marks a stale price, since the number alone cannot say it is old', () => {
+    const built = capColumns(AGED, ['QUIET'], false, 'USD')
+    expect(cell(built, 'priced_from', ASSET('QUIET'))).toBe('2025-04-15 · stale')
+  })
+
+  it('takes staleness from the server rather than subtracting dates', () => {
+    /*
+     * `price_is_stale` is the engine's arithmetic against its own threshold.
+     * A client comparing two dates would be reimplementing a setting it
+     * cannot see — and would get a leap year wrong eventually.
+     */
+    const lying = rows({
+      X: { market_cap: 1, priced_from: '1999-01-01', price_is_stale: false, local_currency: 'USD' }
+    })
+    expect(cell(capColumns(lying, ['X'], false, 'USD'), 'priced_from', ASSET('X'))).toBe(
+      '1999-01-01'
+    )
+  })
+
+  it('dashes when the name has no price anywhere, which is a real absence', () => {
+    const none = rows({ X: { local_currency: 'USD' } })
+    expect(cell(capColumns(none, ['X'], false, 'USD'), 'priced_from', ASSET('X'))).toBe('—')
+  })
+
+  it('counts the stale rows so the pane can say so once', () => {
+    expect(staleCount(AGED, ['QUIET', 'LOUD'])).toBe(1)
+    expect(staleCount(AGED, ['LOUD'])).toBe(0)
   })
 })

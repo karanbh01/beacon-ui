@@ -27,6 +27,38 @@ function text(rows: CapRows, identifier: string, field: string): string | undefi
 }
 
 /**
+ * The day the close and share count behind every money field on this row
+ * were printed — not the day the reader asked about (BN-210).
+ *
+ * This is what #188 was actually asking for. The cap used to be bounded by
+ * a thirty-day window measured from the requested date, so a name quiet
+ * longer than that showed a blank cap beside a real weight: the weighting
+ * walked back per name without limit, and the two halves of one row were
+ * read on different rules. The bound is gone — the cap is computed from the
+ * last print whenever it was — and the thirty days survive only as the
+ * threshold for calling it stale.
+ *
+ * So the number is now always there, and the question moves from "why is
+ * this blank" to "how old is this". `price_is_stale` answers that as a
+ * boolean the server computed, which is why no date arithmetic happens
+ * here: a client subtracting two dates is a client that will get a leap
+ * year wrong eventually.
+ */
+function pricedCell(rows: CapRows, identifier: string): ReactElement {
+  const date = text(rows, identifier, 'priced_from')
+  if (date === undefined) return <>—</>
+
+  const stale = rows.get(identifier)?.price_is_stale === true
+  if (!stale) return <>{date}</>
+  return <span className="cap-stale">{date} · stale</span>
+}
+
+/** How many names on screen carry a price older than the engine's threshold. */
+export function staleCount(rows: CapRows, identifiers: readonly string[]): number {
+  return identifiers.filter((identifier) => rows.get(identifier)?.price_is_stale === true).length
+}
+
+/**
  * True when every name is already quoted in the index's own currency.
  *
  * `market_cap === market_cap_local` is the engine's own test for "this name
@@ -142,6 +174,18 @@ export function capColumns(
       header: 'Index Ccy',
       width: 75,
       render: () => currency
+    },
+    {
+      /*
+       * The age of every number to its left, published rather than
+       * inferred. Always shown, not only when something is stale: a cap
+       * priced three days ago and one priced yesterday are both fine and
+       * the reader should not have to wonder which this is.
+       */
+      key: 'priced_from',
+      header: 'Priced',
+      width: 125,
+      render: (asset) => pricedCell(rows, asset.identifier)
     }
   ]
 
