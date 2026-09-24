@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { ReportTemplate } from '../shared/reportQueries'
 import {
   addBlock,
+  BLOCK_KINDS,
   describeBlock,
+  isBlockKind,
   isDirty,
   kindOf,
   moveBlock,
@@ -17,21 +19,37 @@ function template(): ReportTemplate {
     name: 'Factsheet A4',
     page: { size: 'A4', orientation: 'portrait', margin: 38 },
     blocks: [
-      { kind: 'HeaderBlock', title: 'Index name', show_as_of: true },
-      { kind: 'ChartBlock', series: ['level', 'benchmark'] },
-      { kind: 'TableBlock', rows: 10 }
+      { kind: 'header', title: 'Index name', show_as_of: true },
+      { kind: 'chart', series: ['level', 'benchmark'] },
+      { kind: 'table', rows: 10 }
     ]
   }
 }
 
-describe('kindOf', () => {
-  it('reads the one field py-beacon guarantees', () => {
-    expect(kindOf({ kind: 'HeaderBlock' })).toBe('HeaderBlock')
+describe('the kinds a block can be (BU-212)', () => {
+  /*
+   * A closed set, published since 0.1.0 and used by the engine since BN-75.
+   * This editor guessed `TextBlock` for a new block while nothing said which
+   * kinds existed — borrowing the index rules' naming — and the engine never
+   * accepted that name. The fixtures below were written in the same guessed
+   * vocabulary, which is why no test ever noticed.
+   */
+  it('offers exactly the published set, in words', () => {
+    expect(Object.keys(BLOCK_KINDS).sort()).toEqual(
+      ['bar_chart', 'chart', 'header', 'stat_grid', 'table', 'text'].sort()
+    )
   })
 
-  it('names an untyped block rather than rendering "undefined"', () => {
-    expect(kindOf({})).toBe('Block')
-    expect(kindOf({ kind: 42 })).toBe('Block')
+  it('reads a block’s kind', () => {
+    expect(kindOf({ kind: 'header' })).toBe('header')
+  })
+
+  it('tells a real kind from a name that merely looks like one', () => {
+    expect(isBlockKind('text')).toBe(true)
+    // The name this editor used to send. Plausible, and never valid.
+    expect(isBlockKind('TextBlock')).toBe(false)
+    // And not something inherited from an object's prototype.
+    expect(isBlockKind('toString')).toBe(false)
   })
 })
 
@@ -45,29 +63,34 @@ describe('describeBlock', () => {
   })
 
   it('says so when a block carries nothing but its kind', () => {
-    expect(describeBlock({ kind: 'PageBreak' })).toBe('no settings')
+    expect(describeBlock({ kind: 'text' })).toBe('no settings')
   })
 
   it('elides a nested object instead of stringifying it', () => {
-    expect(describeBlock({ kind: 'X', style: { bold: true } })).toBe('style …')
+    expect(describeBlock({ kind: 'text', style: { bold: true } })).toBe('style …')
   })
 })
 
 describe('block transitions', () => {
   it('adds a block at the end, where it will be drawn', () => {
-    const after = addBlock(template(), 'FooterBlock')
-    expect(after.blocks?.[3]).toEqual({ kind: 'FooterBlock' })
+    const after = addBlock(template(), 'stat_grid')
+    expect(after.blocks?.[3]).toEqual({ kind: 'stat_grid' })
+  })
+
+  it('adds a text block by default, which the engine will accept', () => {
+    // It used to default to `TextBlock`, which it would not.
+    expect(addBlock(template()).blocks?.[3]).toEqual({ kind: 'text' })
   })
 
   it('replaces and removes by position, since blocks carry no id', () => {
-    const after = removeBlock(replaceBlock(template(), 0, { kind: 'CoverBlock' }), 2)
-    expect(after.blocks?.map(kindOf)).toEqual(['CoverBlock', 'ChartBlock'])
+    const after = removeBlock(replaceBlock(template(), 0, { kind: 'text' }), 2)
+    expect(after.blocks?.map(kindOf)).toEqual(['text', 'chart'])
   })
 
   it('reorders — blocks are drawn top to bottom, so order IS the document', () => {
     // Unlike a constraint set, where order is presentation only.
     const moved = moveBlock(template(), 2, -1)
-    expect(moved.blocks?.map(kindOf)).toEqual(['HeaderBlock', 'TableBlock', 'ChartBlock'])
+    expect(moved.blocks?.map(kindOf)).toEqual(['header', 'table', 'chart'])
   })
 
   it('refuses a move off either end', () => {

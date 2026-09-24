@@ -172,6 +172,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/changelog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Changelog */
+        get: operations["changelog_changelog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/data/corporate-actions/{identifier}": {
         parameters: {
             query?: never;
@@ -1347,6 +1364,8 @@ export interface components {
              * @default 0
              */
             skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
         };
         /**
          * BacktestRecordRow
@@ -1695,6 +1714,59 @@ export interface components {
             total: number;
         };
         /**
+         * ChangelogEntryView
+         * @description One release of the engine.
+         */
+        ChangelogEntryView: {
+            /**
+             * Date
+             * @description Release date, YYYY-MM-DD. Null for Unreleased.
+             */
+            date: string | null;
+            /**
+             * Sections
+             * @description What changed, grouped by kind of change. Empty for an Unreleased entry with nothing in it yet.
+             */
+            sections: components["schemas"]["ChangelogSectionView"][];
+            /**
+             * Version
+             * @description e.g. '0.1.0', or 'Unreleased'.
+             */
+            version: string;
+        };
+        /**
+         * ChangelogResponse
+         * @description Response of `GET /changelog`.
+         */
+        ChangelogResponse: {
+            /**
+             * Entries
+             * @description Newest first, leaving out any with no changes listed. With `since`, only the releases after that version.
+             */
+            entries: components["schemas"]["ChangelogEntryView"][];
+            /**
+             * Version
+             * @description The running engine's version, the same value `/health` reports.
+             */
+            version: string;
+        };
+        /**
+         * ChangelogSectionView
+         * @description One heading under a release and its items.
+         */
+        ChangelogSectionView: {
+            /**
+             * Heading
+             * @description Added, Changed, Fixed, Removed, Deprecated or Security.
+             */
+            heading: string;
+            /**
+             * Items
+             * @description One change each, as markdown.
+             */
+            items: string[];
+        };
+        /**
          * CompareEntry
          * @description One index within a comparison, on the shared window.
          */
@@ -1896,6 +1968,8 @@ export interface components {
              * @default 0
              */
             skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
         };
         /**
          * ConstraintTypes
@@ -2361,6 +2435,7 @@ export interface components {
         FeatureRow: {
             /**
              * Date
+             * Format: date
              * @description Calendar date, YYYY-MM-DD.
              */
             date: string;
@@ -2712,6 +2787,11 @@ export interface components {
             cache_age?: number | null;
             data_source: components["schemas"]["DataSourceStatus"];
             /**
+             * Free Float Backfill Days
+             * @description How many days a free float carries forward over days with no reported value. Beyond it a float-adjusted index refuses rather than weight the name by its full market cap. 0 uses only a value dated that day; the default is 90. A modelling choice: it decides which float a name is weighted by. Null when no data source is configured.
+             */
+            free_float_backfill_days?: number | null;
+            /**
              * Fx Policy
              * @description How this installation reads an exchange rate on a day the pair printed none: CARRY_FORWARD uses the last rate in force, EXACT_DAY refuses unless the rate is dated that day. A modelling assumption rather than a preference — the same holding converts to different money under the two, and every conversion in the library obeys whichever is set. Null when no data source is configured, since nothing is being converted.
              */
@@ -2821,6 +2901,8 @@ export interface components {
              * @default 0
              */
             skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
         };
         /**
          * IndexDeletion
@@ -2945,6 +3027,8 @@ export interface components {
              * @default 0
              */
             skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
         };
         /**
          * JobStatus
@@ -3848,6 +3932,8 @@ export interface components {
              * @default 0
              */
             skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
             /** Templates */
             templates: components["schemas"]["ReportTemplateDocument"][];
         };
@@ -3865,9 +3951,12 @@ export interface components {
              * Blocks
              * @description Content, drawn top to bottom. Each carries a `kind`, one of: bar_chart, chart, header, stat_grid, table, text.
              */
-            blocks?: {
+            blocks?: ({
+                /** @enum {string} */
+                kind: "bar_chart" | "chart" | "header" | "stat_grid" | "table" | "text";
+            } & {
                 [key: string]: unknown;
-            }[];
+            })[];
             /**
              * Name
              * @description Display name.
@@ -4310,6 +4399,35 @@ export interface components {
             name?: string | null;
         };
         /**
+         * SkippedCauses
+         * @description Why a listing left documents out, one count per cause (BN-201).
+         *
+         *     `skipped` could only say *how many*, and the one sentence a client could
+         *     write over it -- "could not be read" -- invites restoring a file that may
+         *     be perfectly fine. Each cause has its own remedy, so each has its own
+         *     count and a description that names it.
+         */
+        SkippedCauses: {
+            /**
+             * From Newer Build
+             * @description Documents written by a newer py-beacon than the one serving this listing. Nothing is wrong with them: upgrading the engine will read them. The state two installs reach when the engine and the app are updated on different machines.
+             * @default 0
+             */
+            from_newer_build: number;
+            /**
+             * Unparseable
+             * @description Documents that are damaged: not valid JSON, or carrying a schema version nothing can migrate. The file itself is the problem -- restore it from a backup or remove it.
+             * @default 0
+             */
+            unparseable: number;
+            /**
+             * Unrecognised
+             * @description Documents that are valid JSON but that this engine's model does not accept -- the document and the engine disagree about its shape, usually a version gap the schema migrations do not cover. The server log names the field.
+             * @default 0
+             */
+            unrecognised: number;
+        };
+        /**
          * SyncJobResult
          * @description Result payload of a completed data sync.
          *
@@ -4563,6 +4681,7 @@ export interface components {
             dividend_yield: number;
             /**
              * End Date
+             * Format: date
              * @description Calendar date, YYYY-MM-DD.
              */
             end_date: string;
@@ -4618,6 +4737,7 @@ export interface components {
             spread_bps: number;
             /**
              * Start Date
+             * Format: date
              * @description Calendar date, YYYY-MM-DD.
              */
             start_date: string;
@@ -4639,6 +4759,7 @@ export interface components {
             underlying_id: string;
             /**
              * Valuation Date
+             * Format: date
              * @description Calendar date, YYYY-MM-DD.
              */
             valuation_date: string;
@@ -4687,6 +4808,7 @@ export interface components {
             trade_id: string;
             /**
              * Valuation Date
+             * Format: date
              * @description Calendar date, YYYY-MM-DD.
              */
             valuation_date: string;
@@ -4794,6 +4916,8 @@ export interface components {
              * @default 0
              */
             skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
             /** Universes */
             universes: components["schemas"]["Universe"][];
         };
@@ -4937,6 +5061,8 @@ export interface components {
              * @default 0
              */
             skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
             /** Watchlists */
             watchlists: components["schemas"]["Watchlist"][];
         };
@@ -5830,6 +5956,101 @@ export interface operations {
             };
         };
     };
+    changelog_changelog_get: {
+        parameters: {
+            query?: {
+                /** @description A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned. */
+                since?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangelogResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     corporate_actions_data_corporate_actions__identifier__get: {
         parameters: {
             query?: {
@@ -6123,9 +6344,9 @@ export interface operations {
     };
     features_batch_data_features_get: {
         parameters: {
-            query?: {
+            query: {
                 /** @description Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call. */
-                identifiers?: string[] | null;
+                identifiers: string[];
                 /** @description Point-in-time date, YYYY-MM-DD. Returns only rows valid then. */
                 date?: string | null;
                 /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
@@ -6811,9 +7032,9 @@ export interface operations {
     };
     reference_batch_data_reference_get: {
         parameters: {
-            query?: {
+            query: {
                 /** @description Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call. */
-                identifiers?: string[] | null;
+                identifiers: string[];
                 /** @description Point-in-time date, YYYY-MM-DD. Returns only rows valid then. */
                 date?: string | null;
                 /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
@@ -8318,13 +8539,13 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Request or rule failed validation. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ValidationReport"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Library error during processing. */
@@ -9756,13 +9977,13 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Request or rule failed validation. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ValidationReport"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Library error during processing. */
@@ -10316,6 +10537,15 @@ export interface operations {
             };
             /** @description The path exists but does not accept this method. */
             405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The stored template has no blocks to render. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11457,6 +11687,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            /** @description The universe was seeded from the dataset and is read-only. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Request or rule failed validation. */
             422: {
                 headers: {
@@ -11542,6 +11781,15 @@ export interface operations {
             };
             /** @description The path exists but does not accept this method. */
             405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The universe was seeded from the dataset and is read-only. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

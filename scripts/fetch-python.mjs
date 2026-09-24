@@ -42,17 +42,25 @@ const BASE = `https://github.com/astral-sh/python-build-standalone/releases/down
 /**
  * Where py-beacon comes from.
  *
- * Not PyPI — it is not published there. A sibling checkout wins when there is
- * one, so a packaging run on this machine ships the py-beacon being worked
- * on; CI has no checkout and falls back to the git ref, which is the same
- * source the spec-drift workflow installs from.
+ * A sibling checkout wins when there is one, so a packaging run on this
+ * machine ships the py-beacon being worked on; CI has no checkout and falls
+ * back to the git ref, which is the same source the spec-drift workflow
+ * installs from.
+ *
+ * The DISTRIBUTION is `py-beacon-kit` since 0.1.0 (PyPI refused `py-beacon`
+ * as too close to `pybeacon`); the import and the repo kept their names. A
+ * direct reference names the distribution, so the git fallback broke on the
+ * rename while the sibling path — which names none — went on working here.
+ *
+ * It is on PyPI now, and whether a RELEASE build should install the pinned
+ * release rather than a git ref is BU-209's to decide, not this line's.
  */
 const PY_BEACON_REF = process.env.PY_BEACON_REF ?? 'main'
 
 function pyBeaconRequirement(root) {
   const sibling = resolve(root, '..', 'py-beacon')
   if (existsSync(join(sibling, 'pyproject.toml'))) return `${sibling}[server]`
-  return `py-beacon[server] @ git+https://github.com/karanbh01/py-beacon@${PY_BEACON_REF}`
+  return `py-beacon-kit[server] @ git+https://github.com/karanbh01/py-beacon@${PY_BEACON_REF}`
 }
 
 function arg(name, fallback) {

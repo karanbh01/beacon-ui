@@ -307,9 +307,9 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
               above, and a short list looks exactly like a complete one
               (BN-174). Silent at zero, which is the ordinary case.
             */}
-            {describeSkipped(universes.data?.skipped) !== undefined && (
+            {describeSkipped(universes.data) !== undefined && (
               <span className="index-universe-skipped type-11">
-                {describeSkipped(universes.data?.skipped)}
+                {describeSkipped(universes.data)}
               </span>
             )}
             <button

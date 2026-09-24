@@ -1,18 +1,52 @@
 import type { ReportTemplate } from '../shared/reportQueries'
 
-export type Block = Record<string, unknown>
+/**
+ * One block of a report template, as the engine publishes it (BU-212).
+ *
+ * The KIND is a closed set now — `bar_chart`, `chart`, `header`,
+ * `stat_grid`, `table`, `text` — and has been all along: py-beacon's block
+ * model has used those names since BN-75. What changed at 0.1.0 is that the
+ * schema says so. Before, `blocks` was "free-form objects that each carry a
+ * `kind`", nothing published which kinds existed, and this editor guessed
+ * `TextBlock` for a new one. The engine never accepted that name, so "Add
+ * block" had been sending a kind it would reject for as long as it existed.
+ *
+ * Which is the rule this repo keeps relearning in another costume: when a
+ * client has to infer something the server knows, the inference is where
+ * the bug goes. Here the inference was a naming convention borrowed from
+ * the index rules (`FilterRule`, `RankRule`), plausible and wrong.
+ *
+ * The FIELDS each kind takes are still not published, so everything past
+ * `kind` stays generic and the pane says so.
+ */
+export type Block = NonNullable<ReportTemplate['blocks']>[number]
+export type BlockKind = Block['kind']
+
+export function kindOf(block: Block): BlockKind {
+  return block.kind
+}
 
 /**
- * A block's kind, which is the one field py-beacon guarantees.
+ * Every kind the engine accepts, in words.
  *
- * `blocks` is a list of free-form objects that each "carry a `kind`" — and,
- * as with index rules (#43), nothing publishes which kinds exist or what
- * fields each takes. So the editor reads `kind` and treats the rest
- * generically, and the pane says so.
+ * A Record rather than a list, so the compiler holds it to the published
+ * set in BOTH directions: a kind py-beacon removes is a type error on its
+ * key, and a kind it adds is a type error for the one missing. A plain array
+ * would catch only the first, and an added kind would simply never be
+ * offered — silently, which is the failure this whole editor started from.
  */
-export function kindOf(block: Block): string {
-  const kind = block.kind
-  return typeof kind === 'string' && kind !== '' ? kind : 'Block'
+export const BLOCK_KINDS: Record<BlockKind, string> = {
+  header: 'Header',
+  text: 'Text',
+  stat_grid: 'Stat grid',
+  chart: 'Chart',
+  bar_chart: 'Bar chart',
+  table: 'Table'
+}
+
+/** Whether a string from a control is one of the kinds, without a cast. */
+export function isBlockKind(value: string): value is BlockKind {
+  return Object.hasOwn(BLOCK_KINDS, value)
 }
 
 /** "Index name, description, as-of date" — the block's other fields, in words. */
@@ -38,7 +72,8 @@ function withBlocks(template: ReportTemplate, blocks: Block[]): ReportTemplate {
   return { ...template, blocks }
 }
 
-export function addBlock(template: ReportTemplate, kind = 'TextBlock'): ReportTemplate {
+/** Text, because it is the one block that asks nothing of the data. */
+export function addBlock(template: ReportTemplate, kind: BlockKind = 'text'): ReportTemplate {
   return withBlocks(template, [...(template.blocks ?? []), { kind }])
 }
 

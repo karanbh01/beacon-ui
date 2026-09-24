@@ -180,3 +180,24 @@ test('the schedule answers with the whole history when asked for it', async ({ e
   expect(four.recent).toHaveLength(4)
   expect(view.upcoming_total).toBe(four.upcoming_total)
 })
+
+test('a seeded universe refuses an edit as a conflict, not as bad input', async ({ engine }) => {
+  /*
+   * py-beacon 0.1.0 (BN-131). 409 CONFLICT, where it was 422 — and this stub
+   * never matched the 422 either, answering VALIDATION_ERROR where the engine
+   * said INVALID_RULE. Nothing in the REQUEST is wrong: the same body is
+   * accepted against any other id. The target's state refuses, which is what
+   * 409 says, and "failed validation" sent a client looking at its own input.
+   */
+  const response = await fetch(`${engine.url}/universes/GLOBAL`, {
+    method: 'DELETE',
+    headers: headers(engine.token)
+  })
+  const body = (await response.json()) as Envelope
+
+  expect(response.status).toBe(409)
+  expect(body.error?.code).toBe('CONFLICT')
+  // And the remedy, since a refusal that does not say what to do instead is
+  // half an answer.
+  expect(body.error?.message).toContain('POST /universes')
+})

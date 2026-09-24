@@ -273,10 +273,8 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         {/* A universe the server could not read is absent from the list
             above, and a short list looks exactly like a complete one
             (BN-174). Silent at zero, which is the ordinary case. */}
-        {describeSkipped(universes.data?.skipped) !== undefined && (
-          <span className="universe-skipped type-11">
-            {describeSkipped(universes.data?.skipped)}
-          </span>
+        {describeSkipped(universes.data) !== undefined && (
+          <span className="universe-skipped type-11">{describeSkipped(universes.data)}</span>
         )}
 
         {/* Point-in-time belongs to a universe's membership; on the overview

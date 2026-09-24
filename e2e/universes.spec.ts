@@ -505,6 +505,7 @@ test('a listing that left a universe out says so (BU-185)', async ({ engine, win
    * to a complete one — the blank-picker lie of BU-181, moved one level
    * out and now visible.
    */
+  // No causes: an engine older than 0.1.0, which counted without saying why.
   engine.skipUniverses(2)
 
   await openPage(window, 'Strategy Builder')
@@ -515,6 +516,25 @@ test('a listing that left a universe out says so (BU-185)', async ({ engine, win
   )
   // And the picker still works: the universes that DID arrive are choices.
   await expect(window.getByRole('combobox', { name: 'Universe' })).toBeEnabled()
+})
+
+test('a short listing says why, when the engine does (BU-212)', async ({ engine, window }) => {
+  /*
+   * py-beacon #214. The count meant three things with OPPOSITE remedies,
+   * and the commonest on two machines updated separately is not damage at
+   * all: a document written by a newer py-beacon, which upgrading the engine
+   * reads. "Could not be read" sent a reader to restore a file that was fine.
+   */
+  engine.skipUniverses(3, { from_newer_build: 2, unparseable: 1, unrecognised: 0 })
+
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Universe Set')
+
+  const note = window.locator('.universe-skipped')
+  await expect(note).toContainText('2 written by a newer py-beacon (upgrade the engine)')
+  await expect(note).toContainText('1 damaged (restore or remove the file)')
+  // The guess this replaced must not survive beside the answer.
+  await expect(note).not.toContainText('could not be read')
 })
 
 test('a complete listing says nothing at all (BU-185)', async ({ window }) => {

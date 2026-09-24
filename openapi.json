@@ -439,6 +439,10 @@
             "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
             "title": "Skipped",
             "type": "integer"
+          },
+          "skipped_causes": {
+            "$ref": "#/components/schemas/SkippedCauses",
+            "description": "The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`."
           }
         },
         "required": [
@@ -937,6 +941,91 @@
         "title": "CarryDecomposition",
         "type": "object"
       },
+      "ChangelogEntryView": {
+        "description": "One release of the engine.",
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Release date, YYYY-MM-DD. Null for Unreleased.",
+            "title": "Date"
+          },
+          "sections": {
+            "description": "What changed, grouped by kind of change. Empty for an Unreleased entry with nothing in it yet.",
+            "items": {
+              "$ref": "#/components/schemas/ChangelogSectionView"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "version": {
+            "description": "e.g. '0.1.0', or 'Unreleased'.",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "date",
+          "sections"
+        ],
+        "title": "ChangelogEntryView",
+        "type": "object"
+      },
+      "ChangelogResponse": {
+        "description": "Response of `GET /changelog`.",
+        "properties": {
+          "entries": {
+            "description": "Newest first, leaving out any with no changes listed. With `since`, only the releases after that version.",
+            "items": {
+              "$ref": "#/components/schemas/ChangelogEntryView"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "version": {
+            "description": "The running engine's version, the same value `/health` reports.",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "entries"
+        ],
+        "title": "ChangelogResponse",
+        "type": "object"
+      },
+      "ChangelogSectionView": {
+        "description": "One heading under a release and its items.",
+        "properties": {
+          "heading": {
+            "description": "Added, Changed, Fixed, Removed, Deprecated or Security.",
+            "title": "Heading",
+            "type": "string"
+          },
+          "items": {
+            "description": "One change each, as markdown.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "heading",
+          "items"
+        ],
+        "title": "ChangelogSectionView",
+        "type": "object"
+      },
       "CompareEntry": {
         "description": "One index within a comparison, on the shared window.",
         "properties": {
@@ -1252,6 +1341,10 @@
             "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
             "title": "Skipped",
             "type": "integer"
+          },
+          "skipped_causes": {
+            "$ref": "#/components/schemas/SkippedCauses",
+            "description": "The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`."
           }
         },
         "required": [
@@ -1340,7 +1433,8 @@
             "anyOf": [
               {
                 "description": "Calendar date, YYYY-MM-DD.",
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "format": "date",
+                "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
                 "type": "string"
               },
               {
@@ -2023,7 +2117,8 @@
         "properties": {
           "date": {
             "description": "Calendar date, YYYY-MM-DD.",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "format": "date",
+            "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
             "title": "Date",
             "type": "string"
           },
@@ -2496,6 +2591,9 @@
           "expiry": {
             "anyOf": [
               {
+                "description": "Calendar date, YYYY-MM-DD.",
+                "format": "date",
+                "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
                 "type": "string"
               },
               {
@@ -2575,7 +2673,8 @@
             "anyOf": [
               {
                 "description": "Calendar date, YYYY-MM-DD.",
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "format": "date",
+                "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
                 "type": "string"
               },
               {
@@ -2685,6 +2784,18 @@
           },
           "data_source": {
             "$ref": "#/components/schemas/DataSourceStatus"
+          },
+          "free_float_backfill_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How many days a free float carries forward over days with no reported value. Beyond it a float-adjusted index refuses rather than weight the name by its full market cap. 0 uses only a value dated that day; the default is 90. A modelling choice: it decides which float a name is weighted by. Null when no data source is configured.",
+            "title": "Free Float Backfill Days"
           },
           "fx_policy": {
             "anyOf": [
@@ -2862,6 +2973,10 @@
             "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
             "title": "Skipped",
             "type": "integer"
+          },
+          "skipped_causes": {
+            "$ref": "#/components/schemas/SkippedCauses",
+            "description": "The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`."
           }
         },
         "required": [
@@ -3052,6 +3167,10 @@
             "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
             "title": "Skipped",
             "type": "integer"
+          },
+          "skipped_causes": {
+            "$ref": "#/components/schemas/SkippedCauses",
+            "description": "The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`."
           }
         },
         "required": [
@@ -3210,6 +3329,7 @@
           },
           "constraint_set_id": {
             "description": "Constraint set to solve under.",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
             "title": "Constraint Set Id",
             "type": "string"
           },
@@ -3227,6 +3347,7 @@
           },
           "index_id": {
             "description": "Index whose weights are the target.",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
             "title": "Index Id",
             "type": "string"
           },
@@ -4357,6 +4478,8 @@
           "index_id": {
             "anyOf": [
               {
+                "description": "Letters, digits, dash and underscore; up to 64.",
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
                 "type": "string"
               },
               {
@@ -4368,6 +4491,7 @@
           },
           "template_id": {
             "description": "A stored template, or a built-in such as FACTSHEET-A4.",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
             "title": "Template Id",
             "type": "string"
           }
@@ -4448,6 +4572,10 @@
             "title": "Skipped",
             "type": "integer"
           },
+          "skipped_causes": {
+            "$ref": "#/components/schemas/SkippedCauses",
+            "description": "The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`."
+          },
           "templates": {
             "items": {
               "$ref": "#/components/schemas/ReportTemplateDocument"
@@ -4469,6 +4597,22 @@
             "description": "Content, drawn top to bottom. Each carries a `kind`, one of: bar_chart, chart, header, stat_grid, table, text.",
             "items": {
               "additionalProperties": true,
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "bar_chart",
+                    "chart",
+                    "header",
+                    "stat_grid",
+                    "table",
+                    "text"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
               "type": "object"
             },
             "title": "Blocks",
@@ -5200,6 +5344,31 @@
         "title": "SeriesPayload",
         "type": "object"
       },
+      "SkippedCauses": {
+        "description": "Why a listing left documents out, one count per cause (BN-201).\n\n`skipped` could only say *how many*, and the one sentence a client could\nwrite over it -- \"could not be read\" -- invites restoring a file that may\nbe perfectly fine. Each cause has its own remedy, so each has its own\ncount and a description that names it.",
+        "properties": {
+          "from_newer_build": {
+            "default": 0,
+            "description": "Documents written by a newer py-beacon than the one serving this listing. Nothing is wrong with them: upgrading the engine will read them. The state two installs reach when the engine and the app are updated on different machines.",
+            "title": "From Newer Build",
+            "type": "integer"
+          },
+          "unparseable": {
+            "default": 0,
+            "description": "Documents that are damaged: not valid JSON, or carrying a schema version nothing can migrate. The file itself is the problem -- restore it from a backup or remove it.",
+            "title": "Unparseable",
+            "type": "integer"
+          },
+          "unrecognised": {
+            "default": 0,
+            "description": "Documents that are valid JSON but that this engine's model does not accept -- the document and the engine disagree about its shape, usually a version gap the schema migrations do not cover. The server log names the field.",
+            "title": "Unrecognised",
+            "type": "integer"
+          }
+        },
+        "title": "SkippedCauses",
+        "type": "object"
+      },
       "SyncJobResult": {
         "description": "Result payload of a completed data sync.\n\nThe narrowest honest description of what the sync job returns (BN-172):\n`IngestResult.summary()` plus the two fields the job adds. Deliberately a\ncount-and-identifier summary rather than the data — the rows went into the\nfetcher, and a client reads them back through the data endpoints.",
         "properties": {
@@ -5576,7 +5745,8 @@
           },
           "end_date": {
             "description": "Calendar date, YYYY-MM-DD.",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "format": "date",
+            "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
             "title": "End Date",
             "type": "string"
           },
@@ -5605,7 +5775,8 @@
             "anyOf": [
               {
                 "description": "Calendar date, YYYY-MM-DD.",
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "format": "date",
+                "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
                 "type": "string"
               },
               {
@@ -5656,7 +5827,8 @@
           },
           "start_date": {
             "description": "Calendar date, YYYY-MM-DD.",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "format": "date",
+            "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
             "title": "Start Date",
             "type": "string"
           },
@@ -5685,7 +5857,8 @@
           },
           "valuation_date": {
             "description": "Calendar date, YYYY-MM-DD.",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "format": "date",
+            "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
             "title": "Valuation Date",
             "type": "string"
           }
@@ -5767,7 +5940,8 @@
           },
           "valuation_date": {
             "description": "Calendar date, YYYY-MM-DD.",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "format": "date",
+            "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
             "title": "Valuation Date",
             "type": "string"
           }
@@ -5958,6 +6132,10 @@
             "description": "Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.",
             "title": "Skipped",
             "type": "integer"
+          },
+          "skipped_causes": {
+            "$ref": "#/components/schemas/SkippedCauses",
+            "description": "The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`."
           },
           "universes": {
             "items": {
@@ -6200,6 +6378,10 @@
             "title": "Skipped",
             "type": "integer"
           },
+          "skipped_causes": {
+            "$ref": "#/components/schemas/SkippedCauses",
+            "description": "The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`."
+          },
           "watchlists": {
             "items": {
               "$ref": "#/components/schemas/Watchlist"
@@ -6326,7 +6508,8 @@
             "anyOf": [
               {
                 "description": "Calendar date, YYYY-MM-DD.",
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "format": "date",
+                "pattern": "^(1[7-9]|2[01])[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
                 "type": "string"
               },
               {
@@ -6428,7 +6611,7 @@
   },
   "info": {
     "title": "Beacon API",
-    "version": "0.0.2"
+    "version": "0.1.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -6546,6 +6729,7 @@
             "schema": {
               "description": "Index ids to compare, two or more.",
               "items": {
+                "minLength": 1,
                 "type": "string"
               },
               "title": "Ids",
@@ -7446,6 +7630,124 @@
         ]
       }
     },
+    "/changelog": {
+      "get": {
+        "operationId": "changelog_changelog_get",
+        "parameters": [
+          {
+            "description": "A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned.",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned.",
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangelogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Changelog"
+      }
+    },
     "/data/corporate-actions/{identifier}": {
       "get": {
         "operationId": "corporate_actions_data_corporate_actions__identifier__get",
@@ -7853,21 +8155,16 @@
             "description": "Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call.",
             "in": "query",
             "name": "identifiers",
-            "required": false,
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call.",
-              "title": "Identifiers"
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "title": "Identifiers",
+              "type": "array"
             }
           },
           {
@@ -8877,21 +9174,16 @@
             "description": "Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call.",
             "in": "query",
             "name": "identifiers",
-            "required": false,
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Identifiers to look up. Repeat the parameter or comma-separate; at most 1000 per call.",
-              "title": "Identifiers"
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "title": "Identifiers",
+              "type": "array"
             }
           },
           {
@@ -10870,11 +11162,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationReport"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Request or rule failed validation."
           },
           "500": {
             "content": {
@@ -12763,11 +13055,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationReport"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Request or rule failed validation."
           },
           "500": {
             "content": {
@@ -13321,6 +13613,16 @@
               }
             },
             "description": "The path exists but does not accept this method."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The stored template has no blocks to render."
           },
           "422": {
             "content": {
@@ -14540,6 +14842,16 @@
             },
             "description": "The path exists but does not accept this method."
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The universe was seeded from the dataset and is read-only."
+          },
           "422": {
             "content": {
               "application/json": {
@@ -14774,6 +15086,16 @@
               }
             },
             "description": "The path exists but does not accept this method."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The universe was seeded from the dataset and is read-only."
           },
           "422": {
             "content": {

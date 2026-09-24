@@ -1,7 +1,8 @@
 import { useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
-import type { Block } from './blocks'
+import { Select } from '../../components/Select/Select'
+import { BLOCK_KINDS, isBlockKind, type Block, type BlockKind } from './blocks'
 import './BlockEditor.css'
 
 export interface BlockEditorProps {
@@ -37,20 +38,26 @@ function parse(value: string): unknown {
 /**
  * The inline editor for one block.
  *
- * Generic for the same reason the index rule editor is: `blocks` is a list of
- * free-form objects and py-beacon publishes no catalogue of kinds or their
- * fields. The constraint editor shows what the alternative looks like when a
- * catalogue exists — see `/optimise/constraint-types` and issue #43.
+ * The KIND is chosen from the engine's published set (BU-212). It was a
+ * free-text field while nothing said which kinds existed, and the default a
+ * new block got — `TextBlock` — was a name the engine never accepted. A
+ * closed set typed into an open field is the guess this editor was built on.
+ *
+ * The FIELDS are still generic, for the reason they always were: py-beacon
+ * publishes which kinds exist but not what each one takes. The constraint
+ * editor shows what the alternative looks like when a field catalogue exists
+ * — see `/optimise/constraint-types` and issue #43.
  */
 export function BlockEditor({ block, onApply, onCancel }: BlockEditorProps): ReactElement {
-  const [kind, setKind] = useState(typeof block.kind === 'string' ? block.kind : '')
+  const [kind, setKind] = useState<BlockKind>(block.kind)
   const [entries, setEntries] = useState<Entry[]>(() => toEntries(block))
 
   const apply = (): void => {
     const fields = entries
       .filter((entry) => entry.key.trim() !== '')
       .map((entry) => [entry.key.trim(), parse(entry.value)] as const)
-    onApply({ kind: kind.trim(), ...Object.fromEntries(fields) })
+    // Kind last, so a field someone typed in called "kind" cannot replace it.
+    onApply({ ...Object.fromEntries(fields), kind })
   }
 
   const update = (index: number, patch: Partial<Entry>): void => {
@@ -63,13 +70,13 @@ export function BlockEditor({ block, onApply, onCancel }: BlockEditorProps): Rea
     <div className="block-editor">
       <div className="block-editor-fields">
         <Field label="Block kind" width={180}>
-          <input
-            className="block-editor-input"
-            aria-label="Block kind"
+          <Select
+            label="Block kind"
             value={kind}
-            onChange={(event) => {
-              setKind(event.target.value)
+            onChange={(next) => {
+              if (isBlockKind(next)) setKind(next)
             }}
+            options={Object.entries(BLOCK_KINDS).map(([value, label]) => ({ value, label }))}
           />
         </Field>
 

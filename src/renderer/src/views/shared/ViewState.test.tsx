@@ -132,3 +132,48 @@ describe('a crash wearing a calculation error', () => {
     expect(screen.getByText('The engine refused to answer.')).toBeInTheDocument()
   })
 })
+
+describe('a refusal that names what is wrong (BU-212)', () => {
+  /*
+   * Since BN-221 one error class refuses a pipeline, a universe, a feature
+   * import and a constraint set, with every problem in `detail.findings` and
+   * a message that no longer lists them. A renderer showing only the message
+   * showed that something was wrong and not what.
+   */
+  const REFUSED = new ApiError(422, {
+    code: 'INVALID_RULE',
+    message: 'Invalid rule: constraint set. Reason: it has errors',
+    detail: {
+      rule_description: 'constraint set',
+      reason: 'it has errors',
+      findings: [
+        { code: 'BOUND', path: 'constraints.0.max', message: 'must exceed min', severity: 'error' },
+        { code: 'UNKNOWN', path: 'constraints.2.type', message: 'unknown type', severity: 'error' }
+      ]
+    }
+  })
+
+  it('lists every finding under the message', () => {
+    render(<ViewError error={REFUSED} />)
+    expect(screen.getByText('constraints.0.max')).toBeInTheDocument()
+    expect(screen.getByText(/must exceed min/)).toBeInTheDocument()
+    expect(screen.getByText(/unknown type/)).toBeInTheDocument()
+  })
+
+  it('heads it as the input being refused, since the remedy is in the input', () => {
+    render(<ViewError error={REFUSED} />)
+    expect(screen.getByText('The engine rejected this as written.')).toBeInTheDocument()
+    expect(screen.queryByText('Could not load.')).not.toBeInTheDocument()
+  })
+
+  it('skips an entry that is not a finding rather than drawing undefined', () => {
+    const odd = new ApiError(422, {
+      code: 'INVALID_RULE',
+      message: 'Invalid rule',
+      detail: { findings: [42, null, { path: 'a' }, { message: 'real one' }] }
+    })
+    render(<ViewError error={odd} />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByText(/real one/)).toBeInTheDocument()
+  })
+})

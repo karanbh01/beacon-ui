@@ -1332,6 +1332,29 @@ let universes: StubUniverse[] = []
 let skippedUniverses = 0
 
 /**
+ * Why they were skipped, which the engine publishes beside the count since
+ * 0.1.0 (py-beacon #214). The three sum to `skipped`, and they carry
+ * opposite remedies — a document from a newer py-beacon is not damaged at
+ * all — so a stub that counted without saying why would let a client go on
+ * guessing and pass.
+ *
+ * `null` models an engine too old to say, which Karan's second machine can
+ * be running: the causes are then absent rather than zero.
+ */
+interface SkippedCauses {
+  from_newer_build: number
+  unparseable: number
+  unrecognised: number
+}
+let universeCauses: SkippedCauses | null = null
+
+function skipCauses(count: number, causes: SkippedCauses | null): SkippedCauses | null {
+  if (causes !== null) return causes
+  // The listing still has to add up when a test names only a count.
+  return count === 0 ? { from_newer_build: 0, unparseable: 0, unrecognised: 0 } : null
+}
+
+/**
  * Indices are never skipped here.
  *
  * One catalogue with a skip and one without: the interesting case is a
@@ -1341,6 +1364,7 @@ const SKIPPED_INDICES = 0
 
 function resetUniverses(): void {
   skippedUniverses = 0
+  universeCauses = null
   universes = [
     {
       id: 'GLOBAL',
@@ -1369,7 +1393,11 @@ function body(url: URL): unknown {
   // and a rebalance frequency off each row (BU-95). Ahead of the static map
   // because the catalogue changes when one is deleted.
   if (path === '/indices') {
-    return { indices: indexIds.map((id) => indexDocument(id)), skipped: SKIPPED_INDICES }
+    return {
+      indices: indexIds.map((id) => indexDocument(id)),
+      skipped: SKIPPED_INDICES,
+      skipped_causes: skipCauses(SKIPPED_INDICES, null)
+    }
   }
 
   if (Object.hasOwn(ROUTES, path)) return ROUTES[path]
@@ -1974,7 +2002,13 @@ function body(url: URL): unknown {
     return job
   }
 
-  if (path === '/universes') return { universes, skipped: skippedUniverses }
+  if (path === '/universes') {
+    return {
+      universes,
+      skipped: skippedUniverses,
+      skipped_causes: skipCauses(skippedUniverses, universeCauses)
+    }
+  }
 
   if (path.endsWith('/members') && path.startsWith('/universes/')) {
     const id = decodeURIComponent(path.slice('/universes/'.length, -'/members'.length))
@@ -2035,7 +2069,30 @@ export interface StubEngine {
    * stub in it directly. Called from a test rather than seeded, because
    * every other test wants the ordinary case where nothing is skipped.
    */
-  skipUniverses: (count: number) => void
+  /**
+   * `causes` omitted models an engine older than 0.1.0: a count with no
+   * reason. Pass them to model a current one.
+   */
+  skipUniverses: (count: number, causes?: SkippedCauses) => void
+}
+
+/**
+ * An edit to a universe the data generator wrote (BN-131, py-beacon 0.1.0).
+ *
+ * 409 CONFLICT, and it was 422 before — which this stub never matched
+ * either: it answered VALIDATION_ERROR where the engine answered
+ * INVALID_RULE. The engine moved to 409 because nothing in the REQUEST is
+ * wrong; the same body is accepted against any other id, and "failed
+ * validation" sent a client looking at the wrong thing. It is the target's
+ * state that refuses, which is what 409 says.
+ */
+function seededRefusal(id: string): Refusal {
+  return refuse(
+    409,
+    'CONFLICT',
+    `Universe '${id}' was written by the data generator and is read-only. ` +
+      'Copy it with POST /universes to make an editable version.'
+  )
 }
 
 /**
@@ -2093,14 +2150,7 @@ function writeUniverse(
   if (found === undefined) {
     return { status: 404, payload: { error: { code: 'NOT_FOUND', message: `no universe ${id}` } } }
   }
-  if (found.source === 'seeded') {
-    return {
-      status: 422,
-      payload: {
-        error: { code: 'VALIDATION_ERROR', message: 'a seeded universe cannot be edited' }
-      }
-    }
-  }
+  if (found.source === 'seeded') return seededRefusal(id)
 
   const updated: StubUniverse = { ...found, name, description, identifiers }
   universes = universes.map((universe) => (universe.id === id ? updated : universe))
@@ -2580,11 +2630,8 @@ export function startStubEngine(): Promise<StubEngine> {
         return
       }
       if (universe.source === 'seeded') {
-        response.writeHead(422).end(
-          JSON.stringify({
-            error: { code: 'VALIDATION_ERROR', message: 'a seeded universe cannot be deleted' }
-          })
-        )
+        const refusal = seededRefusal(id)
+        response.writeHead(refusal.status).end(JSON.stringify(refusal.payload))
         return
       }
 
@@ -2672,8 +2719,9 @@ export function startStubEngine(): Promise<StubEngine> {
         url: `http://127.0.0.1:${String(port)}`,
         // Empty: this stub answers whatever bearer it is given.
         token: '',
-        skipUniverses: (count: number) => {
+        skipUniverses: (count: number, causes?: SkippedCauses) => {
           skippedUniverses = count
+          universeCauses = causes ?? null
         },
         close: () =>
           new Promise((done) => {

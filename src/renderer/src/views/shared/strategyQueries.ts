@@ -11,6 +11,7 @@ import type { ConstraintRow } from './optimiseQueries'
 import { withBacktests } from './indexSuggestions'
 import { useBeacon } from '../../api/queryClient'
 import { workKey } from '../../api/work'
+import type { Skipped } from './pickers'
 
 export type IndexDocument = components['schemas']['IndexDocument']
 export type ValidationReport = components['schemas']['ValidationReport']
@@ -401,8 +402,11 @@ export function useBacktestRun(jobId: string | undefined, ready: boolean) {
 export function useIndexCatalogue(): {
   rows: Suggestion[]
   loading: boolean
-  /** Indices the server could not read, so the bar's list is short (BN-174). */
-  skipped: number
+  /**
+   * Indices the server could not read, so the bar's list is short (BN-174),
+   * and why — the causes carry opposite remedies (BU-212).
+   */
+  skipped: Skipped
 } {
   const indices = useIndices()
   const records = useBacktestRecords()
@@ -425,7 +429,14 @@ export function useIndexCatalogue(): {
     [named, records.data]
   )
 
-  return { rows, loading: indices.isPending, skipped: indices.data?.skipped ?? 0 }
+  return {
+    rows,
+    loading: indices.isPending,
+    skipped: {
+      skipped: indices.data?.skipped ?? 0,
+      skipped_causes: indices.data?.skipped_causes ?? null
+    }
+  }
 }
 
 export function useRunBacktest() {

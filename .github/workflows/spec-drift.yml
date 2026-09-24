@@ -23,10 +23,17 @@ jobs:
         with:
           python-version: '3.13'
 
-      # py-beacon is public, so this needs no token. It is not on PyPI and
-      # has no releases yet, so main is the only thing to track.
+      # py-beacon is public, so this needs no token. Tracked from main rather
+      # than PyPI on purpose: drift is worth knowing about BEFORE a release,
+      # and a released version is by definition already behind main.
+      #
+      # The distribution is `py-beacon-kit` since 0.1.0 — PyPI refused
+      # `py-beacon` as too close to an existing `pybeacon`. The import and the
+      # repo kept their names, which is why this line was the only thing that
+      # broke, and why it broke silently: a direct reference names the
+      # distribution, and the name it named no longer existed.
       - name: Install py-beacon from main
-        run: pip install "py-beacon[server] @ git+https://github.com/karanbh01/py-beacon@main"
+        run: pip install "py-beacon-kit[server] @ git+https://github.com/karanbh01/py-beacon@main"
 
       - name: Export the current spec
         run: |

@@ -68,7 +68,72 @@ export interface Fault {
   detail?: Record<string, unknown> | null
 }
 
+/** One problem a refusal names, as the engine publishes it (`Finding`). */
+interface FindingRow {
+  path: string
+  message: string
+}
+
+/**
+ * The specifics of a refusal, when it carries them (BU-212).
+ *
+ * Since BN-221 one error class refuses an index pipeline, a universe, a
+ * feature import and a constraint set, and it puts every problem in the
+ * envelope's `detail.findings` rather than in the message. The message is
+ * now "Invalid rule: constraint set. Reason: it has errors" — true, and no
+ * help at all — so a renderer that shows only the message shows that
+ * something is wrong and not what. The constraint editor used to print the
+ * findings into the message, unparseably; they are structured now, and a
+ * structure nothing reads is the absence this repo keeps filing.
+ *
+ * Read defensively because `detail` is `Record<string, unknown>`: an entry
+ * that is not a finding is skipped rather than rendered as "undefined".
+ */
+function findingsOf(detail: Fault['detail']): FindingRow[] {
+  const raw = detail?.findings
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((entry: unknown) => {
+    if (typeof entry !== 'object' || entry === null) return []
+    const { path, message } = entry as Record<string, unknown>
+    if (typeof message !== 'string') return []
+    return [{ path: typeof path === 'string' ? path : '', message }]
+  })
+}
+
+function FindingList({ fault }: { fault: Fault }): ReactElement | null {
+  const findings = findingsOf(fault.detail)
+  if (findings.length === 0) return null
+  return (
+    <ul className="view-state-findings type-11">
+      {findings.map((finding) => (
+        <li key={`${finding.path}-${finding.message}`}>
+          {finding.path !== '' && <code>{finding.path}</code>} {finding.message}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
+  if (fault.code === 'INVALID_RULE') {
+    /*
+     * The input, as written, is what was refused (BU-212).
+     *
+     * One class refuses a pipeline, a universe, a feature import and a
+     * constraint set since BN-221, and it names every problem in
+     * `detail.findings`. "Could not load" over a list of what is wrong with
+     * the reader's own document points at the engine when the remedy is in
+     * the document — the heading-as-remedy lesson from BU-199 again.
+     */
+    return (
+      <div className="view-state">
+        <p className="type-13">The engine rejected this as written.</p>
+        <p className="type-11">{fault.message}</p>
+        <FindingList fault={fault} />
+      </div>
+    )
+  }
+
   if (fault.code === 'CALCULATION_ERROR') {
     /*
      * A refusal is not a failure to load (py-beacon #204).
@@ -89,6 +154,7 @@ export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
       <div className="view-state">
         <p className="type-13">The engine refused to answer.</p>
         <p className="type-11">{fault.message}</p>
+        <FindingList fault={fault} />
       </div>
     )
   }
@@ -131,6 +197,7 @@ export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
     <div className="view-state">
       <p className="type-13">Could not load.</p>
       <p className="type-11">{fault.message}</p>
+      <FindingList fault={fault} />
     </div>
   )
 }

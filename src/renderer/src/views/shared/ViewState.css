@@ -14,3 +14,18 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--text-secondary);
 }
+
+/*
+ * What a refusal found wrong, under its message (BU-212). The engine sends
+ * every problem as structured findings rather than printing them into the
+ * message, so this is the only place they appear.
+ */
+.view-state-findings {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  color: var(--text-secondary);
+}
+
+.view-state-findings code {
+  color: var(--text-primary);
+}
