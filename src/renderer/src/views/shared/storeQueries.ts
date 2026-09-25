@@ -160,3 +160,54 @@ export function unreadableReason(store: DataStore): string {
     ? 'no password variable is set for this database'
     : `the password variable ${variable} is not set on the engine’s machine`
 }
+
+/** The last segment of a path, on either separator — Windows sends `\`. */
+export function folderName(path: string): string {
+  const segments = path.split(/[\\/]/).filter((segment) => segment !== '')
+  return segments.at(-1) ?? path
+}
+
+/**
+ * Register a folder that already holds a store, then serve it.
+ *
+ * "Open" means use it, so registration is followed by activation. A folder
+ * already registered answers 409 and is shown as such rather than resolved
+ * quietly: it is already in the list, with a Use button beside it.
+ */
+export function useOpenFolder() {
+  const client = useBeacon()
+  const refresh = useRefreshStores()
+
+  return useMutation({
+    mutationKey: workKey('opening a data folder'),
+    mutationFn: async (path: string) => {
+      if (client === null) throw new Error('No engine')
+      const store = await client.stores.register({ kind: 'folder', name: folderName(path), path })
+      return client.stores.activate(store.id)
+    },
+    // Refetched on failure too: a refused activation leaves the folder
+    // registered, and the list should show it.
+    onSettled: refresh
+  })
+}
+
+/**
+ * Load CSV files or a workbook as a new store (BN-239).
+ *
+ * Every row is checked before anything is saved. A refusal is INVALID_RULE
+ * with the rows as findings — capped at 200, with the true count beside them
+ * (BU-214) — which the dialog lists.
+ */
+export function useImportFiles() {
+  const client = useBeacon()
+  const refresh = useRefreshStores()
+
+  return useMutation({
+    mutationKey: workKey('importing data'),
+    mutationFn: (paths: string[]) => {
+      if (client === null) throw new Error('No engine')
+      return client.data.importFiles({ paths, name: 'Imported data', activate: true })
+    },
+    onSuccess: refresh
+  })
+}

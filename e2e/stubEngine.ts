@@ -2405,6 +2405,75 @@ function storeRow(store: StubStore): unknown {
   }
 }
 
+/**
+ * Folders the stub treats as holding a store. `D:/research/prices` is also
+ * registered by default, so opening it exercises the engine's 409.
+ */
+const FOLDERS_ON_DISK = ['D:/research/prices', 'D:/research/rates']
+
+/** Why the engine would refuse to register this folder, if it would. */
+function refuseRegistration(parsed: Record<string, unknown>): Refusal | undefined {
+  const path = typeof parsed.path === 'string' ? parsed.path.replaceAll('\\', '/') : ''
+  if (!FOLDERS_ON_DISK.includes(path)) {
+    const message = `${path} is not a py-beacon data store: it needs manifest.json and market.parquet.`
+    return refuse(
+      422,
+      'INVALID_RULE',
+      `Invalid rule: data store. Reason: its folder cannot be used`,
+      {
+        rule_description: 'data store',
+        reason: 'its folder cannot be used',
+        findings: [
+          { path: 'path', rule_id: null, severity: 'error', code: 'NOT_A_DATA_STORE', message }
+        ]
+      }
+    )
+  }
+  const existing = stores.find((store) => store.path === path)
+  if (existing === undefined) return undefined
+  return refuse(
+    409,
+    'CONFLICT',
+    `${path} is already registered as '${existing.name}' (${existing.id}).`
+  )
+}
+
+/** An import with row problems, in the shape the engine sends (BN-239). */
+function importRefusal(): Refusal {
+  const findings = [
+    {
+      sheet: 'market',
+      row: 4,
+      column: 'DATE',
+      code: 'BAD_DATE',
+      message: "DATE '04/01/2026' is not a date written as YYYY-MM-DD."
+    },
+    {
+      sheet: 'market',
+      row: 9,
+      column: 'PRICE',
+      code: 'BAD_NUMBER',
+      message: "PRICE 'n/a' is not a number."
+    }
+  ].map((problem) => ({
+    path: `${problem.sheet}, row ${String(problem.row)}, ${problem.column}`,
+    rule_id: null,
+    severity: 'error',
+    ...problem
+  }))
+  return refuse(
+    422,
+    'INVALID_RULE',
+    'Invalid rule: data import. Reason: 2 problem(s) in the supplied data',
+    {
+      rule_description: 'data import',
+      reason: '2 problem(s) in the supplied data',
+      findings,
+      total: 2
+    }
+  )
+}
+
 /** Serve a different store, as a finished load job would leave it. */
 function serveStore(id: string): void {
   activeStore = id
@@ -2759,6 +2828,69 @@ export function startStubEngine(): Promise<StubEngine> {
         ]
         serveStore(storeId)
         response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))
+      })
+      return
+    }
+
+    /*
+     * Registering a folder (BN-236): Open a data folder.
+     *
+     * The engine checks the folder is a store before registering it, and
+     * refuses one that is not with a NOT_A_DATA_STORE finding; a folder
+     * already registered is 409. The stub has no disk, so `FOLDERS_ON_DISK`
+     * stands in for which paths hold a store.
+     */
+    if (method === 'POST' && url.pathname === '/data/stores') {
+      readBody(request, (parsed) => {
+        const refusal = refuseRegistration(parsed)
+        if (refusal !== undefined) {
+          response.writeHead(refusal.status).end(JSON.stringify(refusal.payload))
+          return
+        }
+        const path = String(parsed.path)
+        const name = typeof parsed.name === 'string' ? parsed.name : path
+        const store: StubStore = {
+          id: `folder-${String(stores.length + 1)}`,
+          name,
+          kind: 'folder',
+          path,
+          source: 'local',
+          managed: false,
+          readable: true
+        }
+        stores = [...stores, store]
+        response.writeHead(201).end(JSON.stringify(storeRow(store)))
+      })
+      return
+    }
+
+    /*
+     * Importing files (BN-239). Every row is checked before anything is
+     * saved; a refusal is INVALID_RULE with one finding per row problem and
+     * the true count beside them. Accepted, the files become a new store the
+     * engine owns, served at once.
+     */
+    if (method === 'POST' && url.pathname === '/data/import') {
+      readBody(request, (parsed) => {
+        const paths = Array.isArray(parsed.paths) ? parsed.paths.map(String) : []
+        if (paths.some((path) => path.includes('bad'))) {
+          const refusal = importRefusal()
+          response.writeHead(refusal.status).end(JSON.stringify(refusal.payload))
+          return
+        }
+        generated += 1
+        const store: StubStore = {
+          id: `imported-${String(generated)}`,
+          name: typeof parsed.name === 'string' ? parsed.name : 'Imported data',
+          kind: 'folder',
+          path: `C:/Users/me/AppData/Roaming/beacon/stores/imported-${String(generated)}`,
+          source: 'imported',
+          managed: true,
+          readable: true
+        }
+        stores = [...stores, store]
+        serveStore(store.id)
+        response.writeHead(201).end(JSON.stringify({ store: storeRow(store), load_job: null }))
       })
       return
     }

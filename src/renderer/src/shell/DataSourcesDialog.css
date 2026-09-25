@@ -105,3 +105,8 @@
   justify-content: space-between;
   margin-top: 4px;
 }
+
+.sources-add {
+  display: flex;
+  gap: 6px;
+}

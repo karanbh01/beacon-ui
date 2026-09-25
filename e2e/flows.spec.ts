@@ -570,17 +570,21 @@ test('the Data menu offers what this app imports, and where it comes from', asyn
   const menu = window.getByRole('menu', { name: 'Data' })
   const items = await menu.getByRole('menuitem').allTextContents()
 
-  // Everything at once, then the data, then the documents describing it,
-  // then where it comes from (BU-146).
+  // Everything at once, then the imports, then where it all comes from
+  // (BU-146).
   expect(items[0]).toContain('Refresh all')
   expect(items.at(-1)).toContain('Manage sources')
-  // One row per dataset the ENGINE reports, so a dataset py-beacon adds
-  // appears without a change in the renderer.
-  expect(items.some((label) => label.includes('Import market data'))).toBe(true)
-  expect(items.some((label) => label.includes('Import index definition'))).toBe(true)
+  // One Import files… where there was a row per dataset (BU-215): the engine
+  // takes every sheet in one import, so per-dataset rows promised something
+  // it does not do.
+  expect(items.some((label) => label.includes('Import files'))).toBe(true)
+  expect(items.some((label) => /Import .* data/.test(label))).toBe(false)
+  expect(items.some((label) => label.includes('Open a data folder'))).toBe(true)
 
-  // Import is not wired yet, and says so rather than hiding.
-  await expect(menu.getByRole('menuitem', { name: /Import market data/ })).toBeDisabled()
+  // The live ways to get data are live; the document imports are not wired
+  // yet, and say so rather than hiding.
+  await expect(menu.getByRole('menuitem', { name: /Import files/ })).toBeEnabled()
+  await expect(menu.getByRole('menuitem', { name: /Import index definition/ })).toBeDisabled()
   await expect(menu.getByRole('menuitem', { name: /Manage sources/ })).toBeEnabled()
 })
 

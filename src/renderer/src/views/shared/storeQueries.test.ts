@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { removalOf, storeKind, unreadableReason, type DataStore } from './storeQueries'
+import { folderName, removalOf, storeKind, unreadableReason, type DataStore } from './storeQueries'
 
 /**
  * What a reader needs to know about a data store before acting on it
@@ -86,5 +86,30 @@ describe('why a store cannot be read', () => {
     })
     expect(unreadableReason(database)).toContain('PRICES_PASSWORD is not set')
     expect(unreadableReason(database)).not.toContain('moved')
+  })
+})
+
+describe('the name an opened folder gets', () => {
+  /*
+   * Windows paths separate with a backslash, and Windows is the only platform
+   * that ships. The first version of this split on `/` alone — a backslash
+   * lost between a shell heredoc and the file — so a picked folder would have
+   * been named with its whole path. Lint flagged the escape; this pins the
+   * behaviour, which is what actually matters.
+   */
+  it('takes the last segment of a Windows path', () => {
+    expect(folderName('D:\\research\\prices')).toBe('prices')
+  })
+
+  it('takes the last segment of a POSIX path', () => {
+    expect(folderName('/home/me/prices')).toBe('prices')
+  })
+
+  it('ignores a trailing separator', () => {
+    expect(folderName('D:\\research\\prices\\')).toBe('prices')
+  })
+
+  it('handles a mixed path, which Windows accepts', () => {
+    expect(folderName('D:/research\\prices')).toBe('prices')
   })
 })

@@ -267,6 +267,15 @@ export interface IpcContract {
     request: undefined
     response: { path: string }
   }
+  /**
+   * Ask for the files to import (BU-215): CSVs named after their sheet, or
+   * one workbook. Paths, not contents — the engine runs on this machine and
+   * reads them itself. Empty when dismissed.
+   */
+  'data:chooseFiles': {
+    request: undefined
+    response: { paths: string[] }
+  }
   /** The splash opening its settings window, and that window closing itself. */
   'window:openSettings': {
     request: undefined
@@ -390,6 +399,7 @@ export interface BeaconBridge {
     settings: () => Promise<DataSettings>
     saveSettings: (settings: DataSettings) => Promise<DataSettings>
     chooseStore: () => Promise<{ path: string }>
+    chooseFiles: () => Promise<{ paths: string[] }>
     openSettingsWindow: () => Promise<void>
     closeSettingsWindow: () => Promise<void>
   }

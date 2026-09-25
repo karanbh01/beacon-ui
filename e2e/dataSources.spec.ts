@@ -137,3 +137,90 @@ test('the sources panel’s Manage link opens the same dialog', async ({ window 
   await window.getByRole('button', { name: /Manage/ }).click()
   await expect(window.getByRole('dialog', { name: 'Data sources' })).toBeVisible()
 })
+
+/*
+ * Open a data folder and Import files (BU-215).
+ *
+ * Both start at an OS picker, which a test cannot click through. Main's
+ * `dialog.showOpenDialog` is replaced with one that answers as a reader
+ * would have, so everything after the picker — the engine call, its
+ * refusal, the list — is the real path.
+ */
+async function pickerAnswers(
+  app: import('@playwright/test').ElectronApplication,
+  paths: string[]
+): Promise<void> {
+  await app.evaluate(({ dialog }, filePaths) => {
+    dialog.showOpenDialog = () => Promise.resolve({ canceled: filePaths.length === 0, filePaths })
+  }, paths)
+}
+
+async function fromDataMenu(window: import('@playwright/test').Page, item: RegExp) {
+  await window.getByRole('button', { name: 'Data', exact: true }).click()
+  await window.getByRole('menuitem', { name: item }).click()
+  const dialog = window.getByRole('dialog', { name: 'Data sources' })
+  await expect(dialog).toBeVisible()
+  return dialog
+}
+
+test('opening a data folder registers it, names it, and serves it', async ({ app, window }) => {
+  // A Windows path, as the picker returns one: the name is its last segment.
+  await pickerAnswers(app, ['D:\\research\\rates'])
+  const dialog = await fromDataMenu(window, /Open a data folder/)
+
+  const row = dialog.locator('.sources-row', { hasText: 'rates' })
+  await expect(row).toBeVisible()
+  await expect(row).toContainText('Your folder')
+  await expect(row).toContainText('serving')
+})
+
+test('a folder that is not a store is refused with the engine’s reason', async ({
+  app,
+  window
+}) => {
+  await pickerAnswers(app, ['D:\\holiday photos'])
+  const dialog = await fromDataMenu(window, /Open a data folder/)
+
+  await expect(dialog).toContainText('is not a py-beacon data store')
+  // Nothing was registered, so nothing new is listed.
+  await expect(dialog.locator('.sources-row')).toHaveCount(2)
+})
+
+test('a folder already in the list is refused, not added twice', async ({ app, window }) => {
+  await pickerAnswers(app, ['D:\\research\\prices'])
+  const dialog = await fromDataMenu(window, /Open a data folder/)
+
+  await expect(dialog).toContainText('already registered')
+  await expect(dialog.locator('.sources-row')).toHaveCount(2)
+})
+
+test('importing files makes a new store and serves it', async ({ app, window }) => {
+  await pickerAnswers(app, ['D:\\exports\\prices.xlsx'])
+  const dialog = await fromDataMenu(window, /Import files/)
+
+  const row = dialog.locator('.sources-row', { hasText: 'Imported data' })
+  await expect(row).toBeVisible()
+  await expect(row).toContainText('Imported')
+  await expect(row).toContainText('serving')
+})
+
+test('an import with bad rows lists each one, and saves nothing', async ({ app, window }) => {
+  // Every row is checked before anything is saved, so a refusal leaves the
+  // list as it was — and names the rows to fix, not only a count.
+  await pickerAnswers(app, ['D:\\exports\\bad.csv'])
+  const dialog = await fromDataMenu(window, /Import files/)
+
+  await expect(dialog).toContainText('The engine rejected this as written.')
+  await expect(dialog).toContainText('market, row 4, DATE')
+  await expect(dialog).toContainText('is not a date written as YYYY-MM-DD')
+  await expect(dialog.locator('.sources-row')).toHaveCount(2)
+})
+
+test('a dismissed picker leaves everything as it was', async ({ app, window }) => {
+  // Cancelling is an answer, not an error.
+  await pickerAnswers(app, [])
+  const dialog = await fromDataMenu(window, /Import files/)
+
+  await expect(dialog.locator('.sources-row')).toHaveCount(2)
+  await expect(dialog.locator('.view-state')).toHaveCount(0)
+})

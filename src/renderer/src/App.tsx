@@ -8,7 +8,7 @@ import { AssistantPanel } from './assistant/AssistantPanel'
 import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
 import { PaneHost } from './shell/PaneHost'
-import { DataSourcesDialog } from './shell/DataSourcesDialog'
+import { DataSourcesDialog, type SourcesStart } from './shell/DataSourcesDialog'
 import { PresetDialog } from './shell/PresetDialog'
 import { PresetSaved } from './shell/PresetSaved'
 import { StaleStoreNotice } from './shell/StaleStoreNotice'
@@ -60,7 +60,10 @@ function AppBody(): ReactElement {
   const [page, setPage] = useState(HOME_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [namingPreset, setNamingPreset] = useState(false)
-  const [managingSources, setManagingSources] = useState(false)
+  // Closed, open on the list, or open to go straight to a picker.
+  const [managingSources, setManagingSources] = useState<SourcesStart | 'list' | undefined>(
+    undefined
+  )
   const [justSaved, setJustSaved] = useState<Preset | undefined>(undefined)
   const engine = useEngine()
   const update = useUpdate()
@@ -158,8 +161,8 @@ function AppBody(): ReactElement {
         // The data sources panel reports what is actually connected, so it
         // needs the same engine state the footer uses.
         engine: engine.status,
-        onManageSources: () => {
-          setManagingSources(true)
+        onManageSources: (start) => {
+          setManagingSources(start ?? 'list')
         },
         onSelectTab: selectTab,
         onOpenIdentifier: openIdentifier,
@@ -258,10 +261,11 @@ function AppBody(): ReactElement {
         />
       )}
 
-      {managingSources && (
+      {managingSources !== undefined && (
         <DataSourcesDialog
+          {...(managingSources === 'list' ? {} : { start: managingSources })}
           onClose={() => {
-            setManagingSources(false)
+            setManagingSources(undefined)
           }}
         />
       )}

@@ -22,6 +22,8 @@ export type MenuAction =
   | 'preset-save'
   | 'manage-sources'
   | 'generate-data'
+  | 'open-data-folder'
+  | 'import-data'
   | `preset-apply-${string}`
   | 'none'
 
@@ -60,13 +62,6 @@ export interface MenuContext {
   theme: 'light' | 'dark' | 'system'
   /** The current page's layout, so View can tick it. */
   layout: string
-  /**
-   * Datasets the engine reports, for the Data menu's import rows (BU-146).
-   *
-   * From the coverage response rather than a list here, so a dataset
-   * py-beacon adds appears without a change in this file.
-   */
-  datasets?: readonly { id: string; label: string }[]
   /**
    * Whether the page being shown has panes at all (BU-135).
    *
@@ -161,35 +156,46 @@ export function buildMenus(context: MenuContext): Menu[] {
       }
     ],
     /*
-     * What this app imports, grouped so the shape says what the groups are
-     * (BU-146): everything at once, then the data itself, then the documents
-     * that describe it, then where it all comes from.
+     * Loading data and where it comes from — Karan's line for this menu, and
+     * why modelling assumptions went to Analysis instead.
      *
-     * The dataset rows are the engine's own list. Import is not wired yet, so
-     * the rows are rendered and visibly inert — the convention this menu bar
-     * has kept since BU-76, because a menu that hides what it cannot do reads
-     * as a menu that was never going to do it.
+     * Grouped so the shape says what the groups are (BU-146): everything at
+     * once, then the imports, then where it all comes from. The document
+     * imports are not wired yet, so they are rendered and visibly inert — the
+     * convention this menu bar has kept since BU-76, because a menu that hides
+     * what it cannot do reads as a menu that was never going to do it.
+     *
+     * One `Import files…` where there was a row per dataset (BU-215). The
+     * engine takes every sheet in one import, so a row per dataset promised a
+     * per-dataset import that does not exist. BU-146's reason for those rows —
+     * that a dataset py-beacon adds should need no renderer change — holds for
+     * the single entry too: the engine reads any sheet its template defines.
+     *
+     * Open and Import go through the sources dialog, because both can be
+     * refused with detail — a folder that is not a store, an import's rows —
+     * and a menu item has nowhere to put it. Generate acts at once, so no
+     * ellipsis: its failures are a job's, which the tray already shows.
      */
     Data: [
       soon('Refresh all'),
-      ...(context.datasets ?? []).map((dataset, index) => ({
-        ...soon(`Import ${dataset.label.toLowerCase()} data`),
-        ...(index === 0 ? { separatorBefore: true } : {})
-      })),
+      {
+        label: 'Import files…',
+        action: 'import-data',
+        enabled: true,
+        separatorBefore: true
+      },
       soon('Import index definition'),
       soon('Import universe'),
-      /*
-       * Where data comes from (BU-215). Karan's placement: the ways to get
-       * data live here, and the footer turns red when there is none, rather
-       * than a screen of their own. No ellipsis — it acts at once, on the
-       * same defaults first run always used, and its progress is a job the
-       * footer and the tray already carry.
-       */
       {
         label: 'Generate synthetic data',
         action: 'generate-data',
         enabled: true,
         separatorBefore: true
+      },
+      {
+        label: 'Open a data folder…',
+        action: 'open-data-folder',
+        enabled: true
       },
       {
         label: 'Manage sources…',

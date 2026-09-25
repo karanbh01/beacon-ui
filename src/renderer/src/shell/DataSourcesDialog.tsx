@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 import { Badge } from '../components/Badge/Badge'
 import { Button } from '../components/Button/Button'
 import { describeSkipped } from '../views/shared/pickers'
@@ -8,6 +8,8 @@ import {
   unreadableReason,
   useActivateStore,
   useGenerateData,
+  useImportFiles,
+  useOpenFolder,
   useRemoveStore,
   useRenameStore,
   useStores,
@@ -16,8 +18,17 @@ import {
 import { ViewError } from '../views/shared/ViewState'
 import './DataSourcesDialog.css'
 
+/** What a Data-menu item opened the dialog to do at once. */
+export type SourcesStart = 'open-folder' | 'import'
+
 export interface DataSourcesDialogProps {
   onClose: () => void
+  /**
+   * Go straight to a picker. The two actions that need one live here rather
+   * than in the menu, because both can be refused with detail — a folder that
+   * is not a store, an import's rows — and a menu item has nowhere to put it.
+   */
+  start?: SourcesStart
 }
 
 interface RowProps {
@@ -132,13 +143,45 @@ function StoreRow(props: RowProps): ReactElement {
  * needs what the main window already has — the engine connection, job
  * progress, and the data state that turns the footer red.
  */
-export function DataSourcesDialog({ onClose }: DataSourcesDialogProps): ReactElement {
+export function DataSourcesDialog({ onClose, start }: DataSourcesDialogProps): ReactElement {
   const stores = useStores()
   const activate = useActivateStore()
   const rename = useRenameStore()
   const remove = useRemoveStore()
   const generate = useGenerateData()
+  const open = useOpenFolder()
+  const importFiles = useImportFiles()
   const [renaming, setRenaming] = useState<string | undefined>(undefined)
+
+  // `mutate` is stable across renders, so the pickers are too, and the
+  // open-at-start effect below can name them without re-running.
+  const openFolder = open.mutate
+  const importPaths = importFiles.mutate
+
+  // A dismissed picker is an answer, not an error: nothing happens.
+  const pickFolder = useCallback((): void => {
+    void window.beacon?.data.chooseStore().then(({ path }) => {
+      if (path !== '') openFolder(path)
+    })
+  }, [openFolder])
+  const pickFiles = useCallback((): void => {
+    void window.beacon?.data.chooseFiles().then(({ paths }) => {
+      if (paths.length > 0) importPaths(paths)
+    })
+  }, [importPaths])
+
+  /*
+   * Opened from the Data menu to do one thing at once. Once: StrictMode runs
+   * effects twice in development, and the ref survives that where a second
+   * native picker opening on top of the first would not be survivable.
+   */
+  const started = useRef(false)
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+    if (start === 'open-folder') pickFolder()
+    if (start === 'import') pickFiles()
+  }, [start, pickFolder, pickFiles])
 
   // Escape closes the dialog — unless a name is being edited, where it
   // cancels the edit instead, as it would in any field.
@@ -172,7 +215,10 @@ export function DataSourcesDialog({ onClose }: DataSourcesDialogProps): ReactEle
       })
   }
 
-  const failed = [activate, rename, remove, generate].find((mutation) => mutation.isError)
+  const failed = [activate, rename, remove, generate, open, importFiles].find(
+    (mutation) => mutation.isError
+  )
+  const busy = open.isPending || importFiles.isPending || generate.isPending
   const skipped = describeSkipped(stores.data)
   const list = stores.data?.stores ?? []
 
@@ -228,14 +274,22 @@ export function DataSourcesDialog({ onClose }: DataSourcesDialogProps): ReactEle
         {failed !== undefined && <ViewError error={failed.error} />}
 
         <div className="sources-footer">
-          <Button
-            onClick={() => {
-              generate.mutate()
-            }}
-            disabled={generate.isPending}
-          >
-            Generate synthetic data
-          </Button>
+          <div className="sources-add">
+            <Button
+              onClick={() => {
+                generate.mutate()
+              }}
+              disabled={busy}
+            >
+              Generate synthetic data
+            </Button>
+            <Button onClick={pickFolder} disabled={busy}>
+              Open a data folder…
+            </Button>
+            <Button onClick={pickFiles} disabled={busy}>
+              Import files…
+            </Button>
+          </div>
           <Button variant="accent" onClick={onClose}>
             Done
           </Button>

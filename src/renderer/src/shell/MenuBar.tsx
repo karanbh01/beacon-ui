@@ -3,11 +3,11 @@ import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
 import { layoutFor, SINGLE_PANE, useChrome } from '../state/chrome'
 import { presetsFor, usePresets } from '../state/presets'
-import { useCoverage } from '../views/shared/queries'
 import { useGenerateData } from '../views/shared/storeQueries'
 import { useWorkspace } from '../state/tabs.store'
 import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
+import type { SourcesStart } from './DataSourcesDialog'
 import { DataSourcesPanel } from './chrome/DataSourcesPanel'
 import { LayoutMenu } from './chrome/LayoutMenu'
 import { MenuDropdown } from './chrome/MenuDropdown'
@@ -27,8 +27,11 @@ export interface MenuBarProps {
    * the sources panel's Manage link. It opened Data Coverage once, as "the
    * nearest true answer" when nothing else existed (BU-145), then a separate
    * settings window built on the model py-beacon 0.1.2 retired.
+   *
+   * `start` sends it straight to a picker, for the Data menu's Open and
+   * Import items.
    */
-  onManageSources?: () => void
+  onManageSources?: (start?: SourcesStart) => void
   onSelectTab?: (id: string) => void
   /** An identifier picked from search: open it on Prices. */
   onOpenIdentifier?: (subject: string) => void
@@ -132,23 +135,7 @@ export function MenuBar({
    * accept the click and do nothing.
    */
   const arrangeable = page !== HOME_PAGE_ID
-  /*
-   * The engine's datasets, for the Data menu's import rows (BU-146).
-   *
-   * The same query Data Coverage reads, so the menu and the pane cannot
-   * disagree about what this engine carries.
-   */
-  const coverage = useCoverage()
-  const datasets = useMemo(
-    () =>
-      (coverage.data?.datasets ?? []).map((entry) => ({
-        id: entry.dataset,
-        label: entry.dataset.replace(/[_-]/g, ' ')
-      })),
-    [coverage.data]
-  )
-
-  const menus = buildMenus({ theme: theme.preference, layout, arrangeable, datasets })
+  const menus = buildMenus({ theme: theme.preference, layout, arrangeable })
 
   /*
    * Dismissal is owned by the bar, not by each menu.
@@ -187,6 +174,8 @@ export function MenuBar({
     else if (action === 'theme-system') theme.setPreference('system')
     else if (action === 'preset-save') onSavePreset?.()
     else if (action === 'manage-sources') onManageSources?.()
+    else if (action === 'open-data-folder') onManageSources?.('open-folder')
+    else if (action === 'import-data') onManageSources?.('import')
     else if (action === 'generate-data') generate.mutate()
     else if (action === 'layout-reset') {
       // Both halves, or it is not a reset: a single pane still holding six

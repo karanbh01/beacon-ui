@@ -83,6 +83,7 @@ const bridge: BeaconBridge = {
     saveSettings: (settings) =>
       ipcRenderer.invoke('data:saveSettings', settings) as Promise<DataSettings>,
     chooseStore: () => ipcRenderer.invoke('data:chooseStore') as Promise<{ path: string }>,
+    chooseFiles: () => ipcRenderer.invoke('data:chooseFiles') as Promise<{ paths: string[] }>,
     openSettingsWindow: () => ipcRenderer.invoke('window:openSettings') as Promise<void>,
     closeSettingsWindow: () => ipcRenderer.invoke('window:closeSettings') as Promise<void>
   }

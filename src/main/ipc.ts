@@ -242,6 +242,23 @@ export function registerIpcHandlers(
     return { path: chosen.canceled ? '' : (chosen.filePaths[0] ?? '') }
   })
 
+  handle('data:chooseFiles', async (event) => {
+    const window = senderWindow(event)
+    const options = {
+      title: 'Import data files',
+      properties: ['openFile' as const, 'multiSelections' as const],
+      // What the engine reads: CSVs named after their sheet (market.csv,
+      // reference.csv, …) or one workbook with those sheets.
+      filters: [{ name: 'Data files', extensions: ['csv', 'xlsx', 'xlsm'] }]
+    }
+    const chosen =
+      window === null
+        ? await dialog.showOpenDialog(options)
+        : await dialog.showOpenDialog(window, options)
+
+    return { paths: chosen.canceled ? [] : chosen.filePaths }
+  })
+
   handle('window:openSettings', (event) => {
     openSettingsWindow(senderWindow(event))
     return undefined
