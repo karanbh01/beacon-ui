@@ -177,7 +177,15 @@ export function useOpenFolder() {
     mutationKey: workKey('opening a data folder'),
     mutationFn: async (path: string) => {
       if (client === null) throw new Error('No engine')
-      const store = await client.stores.register({ kind: 'folder', name: folderName(path), path })
+      // `refresh_from` is the engine's own default, sent because the generated
+      // type cannot tell a defaulted field from a required one. Downloading
+      // from Yahoo Finance is opt-in per store, and nothing here opts in.
+      const store = await client.stores.register({
+        kind: 'folder',
+        name: folderName(path),
+        path,
+        refresh_from: 'source'
+      })
       return client.stores.activate(store.id)
     },
     // Refetched on failure too: a refused activation leaves the folder
@@ -202,6 +210,59 @@ export function useImportFiles() {
     mutationFn: (paths: string[]) => {
       if (client === null) throw new Error('No engine')
       return client.data.importFiles({ paths, name: 'Imported data', activate: true })
+    },
+    onSuccess: refresh
+  })
+}
+
+/**
+ * The store being served, from the engine's list — or undefined when nothing
+ * is, or the list has not arrived.
+ */
+export function useServedStore(): DataStore | undefined {
+  return useStores().data?.stores.find((store) => store.active)
+}
+
+/**
+ * Whether Refresh can be offered for a store, and why not when it cannot
+ * (BN-238, BN-240).
+ *
+ * The engine names the refresh a store supports, or null for none: imported
+ * files are imported again rather than refreshed, and synthetic data made
+ * before py-beacon 0.1.2 cannot be extended. A re-read is the one kind that
+ * also depends on the moment — a store not being served is read fresh when
+ * it is used, so re-reading it would change nothing, and the engine refuses.
+ */
+export function refreshOf(store: DataStore): { available: boolean; reason?: string } {
+  if (store.refresh == null) return { available: false, reason: whyNoRefresh(store) }
+  if (store.refresh === 'reread' && !store.active) {
+    return { available: false, reason: 'it is read afresh when it is used' }
+  }
+  return { available: true }
+}
+
+/** The engine's reasons, in the dialog's words. */
+function whyNoRefresh(store: DataStore): string {
+  if (store.source === 'imported') return 'imported files are refreshed by importing them again'
+  if (store.source === 'synthetic') return 'made before py-beacon 0.1.2 — generate new data instead'
+  return 'it cannot be read'
+}
+
+/**
+ * Refresh a store: a `refresh:{id}` job, answered 202.
+ *
+ * If the store is being served, the engine serves the refreshed data under a
+ * new `data_version`, and BU-216 invalidates what was derived from the old.
+ */
+export function useRefreshStore() {
+  const client = useBeacon()
+  const refresh = useRefreshStores()
+
+  return useMutation({
+    mutationKey: workKey('refreshing data'),
+    mutationFn: (id: string) => {
+      if (client === null) throw new Error('No engine')
+      return client.stores.refresh(id)
     },
     onSuccess: refresh
   })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { removalOf, storeKind, unreadableReason, type DataStore } from './storeQueries'
+import { refreshOf, removalOf, storeKind, unreadableReason, type DataStore } from './storeQueries'
 
 /**
  * What a reader needs to know about a data store before acting on it
@@ -20,6 +20,8 @@ const store = (over: Partial<DataStore>): DataStore => ({
   last_loaded_at: null,
   size_bytes: 1,
   connection: null,
+  refresh_from: 'source',
+  refresh: 'reread',
   ...over
 })
 
@@ -86,5 +88,30 @@ describe('why a store cannot be read', () => {
     })
     expect(unreadableReason(database)).toContain('PRICES_PASSWORD is not set')
     expect(unreadableReason(database)).not.toContain('moved')
+  })
+})
+
+describe('when a store can be refreshed', () => {
+  it('follows the engine: a store with no refresh has none to offer', () => {
+    // Imported files, and synthetic data made before py-beacon 0.1.2.
+    const imported = refreshOf(store({ source: 'imported', managed: true, refresh: null }))
+    expect(imported.available).toBe(false)
+    expect(imported.reason).toContain('importing them again')
+  })
+
+  it('re-reads only the store being served', () => {
+    /*
+     * A store not being served is read fresh when it is used, so the engine
+     * refuses to re-read it. Offering the button anyway would be a 409 after
+     * the click.
+     */
+    expect(refreshOf(store({ refresh: 'reread', active: false })).available).toBe(false)
+    expect(refreshOf(store({ refresh: 'reread', active: true })).available).toBe(true)
+  })
+
+  it('extends synthetic data whether or not it is served', () => {
+    // Extending writes new days into the store itself, served or not.
+    const synthetic = store({ source: 'synthetic', managed: true, refresh: 'extend' })
+    expect(refreshOf(synthetic).available).toBe(true)
   })
 })

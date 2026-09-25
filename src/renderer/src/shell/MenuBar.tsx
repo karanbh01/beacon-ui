@@ -3,7 +3,12 @@ import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
 import { layoutFor, SINGLE_PANE, useChrome } from '../state/chrome'
 import { presetsFor, usePresets } from '../state/presets'
-import { useGenerateData } from '../views/shared/storeQueries'
+import {
+  refreshOf,
+  useGenerateData,
+  useRefreshStore,
+  useServedStore
+} from '../views/shared/storeQueries'
 import { useWorkspace } from '../state/tabs.store'
 import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
@@ -135,7 +140,9 @@ export function MenuBar({
    * accept the click and do nothing.
    */
   const arrangeable = page !== HOME_PAGE_ID
-  const menus = buildMenus({ theme: theme.preference, layout, arrangeable })
+  const served = useServedStore()
+  const refreshable = served !== undefined && refreshOf(served).available
+  const menus = buildMenus({ theme: theme.preference, layout, arrangeable, refreshable })
 
   /*
    * Dismissal is owned by the bar, not by each menu.
@@ -167,6 +174,7 @@ export function MenuBar({
   }, [menu])
 
   const generate = useGenerateData()
+  const refreshStore = useRefreshStore()
 
   const runMenu = (action: MenuAction): void => {
     if (action === 'theme-light') theme.setPreference('light')
@@ -177,6 +185,7 @@ export function MenuBar({
     else if (action === 'open-data-folder') onManageSources?.('open-folder')
     else if (action === 'import-data') onManageSources?.('import')
     else if (action === 'generate-data') generate.mutate()
+    else if (action === 'refresh-data' && served !== undefined) refreshStore.mutate(served.id)
     else if (action === 'layout-reset') {
       // Both halves, or it is not a reset: a single pane still holding six
       // tabs is the arrangement you were trying to get out of.

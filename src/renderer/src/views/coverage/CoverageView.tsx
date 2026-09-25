@@ -6,7 +6,8 @@ import { Select } from '../../components/Select/Select'
 import { Stat, StatStrip } from '../../components/Stat/Stat'
 import { Table, type Column } from '../../components/Table/Table'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
-import { useCoverage, useSyncDataset } from '../shared/queries'
+import { useCoverage } from '../shared/queries'
+import { refreshOf, useRefreshStore, useServedStore } from '../shared/storeQueries'
 import {
   datasetLabel,
   datasetOptions,
@@ -43,11 +44,18 @@ const PILL: Record<CoverageStatus, 'done' | 'running' | 'failed' | 'info'> = {
  * Staleness is the engine's call now too. This file used to hold a threshold
  * per dataset because the response carried no frequency; `stale_after_seconds`
  * replaced that guess.
+ *
+ * Refresh brings the served store up to date from its own source (BU-217).
+ * It replaced Force sync and a Sync button per dataset: the engine made sync
+ * a refresh of the whole served store, whatever dataset was named, so a
+ * per-dataset button claimed a choice that no longer existed.
  */
 export function CoverageView(): ReactElement {
   const [dataset, setDataset] = useState('')
   const query = useCoverage()
-  const sync = useSyncDataset()
+  const served = useServedStore()
+  const refresh = useRefreshStore()
+  const offer = served === undefined ? undefined : refreshOf(served)
 
   // Memoised because `?? []` is a fresh array on every render, which would
   // make every downstream useMemo recompute for nothing.
@@ -56,26 +64,21 @@ export function CoverageView(): ReactElement {
   const summary = useMemo(() => summarise(rows, query.data), [rows, query.data])
   const shown = useMemo(() => filterByDataset(rows, dataset), [rows, dataset])
 
-  const columns = useMemo(() => buildColumns(sync.mutate, sync.isPending), [sync])
-
   return (
     <div className="coverage-view">
       <PaneHeader
         kind="fields"
         controls={
           <Button
-              onClick={() => {
-                // Every configured dataset, one job each. py-beacon has no
-                // "sync everything" endpoint, and firing them together is
-                // what the button claims to do.
-                for (const row of rows.filter((candidate) => candidate.configured)) {
-                  sync.mutate(row.dataset)
-                }
-              }}
-              disabled={rows.length === 0 || sync.isPending}
-            >
-              Force sync
-            </Button>
+            onClick={() => {
+              if (served !== undefined) refresh.mutate(served.id)
+            }}
+            disabled={offer?.available !== true || refresh.isPending}
+            // Why not, when not: nothing served, or a store with no refresh.
+            title={served === undefined ? 'No data is being served' : offer?.reason}
+          >
+            Refresh
+          </Button>
         }
       >
         <Select
@@ -88,10 +91,11 @@ export function CoverageView(): ReactElement {
 
       {query.isPending && <ViewLoading what="coverage" />}
       {query.isError && <ViewError error={query.error} />}
+      {refresh.isError && <ViewError error={refresh.error} />}
 
       {query.isSuccess && (
         <>
-      <StatStrip>
+          <StatStrip>
             <Stat label="DATASETS" value={String(summary.datasets)} />
             <Stat
               label="CONFIGURED"
@@ -112,13 +116,13 @@ export function CoverageView(): ReactElement {
           {shown.length === 0 && <ViewEmpty>This engine reports no datasets.</ViewEmpty>}
 
           {shown.length > 0 && (
-            <Table columns={columns} rows={shown} getRowId={(row) => row.dataset} />
+            <Table columns={COLUMNS} rows={shown} getRowId={(row) => row.dataset} />
           )}
 
           <p className="coverage-footnote type-11">
-            Coverage refreshes on sync · stale = older than this dataset&rsquo;s own refresh
-            interval, which the engine publishes · assets covered counts each identifier once
-            across datasets · sync runs as a job; watch the tray
+            Stale = older than this dataset&rsquo;s own refresh interval, which the engine publishes
+            · assets covered counts each identifier once across datasets · refresh updates the
+            served store from its own source and runs as a job; watch the tray
           </p>
         </>
       )}
@@ -126,62 +130,42 @@ export function CoverageView(): ReactElement {
   )
 }
 
-function buildColumns(
-  onSync: (dataset: string) => void,
-  syncing: boolean
-): Column<DatasetCoverage>[] {
-  return [
-    {
-      key: 'dataset',
-      header: 'Dataset',
-      width: 190,
-      emphasis: true,
-      render: (row) => datasetLabel(row.dataset)
-    },
-    { key: 'source', header: 'Source', width: 130, render: (row) => sourceLabel(row.source) },
-    {
-      key: 'frequency',
-      header: 'Frequency',
-      width: 100,
-      render: (row) => frequencyLabel(row.frequency)
-    },
-    {
-      key: 'identifiers',
-      header: 'Identifiers',
-      width: 110,
-      align: 'right',
-      render: (row) => row.identifiers.toLocaleString('en-US')
-    },
-    { key: 'span', header: 'History', width: 140, render: describeSpan },
-    {
-      key: 'age',
-      header: 'Last Updated',
-      width: 120,
-      render: (row) => describeAge(row.cache_age)
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      width: 110,
-      render: (row) => {
-        const status = statusOf(row)
-        return <StatusPill status={PILL[status]}>{statusLabel(status)}</StatusPill>
-      }
-    },
-    {
-      key: 'sync',
-      header: '',
-      width: 90,
-      render: (row) => (
-        <Button
-          onClick={() => {
-            onSync(row.dataset)
-          }}
-          disabled={syncing || !row.configured}
-        >
-          Sync
-        </Button>
-      )
+const COLUMNS: Column<DatasetCoverage>[] = [
+  {
+    key: 'dataset',
+    header: 'Dataset',
+    width: 190,
+    emphasis: true,
+    render: (row) => datasetLabel(row.dataset)
+  },
+  { key: 'source', header: 'Source', width: 130, render: (row) => sourceLabel(row.source) },
+  {
+    key: 'frequency',
+    header: 'Frequency',
+    width: 100,
+    render: (row) => frequencyLabel(row.frequency)
+  },
+  {
+    key: 'identifiers',
+    header: 'Identifiers',
+    width: 110,
+    align: 'right',
+    render: (row) => row.identifiers.toLocaleString('en-US')
+  },
+  { key: 'span', header: 'History', width: 140, render: describeSpan },
+  {
+    key: 'age',
+    header: 'Last Updated',
+    width: 120,
+    render: (row) => describeAge(row.cache_age)
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    width: 110,
+    render: (row) => {
+      const status = statusOf(row)
+      return <StatusPill status={PILL[status]}>{statusLabel(status)}</StatusPill>
     }
-  ]
-}
+  }
+]

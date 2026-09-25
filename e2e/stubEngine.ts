@@ -2394,9 +2394,21 @@ function resetStores(): void {
   activeStore = 'synthetic'
 }
 
+/**
+ * The refresh the engine would offer (BN-238, BN-240): synthetic data is
+ * extended, imported files have none, and anything else is read again.
+ */
+function refreshFor(store: StubStore): 'extend' | 'reread' | null {
+  if (store.source === 'synthetic') return 'extend'
+  if (store.source === 'imported') return null
+  return 'reread'
+}
+
 function storeRow(store: StubStore): unknown {
   return {
     ...store,
+    refresh_from: 'source',
+    refresh: refreshFor(store),
     active: dataLoaded && store.id === activeStore,
     created_at: '2026-09-25T09:00:00Z',
     last_loaded_at: store.id === activeStore ? '2026-09-25T09:00:00Z' : null,
@@ -2472,6 +2484,43 @@ function importRefusal(): Refusal {
       total: 2
     }
   )
+}
+
+/**
+ * Refreshing a store (BN-238, BN-240): a `refresh:{id}` job, answered 202.
+ *
+ * Refused as the engine refuses: imported files have nothing to refresh, and
+ * a store not being served cannot be re-read, since it is read fresh when it
+ * is used. A served store serves the refreshed data under a new token.
+ */
+function refreshStore(store: StubStore, response: ServerResponse): void {
+  const action = refreshFor(store)
+  const served = dataLoaded && activeStore === store.id
+  const refusal =
+    action === null
+      ? `'${store.name}' holds imported files, which have nothing to refresh. Import them again instead.`
+      : action === 'reread' && !served
+        ? `'${store.name}' is not being served, so there is nothing to re-read: it is read fresh when it is used.`
+        : undefined
+  if (refusal !== undefined) {
+    const conflict = refuse(409, 'CONFLICT', refusal)
+    response.writeHead(conflict.status).end(JSON.stringify(conflict.payload))
+    return
+  }
+
+  const jobId = `refresh:${store.id}`
+  const job = {
+    job_id: jobId,
+    kind: 'refresh',
+    status: 'succeeded',
+    progress: 1,
+    message: 'done',
+    result: { store_id: store.id, name: store.name, action, end: SCHEDULE_TODAY, served },
+    error: null
+  }
+  jobs.set(jobId, job)
+  if (served) serveStore(store.id)
+  response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))
 }
 
 /** Serve a different store, as a finished load job would leave it. */
@@ -2903,7 +2952,7 @@ export function startStubEngine(): Promise<StubEngine> {
      * `managed` is what a real engine would decide that by, and it is what
      * the dialog's confirm has to read.
      */
-    const storeMatch = /^\/data\/stores\/([^/]+)(\/activate)?$/.exec(url.pathname)
+    const storeMatch = /^\/data\/stores\/([^/]+)(\/activate|\/refresh)?$/.exec(url.pathname)
     if (storeMatch !== null) {
       const id = decodeURIComponent(storeMatch[1] ?? '')
       const found = stores.find((store) => store.id === id)
@@ -2928,6 +2977,11 @@ export function startStubEngine(): Promise<StubEngine> {
         jobs.set(jobId, job)
         serveStore(id)
         response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))
+        return
+      }
+
+      if (method === 'POST' && storeMatch[2] === '/refresh') {
+        refreshStore(found, response)
         return
       }
 

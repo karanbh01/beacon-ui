@@ -326,26 +326,6 @@ export function useWatchlists() {
 }
 
 /**
- * Start a sync and stop.
- *
- * The endpoint answers 202 with a job, so there is nothing to await: progress
- * arrives on the event feed and BU-21's job store renders it. Invalidating
- * coverage here would only refetch the numbers the sync has not changed yet —
- * the freshness event that follows the job is what makes them refresh, and it
- * already does that for every view at once.
- */
-export function useSyncDataset() {
-  const client = useBeacon()
-
-  return useMutation({
-    mutationFn: (dataset: string) => {
-      if (client === null) throw new Error('No engine')
-      return client.data.sync(dataset)
-    }
-  })
-}
-
-/**
  * Create, rename or re-order a watchlist.
  *
  * Watchlists are the one thing in Data Explorer the user owns, so the list

@@ -1691,6 +1691,33 @@
             "title": "Readable",
             "type": "boolean"
           },
+          "refresh": {
+            "anyOf": [
+              {
+                "enum": [
+                  "extend",
+                  "reread",
+                  "download"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What `POST /data/stores/{id}/refresh` would do: 'extend' synthetic data to today, 'reread' a folder or database, or 'download' from Yahoo Finance. Null when there is nothing to refresh: imported files (import again instead), synthetic data generated before py-beacon 0.1.2, or a store that cannot be read.",
+            "title": "Refresh"
+          },
+          "refresh_from": {
+            "default": "source",
+            "description": "Where a refresh takes new data from. 'source' (the default) uses the store's own source: synthetic data is extended to today, a folder or database is read again. 'yfinance' downloads new prices for the store's instruments from Yahoo Finance and saves them into its folder; it needs the `data` extra, and only a folder store that is not synthetic data can choose it.",
+            "enum": [
+              "source",
+              "yfinance"
+            ],
+            "title": "Refresh From",
+            "type": "string"
+          },
           "size_bytes": {
             "anyOf": [
               {
@@ -1813,6 +1840,16 @@
             ],
             "description": "For a folder: its absolute path on the machine the engine runs on.",
             "title": "Path"
+          },
+          "refresh_from": {
+            "default": "source",
+            "description": "Where a refresh takes new data from. 'source' (the default) uses the store's own source: synthetic data is extended to today, a folder or database is read again. 'yfinance' downloads new prices for the store's instruments from Yahoo Finance and saves them into its folder; it needs the `data` extra, and only a folder store that is not synthetic data can choose it.",
+            "enum": [
+              "source",
+              "yfinance"
+            ],
+            "title": "Refresh From",
+            "type": "string"
           }
         },
         "required": [
@@ -1822,19 +1859,39 @@
         "type": "object"
       },
       "DataStoreUpdate": {
-        "description": "Body of `PATCH /data/stores/{store_id}`.",
+        "description": "Body of `PATCH /data/stores/{store_id}`. Omitted fields are unchanged.",
         "properties": {
           "name": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "description": "The new display name. The id does not change.",
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
+            "title": "Name"
+          },
+          "refresh_from": {
+            "anyOf": [
+              {
+                "enum": [
+                  "source",
+                  "yfinance"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where a refresh takes new data from. 'source' (the default) uses the store's own source: synthetic data is extended to today, a folder or database is read again. 'yfinance' downloads new prices for the store's instruments from Yahoo Finance and saves them into its folder; it needs the `data` extra, and only a folder store that is not synthetic data can choose it.",
+            "title": "Refresh From"
           }
         },
-        "required": [
-          "name"
-        ],
         "title": "DataStoreUpdate",
         "type": "object"
       },
@@ -5053,6 +5110,149 @@
         "title": "ReferenceResponse",
         "type": "object"
       },
+      "RefreshJobStatus": {
+        "description": "A `refresh:{store_id}` job. `result` says what changed.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one."
+          },
+          "job_id": {
+            "description": "The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What the job is, e.g. 'backtest'.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "description": "Latest progress message.",
+            "title": "Message",
+            "type": "string"
+          },
+          "progress": {
+            "description": "Fraction complete, 0.0 to 1.0.",
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RefreshResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only once the job has succeeded; null otherwise."
+          },
+          "status": {
+            "description": "pending, running, succeeded, failed or cancelled. The last three are terminal.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "progress"
+        ],
+        "title": "RefreshJobStatus",
+        "type": "object"
+      },
+      "RefreshRequest": {
+        "description": "Body of `POST /data/stores/{store_id}/refresh`. Optional.",
+        "properties": {
+          "end": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For synthetic data, the date to extend to, YYYY-MM-DD. Defaults to today. Ignored by other stores.",
+            "title": "End"
+          }
+        },
+        "title": "RefreshRequest",
+        "type": "object"
+      },
+      "RefreshResult": {
+        "description": "Result payload of a completed `refresh:{store_id}` job (BN-240).",
+        "properties": {
+          "action": {
+            "description": "What the refresh did: extended synthetic data, read a folder or database again, or downloaded from Yahoo Finance.",
+            "enum": [
+              "extend",
+              "reread",
+              "download"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The last date the store holds now, ISO 8601, when known.",
+            "title": "End"
+          },
+          "name": {
+            "description": "Its display name.",
+            "title": "Name",
+            "type": "string"
+          },
+          "rows_added": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a download, the market rows added. Null otherwise.",
+            "title": "Rows Added"
+          },
+          "served": {
+            "description": "Whether the engine now serves the refreshed data. True when the store was the one being served.",
+            "title": "Served",
+            "type": "boolean"
+          },
+          "store_id": {
+            "description": "The store refreshed.",
+            "title": "Store Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "store_id",
+          "name",
+          "action",
+          "served"
+        ],
+        "title": "RefreshResult",
+        "type": "object"
+      },
       "RelativeMetricsPayload": {
         "description": "Performance against a benchmark, over their shared window.",
         "properties": {
@@ -6082,124 +6282,8 @@
         "title": "SkippedCauses",
         "type": "object"
       },
-      "SyncJobResult": {
-        "description": "Result payload of a completed data sync.\n\nThe narrowest honest description of what the sync job returns (BN-172):\n`IngestResult.summary()` plus the two fields the job adds. Deliberately a\ncount-and-identifier summary rather than the data — the rows went into the\nfetcher, and a client reads them back through the data endpoints.",
-        "properties": {
-          "dataset": {
-            "description": "Which dataset was synced: market or reference.",
-            "title": "Dataset",
-            "type": "string"
-          },
-          "errors": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Identifier to the reason it did not come back.",
-            "title": "Errors",
-            "type": "object"
-          },
-          "failed": {
-            "description": "Identifiers that did not.",
-            "title": "Failed",
-            "type": "integer"
-          },
-          "fetched": {
-            "description": "Identifiers that returned data.",
-            "title": "Fetched",
-            "type": "integer"
-          },
-          "identifiers": {
-            "description": "The identifiers that succeeded.",
-            "items": {
-              "type": "string"
-            },
-            "title": "Identifiers",
-            "type": "array"
-          },
-          "rows": {
-            "description": "Market-data rows fetched.",
-            "title": "Rows",
-            "type": "integer"
-          },
-          "rows_added": {
-            "description": "Rows actually merged in, which is fewer than `rows` whenever the fetch overlapped data already held.",
-            "title": "Rows Added",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "dataset",
-          "fetched",
-          "failed",
-          "rows",
-          "rows_added"
-        ],
-        "title": "SyncJobResult",
-        "type": "object"
-      },
-      "SyncJobStatus": {
-        "description": "A `sync:{dataset}` job. `result` summarises what was fetched.",
-        "properties": {
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one."
-          },
-          "job_id": {
-            "description": "The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.",
-            "title": "Job Id",
-            "type": "string"
-          },
-          "kind": {
-            "description": "What the job is, e.g. 'backtest'.",
-            "title": "Kind",
-            "type": "string"
-          },
-          "message": {
-            "default": "",
-            "description": "Latest progress message.",
-            "title": "Message",
-            "type": "string"
-          },
-          "progress": {
-            "description": "Fraction complete, 0.0 to 1.0.",
-            "title": "Progress",
-            "type": "number"
-          },
-          "result": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SyncJobResult"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Present only once the job has succeeded; null otherwise."
-          },
-          "status": {
-            "description": "pending, running, succeeded, failed or cancelled. The last three are terminal.",
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "job_id",
-          "kind",
-          "status",
-          "progress"
-        ],
-        "title": "SyncJobStatus",
-        "type": "object"
-      },
       "SyncRequest": {
-        "description": "Body of `POST /data/coverage/{dataset}/sync`.",
+        "description": "Body of `POST /data/coverage/{dataset}/sync`.\n\nDeprecated with the endpoint. Its fields are accepted and ignored: a sync\nnow refreshes the whole active store from its own source.",
         "properties": {
           "end": {
             "anyOf": [
@@ -8734,6 +8818,8 @@
     },
     "/data/coverage/{dataset}/sync": {
       "post": {
+        "deprecated": true,
+        "description": "Refresh the store being served. Deprecated: use\n`POST /data/stores/{store_id}/refresh`.\n\nKept so existing clients work. It refreshes the whole active store\nfrom its own source, whichever dataset is named; the body's fields\nare ignored. It no longer downloads from Yahoo Finance unless the\nstore is set to refresh from it.",
         "operationId": "sync_data_coverage__dataset__sync_post",
         "parameters": [
           {
@@ -8768,7 +8854,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SyncJobStatus"
+                  "$ref": "#/components/schemas/RefreshJobStatus"
                 }
               }
             },
@@ -10904,7 +10990,8 @@
         ]
       },
       "patch": {
-        "operationId": "rename_store_data_stores__store_id__patch",
+        "description": "Rename a store, or change where a refresh takes its data from.",
+        "operationId": "update_store_data_stores__store_id__patch",
         "parameters": [
           {
             "in": "path",
@@ -11020,7 +11107,7 @@
             "description": "A required optional dependency is absent."
           }
         },
-        "summary": "Rename Store",
+        "summary": "Update Store",
         "tags": [
           "data stores"
         ]
@@ -11145,6 +11232,148 @@
           }
         },
         "summary": "Activate Store",
+        "tags": [
+          "data stores"
+        ]
+      }
+    },
+    "/data/stores/{store_id}/refresh": {
+      "post": {
+        "description": "Bring a store up to date from its own source.\n\nRefused with 409 when the store has nothing to refresh (imported\nfiles, or synthetic data too old to extend), when a folder or\ndatabase that is not being served is asked to re-read (it is read\nafresh whenever it is activated), or when the store is already\nrefreshing or loading.",
+        "operationId": "refresh_store_data_stores__store_id__refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "store_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Store Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshJobStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all — a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The engine's state refuses the request: a store is already loading, the store is the one being served, or the folder is already registered."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Refresh Store",
         "tags": [
           "data stores"
         ]
@@ -14071,13 +14300,13 @@
                       "$ref": "#/components/schemas/RiskModelJobStatus"
                     },
                     {
-                      "$ref": "#/components/schemas/SyncJobStatus"
-                    },
-                    {
                       "$ref": "#/components/schemas/LoadJobStatus"
                     },
                     {
                       "$ref": "#/components/schemas/GenerateJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RefreshJobStatus"
                     },
                     {
                       "$ref": "#/components/schemas/JobStatus"
@@ -14209,13 +14438,13 @@
                       "$ref": "#/components/schemas/RiskModelJobStatus"
                     },
                     {
-                      "$ref": "#/components/schemas/SyncJobStatus"
-                    },
-                    {
                       "$ref": "#/components/schemas/LoadJobStatus"
                     },
                     {
                       "$ref": "#/components/schemas/GenerateJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RefreshJobStatus"
                     },
                     {
                       "$ref": "#/components/schemas/JobStatus"

@@ -22,6 +22,7 @@ export type MenuAction =
   | 'preset-save'
   | 'manage-sources'
   | 'generate-data'
+  | 'refresh-data'
   | 'open-data-folder'
   | 'import-data'
   | `preset-apply-${string}`
@@ -71,6 +72,12 @@ export interface MenuContext {
    * hidden, which is this menu bar's convention for anything that cannot act.
    */
   arrangeable?: boolean
+  /**
+   * Whether the store being served can be refreshed (BU-217). False with
+   * nothing served, and for a store the engine has no refresh for — imported
+   * files, or synthetic data older than py-beacon 0.1.2.
+   */
+  refreshable?: boolean
 }
 
 /**
@@ -177,7 +184,13 @@ export function buildMenus(context: MenuContext): Menu[] {
      * ellipsis: its failures are a job's, which the tray already shows.
      */
     Data: [
-      soon('Refresh all'),
+      // The served store, from its own source (BU-217). "Refresh all" when
+      // it was a sync per dataset; the engine refreshes the store whole.
+      {
+        label: 'Refresh data',
+        action: 'refresh-data',
+        enabled: context.refreshable ?? false
+      },
       {
         label: 'Import files…',
         action: 'import-data',

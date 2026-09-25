@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactElement } from 'react'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -34,7 +34,8 @@ interface Responses {
   prices?: Reply
   coverage?: Reply
   watchlists?: Reply
-  sync?: (dataset: string) => unknown
+  stores?: Reply
+  refresh?: (id: string) => unknown
   putWatchlist?: (id: string, body: unknown) => unknown
 }
 
@@ -65,9 +66,12 @@ function mount(view: ReactElement, responses: Responses): HTMLElement {
       prices: (id: string) => resolve(responses.prices, id),
       coverage: () => resolve(responses.coverage),
       watchlists: () => resolve(responses.watchlists),
-      sync: (dataset: string) => Promise.resolve(responses.sync?.(dataset)),
       putWatchlist: (id: string, body: unknown) =>
         Promise.resolve(responses.putWatchlist?.(id, body))
+    },
+    stores: {
+      list: () => resolve(responses.stores ?? { stores: [] }),
+      refresh: (id: string) => Promise.resolve(responses.refresh?.(id))
     }
   } as unknown as BeaconClient
 
@@ -268,8 +272,7 @@ describe('CoverageView', () => {
       '12,847',
       '1962 → 2026',
       '2h ago',
-      'OK',
-      'Sync'
+      'OK'
     ])
   })
 
@@ -291,26 +294,49 @@ describe('CoverageView', () => {
     expect(container.querySelector('.stat-strip')).not.toBeNull()
   })
 
-  it('syncs one dataset per job, skipping the ones with no source', async () => {
-    const synced: string[] = []
-    mount(<CoverageView />, {
+  const served = (refresh: string | null) => ({
+    stores: [
+      { id: 'other', name: 'Other', active: false, refresh: 'extend', source: 'synthetic' },
+      { id: 'mine', name: 'Mine', active: true, refresh, source: 'local' }
+    ]
+  })
+
+  it('refreshes the store being served, as one job', async () => {
+    /*
+     * BU-217. It fired one sync per dataset, and a Sync button sat on every
+     * row; the engine made sync a refresh of the whole served store, so the
+     * per-dataset choice those offered no longer existed.
+     */
+    const refreshed: string[] = []
+    const container = mount(<CoverageView />, {
       coverage: COVERAGE,
-      sync: (dataset) => {
-        synced.push(dataset)
-        return { job_id: 'j1', kind: 'sync', status: 'pending', progress: 0, message: '' }
+      stores: served('reread'),
+      refresh: (id) => {
+        refreshed.push(id)
+        return {
+          job_id: 'refresh:mine',
+          kind: 'refresh',
+          status: 'pending',
+          progress: 0,
+          message: ''
+        }
       }
     })
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Force sync' }))
-    expect(synced).toEqual(['market'])
+    const button = await screen.findByRole('button', { name: 'Refresh' })
+    await waitFor(() => {
+      expect(button).toBeEnabled()
+    })
+    await userEvent.click(button)
+    expect(refreshed).toEqual(['mine'])
+    expect(container.querySelectorAll('.tbl-row button')).toHaveLength(0)
   })
 
-  it('will not offer to sync a dataset the engine has no source for', async () => {
-    const container = mount(<CoverageView />, { coverage: COVERAGE })
+  it('does not offer a refresh the served store does not have', async () => {
+    mount(<CoverageView />, { coverage: COVERAGE, stores: served(null) })
 
     await screen.findByText('Not loaded')
-    const buttons = [...container.querySelectorAll('.tbl-row button')]
-    expect(buttons.map((button) => (button as HTMLButtonElement).disabled)).toEqual([false, true])
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeDisabled()
   })
 })
 

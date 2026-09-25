@@ -3,6 +3,7 @@ import { Badge } from '../components/Badge/Badge'
 import { Button } from '../components/Button/Button'
 import { describeSkipped } from '../views/shared/pickers'
 import {
+  refreshOf,
   removalOf,
   storeKind,
   unreadableReason,
@@ -10,6 +11,7 @@ import {
   useGenerateData,
   useImportFiles,
   useOpenFolder,
+  useRefreshStore,
   useRemoveStore,
   useRenameStore,
   useStores,
@@ -38,6 +40,7 @@ interface RowProps {
   onRename: (name: string) => void
   onCancelRename: () => void
   onUse: () => void
+  onRefresh: () => void
   onRemove: () => void
 }
 
@@ -93,6 +96,7 @@ function NameField({
  */
 function StoreRow(props: RowProps): ReactElement {
   const { store } = props
+  const refresh = refreshOf(store)
 
   return (
     <li className={store.active ? 'sources-row is-active' : 'sources-row'}>
@@ -116,6 +120,15 @@ function StoreRow(props: RowProps): ReactElement {
       <div className="sources-actions">
         <Button onClick={props.onUse} disabled={store.active || !store.readable}>
           Use
+        </Button>
+        {/* Offered where the engine has a refresh for the store (BU-217), and
+            disabled with the reason where the moment is wrong for one. */}
+        <Button
+          onClick={props.onRefresh}
+          disabled={!refresh.available}
+          {...(refresh.reason === undefined ? {} : { title: `Cannot refresh: ${refresh.reason}` })}
+        >
+          Refresh
         </Button>
         <Button onClick={props.onStartRename} disabled={props.renaming}>
           Rename
@@ -151,6 +164,7 @@ export function DataSourcesDialog({ onClose, start }: DataSourcesDialogProps): R
   const generate = useGenerateData()
   const open = useOpenFolder()
   const importFiles = useImportFiles()
+  const refresh = useRefreshStore()
   const [renaming, setRenaming] = useState<string | undefined>(undefined)
 
   // `mutate` is stable across renders, so the pickers are too, and the
@@ -215,7 +229,7 @@ export function DataSourcesDialog({ onClose, start }: DataSourcesDialogProps): R
       })
   }
 
-  const failed = [activate, rename, remove, generate, open, importFiles].find(
+  const failed = [activate, rename, remove, generate, open, importFiles, refresh].find(
     (mutation) => mutation.isError
   )
   const busy = open.isPending || importFiles.isPending || generate.isPending
@@ -261,6 +275,9 @@ export function DataSourcesDialog({ onClose, start }: DataSourcesDialogProps): R
               }}
               onUse={() => {
                 activate.mutate(store.id)
+              }}
+              onRefresh={() => {
+                refresh.mutate(store.id)
               }}
               onRemove={() => {
                 confirmRemove(store)

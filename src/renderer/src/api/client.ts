@@ -255,11 +255,6 @@ export interface BeaconClient {
       body: BodyOf<'put', '/data/watchlists/{watchlist_id}'>
     ) => Promise<WriteResponse<'put', '/data/watchlists/{watchlist_id}'>>
     deleteWatchlist: (id: string) => Promise<void>
-    /** Accepted, not done: returns the job to follow on the event feed. */
-    sync: (
-      dataset: string,
-      body?: BodyOf<'post', '/data/coverage/{dataset}/sync'>
-    ) => Promise<WriteResponse<'post', '/data/coverage/{dataset}/sync'>>
   }
   jobs: {
     /**
@@ -302,6 +297,14 @@ export interface BeaconClient {
      * store being served refuses with 409.
      */
     remove: (id: string) => Promise<WriteResponse<'delete', '/data/stores/{store_id}'>>
+    /**
+     * Bring a store up to date from its own source (BN-238, BN-240): extend
+     * synthetic data, re-read a folder or database, or download. A
+     * `refresh:{id}` job, answered 202. It replaces the per-dataset sync,
+     * which the engine deprecated when it became a refresh of the whole
+     * served store.
+     */
+    refresh: (id: string) => Promise<WriteResponse<'post', '/data/stores/{store_id}/refresh'>>
   }
   indices: {
     list: (signal?: AbortSignal) => Promise<ResponseOf<'/indices'>>
@@ -549,9 +552,7 @@ export function createClient(options: ClientOptions): BeaconClient {
       putWatchlist: (id, body) =>
         write('put', '/data/watchlists/{watchlist_id}', { params: { watchlist_id: id }, body }),
       deleteWatchlist: (id) =>
-        write('delete', '/data/watchlists/{watchlist_id}', { params: { watchlist_id: id } }),
-      sync: (dataset, body) =>
-        write('post', '/data/coverage/{dataset}/sync', { params: { dataset }, body: body ?? {} })
+        write('delete', '/data/watchlists/{watchlist_id}', { params: { watchlist_id: id } })
     },
     jobs: {
       get: (jobId, signal) =>
@@ -567,7 +568,11 @@ export function createClient(options: ClientOptions): BeaconClient {
         write('post', '/data/stores/{store_id}/activate', { params: { store_id: id } }),
       rename: (id, body) =>
         write('patch', '/data/stores/{store_id}', { params: { store_id: id }, body }),
-      remove: (id) => write('delete', '/data/stores/{store_id}', { params: { store_id: id } })
+      remove: (id) => write('delete', '/data/stores/{store_id}', { params: { store_id: id } }),
+      // No body: `end` only moves synthetic data, and today is what a reader
+      // pressing Refresh means.
+      refresh: (id) =>
+        write('post', '/data/stores/{store_id}/refresh', { params: { store_id: id }, body: null })
     },
     indices: {
       list: (signal) => get('/indices', { ...(signal === undefined ? {} : { signal }) }),

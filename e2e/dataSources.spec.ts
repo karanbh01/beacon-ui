@@ -224,3 +224,67 @@ test('a dismissed picker leaves everything as it was', async ({ app, window }) =
   await expect(dialog.locator('.sources-row')).toHaveCount(2)
   await expect(dialog.locator('.view-state')).toHaveCount(0)
 })
+
+/*
+ * Refreshing a store from its own source (BU-217, py-beacon BN-238/BN-240).
+ *
+ * The engine names the refresh each store supports. The stub's served store
+ * is generated, so it extends; the folder beside it is not served, and a
+ * folder is only ever re-read while it is.
+ */
+test('the served store refreshes from the sources dialog', async ({ window }) => {
+  const dialog = await openSources(window)
+  const serving = dialog.locator('.sources-row', { hasText: 'Synthetic data' })
+
+  const asked = window.waitForRequest(
+    (request) =>
+      request.method() === 'POST' && request.url().endsWith('/data/stores/synthetic/refresh')
+  )
+  await serving.getByRole('button', { name: 'Refresh' }).click()
+  await asked
+
+  // Accepted, so nothing to report — the job's own progress is the tray's.
+  await expect(dialog.locator('.view-state')).toHaveCount(0)
+})
+
+test('a folder not being served offers no re-read, and says why', async ({ window }) => {
+  const dialog = await openSources(window)
+  const folder = dialog.locator('.sources-row', { hasText: 'My prices' })
+  const refresh = folder.getByRole('button', { name: 'Refresh' })
+
+  await expect(refresh).toBeDisabled()
+  await expect(refresh).toHaveAttribute('title', /read afresh when it is used/)
+})
+
+test('imported files are refreshed by importing them again, not here', async ({ app, window }) => {
+  await pickerAnswers(app, ['D:/exports/prices.xlsx'])
+  const dialog = await fromDataMenu(window, /Import files/)
+
+  const imported = dialog.locator('.sources-row', { hasText: 'Imported data' })
+  await expect(imported.getByRole('button', { name: 'Refresh' })).toBeDisabled()
+  await expect(imported.getByRole('button', { name: 'Refresh' })).toHaveAttribute(
+    'title',
+    /importing them again/
+  )
+})
+
+test('the Data menu refreshes the store being served', async ({ window }) => {
+  await window.getByRole('button', { name: 'Data', exact: true }).click()
+  const item = window.getByRole('menuitem', { name: 'Refresh data' })
+  await expect(item).toBeEnabled()
+
+  const asked = window.waitForRequest(
+    (request) =>
+      request.method() === 'POST' && request.url().endsWith('/data/stores/synthetic/refresh')
+  )
+  await item.click()
+  await asked
+})
+
+test('with nothing served there is nothing to refresh', async ({ engine, window }) => {
+  engine.unloadData()
+  await expect(window.locator('.footer-status', { hasText: 'no data loaded' })).toBeVisible(POLL)
+
+  await window.getByRole('button', { name: 'Data', exact: true }).click()
+  await expect(window.getByRole('menuitem', { name: 'Refresh data' })).toBeDisabled()
+})
