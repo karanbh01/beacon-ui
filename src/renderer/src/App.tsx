@@ -8,6 +8,7 @@ import { AssistantPanel } from './assistant/AssistantPanel'
 import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
 import { PaneHost } from './shell/PaneHost'
+import { DataSourcesDialog } from './shell/DataSourcesDialog'
 import { PresetDialog } from './shell/PresetDialog'
 import { PresetSaved } from './shell/PresetSaved'
 import { StaleStoreNotice } from './shell/StaleStoreNotice'
@@ -59,6 +60,7 @@ function AppBody(): ReactElement {
   const [page, setPage] = useState(HOME_PAGE)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [namingPreset, setNamingPreset] = useState(false)
+  const [managingSources, setManagingSources] = useState(false)
   const [justSaved, setJustSaved] = useState<Preset | undefined>(undefined)
   const engine = useEngine()
   const update = useUpdate()
@@ -73,17 +75,6 @@ function AppBody(): ReactElement {
   // Fixed at mount rather than recomputed each render, so Home's date and its
   // relative timestamps agree with each other and nothing re-renders on a tick.
   const [today] = useState(() => new Date())
-
-  /**
-   * `Manage sources…` goes to Data Coverage, which is the pane that can
-   * actually say something about what is configured. There is no settings
-   * surface for sources, and sending the user nowhere would be worse than
-   * sending them to the nearest true answer.
-   */
-  const openCoverage = (): void => {
-    setPage('data-explorer')
-    selectTab('seed-coverage')
-  }
 
   /**
    * An identifier picked from the app-wide search (BU-72).
@@ -167,7 +158,9 @@ function AppBody(): ReactElement {
         // The data sources panel reports what is actually connected, so it
         // needs the same engine state the footer uses.
         engine: engine.status,
-        onManageSources: openCoverage,
+        onManageSources: () => {
+          setManagingSources(true)
+        },
         onSelectTab: selectTab,
         onOpenIdentifier: openIdentifier,
         onOpenView: openView,
@@ -183,6 +176,7 @@ function AppBody(): ReactElement {
         onSavePreset: () => {
           setNamingPreset(true)
         },
+
         // Applying from search has to travel: the arrangement is on another
         // page as often as not, and restoring it out of sight would look
         // like nothing happened (BU-120).
@@ -260,6 +254,14 @@ function AppBody(): ReactElement {
           onSaved={setJustSaved}
           onClose={() => {
             setNamingPreset(false)
+          }}
+        />
+      )}
+
+      {managingSources && (
+        <DataSourcesDialog
+          onClose={() => {
+            setManagingSources(false)
           }}
         />
       )}

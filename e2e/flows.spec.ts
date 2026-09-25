@@ -584,22 +584,20 @@ test('the Data menu offers what this app imports, and where it comes from', asyn
   await expect(menu.getByRole('menuitem', { name: /Manage sources/ })).toBeEnabled()
 })
 
-test('Manage sources opens the data settings window', async ({ app, window }) => {
+test('Manage sources opens the data sources, not Data Coverage', async ({ window }) => {
+  /*
+   * BU-145's intent, kept through a change of surface. It opened Data
+   * Coverage once — "the nearest true answer" when nothing else existed —
+   * then a separate settings window built on the model py-beacon 0.1.2
+   * retired. Since BU-215 it is the engine's list of stores, in a dialog.
+   */
   await openPage(window, 'Data Explorer')
   await window.getByRole('button', { name: 'Data', exact: true }).click()
   await window.getByRole('menuitem', { name: /Manage sources/ }).click()
 
-  // The window the splash opens (BU-111), not a second copy of it and not
-  // Data Coverage, which was the nearest true answer before it existed.
-  await expect
-    .poll(() => app.windows().some((candidate) => candidate.url().includes('#settings')), {
-      timeout: 30_000
-    })
-    .toBe(true)
-
-  const settings = app.windows().find((candidate) => candidate.url().includes('#settings'))
-  if (settings === undefined) throw new Error('the settings window did not open')
-  await expect(settings.getByRole('textbox', { name: 'Store location' })).toBeVisible()
+  await expect(window.getByRole('dialog', { name: 'Data sources' })).toBeVisible()
+  // And not the coverage pane, which is what it used to reach instead.
+  await expect(window.getByRole('tab', { name: /Data Coverage/, selected: true })).toHaveCount(0)
 })
 
 test('Prices carries a mini chart that follows the range and opens Charting', async ({

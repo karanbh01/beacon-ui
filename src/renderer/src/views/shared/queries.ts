@@ -8,7 +8,6 @@ import {
 } from '@tanstack/react-query'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
-import { workKey } from '../../api/work'
 
 /**
  * Queries shared by more than one Data Explorer view.
@@ -394,24 +393,5 @@ export function useFieldCatalogue() {
       return client.get('/data/fields', { signal })
     },
     enabled: client !== null
-  })
-}
-
-/**
- * Generate synthetic data and serve it (BU-215).
- *
- * Returns as soon as the engine accepts the job; the job's own events carry
- * the progress. A work key, so the footer names it for the moment the request
- * is in flight, before the first job event arrives to take over.
- */
-export function useGenerateData() {
-  const client = useBeacon()
-
-  return useMutation({
-    mutationKey: workKey('generating data'),
-    mutationFn: () => {
-      if (client === null) throw new Error('No engine')
-      return client.data.generateSynthetic()
-    }
   })
 }

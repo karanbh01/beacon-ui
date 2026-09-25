@@ -3,7 +3,8 @@ import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
 import { layoutFor, SINGLE_PANE, useChrome } from '../state/chrome'
 import { presetsFor, usePresets } from '../state/presets'
-import { useCoverage, useGenerateData } from '../views/shared/queries'
+import { useCoverage } from '../views/shared/queries'
+import { useGenerateData } from '../views/shared/storeQueries'
 import { useWorkspace } from '../state/tabs.store'
 import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
@@ -21,7 +22,12 @@ export interface MenuBarProps {
   onToggleAssistant?: () => void
   /** Engine status, so the data sources panel can tell the truth. */
   engine?: EngineStatus
-  /** Opens the pane that reports coverage, from `Manage sources…`. */
+  /**
+   * Opens the data-sources dialog (BU-215), from `Manage sources…` and from
+   * the sources panel's Manage link. It opened Data Coverage once, as "the
+   * nearest true answer" when nothing else existed (BU-145), then a separate
+   * settings window built on the model py-beacon 0.1.2 retired.
+   */
   onManageSources?: () => void
   onSelectTab?: (id: string) => void
   /** An identifier picked from search: open it on Prices. */
@@ -180,7 +186,7 @@ export function MenuBar({
     else if (action === 'theme-dark') theme.setPreference('dark')
     else if (action === 'theme-system') theme.setPreference('system')
     else if (action === 'preset-save') onSavePreset?.()
-    else if (action === 'manage-sources') void window.beacon?.data.openSettingsWindow()
+    else if (action === 'manage-sources') onManageSources?.()
     else if (action === 'generate-data') generate.mutate()
     else if (action === 'layout-reset') {
       // Both halves, or it is not a reset: a single pane still holding six
@@ -260,10 +266,10 @@ export function MenuBar({
             onClose={close}
             engine={engine}
             onManage={() => {
-              // The settings window, not Data Coverage (BU-145). Coverage was
-              // the nearest true answer when nothing else existed; the store
-              // location and the synthetic-data choice live here.
-              void window.beacon?.data.openSettingsWindow()
+              // The data-sources dialog, the same one the Data menu opens.
+              // This used to open the settings window AND Data Coverage — the
+              // second a leftover BU-145 meant to remove, contradicting the
+              // comment above it.
               onManageSources?.()
               close()
             }}

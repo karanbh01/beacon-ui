@@ -45,6 +45,9 @@ export const keys = {
     identifiers: (query: string, params?: Record<string, unknown>) =>
       ['data', 'identifiers', query, params ?? {}] as const,
     coverage: () => ['data', 'coverage'] as const,
+    // Under `data`, so a change of the served data refetches it with the rest:
+    // which store is active is exactly what a load changes.
+    stores: () => ['data', 'stores'] as const,
     watchlists: () => ['data', 'watchlists'] as const
   },
 

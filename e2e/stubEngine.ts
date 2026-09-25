@@ -1401,6 +1401,14 @@ function body(url: URL): unknown {
 
   if (path === '/health') return health()
 
+  if (path === '/data/stores') {
+    return {
+      stores: stores.map(storeRow),
+      skipped: 0,
+      skipped_causes: { unparseable: 0, from_newer_build: 0, unrecognised: 0 }
+    }
+  }
+
   if (Object.hasOwn(ROUTES, path)) return ROUTES[path]
 
   if (path === '/data/identifiers') return searchIdentifiers(url)
@@ -2344,6 +2352,67 @@ let dataLoaded = true
 let dataVersion = 'v0'
 let generated = 0
 
+interface StubStore {
+  id: string
+  name: string
+  kind: 'folder' | 'postgres'
+  path: string
+  source: string
+  managed: boolean
+  readable: boolean
+}
+
+/**
+ * The engine's registry (BN-236). Two by default: the generated store it is
+ * serving, and a folder of the user's — one of each kind of removal, since
+ * that is the distinction the dialog exists to get right.
+ */
+let stores: StubStore[] = []
+let activeStore: string | null = 'synthetic'
+
+function resetStores(): void {
+  stores = [
+    {
+      id: 'synthetic',
+      name: 'Synthetic data',
+      kind: 'folder',
+      path: 'C:/Users/me/AppData/Roaming/beacon/stores/synthetic',
+      source: 'synthetic',
+      managed: true,
+      readable: true
+    },
+    {
+      id: 'my-prices',
+      name: 'My prices',
+      kind: 'folder',
+      path: 'D:/research/prices',
+      source: 'local',
+      managed: false,
+      readable: true
+    }
+  ]
+  activeStore = 'synthetic'
+}
+
+function storeRow(store: StubStore): unknown {
+  return {
+    ...store,
+    active: dataLoaded && store.id === activeStore,
+    created_at: '2026-09-25T09:00:00Z',
+    last_loaded_at: store.id === activeStore ? '2026-09-25T09:00:00Z' : null,
+    size_bytes: 1_048_576,
+    connection: null
+  }
+}
+
+/** Serve a different store, as a finished load job would leave it. */
+function serveStore(id: string): void {
+  activeStore = id
+  dataLoaded = true
+  generated += 1
+  dataVersion = `load-${String(generated)}`
+}
+
 function health(): unknown {
   return {
     status: 'ok',
@@ -2352,8 +2421,10 @@ function health(): unknown {
     data_source: {
       configured: dataLoaded,
       loading: false,
-      store_id: dataLoaded ? 'synthetic' : null,
-      store_name: dataLoaded ? 'Synthetic data' : null,
+      store_id: dataLoaded ? activeStore : null,
+      store_name: dataLoaded
+        ? (stores.find((store) => store.id === activeStore)?.name ?? null)
+        : null,
       // A fresh token on every load, never a counter's next value.
       data_version: dataVersion,
       identifiers: dataLoaded ? IDENTIFIERS.length : 0
@@ -2368,6 +2439,7 @@ function resetState(): void {
   dataLoaded = true
   dataVersion = 'v0'
   generated = 0
+  resetStores()
 }
 
 export function startStubEngine(): Promise<StubEngine> {
@@ -2383,7 +2455,10 @@ export function startStubEngine(): Promise<StubEngine> {
     response.setHeader('access-control-allow-headers', 'authorization, content-type')
     // DELETE is preflighted, and a preflight that does not name it fails the
     // request before the stub ever sees it (BU-144).
-    response.setHeader('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    // PATCH too: the engine allows every method, and renaming a data store is
+    // the first partial update (BU-215). A stub stricter than the engine fails
+    // a correct client at the preflight, which reads as the app being broken.
+    response.setHeader('access-control-allow-methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
     response.setHeader('content-type', 'application/json')
 
     if (request.method === 'OPTIONS') {
@@ -2670,11 +2745,83 @@ export function startStubEngine(): Promise<StubEngine> {
           error: null
         }
         jobs.set(jobId, job)
-        dataLoaded = true
-        dataVersion = `gen-${String(generated)}`
+        stores = [
+          ...stores,
+          {
+            id: storeId,
+            name: 'Synthetic data',
+            kind: 'folder',
+            path: `C:/Users/me/AppData/Roaming/beacon/stores/${storeId}`,
+            source: 'synthetic',
+            managed: true,
+            readable: true
+          }
+        ]
+        serveStore(storeId)
         response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))
       })
       return
+    }
+
+    /*
+     * The store registry's writes (BN-236): Use, Rename, Remove.
+     *
+     * Remove refuses the store being served with 409, in the engine's words,
+     * and otherwise forgets the store — the stub has no files to delete, but
+     * `managed` is what a real engine would decide that by, and it is what
+     * the dialog's confirm has to read.
+     */
+    const storeMatch = /^\/data\/stores\/([^/]+)(\/activate)?$/.exec(url.pathname)
+    if (storeMatch !== null) {
+      const id = decodeURIComponent(storeMatch[1] ?? '')
+      const found = stores.find((store) => store.id === id)
+      if (found === undefined) {
+        response
+          .writeHead(404)
+          .end(JSON.stringify(notFound(`data store '${id}'`, 'StoreRegistry').payload))
+        return
+      }
+
+      if (method === 'POST' && storeMatch[2] === '/activate') {
+        const jobId = `load:${id}`
+        const job = {
+          job_id: jobId,
+          kind: 'load',
+          status: 'succeeded',
+          progress: 1,
+          message: 'done',
+          result: { store_id: id, name: found.name, identifiers: IDENTIFIERS.length },
+          error: null
+        }
+        jobs.set(jobId, job)
+        serveStore(id)
+        response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))
+        return
+      }
+
+      if (method === 'PATCH') {
+        readBody(request, (parsed) => {
+          const name = typeof parsed.name === 'string' ? parsed.name.trim() : ''
+          found.name = name === '' ? found.name : name
+          response.writeHead(200).end(JSON.stringify(storeRow(found)))
+        })
+        return
+      }
+
+      if (method === 'DELETE') {
+        if (dataLoaded && activeStore === id) {
+          const refusal = refuse(
+            409,
+            'CONFLICT',
+            'This is the store the engine is serving. Load another first, then delete this one.'
+          )
+          response.writeHead(refusal.status).end(JSON.stringify(refusal.payload))
+          return
+        }
+        stores = stores.filter((store) => store.id !== id)
+        response.writeHead(204).end()
+        return
+      }
     }
 
     /*
@@ -2786,6 +2933,7 @@ export function startStubEngine(): Promise<StubEngine> {
         token: '',
         unloadData: () => {
           dataLoaded = false
+          activeStore = null
           dataVersion = 'empty'
         },
         skipUniverses: (count: number, causes?: SkippedCauses) => {

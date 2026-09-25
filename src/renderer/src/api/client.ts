@@ -18,17 +18,24 @@ type ResponseOf<P extends GetPath> =
   GetOp<P> extends { responses: { 200: { content: { 'application/json': infer R } } } } ? R : never
 
 /** Paths supporting a write verb, narrowed the same way GET is. */
-type WritePath<M extends 'post' | 'put' | 'delete'> = {
+/**
+ * The methods that change something. PATCH joined for renaming a data store
+ * (BU-215) — the first partial update the engine publishes; one alias so the
+ * five types below cannot drift apart when the next one arrives.
+ */
+type WriteMethod = 'post' | 'put' | 'patch' | 'delete'
+
+type WritePath<M extends WriteMethod> = {
   [P in keyof paths]: paths[P] extends Record<M, unknown> ? P : never
 }[keyof paths]
 
-type WriteOp<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
+type WriteOp<M extends WriteMethod, P extends WritePath<M>> =
   paths[P] extends Record<M, infer O> ? O : never
 
-type WritePathParams<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
+type WritePathParams<M extends WriteMethod, P extends WritePath<M>> =
   WriteOp<M, P> extends { parameters: { path: infer T } } ? T : never
 
-type BodyOf<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
+type BodyOf<M extends WriteMethod, P extends WritePath<M>> =
   WriteOp<M, P> extends { requestBody?: { content: { 'application/json': infer B } } } ? B : never
 
 /**
@@ -42,7 +49,7 @@ type BodyOf<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
  * resolves to `undefined`, which is what the caller actually receives;
  * `void` would let a caller pass the result on as if it carried something.
  */
-type WriteResponse<M extends 'post' | 'put' | 'delete', P extends WritePath<M>> =
+type WriteResponse<M extends WriteMethod, P extends WritePath<M>> =
   WriteOp<M, P> extends { responses: infer R }
     ? R extends { 200: { content: { 'application/json': infer B } } }
       ? B
@@ -135,7 +142,7 @@ export interface BeaconClient {
     }
   ) => Promise<ResponseOf<P>>
   /** Typed write against any path in the spec. */
-  write: <M extends 'post' | 'put' | 'delete', P extends WritePath<M>>(
+  write: <M extends WriteMethod, P extends WritePath<M>>(
     method: M,
     path: P,
     options?: {
@@ -232,6 +239,16 @@ export interface BeaconClient {
     generateSynthetic: (
       body?: BodyOf<'post', '/data/synthetic'>
     ) => Promise<WriteResponse<'post', '/data/synthetic'>>
+    /**
+     * Load a set of CSV files or one workbook as a new store (BN-239).
+     *
+     * Paths, not uploads: the engine runs on this machine and reads them
+     * itself. Every row is checked first and nothing is saved on a refusal,
+     * which arrives as `INVALID_RULE` with row-level findings.
+     */
+    importFiles: (
+      body: BodyOf<'post', '/data/import'>
+    ) => Promise<WriteResponse<'post', '/data/import'>>
     watchlists: (signal?: AbortSignal) => Promise<ResponseOf<'/data/watchlists'>>
     putWatchlist: (
       id: string,
@@ -259,6 +276,32 @@ export interface BeaconClient {
      * declares `BacktestJobStatus` directly.
      */
     get: (jobId: string, signal?: AbortSignal) => Promise<ResponseOf<'/jobs/{job_id}'>>
+  }
+  /**
+   * The engine's data stores (BN-236, BU-215).
+   *
+   * The engine keeps the registry: which stores exist, which one it serves,
+   * and what deleting each would do. This app only asks — the old model,
+   * where it owned one store path and restarted the engine to change it, is
+   * what this replaces.
+   */
+  stores: {
+    list: (signal?: AbortSignal) => Promise<ResponseOf<'/data/stores'>>
+    /** Register a folder that already holds a store. Never writes to it. */
+    register: (
+      body: BodyOf<'post', '/data/stores'>
+    ) => Promise<WriteResponse<'post', '/data/stores'>>
+    /** Start serving a store: a `load:{id}` job, answered 202. */
+    activate: (id: string) => Promise<WriteResponse<'post', '/data/stores/{store_id}/activate'>>
+    rename: (
+      id: string,
+      body: BodyOf<'patch', '/data/stores/{store_id}'>
+    ) => Promise<WriteResponse<'patch', '/data/stores/{store_id}'>>
+    /**
+     * Forget a store — and delete its files if the engine created it. The
+     * store being served refuses with 409.
+     */
+    remove: (id: string) => Promise<WriteResponse<'delete', '/data/stores/{store_id}'>>
   }
   indices: {
     list: (signal?: AbortSignal) => Promise<ResponseOf<'/indices'>>
@@ -384,7 +427,7 @@ export function createClient(options: ClientOptions): BeaconClient {
     return (await response.json()) as ResponseOf<P>
   }
 
-  async function write<M extends 'post' | 'put' | 'delete', P extends WritePath<M>>(
+  async function write<M extends WriteMethod, P extends WritePath<M>>(
     method: M,
     path: P,
     request: {
@@ -499,6 +542,7 @@ export function createClient(options: ClientOptions): BeaconClient {
       // No body is "every default", which are the command line's — what first
       // run always generated. The schema says so by accepting null.
       generateSynthetic: (body) => write('post', '/data/synthetic', { body: body ?? null }),
+      importFiles: (body) => write('post', '/data/import', { body }),
       coverage: (signal) => get('/data/coverage', { ...(signal === undefined ? {} : { signal }) }),
       watchlists: (signal) =>
         get('/data/watchlists', { ...(signal === undefined ? {} : { signal }) }),
@@ -515,6 +559,15 @@ export function createClient(options: ClientOptions): BeaconClient {
           params: { job_id: jobId },
           ...(signal === undefined ? {} : { signal })
         })
+    },
+    stores: {
+      list: (signal) => get('/data/stores', { ...(signal === undefined ? {} : { signal }) }),
+      register: (body) => write('post', '/data/stores', { body }),
+      activate: (id) =>
+        write('post', '/data/stores/{store_id}/activate', { params: { store_id: id } }),
+      rename: (id, body) =>
+        write('patch', '/data/stores/{store_id}', { params: { store_id: id }, body }),
+      remove: (id) => write('delete', '/data/stores/{store_id}', { params: { store_id: id } })
     },
     indices: {
       list: (signal) => get('/indices', { ...(signal === undefined ? {} : { signal }) }),
