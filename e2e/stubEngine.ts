@@ -1148,7 +1148,6 @@ const RULE_TYPES = {
 }
 
 const ROUTES: Record<string, unknown> = {
-  '/health': { status: 'ok', version: '0.0.2', cache_age: 120 },
   '/indices/rule-types': RULE_TYPES,
   /*
    * Every trading calendar the engine accepts (BN-180).
@@ -1399,6 +1398,8 @@ function body(url: URL): unknown {
       skipped_causes: skipCauses(SKIPPED_INDICES, null)
     }
   }
+
+  if (path === '/health') return health()
 
   if (Object.hasOwn(ROUTES, path)) return ROUTES[path]
 
@@ -2074,6 +2075,8 @@ export interface StubEngine {
    * reason. Pass them to model a current one.
    */
   skipUniverses: (count: number, causes?: SkippedCauses) => void
+  /** Serve nothing, as an engine started without data does (BN-236). */
+  unloadData: () => void
 }
 
 /**
@@ -2329,10 +2332,42 @@ function solvedPreview(): Record<string, unknown> {
  * nothing wrong. Found exactly that way: an optimised index created here
  * turned a delete cascade of two into one of three, three files away.
  */
+/**
+ * What the engine is serving, as py-beacon 0.1.2 reports it (BN-236).
+ *
+ * Loaded by default, so every existing test sees the engine it always saw.
+ * `unloadData()` models an engine that started with none — the state the app
+ * now reaches on first run, since it no longer generates data before starting
+ * the engine — and generating through `/data/synthetic` loads it again.
+ */
+let dataLoaded = true
+let dataVersion = 'v0'
+let generated = 0
+
+function health(): unknown {
+  return {
+    status: 'ok',
+    version: '0.0.2',
+    cache_age: dataLoaded ? 120 : null,
+    data_source: {
+      configured: dataLoaded,
+      loading: false,
+      store_id: dataLoaded ? 'synthetic' : null,
+      store_name: dataLoaded ? 'Synthetic data' : null,
+      // A fresh token on every load, never a counter's next value.
+      data_version: dataVersion,
+      identifiers: dataLoaded ? IDENTIFIERS.length : 0
+    }
+  }
+}
+
 function resetState(): void {
   resetIndices()
   resetUniverses()
   jobs.clear()
+  dataLoaded = true
+  dataVersion = 'v0'
+  generated = 0
 }
 
 export function startStubEngine(): Promise<StubEngine> {
@@ -2613,6 +2648,36 @@ export function startStubEngine(): Promise<StubEngine> {
     }
 
     /*
+     * Generating synthetic data through the engine (BN-237, py-beacon #250).
+     *
+     * A `generate:{store_id}` job, answered 202. This stub carries no event
+     * socket, so the job is finished on arrival — like every job here — and
+     * the new store is served at once, with a fresh `data_version` exactly as
+     * a real load would publish one.
+     */
+    if (method === 'POST' && url.pathname === '/data/synthetic') {
+      readBody(request, () => {
+        generated += 1
+        const storeId = `synthetic-${String(generated)}`
+        const jobId = `generate:${storeId}`
+        const job = {
+          job_id: jobId,
+          kind: 'generate',
+          status: 'succeeded',
+          progress: 1,
+          message: 'done',
+          result: { store_id: storeId, name: 'Synthetic data', path: '', activated: true },
+          error: null
+        }
+        jobs.set(jobId, job)
+        dataLoaded = true
+        dataVersion = `gen-${String(generated)}`
+        response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))
+      })
+      return
+    }
+
+    /*
      * Deleting a universe (BU-144).
      *
      * The engine refuses a seeded one, and so does this: a client that only
@@ -2719,6 +2784,10 @@ export function startStubEngine(): Promise<StubEngine> {
         url: `http://127.0.0.1:${String(port)}`,
         // Empty: this stub answers whatever bearer it is given.
         token: '',
+        unloadData: () => {
+          dataLoaded = false
+          dataVersion = 'empty'
+        },
         skipUniverses: (count: number, causes?: SkippedCauses) => {
           skippedUniverses = count
           universeCauses = causes ?? null

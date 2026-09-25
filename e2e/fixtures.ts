@@ -90,6 +90,7 @@ export const test = base.extend<BeaconFixtures>({
         url: live,
         token: process.env.BEACON_API_TOKEN ?? '',
         skipUniverses: () => undefined,
+        unloadData: () => undefined,
         close: () => Promise.resolve()
       })
       return

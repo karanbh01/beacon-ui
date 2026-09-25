@@ -220,6 +220,18 @@ export interface BeaconClient {
       signal?: AbortSignal
     ) => Promise<ResponseOf<'/data/identifiers'>>
     coverage: (signal?: AbortSignal) => Promise<ResponseOf<'/data/coverage'>>
+    /**
+     * Generate a synthetic store through the engine (BU-215, py-beacon #250).
+     *
+     * Answers 202 with a `generate:{store_id}` job; progress arrives per stage
+     * on the event socket, so the footer and the job tray carry it with no new
+     * machinery. The engine runs the same generator this app used to run
+     * before starting it, so the data is identical for the same settings.
+     * With `activate` (the default) the new store is served when done.
+     */
+    generateSynthetic: (
+      body?: BodyOf<'post', '/data/synthetic'>
+    ) => Promise<WriteResponse<'post', '/data/synthetic'>>
     watchlists: (signal?: AbortSignal) => Promise<ResponseOf<'/data/watchlists'>>
     putWatchlist: (
       id: string,
@@ -484,6 +496,9 @@ export function createClient(options: ClientOptions): BeaconClient {
           ...(query === undefined ? {} : { query }),
           ...(signal === undefined ? {} : { signal })
         }),
+      // No body is "every default", which are the command line's — what first
+      // run always generated. The schema says so by accepting null.
+      generateSynthetic: (body) => write('post', '/data/synthetic', { body: body ?? null }),
       coverage: (signal) => get('/data/coverage', { ...(signal === undefined ? {} : { signal }) }),
       watchlists: (signal) =>
         get('/data/watchlists', { ...(signal === undefined ? {} : { signal }) }),

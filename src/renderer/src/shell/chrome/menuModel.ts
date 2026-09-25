@@ -21,6 +21,7 @@ export type MenuAction =
   | 'layout-reset'
   | 'preset-save'
   | 'manage-sources'
+  | 'generate-data'
   | `preset-apply-${string}`
   | 'none'
 
@@ -177,11 +178,23 @@ export function buildMenus(context: MenuContext): Menu[] {
       })),
       soon('Import index definition'),
       soon('Import universe'),
+      /*
+       * Where data comes from (BU-215). Karan's placement: the ways to get
+       * data live here, and the footer turns red when there is none, rather
+       * than a screen of their own. No ellipsis — it acts at once, on the
+       * same defaults first run always used, and its progress is a job the
+       * footer and the tray already carry.
+       */
+      {
+        label: 'Generate synthetic data',
+        action: 'generate-data',
+        enabled: true,
+        separatorBefore: true
+      },
       {
         label: 'Manage sources…',
         action: 'manage-sources',
-        enabled: true,
-        separatorBefore: true
+        enabled: true
       }
     ],
     Analysis: [soon('Run backtest…'), soon('Run optimisation…'), soon('Risk model…')],

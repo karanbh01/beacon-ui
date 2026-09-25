@@ -22,6 +22,13 @@ export interface FooterProps {
   /** e.g. "2h ago". BU-21 supplies it from freshness events. */
   dataUpdated?: string
   /**
+   * Whether the engine has data to serve, and whether it is loading some
+   * (BU-215). Absent from an engine before py-beacon 0.1.2, which the slot
+   * treats as loaded — the only state such an engine could be in while it
+   * answered, and not a gap to report.
+   */
+  data?: { loaded?: boolean; loading?: boolean }
+  /**
    * What is running in the background, in words (BU-201).
    *
    * An empty list is a state worth showing rather than an absence: "all
@@ -73,6 +80,46 @@ function engineLabel(state: EngineState, version?: string): string {
  * background processes running" is more use than two verbs run together, and
  * a reader who wants the detail has the job tray.
  */
+/**
+ * The data slot, in the three states an engine can be in (BU-215).
+ *
+ * Red when nothing is loaded — Karan's call: the footer already reports on
+ * data, so it is where "there is none" belongs, rather than a screen of its
+ * own. Loading reads as work, since the previous data is still served until
+ * the load finishes. Otherwise the freshness it always showed.
+ */
+function DataSlot({
+  data,
+  updated
+}: {
+  data: FooterProps['data']
+  updated: string | undefined
+}): ReactElement | null {
+  if (data?.loading === true) {
+    return (
+      <span className="footer-status">
+        <span className="footer-dot dot-working" aria-hidden="true" />
+        loading data…
+      </span>
+    )
+  }
+  if (data?.loaded === false) {
+    return (
+      <span className="footer-status footer-status-missing">
+        <span className="footer-dot dot-danger" aria-hidden="true" />
+        no data loaded · Data menu
+      </span>
+    )
+  }
+  if (updated === undefined) return null
+  return (
+    <span className="footer-status">
+      <span className="footer-dot dot-accent" aria-hidden="true" />
+      data updated · {updated}
+    </span>
+  )
+}
+
 function workLabel(running: readonly string[]): string {
   if (running.length === 0) return 'all background processes complete'
   if (running.length === 1) return `${running[0] ?? 'working'}…`
@@ -122,6 +169,7 @@ function UpdateSlot({
 export function Footer({
   engine = { state: 'connected' },
   dataUpdated,
+  data,
   work,
   version,
   update,
@@ -140,12 +188,7 @@ export function Footer({
         {engineLabel(engine.state, engine.version)}
       </span>
 
-      {dataUpdated !== undefined && (
-        <span className="footer-status">
-          <span className="footer-dot dot-accent" aria-hidden="true" />
-          data updated · {dataUpdated}
-        </span>
-      )}
+      <DataSlot data={data} updated={dataUpdated} />
 
       {work !== undefined && (
         <span className="footer-status">

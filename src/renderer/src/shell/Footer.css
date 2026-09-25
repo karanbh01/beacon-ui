@@ -128,3 +128,11 @@ button.footer-update:hover {
   outline: 1px solid var(--accent);
   outline-offset: -1px;
 }
+
+/*
+ * Nothing loaded (BU-215): the one footer state that needs acting on, so the
+ * text takes the dot's colour too rather than leaving it to a 9px circle.
+ */
+.footer-status-missing {
+  color: var(--danger);
+}

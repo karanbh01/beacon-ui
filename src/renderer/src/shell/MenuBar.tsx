@@ -3,7 +3,7 @@ import type { EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
 import { layoutFor, SINGLE_PANE, useChrome } from '../state/chrome'
 import { presetsFor, usePresets } from '../state/presets'
-import { useCoverage } from '../views/shared/queries'
+import { useCoverage, useGenerateData } from '../views/shared/queries'
 import { useWorkspace } from '../state/tabs.store'
 import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
@@ -173,12 +173,15 @@ export function MenuBar({
     }
   }, [menu])
 
+  const generate = useGenerateData()
+
   const runMenu = (action: MenuAction): void => {
     if (action === 'theme-light') theme.setPreference('light')
     else if (action === 'theme-dark') theme.setPreference('dark')
     else if (action === 'theme-system') theme.setPreference('system')
     else if (action === 'preset-save') onSavePreset?.()
     else if (action === 'manage-sources') void window.beacon?.data.openSettingsWindow()
+    else if (action === 'generate-data') generate.mutate()
     else if (action === 'layout-reset') {
       // Both halves, or it is not a reset: a single pane still holding six
       // tabs is the arrangement you were trying to get out of.

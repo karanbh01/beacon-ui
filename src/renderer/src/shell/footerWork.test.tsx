@@ -58,3 +58,46 @@ describe('the colour of the dot beside it', () => {
     expect(dotOf('all background processes complete')).toContain('dot-success')
   })
 })
+
+describe('the data slot (BU-215)', () => {
+  /*
+   * Karan's placement: no new screen for "there is no data". The footer
+   * already reports on data, so that is where it goes — red — and the Data
+   * menu holds the ways to get some.
+   */
+  function slotDot(text: string): string {
+    const row = screen.getByText(text, { exact: false }).closest('.footer-status')
+    return row?.querySelector('.footer-dot')?.className ?? ''
+  }
+
+  it('goes red when the engine has nothing loaded, and says where to go', () => {
+    render(<Footer dataUpdated="2m ago" data={{ loaded: false, loading: false }} />)
+    expect(screen.getByText(/no data loaded/)).toBeInTheDocument()
+    expect(screen.getByText(/Data menu/)).toBeInTheDocument()
+    expect(slotDot('no data loaded')).toContain('dot-danger')
+    // Not a stale "updated" beside it: there is nothing to have been updated.
+    expect(screen.queryByText(/data updated/)).not.toBeInTheDocument()
+  })
+
+  it('reads as work while a store loads', () => {
+    // The previous data is still served until the load finishes, so this is
+    // progress rather than absence.
+    render(<Footer data={{ loaded: false, loading: true }} />)
+    expect(slotDot('loading data')).toContain('dot-working')
+    expect(screen.queryByText(/no data loaded/)).not.toBeInTheDocument()
+  })
+
+  it('shows freshness once data is served, as it always did', () => {
+    render(<Footer dataUpdated="2m ago" data={{ loaded: true, loading: false }} />)
+    expect(screen.getByText('data updated · 2m ago')).toBeInTheDocument()
+  })
+
+  it('never goes red for an engine too old to say', () => {
+    // Before py-beacon 0.1.2 there is no data state at all. Absent is not
+    // "nothing loaded", and a red footer would report a version gap as
+    // missing data.
+    render(<Footer dataUpdated="2m ago" data={{}} />)
+    expect(screen.queryByText(/no data loaded/)).not.toBeInTheDocument()
+    expect(screen.getByText('data updated · 2m ago')).toBeInTheDocument()
+  })
+})

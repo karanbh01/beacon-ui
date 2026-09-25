@@ -205,6 +205,11 @@ function AppBody(): ReactElement {
         // Real freshness from /health's cache_age, refreshed when py-beacon
         // publishes a data.freshness event rather than on a timer.
         ...(dataAge === undefined ? {} : { dataUpdated: dataAge }),
+        // Off main's /health poll, beside the version it already carries.
+        data: {
+          ...(engine.dataLoaded === undefined ? {} : { loaded: engine.dataLoaded }),
+          ...(engine.dataLoading === undefined ? {} : { loading: engine.dataLoading })
+        },
         // Everything running anywhere in the app, in one place (BU-201). It
         // sits beside data freshness because it answers the same kind of
         // question: is what I am looking at finished?
