@@ -212,14 +212,43 @@ export function ViewError({ error }: { error: unknown }): ReactElement {
     )
   }
 
-  if (error instanceof ApiError && error.code === 'CONFIGURATION_ERROR') {
+  if (error instanceof ApiError && error.code === 'NO_DATA_LOADED') {
+    /*
+     * An engine running with nothing loaded (BN-236, py-beacon #249).
+     *
+     * A state rather than a fault: since named data stores, the engine
+     * starts with or without data and the user chooses where it comes from.
+     * The message names what could not be done and says to load a store,
+     * which is the whole remedy — so it is shown as sent.
+     */
     return (
       <div className="view-state">
-        <p className="type-13">This engine has no data source.</p>
-        <p className="type-11">
-          py-beacon is running, but <code>python -m beacon.server</code> was started without one, so
-          no market data can be served. See issue #40.
-        </p>
+        <p className="type-13">No data is loaded.</p>
+        <p className="type-11">{error.message}</p>
+      </div>
+    )
+  }
+
+  if (error instanceof ApiError && error.code === 'CONFIGURATION_ERROR') {
+    /*
+     * The engine cannot use what it was configured with (BU-213).
+     *
+     * This heading said "This engine has no data source" and showed a fixed
+     * paragraph in place of the engine's message — true when this code meant
+     * only that. BN-236 moved "nothing loaded" to NO_DATA_LOADED above, and
+     * CONFIGURATION_ERROR now carries a store with no manifest, a manifest
+     * that is not JSON, or a store written by a newer Beacon — "Upgrade
+     * Beacon or…". The fixed paragraph named the wrong cause AND hid the
+     * right remedy, so the heading is now true of every meaning the code has
+     * had, and the engine's own words always follow it.
+     *
+     * Still reached for "no data" by an engine before BN-236, which the
+     * released 0.1.x are, and Karan runs two machines updated separately.
+     */
+    return (
+      <div className="view-state">
+        <p className="type-13">The engine cannot use its data.</p>
+        <p className="type-11">{error.message}</p>
       </div>
     )
   }

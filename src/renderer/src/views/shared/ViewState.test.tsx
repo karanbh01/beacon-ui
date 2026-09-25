@@ -177,3 +177,54 @@ describe('a refusal that names what is wrong (BU-212)', () => {
     expect(screen.getByText(/real one/)).toBeInTheDocument()
   })
 })
+
+describe('an engine without usable data (BU-213, BN-236)', () => {
+  /*
+   * CONFIGURATION_ERROR used to mean only "no data source", and its heading
+   * said so with a fixed paragraph in place of the engine's message. BN-236
+   * split it: "nothing loaded" is NO_DATA_LOADED, and CONFIGURATION_ERROR now
+   * carries store problems — including one whose remedy is "Upgrade Beacon",
+   * which the fixed paragraph hid behind the wrong cause.
+   */
+  it('says plainly that nothing is loaded, with what could not be done', () => {
+    render(
+      <ViewError
+        error={apiError(
+          409,
+          'NO_DATA_LOADED',
+          'No data is loaded, so prices cannot be read. Load a data store first.'
+        )}
+      />
+    )
+    expect(screen.getByText('No data is loaded.')).toBeInTheDocument()
+    expect(screen.getByText(/Load a data store first/)).toBeInTheDocument()
+  })
+
+  it('shows a store problem in the engine’s words, remedy included', () => {
+    render(
+      <ViewError
+        error={apiError(
+          500,
+          'CONFIGURATION_ERROR',
+          'The store at D:/beacon is version 3, but this Beacon reads up to version 2. ' +
+            'Upgrade Beacon or open a different store.'
+        )}
+      />
+    )
+    expect(screen.getByText(/Upgrade Beacon/)).toBeInTheDocument()
+  })
+
+  it('no longer claims a store problem means there is no data source', () => {
+    render(<ViewError error={apiError(500, 'CONFIGURATION_ERROR', 'manifest is not valid JSON')} />)
+    expect(screen.queryByText(/has no data source/)).not.toBeInTheDocument()
+    expect(screen.getByText('The engine cannot use its data.')).toBeInTheDocument()
+  })
+
+  it('still reads an older engine’s "no data" sensibly, which sent this code', () => {
+    // Released 0.1.x before BN-236 answer a data-less request this way.
+    render(
+      <ViewError error={apiError(500, 'CONFIGURATION_ERROR', 'no data source is configured')} />
+    )
+    expect(screen.getByText(/no data source is configured/)).toBeInTheDocument()
+  })
+})
