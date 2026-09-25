@@ -68,12 +68,11 @@ be spelled out.
 
 ### Environment
 
-| Variable              | Effect                                                                              |
-| --------------------- | ----------------------------------------------------------------------------------- |
-| `BEACON_PYTHON`       | Pin an interpreter. Beats every other candidate, including a packaged bundle.       |
-| `BEACON_SERVER_URL`   | Attach to a py-beacon you are running yourself; never spawn one.                    |
-| `BEACON_DATA_PATH`    | Read by py-beacon. Set means you have named a data source, so nothing is generated. |
-| `BEACON_NO_SYNTHETIC` | Never generate the first-run synthetic store.                                       |
+| Variable            | Effect                                                                          |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `BEACON_PYTHON`     | Pin an interpreter. Beats every other candidate, including a packaged bundle.   |
+| `BEACON_SERVER_URL` | Attach to a py-beacon you are running yourself; never spawn one.                |
+| `BEACON_DATA_PATH`  | Read by py-beacon. Serves that folder, outranking the stores chosen in the app. |
 
 ## Scripts
 

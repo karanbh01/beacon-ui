@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { components } from '@shared/api.generated'
+import { folderName } from '@shared/paths'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
 import { workKey } from '../../api/work'
@@ -159,12 +160,6 @@ export function unreadableReason(store: DataStore): string {
   return variable == null
     ? 'no password variable is set for this database'
     : `the password variable ${variable} is not set on the engine’s machine`
-}
-
-/** The last segment of a path, on either separator — Windows sends `\`. */
-export function folderName(path: string): string {
-  const segments = path.split(/[\\/]/).filter((segment) => segment !== '')
-  return segments.at(-1) ?? path
 }
 
 /**

@@ -21,10 +21,9 @@ const ROOT = join(__dirname, '..')
  * A real Electron app, a stub engine, and a clean profile per test.
  *
  * `BEACON_SERVER_URL` makes the engine attach rather than spawn, so no python
- * is involved and the data is identical every run. `BEACON_NO_SYNTHETIC`
- * belts that: with an external server there is nothing to generate, and a
- * test that quietly wrote a 512-asset store into the developer's app-data
- * directory would be a nasty surprise.
+ * is involved and the data is identical every run. (`BEACON_NO_SYNTHETIC`
+ * used to belt that, when this app generated a store before the engine
+ * started; nothing app-side generates since BU-215.)
  *
  * `--user-data-dir` per worker is what makes the tests independent. Without
  * it they share a persisted workspace and the second test sees whatever the
@@ -109,7 +108,6 @@ export const test = base.extend<BeaconFixtures>({
         BEACON_SERVER_URL: engine.url,
         // Only set against a live engine; the stub does not check it.
         ...(engine.token === '' ? {} : { BEACON_API_TOKEN: engine.token }),
-        BEACON_NO_SYNTHETIC: '1',
         // Nothing should reach GitHub from a test run.
         BEACON_NO_UPDATE: '1'
       }

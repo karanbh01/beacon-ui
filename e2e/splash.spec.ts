@@ -13,15 +13,12 @@ async function launch(engineUrl: string, profile: string): Promise<ElectronAppli
     env: {
       ...process.env,
       BEACON_SERVER_URL: engineUrl,
-      BEACON_NO_SYNTHETIC: '1',
       BEACON_NO_UPDATE: '1'
     }
   })
 }
 
-test('both buttons are outside the drag region, or they cannot be clicked', async ({
-  engine
-}, testInfo) => {
+test('Start is outside the drag region, or it cannot be clicked', async ({ engine }, testInfo) => {
   const app = await launch(engine.url, testInfo.outputPath('profile'))
   const splash = await splashWindow(app)
   await splash.getByRole('button', { name: 'Start' }).waitFor()
@@ -31,8 +28,8 @@ test('both buttons are outside the drag region, or they cannot be clicked', asyn
    *
    * The whole splash surface is a drag region, and on one the OS takes a
    * press as "move the window" before the renderer sees a click. Start and
-   * Data settings shipped without opting out and were dead to the mouse,
-   * while the tests below — which click both — kept passing: Playwright
+   * a Data settings button beside it shipped without opting out and were
+   * dead to the mouse, while the tests below kept passing: Playwright
    * dispatches input through the debugger, which never consults the
    * drag-region hit test. So this asks the computed style instead.
    */
@@ -42,7 +39,7 @@ test('both buttons are outside the drag region, or they cannot be clicked', asyn
     )
   )
 
-  expect(regions).toEqual(['no-drag', 'no-drag'])
+  expect(regions).toEqual(['no-drag'])
   await app.close()
 })
 
@@ -105,52 +102,6 @@ test('holds the app back until Start is pressed', async ({ engine }, testInfo) =
       )
     )
     .toBe(true)
-
-  await app.close()
-})
-
-test('opens data settings, and closes back to the splash', async ({ engine }, testInfo) => {
-  const app = await launch(engine.url, testInfo.outputPath('profile'))
-  const splash = await splashWindow(app)
-
-  await splash.getByRole('button', { name: 'Data settings…' }).click()
-
-  /*
-   * Polled rather than `waitForEvent`.
-   *
-   * The window can be created before the listener attaches, and a missed
-   * event never replays — which showed up as a pass alone and a failure
-   * under full-suite load, the signature of exactly that race.
-   */
-  await expect
-    .poll(() => app.windows().some((candidate) => candidate.url().includes('#settings')), {
-      timeout: 30_000
-    })
-    .toBe(true)
-  const settings = app.windows().find((candidate) => candidate.url().includes('#settings'))
-  if (settings === undefined) throw new Error('the settings window did not open')
-
-  await expect(settings.getByRole('textbox', { name: 'Store location' })).toBeVisible()
-  // Nothing changed, so there is nothing to save.
-  await expect(settings.getByRole('button', { name: 'Save and restart' })).toBeDisabled()
-
-  /*
-   * Replacing the data lives here too (BU-116).
-   *
-   * Reached from the splash, this is the one moment a rebuild is free: the
-   * app has not started, so there is nothing to interrupt. Only the offer is
-   * exercised — accepting it deletes the store and takes minutes, and main
-   * asks through the OS dialog, which a test must not be answering.
-   */
-  await expect(settings.getByRole('button', { name: 'Replace the data…' })).toBeEnabled()
-
-  await settings.getByRole('textbox', { name: 'Store location' }).fill('D:/mine')
-  // Still enabled: it follows what is SAVED, and nothing has been saved.
-  await expect(settings.getByRole('button', { name: 'Replace the data…' })).toBeEnabled()
-
-  await settings.getByRole('button', { name: 'Cancel' }).click()
-  await expect.poll(() => app.windows().some((c) => c.url().includes('#settings'))).toBe(false)
-  await expect(splash.getByRole('button', { name: 'Start' })).toBeVisible()
 
   await app.close()
 })

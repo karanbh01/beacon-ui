@@ -81,13 +81,6 @@ export interface EngineState {
   dataVersion?: string
   /** Consecutive failed starts; drives the restart backoff. */
   restarts?: number
-  /**
-   * Why the store this app generated is behind what it would generate now
-   * (BU-89), in words a person can read. Absent when there is nothing to say
-   * — and always absent for a store this app did not write, which it has no
-   * standing to judge.
-   */
-  stale?: string
 }
 
 /**
@@ -120,27 +113,6 @@ export interface UpdateState {
  * a pure function of them. Only the save dialog and the write need main, so
  * that is all that crosses.
  */
-export interface RegenerateResult {
-  /** False when the user cancelled the confirmation, which is not an error. */
-  started: boolean
-  /** Why it could not run — `BEACON_DATA_PATH`, or a failure part way. */
-  problem?: string
-}
-
-/**
- * How the engine should find its data (BU-111).
- *
- * These are the two environment variables `shouldGenerate` already reads,
- * made settable from inside the app for anyone who never opens a terminal.
- * A real environment variable still wins — see `environmentFor`.
- */
-export interface DataSettings {
-  /** Empty means py-beacon's own app-data location. */
-  storePath: string
-  /** Generate a synthetic store when there is nothing at that location. */
-  synthetic: boolean
-}
-
 export interface SaveRequest {
   /** Offered in the dialog, and the basis for the extension filter. */
   suggestedName: string
@@ -195,16 +167,6 @@ export interface IpcContract {
     request: undefined
     response: undefined
   }
-  /**
-   * Throw the demo store away and build a new one (BU-107).
-   *
-   * Confirms with the user in main before destroying anything, so the answer
-   * says whether it actually ran rather than assuming it did.
-   */
-  'engine:regenerate': {
-    request: undefined
-    response: RegenerateResult
-  }
   'update:state': {
     request: undefined
     response: UpdateState
@@ -241,28 +203,9 @@ export interface IpcContract {
     response: SaveResult
   }
   /**
-   * Open a URL in the user's browser (BU-112).
-   *
-   * Main refuses anything but http(s), because the renderer is the least
-   * trusted place in the app to be handing `shell.openExternal` a string —
-   * `file:` and the OS's own schemes are how that call becomes a way to run
-   * things.
+   * Ask for a folder holding a data store, to open (BU-215). Empty when
+   * dismissed.
    */
-  'data:settings': {
-    request: undefined
-    response: DataSettings
-  }
-  /**
-   * Save them and restart the engine against the result.
-   *
-   * Answers with what was stored, since the engine may have been pointed at
-   * a location that turns out to hold nothing.
-   */
-  'data:saveSettings': {
-    request: DataSettings
-    response: DataSettings
-  }
-  /** Ask the user for a folder. Empty when they dismissed the dialog. */
   'data:chooseStore': {
     request: undefined
     response: { path: string }
@@ -276,15 +219,14 @@ export interface IpcContract {
     request: undefined
     response: { paths: string[] }
   }
-  /** The splash opening its settings window, and that window closing itself. */
-  'window:openSettings': {
-    request: undefined
-    response: undefined
-  }
-  'window:closeSettings': {
-    request: undefined
-    response: undefined
-  }
+  /**
+   * Open a URL in the user's browser (BU-112).
+   *
+   * Main refuses anything but http(s), because the renderer is the least
+   * trusted place in the app to be handing `shell.openExternal` a string —
+   * `file:` and the OS's own schemes are how that call becomes a way to run
+   * things.
+   */
   'shell:openExternal': {
     request: { url: string }
     response: undefined
@@ -353,8 +295,6 @@ export interface BeaconBridge {
     /** Begin startup. A second call while it is already running does nothing. */
     start: () => Promise<void>
     restart: () => Promise<void>
-    /** Replaces the synthetic store. Asks first. */
-    regenerate: () => Promise<RegenerateResult>
     /** Returns an unsubscribe function. */
     onChange: (listener: (state: EngineState) => void) => () => void
   }
@@ -396,11 +336,7 @@ export interface BeaconBridge {
     openExternal: (url: string) => Promise<void>
   }
   data: {
-    settings: () => Promise<DataSettings>
-    saveSettings: (settings: DataSettings) => Promise<DataSettings>
     chooseStore: () => Promise<{ path: string }>
     chooseFiles: () => Promise<{ paths: string[] }>
-    openSettingsWindow: () => Promise<void>
-    closeSettingsWindow: () => Promise<void>
   }
 }

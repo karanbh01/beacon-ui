@@ -12,19 +12,16 @@ export interface SplashProgress {
 }
 
 /**
- * Four stages, because there are four and they are not instant.
- *
- * The engine already reports its own lifecycle, and BU-57 added a step that
- * genuinely takes a while on first run — generating 512 assets of synthetic
- * data. A bar animated to look busy would be lying about the one moment the
- * user actually waits.
+ * The engine's real startup, rather than a bar animated to look busy.
  *
  * Nothing at all until Start is pressed, which is the point of pressing it.
  *
  * The stages are inferred from what `EngineState` already carries rather than
- * from a new channel: `detail` names the generation step, and `baseUrl`
- * appears only once the server has announced its port, which is what
- * separates "spawning" from "waiting for it to answer".
+ * from a new channel: `baseUrl` appears only once the server has announced
+ * its port, which is what separates "spawning" from "waiting for it to
+ * answer". There was a stage for generating synthetic data before the engine
+ * started (BU-57); the engine generates on request now, after it is up, and
+ * the footer reports that instead (BU-215).
  */
 export function splashProgress(engine: EngineState): SplashProgress | undefined {
   // Nothing has been asked of the engine yet, so there is nothing to report
@@ -46,12 +43,6 @@ export function splashProgress(engine: EngineState): SplashProgress | undefined 
 
   if (engine.status === 'degraded') {
     return { fraction: 0.75, label: 'Reconnecting to the engine…', ready: false, failed: false }
-  }
-
-  // `starting`. The detail is the only thing that distinguishes generation,
-  // which is the slow one and the only stage worth naming specifically.
-  if ((engine.detail ?? '').includes('synthetic')) {
-    return { fraction: 0.5, label: 'Generating market data…', ready: false, failed: false }
   }
 
   if (engine.baseUrl !== undefined) {

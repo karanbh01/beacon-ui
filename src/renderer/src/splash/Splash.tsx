@@ -71,10 +71,10 @@ export function Splash({ version }: SplashProps): ReactElement {
   /*
    * Start IS the launch (BU-115).
    *
-   * Nothing loads until it is pressed: main spawns no python and generates no
-   * data before this call, which is what makes the settings button beside it
-   * useful — a store location is only cheap to change before a store has been
-   * written to it.
+   * Nothing loads until it is pressed: main spawns no python before this
+   * call. There was a Data settings button beside it, for choosing a store
+   * location before anything was generated into it; the engine keeps its own
+   * stores now, chosen from the Data menu once it is running (BU-215).
    *
    * A failed startup turns the button into a retry. The engine backs off and
    * tries again on its own, but "stopped" means it has given up, and then the
@@ -147,13 +147,6 @@ export function Splash({ version }: SplashProps): ReactElement {
       <div className="splash-actions">
         <Button variant="accent" onClick={start} disabled={pressed && progress?.failed !== true}>
           {startLabel(pressed, progress?.failed === true)}
-        </Button>
-        <Button
-          onClick={() => {
-            void window.beacon?.data.openSettingsWindow()
-          }}
-        >
-          Data settings…
         </Button>
       </div>
 

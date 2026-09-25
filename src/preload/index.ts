@@ -5,8 +5,6 @@ import {
   UPDATE_CHANGED,
   type AppInfo,
   type BeaconBridge,
-  type DataSettings,
-  type RegenerateResult,
   type SaveResult,
   type EngineState,
   type OpenedReport,
@@ -23,7 +21,6 @@ const bridge: BeaconBridge = {
     state: () => ipcRenderer.invoke('engine:state') as Promise<EngineState>,
     start: () => ipcRenderer.invoke('engine:start') as Promise<void>,
     restart: () => ipcRenderer.invoke('engine:restart') as Promise<void>,
-    regenerate: () => ipcRenderer.invoke('engine:regenerate') as Promise<RegenerateResult>,
     onChange: (listener) => {
       const handler = (_event: unknown, state: EngineState): void => {
         listener(state)
@@ -79,13 +76,8 @@ const bridge: BeaconBridge = {
     openExternal: (url) => ipcRenderer.invoke('shell:openExternal', { url }) as Promise<void>
   },
   data: {
-    settings: () => ipcRenderer.invoke('data:settings') as Promise<DataSettings>,
-    saveSettings: (settings) =>
-      ipcRenderer.invoke('data:saveSettings', settings) as Promise<DataSettings>,
     chooseStore: () => ipcRenderer.invoke('data:chooseStore') as Promise<{ path: string }>,
-    chooseFiles: () => ipcRenderer.invoke('data:chooseFiles') as Promise<{ paths: string[] }>,
-    openSettingsWindow: () => ipcRenderer.invoke('window:openSettings') as Promise<void>,
-    closeSettingsWindow: () => ipcRenderer.invoke('window:closeSettings') as Promise<void>
+    chooseFiles: () => ipcRenderer.invoke('data:chooseFiles') as Promise<{ paths: string[] }>
   }
 }
 

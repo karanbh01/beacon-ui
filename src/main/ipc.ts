@@ -11,13 +11,10 @@ import {
   type IpcRequest,
   type IpcResponse,
   type OpenedReport,
-  type RegenerateResult,
   type SaveResult,
   type UpdateState
 } from '@shared/ipc'
-import { readSettings, writeSettings } from './dataSettings'
 import { externalUrl } from './externalUrl'
-import { closeSettingsWindow, openSettingsWindow } from './settingsWindow'
 import type { Engine } from './engine/engine'
 import type { Updater } from './updater'
 
@@ -71,41 +68,6 @@ export function registerIpcHandlers(
 
   handle('engine:state', (): EngineState => engine.getState())
 
-  /*
-   * Replacing the demo store (BU-107).
-   *
-   * Confirmed through the OS dialog rather than a renderer modal: it discards
-   * a couple of hundred megabytes and leaves the app without data for about
-   * two minutes, which is the kind of thing that deserves the platform's own
-   * "are you sure" rather than a div.
-   */
-  handle('engine:regenerate', async (event): Promise<RegenerateResult> => {
-    const window = senderWindow(event)
-    const message = {
-      type: 'warning' as const,
-      buttons: ['Replace', 'Cancel'],
-      defaultId: 1,
-      cancelId: 1,
-      title: 'Replace the data store',
-      message: 'Replace the synthetic data store?',
-      detail:
-        'The current store is deleted and a new one generated. This takes a couple of minutes, and the app has no data until it finishes.\n\nYour universes, indices and watchlists are kept.'
-    }
-
-    const answer =
-      window === null
-        ? await dialog.showMessageBox(message)
-        : await dialog.showMessageBox(window, message)
-    if (answer.response !== 0) return { started: false }
-
-    try {
-      await engine.regenerate()
-      return { started: true }
-    } catch (cause) {
-      return { started: false, problem: cause instanceof Error ? cause.message : String(cause) }
-    }
-  })
-
   handle('engine:start', () => {
     engine.start()
     return undefined
@@ -115,7 +77,7 @@ export function registerIpcHandlers(
    * One confirmation, asked the way the platform asks (BU-144).
    *
    * Cancel is the default and the escape key, so a stray Enter cannot delete
-   * anything — the same shape as the regenerate dialog above.
+   * anything.
    */
   handle('dialog:confirm', async (event, request): Promise<boolean> => {
     const window = senderWindow(event)
@@ -202,36 +164,13 @@ export function registerIpcHandlers(
     return { saved: true, path: chosen.filePath }
   })
 
-  /*
-   * Opening a link outside the app (BU-112).
-   *
-   * Scheme-checked here rather than trusted from the caller. `openExternal`
-   * hands the string to the OS, so `file:`, `ms-settings:` and friends turn a
-   * link into a way to launch things — and the renderer is the part of the
-   * app most likely to be handed a URL by something else.
-   */
-  handle('data:settings', () => readSettings())
-
-  /*
-   * Saving restarts the engine (BU-111).
-   *
-   * These decide where data comes from and whether any is generated, and the
-   * engine reads them when it spawns — so a save that did not restart would
-   * store a preference with no effect until next launch, which is the kind of
-   * setting people press twice.
-   */
-  handle('data:saveSettings', (_event, request) => {
-    const settings = { storePath: request.storePath.trim(), synthetic: request.synthetic }
-    writeSettings(settings)
-    engine.restart()
-    return settings
-  })
-
   handle('data:chooseStore', async (event) => {
     const window = senderWindow(event)
     const options = {
-      title: 'Choose a data store',
-      properties: ['openDirectory' as const, 'createDirectory' as const]
+      title: 'Open a data folder',
+      // No createDirectory: the folder has to hold a store already, and an
+      // empty one made here would only be refused by the engine.
+      properties: ['openDirectory' as const]
     }
     const chosen =
       window === null
@@ -259,16 +198,14 @@ export function registerIpcHandlers(
     return { paths: chosen.canceled ? [] : chosen.filePaths }
   })
 
-  handle('window:openSettings', (event) => {
-    openSettingsWindow(senderWindow(event))
-    return undefined
-  })
-
-  handle('window:closeSettings', () => {
-    closeSettingsWindow()
-    return undefined
-  })
-
+  /*
+   * Opening a link outside the app (BU-112).
+   *
+   * Scheme-checked here rather than trusted from the caller. `openExternal`
+   * hands the string to the OS, so `file:`, `ms-settings:` and friends turn a
+   * link into a way to launch things — and the renderer is the part of the
+   * app most likely to be handed a URL by something else.
+   */
   handle('shell:openExternal', async (_event, request) => {
     const url = externalUrl(request.url)
     if (url === undefined) return undefined

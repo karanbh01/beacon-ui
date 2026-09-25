@@ -5,6 +5,7 @@ import type { EngineState, UpdateState } from '@shared/ipc'
 import { registerAppScheme, serveRenderer } from './appProtocol'
 import { Engine } from './engine/engine'
 import { forwardEngineChanges, forwardUpdateChanges, registerIpcHandlers } from './ipc'
+import { handOverOnConnect } from './savedStore'
 import { Updater } from './updater'
 import { createSplashWindow } from './splash'
 import { createMainWindow, revealMainWindow } from './window'
@@ -64,6 +65,13 @@ engine.on('change', (state: EngineState) => {
   const detail = state.detail === undefined ? '' : ` — ${state.detail}`
   process.stderr.write(`[engine] ${new Date().toISOString()} ${state.status}${detail}\n`)
 })
+
+// A store location an older build saved goes to the engine's registry on the
+// first connect, rather than on to the engine as BEACON_DATA_PATH (BU-215).
+handOverOnConnect(
+  (listener) => engine.on('change', listener),
+  (line) => process.stderr.write(`[data] ${line}`)
+)
 
 void app.whenReady().then(() => {
   // Only needed when there is no dev server; in dev the renderer is served

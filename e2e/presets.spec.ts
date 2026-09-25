@@ -174,7 +174,6 @@ test('presets outlive the app that saved them', async ({ engine }, testInfo) => 
       env: {
         ...process.env,
         BEACON_SERVER_URL: engine.url,
-        BEACON_NO_SYNTHETIC: '1',
         BEACON_NO_UPDATE: '1'
       }
     })

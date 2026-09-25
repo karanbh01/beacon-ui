@@ -5,11 +5,7 @@ import type { EngineState } from '@shared/ipc'
 import { Splash } from './Splash'
 import { splashProgress, type SplashProgress } from './splashProgress'
 
-/**
- * The bar tracks the engine's real startup rather than being animated to look
- * busy — BU-57 added a step that genuinely takes a while on first run, and
- * that is the one moment the user actually waits.
- */
+/** The bar tracks the engine's real startup rather than being animated to look busy. */
 describe('splashProgress', () => {
   /** Every case below has something to report; only `idle` does not. */
   const at = (engine: EngineState): SplashProgress => {
@@ -26,18 +22,6 @@ describe('splashProgress', () => {
 
   it('starts once the engine has been asked for, before it has said anything', () => {
     expect(at({ status: 'starting' })).toMatchObject({ fraction: 0.2, ready: false })
-  })
-
-  it('names generation, which is the slow one', () => {
-    // Inferred from `detail` rather than a new channel: the engine already
-    // says what it is doing and a second source could disagree with it.
-    const generating = at({
-      status: 'starting',
-      detail: 'generating synthetic data — first run only'
-    })
-
-    expect(generating.label).toBe('Generating market data…')
-    expect(generating.fraction).toBe(0.5)
   })
 
   it('separates spawning from waiting for an answer', () => {
@@ -70,7 +54,6 @@ interface Stubs {
   start?: () => Promise<void>
   restart?: () => Promise<void>
   splashDone?: () => Promise<void>
-  openSettingsWindow?: () => Promise<void>
 }
 
 /** The bridge, with only the calls a given test cares about spied on. */
@@ -83,7 +66,6 @@ function stub(engine: EngineState, calls: Stubs = {}): void {
       onChange: () => () => undefined
     },
     update: { state: () => Promise.resolve({ status: 'idle' }), onChange: () => () => undefined },
-    data: { openSettingsWindow: calls.openSettingsWindow ?? (() => Promise.resolve()) },
     window: {
       splashDone: calls.splashDone ?? (() => Promise.resolve()),
       isMaximized: () => Promise.resolve(false),
@@ -119,9 +101,7 @@ describe('Splash', () => {
   })
 
   it('starts the engine when Start is pressed, and not before', async () => {
-    // BU-115. Nothing loads until the button is pressed: no python, no
-    // generation. That is what makes the settings beside it worth having,
-    // since a store location is only cheap to change before a store exists.
+    // BU-115. Nothing loads until the button is pressed: no python.
     const start = vi.fn(() => Promise.resolve())
     const splashDone = vi.fn(() => Promise.resolve())
     stub({ status: 'connected' }, { start, splashDone })
@@ -180,15 +160,5 @@ describe('Splash', () => {
     expect(restart).toHaveBeenCalledTimes(1)
     expect(start).not.toHaveBeenCalled()
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument()
-  })
-
-  it('offers the data settings, which is the point of waiting', async () => {
-    const openSettingsWindow = vi.fn(() => Promise.resolve())
-    stub({ status: 'starting' }, { openSettingsWindow })
-
-    render(<Splash version="0.0.1" />)
-    await userEvent.click(screen.getByRole('button', { name: 'Data settings…' }))
-
-    expect(openSettingsWindow).toHaveBeenCalledTimes(1)
   })
 })

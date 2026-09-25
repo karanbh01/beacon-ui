@@ -13,21 +13,6 @@ import type { EngineState } from '@shared/ipc'
 import type { components } from '@shared/api.generated'
 import { restartDelay, shouldGiveUp } from './backoff'
 import { SERVER_MODULE, locatePython, parsePort } from './python'
-import {
-  environmentFor,
-  readProvenance,
-  readSettings,
-  staleReason,
-  writeProvenance,
-  type StoreProvenance
-} from '../dataSettings'
-import {
-  generateArgs,
-  generateSynthetic,
-  readStoreStatus,
-  removeStore,
-  shouldGenerate
-} from './synthetic'
 
 /** How often to confirm the server is still answering. */
 const HEALTH_INTERVAL_MS = 4_000
@@ -165,10 +150,6 @@ export class Engine extends EventEmitter {
   private stopping = false
   /** True from the first `start()` until `stop()`. Guards a second launch. */
   private launched = false
-  /** True while `regenerate` owns the lifecycle, so nothing else spawns. */
-  private rebuilding = false
-  /** Written this session, waiting for a server to say which version wrote it. */
-  private unstamped: StoreProvenance | undefined
   private readonly token: string
   private readonly options: EngineOptions
 
@@ -218,15 +199,15 @@ export class Engine extends EventEmitter {
   /**
    * Start supervising.
    *
-   * Called when the splash's Start is pressed, not at app launch (BU-115):
-   * generating a store is minutes of work, and the settings that decide where
-   * it lands sit on the same window. Doing it before the user has said go
-   * meant the one moment those settings are cheap to change had already
-   * passed.
+   * Called when the splash's Start is pressed, not at app launch (BU-115).
    *
-   * Idempotent, because Start is a button and buttons get pressed twice. A
-   * second call while a store is being generated would run a second generator
-   * over the same directory.
+   * Idempotent, because Start is a button and buttons get pressed twice, and
+   * a second call would spawn a second server.
+   *
+   * The engine starts whether or not it has data (BU-215). It used to wait
+   * here while this app generated a store for it; py-beacon 0.1.2 generates
+   * its own, on request, into a folder it manages, and an engine with nothing
+   * loaded is a state the app reports rather than one it prevents.
    *
    * With BEACON_SERVER_URL set we attach to an externally-run server and
    * never spawn — that is the dev loop where py-beacon is being edited in
@@ -235,11 +216,6 @@ export class Engine extends EventEmitter {
   start(): void {
     if (this.launched) return
     this.launched = true
-
-    // A rebuild is already holding the lifecycle and will spawn when it is
-    // done — it now knows the app has been asked for. Spawning here would
-    // race the generator it is running.
-    if (this.rebuilding) return
 
     this.stopping = false
     const external = this.options.serverUrl
@@ -253,106 +229,7 @@ export class Engine extends EventEmitter {
       this.beginHealthPolling()
       return
     }
-    void this.prepareData().then(() => {
-      if (!this.stopping) this.spawnServer()
-    })
-  }
-
-  /**
-   * Give the server something to serve, if nothing else has (BU-57).
-   *
-   * py-beacon auto-loads a store from its app-data directory, so generating
-   * one there is all it takes. Never runs when a store already exists or when
-   * the user has named their own via `$BEACON_DATA_PATH` — a demo store
-   * written over real data would be unforgivable, so the check is a guard
-   * rather than a preference.
-   *
-   * Failure here is not fatal. The server still starts; it starts without
-   * data, which is exactly where it was before, and says so.
-   */
-  private async prepareData(): Promise<void> {
-    const python = this.python()
-
-    try {
-      // The saved settings, folded in: they say where the store is and
-      // whether to generate one, and a real environment variable outranks
-      // them (BU-111).
-      const status = await readStoreStatus(python)
-      if (!shouldGenerate(status, this.environment())) return
-
-      this.setState({
-        status: 'starting',
-        detail: 'generating synthetic data — first run only',
-        restarts: this.attempt
-      })
-      this.emit(
-        'log',
-        `generating synthetic data into ${status.path}
-`
-      )
-
-      await generateSynthetic(python, {
-        onLog: (line) => {
-          this.emit('log', line)
-        }
-      })
-      this.recordProvenance()
-    } catch (cause) {
-      const reason = cause instanceof Error ? cause.message : String(cause)
-      this.emit(
-        'log',
-        `synthetic data unavailable: ${reason}
-`
-      )
-    }
-  }
-
-  /**
-   * Stamp what was generated, and with what (BU-89).
-   *
-   * Only ever written after THIS app generates a store, which is what makes
-   * the marker meaningful: its presence is the difference between "we made
-   * this and may replace it" and "this is somebody's data, leave it".
-   *
-   * The version has to wait. Generation runs before the server is up, and
-   * /health is the only thing that reports py-beacon's version — asking
-   * python separately would be a second answer that could disagree with the
-   * one the footer shows. So the marker lands now, dated and with its
-   * arguments, and `stampVersion` fills the version on the first connect.
-   */
-  private recordProvenance(): void {
-    const provenance: StoreProvenance = {
-      engineVersion: '',
-      args: generateArgs(),
-      generatedAt: new Date().toISOString()
-    }
-    writeProvenance(provenance)
-    this.unstamped = provenance
-  }
-
-  /** Finish a marker this session left waiting for a version. */
-  private stampVersion(version: string): void {
-    const pending = this.unstamped
-    if (pending === undefined) return
-    this.unstamped = undefined
-    writeProvenance({ ...pending, engineVersion: version })
-  }
-
-  /**
-   * Whether the store is behind what this build would generate (BU-89).
-   *
-   * Only ever an opinion about a store this app wrote. No marker means the
-   * store is not ours, and `BEACON_DATA_PATH` means the user has named it
-   * theirs — in both cases there is nothing to offer and nothing to say.
-   */
-  private staleness(version: string): string | undefined {
-    if ((this.environment().BEACON_DATA_PATH ?? '').trim() !== '') return undefined
-    return staleReason(readProvenance(), version, generateArgs())
-  }
-
-  /** The real environment with the saved data settings folded in (BU-111). */
-  private environment(): NodeJS.ProcessEnv {
-    return environmentFor(readSettings(), process.env)
+    this.spawnServer()
   }
 
   private python(): string {
@@ -372,7 +249,7 @@ export class Engine extends EventEmitter {
 
     const launch = this.options.spawnImpl ?? spawn
     const child = launch(python, ['-m', SERVER_MODULE, '--port', '0'], {
-      env: { ...this.environment(), BEACON_API_TOKEN: this.token, PYTHONUNBUFFERED: '1' },
+      env: { ...process.env, BEACON_API_TOKEN: this.token, PYTHONUNBUFFERED: '1' },
       stdio: ['ignore', 'pipe', 'pipe']
     })
     this.child = child
@@ -452,18 +329,12 @@ export class Engine extends EventEmitter {
       const body = (await response.json()) as HealthResponse
       this.attempt = 0
 
-      // Reading the marker is a file read, so it happens on the transition
-      // rather than on every four-second poll that reports the same thing.
-      const settled = this.state.status === 'connected' && this.state.version === body.version
-      if (!settled) this.stampVersion(body.version)
-
       this.setState({
         status: 'connected',
         version: body.version,
         detail: undefined,
         restarts: 0,
-        ...dataStateOf(body),
-        ...(settled ? {} : { stale: this.staleness(body.version) })
+        ...dataStateOf(body)
       })
     } catch {
       this.fail('health check did not respond')
@@ -502,86 +373,9 @@ export class Engine extends EventEmitter {
   }
 
   /** Explicit restart, e.g. from the UI. Resets the backoff. */
-  /**
-   * Throw the demo store away and build a new one (BU-107).
-   *
-   * The opposite of `prepareData`, which refuses to touch an existing store —
-   * that guard protects someone who has real data at the app-data path, and
-   * it stays. This is the explicit override: the user asked, in the app, for
-   * this store to be replaced.
-   *
-   * `BEACON_DATA_PATH` still refuses. Naming a source is the strongest signal
-   * that the data is the user's rather than ours, and no button should
-   * overwrite it — the caller confirms with the user, not with the engine.
-   */
-  async regenerate(): Promise<void> {
-    if ((this.environment().BEACON_DATA_PATH ?? '').trim() !== '') {
-      throw new Error('BEACON_DATA_PATH names your own data store, so this will not replace it.')
-    }
-
-    const python = this.python()
-
-    // Down first: the server holds the files open, and on Windows a delete
-    // under an open handle fails rather than waiting.
-    this.clearTimers()
-    this.killChild()
-    this.setState({ status: 'starting', detail: 'replacing the data store', restarts: 0 })
-
-    // The lifecycle is ours until this finishes; `start` defers to it rather
-    // than spawning a second server alongside the one below.
-    this.rebuilding = true
-
-    try {
-      const removed = await removeStore(python)
-      this.emit(
-        'log',
-        `${removed ? 'removed the existing data store' : 'no store to remove'}
-`
-      )
-
-      this.setState({ status: 'starting', detail: 'generating synthetic data', restarts: 0 })
-      await generateSynthetic(python, {
-        onLog: (line) => {
-          this.emit('log', line)
-        }
-      })
-      this.recordProvenance()
-    } finally {
-      this.rebuilding = false
-      this.attempt = 0
-      this.stopping = false
-
-      /*
-       * Only start what has been asked for.
-       *
-       * Replacing the store from the splash's data settings is a request to
-       * rebuild the data, not to launch the app — Start is what does that
-       * (BU-115). Read at the END rather than the beginning, because Start
-       * may well have been pressed during the couple of minutes this takes,
-       * and then the app is owed the engine it asked for.
-       *
-       * A running engine is owed one back either way: a failed generation
-       * leaves the server startable, just with less to serve.
-       */
-      if (this.launched) {
-        this.spawnServer()
-      } else {
-        // Back to untouched: a new store, and nothing running to serve it.
-        // A stale baseUrl would point at the server just killed.
-        this.setState({
-          status: 'idle',
-          detail: undefined,
-          baseUrl: undefined,
-          token: undefined,
-          restarts: 0
-        })
-      }
-    }
-  }
-
   restart(): void {
     // Nothing to restart before Start has been pressed, and starting here
-    // would defeat it — saving data settings on the splash calls this.
+    // would defeat it.
     if (!this.launched) return
 
     this.clearTimers()
