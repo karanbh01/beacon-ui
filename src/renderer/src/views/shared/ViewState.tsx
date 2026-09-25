@@ -100,16 +100,38 @@ function findingsOf(detail: Fault['detail']): FindingRow[] {
   })
 }
 
+/**
+ * How many findings there were in all, when the list sent is only some.
+ *
+ * py-beacon caps `findings` at 200 and publishes the full count as
+ * `detail.total` (BN-239) — an import can refuse thousands of rows. Without
+ * this a reader sees 200 and reasonably believes that is all of them, which
+ * is the schedule that returned four dates of twenty-seven, again.
+ */
+function totalOf(detail: Fault['detail'], listed: number): number {
+  const total = detail?.total
+  return typeof total === 'number' && total > listed ? total : listed
+}
+
 function FindingList({ fault }: { fault: Fault }): ReactElement | null {
   const findings = findingsOf(fault.detail)
   if (findings.length === 0) return null
+  const unlisted = totalOf(fault.detail, findings.length) - findings.length
+
   return (
     <ul className="view-state-findings type-11">
-      {findings.map((finding) => (
-        <li key={`${finding.path}-${finding.message}`}>
+      {findings.map((finding, at) => (
+        // Position in the key: a static list, and one file can raise the
+        // same message twice for the same cell.
+        <li key={`${String(at)}-${finding.path}`}>
           {finding.path !== '' && <code>{finding.path}</code>} {finding.message}
         </li>
       ))}
+      {unlisted > 0 && (
+        <li className="view-state-findings-more">
+          and {unlisted.toLocaleString('en-US')} more the engine found but did not list
+        </li>
+      )}
     </ul>
   )
 }

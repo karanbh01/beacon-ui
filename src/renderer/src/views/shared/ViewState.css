@@ -29,3 +29,11 @@
 .view-state-findings code {
   color: var(--text-primary);
 }
+
+/* The count past the engine's cap: a fact about the list, not a finding. */
+.view-state-findings-more {
+  list-style: none;
+  margin-left: -16px;
+  color: var(--text-muted);
+  font-style: italic;
+}

@@ -228,3 +228,58 @@ describe('an engine without usable data (BU-213, BN-236)', () => {
     expect(screen.getByText(/no data source is configured/)).toBeInTheDocument()
   })
 })
+
+describe('findings past the engine’s cap (BN-239)', () => {
+  /*
+   * py-beacon caps `detail.findings` at 200 and publishes the full count as
+   * `detail.total`, because an import can refuse thousands of rows. A list
+   * that stops at 200 with nothing after it reads as complete.
+   */
+  const finding = (row: number) => ({
+    path: `market, row ${String(row)}, DATE`,
+    message: 'not a date',
+    code: 'BAD_DATE',
+    severity: 'error'
+  })
+
+  it('says how many more there were', () => {
+    const refused = new ApiError(422, {
+      code: 'INVALID_RULE',
+      message: 'Invalid rule: import. Reason: 5000 rows are invalid',
+      detail: { findings: [finding(2), finding(3)], total: 5000 }
+    })
+    render(<ViewError error={refused} />)
+    expect(screen.getByText(/and 4,998 more the engine found but did not list/)).toBeInTheDocument()
+  })
+
+  it('says nothing more when the list is the whole of it', () => {
+    const refused = new ApiError(422, {
+      code: 'INVALID_RULE',
+      message: 'Invalid rule',
+      detail: { findings: [finding(2)], total: 1 }
+    })
+    render(<ViewError error={refused} />)
+    expect(screen.queryByText(/more the engine found/)).not.toBeInTheDocument()
+  })
+
+  it('trusts the list when an older engine sends no total', () => {
+    const refused = new ApiError(422, {
+      code: 'INVALID_RULE',
+      message: 'Invalid rule',
+      detail: { findings: [finding(2), finding(3)] }
+    })
+    render(<ViewError error={refused} />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('renders the same finding twice without colliding', () => {
+    // One file can raise the same message for the same cell twice.
+    const refused = new ApiError(422, {
+      code: 'INVALID_RULE',
+      message: 'Invalid rule',
+      detail: { findings: [finding(4), finding(4)] }
+    })
+    render(<ViewError error={refused} />)
+    expect(screen.getAllByText(/market, row 4, DATE/)).toHaveLength(2)
+  })
+})
