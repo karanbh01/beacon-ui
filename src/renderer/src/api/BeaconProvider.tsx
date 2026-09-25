@@ -6,7 +6,7 @@ import { IdentifierIndexProvider } from '../views/shared/IdentifierIndexProvider
 import { createClient } from './client'
 import { eventsUrl, parseEvent } from './events'
 import { useJobs } from './jobs'
-import { invalidationsFor } from './keys'
+import { invalidationsFor, invalidationsForLoad } from './keys'
 import { ClientContext, makeQueryClient } from './queryClient'
 
 /** Reconnect delay for the event socket. */
@@ -69,6 +69,33 @@ export function BeaconProvider({
     if (connected && !wasConnected.current) void queries.invalidateQueries()
     wasConnected.current = connected
   }, [status, queries])
+
+  /*
+   * Different data, same engine (BU-216).
+   *
+   * `data_version` changes whenever the served data does, and main carries it
+   * off the /health poll it already runs. This is what catches a load that
+   * finished while the event socket was down but the engine stayed up — no
+   * job event arrived, the reconnect above does not fire, and without this
+   * every list on screen would describe the previous dataset under the new
+   * one's name.
+   *
+   * The immediate path already exists: a load is a job, and a succeeded job
+   * invalidates everything below. This is the one that makes it CORRECT.
+   *
+   * Only a change between two known tokens counts. The first sighting is not
+   * a change, and an engine before py-beacon 0.1.2 publishes no token at all.
+   */
+  const lastDataVersion = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    const previous = lastDataVersion.current
+    lastDataVersion.current = engine.dataVersion
+    if (previous === undefined || engine.dataVersion === undefined) return
+    if (previous === engine.dataVersion) return
+    for (const key of invalidationsForLoad()) {
+      void queries.invalidateQueries({ queryKey: key })
+    }
+  }, [engine.dataVersion, queries])
 
   useEffect(() => {
     if (baseUrl === undefined || token === undefined || status !== 'connected') return undefined

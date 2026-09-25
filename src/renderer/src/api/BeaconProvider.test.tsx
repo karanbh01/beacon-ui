@@ -305,3 +305,106 @@ describe('reconnecting to an engine (BU-86)', () => {
     })
   })
 })
+
+describe('different data under the same engine (BU-216)', () => {
+  /*
+   * A load that finishes while the event socket is down, with the engine up
+   * throughout: no job event arrives, the reconnect handler does not fire,
+   * and every list on screen goes on describing the previous dataset.
+   * `data_version` — carried off main's /health poll — is what notices.
+   */
+  const at = (dataVersion?: string): EngineState => ({
+    status: 'connected',
+    baseUrl: 'http://127.0.0.1:1',
+    token: 't',
+    ...(dataVersion === undefined ? {} : { dataVersion })
+  })
+
+  function mounted(queries: QueryClient, engine: EngineState) {
+    const socket = (): WebSocket => new FakeSocket() as unknown as WebSocket
+    const view = render(
+      <BeaconProvider engine={engine} queryClient={queries} socketFactory={socket}>
+        <p>pane</p>
+      </BeaconProvider>
+    )
+    return (next: EngineState): void => {
+      view.rerender(
+        <BeaconProvider engine={next} queryClient={queries} socketFactory={socket}>
+          <p>pane</p>
+        </BeaconProvider>
+      )
+    }
+  }
+
+  /** Which prefixes were invalidated, as strings, after the connect settled. */
+  function invalidatedAfter(queries: QueryClient): { keys: () => string[] } {
+    const invalidate = vi.spyOn(queries, 'invalidateQueries')
+    invalidate.mockClear()
+    return {
+      keys: () =>
+        invalidate.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey ?? 'everything'))
+    }
+  }
+
+  it('drops what was derived from the data when the token changes', async () => {
+    const queries = new QueryClient()
+    const rerender = mounted(queries, at('a1'))
+    await waitFor(() => undefined)
+    const seen = invalidatedAfter(queries)
+
+    rerender(at('b2'))
+
+    expect(seen.keys()).toContain(JSON.stringify(keys.data.all()))
+    // GLOBAL is reseeded for a new dataset, so its members are the old data's.
+    expect(seen.keys()).toContain(JSON.stringify(keys.strategy.universes()))
+  })
+
+  it('leaves the documents the user wrote alone', async () => {
+    // A load changes no index definition, template or constraint set.
+    const queries = new QueryClient()
+    const rerender = mounted(queries, at('a1'))
+    await waitFor(() => undefined)
+    const seen = invalidatedAfter(queries)
+
+    rerender(at('b2'))
+
+    expect(seen.keys()).not.toContain(JSON.stringify(keys.strategy.indices()))
+    expect(seen.keys()).not.toContain(JSON.stringify('everything'))
+  })
+
+  it('does nothing when the token is unchanged', async () => {
+    // Main republishes only on a change, but a rerender for any other reason
+    // must not refetch the world.
+    const queries = new QueryClient()
+    const rerender = mounted(queries, at('a1'))
+    await waitFor(() => undefined)
+    const seen = invalidatedAfter(queries)
+
+    rerender(at('a1'))
+
+    expect(seen.keys()).toEqual([])
+  })
+
+  it('treats the first sighting as knowledge, not as a change', async () => {
+    const queries = new QueryClient()
+    const rerender = mounted(queries, at())
+    await waitFor(() => undefined)
+    const seen = invalidatedAfter(queries)
+
+    rerender(at('a1'))
+
+    expect(seen.keys()).toEqual([])
+  })
+
+  it('never fires against an engine that publishes no token', async () => {
+    // Before py-beacon 0.1.2 there is no data_version at all.
+    const queries = new QueryClient()
+    const rerender = mounted(queries, at())
+    await waitFor(() => undefined)
+    const seen = invalidatedAfter(queries)
+
+    rerender(at())
+
+    expect(seen.keys()).toEqual([])
+  })
+})

@@ -10,6 +10,7 @@ import {
 import type { Readable } from 'node:stream'
 import { EventEmitter } from 'node:events'
 import type { EngineState } from '@shared/ipc'
+import type { components } from '@shared/api.generated'
 import { restartDelay, shouldGiveUp } from './backoff'
 import { SERVER_MODULE, locatePython, parsePort } from './python'
 import {
@@ -36,9 +37,50 @@ const START_TIMEOUT_MS = 30_000
 
 const HEALTH_TIMEOUT_MS = 2_500
 
-export interface HealthResponse {
-  status: string
-  version: string
+/**
+ * `/health`, as py-beacon publishes it.
+ *
+ * Was a hand-written two-field mirror — `status` and `version` — which was
+ * all this read. It reads the data source now too, and a mirror that grows
+ * one field at a time is the thing that goes stale; the generated type does
+ * not.
+ */
+export type HealthResponse = components['schemas']['HealthResponse']
+
+/**
+ * The data the engine is serving, flattened for the change check.
+ *
+ * Read defensively: an engine before py-beacon 0.1.2 publishes none of these,
+ * and the generated type describes the newer one. Each field is set only
+ * when present, so "absent" stays absent rather than becoming "not loaded" —
+ * a footer that turned red against every older engine would be reporting a
+ * version gap as missing data.
+ */
+type DataFields = Pick<EngineState, 'dataLoaded' | 'dataLoading' | 'dataStore' | 'dataVersion'>
+
+/**
+ * Every key, every time the engine reports a data source.
+ *
+ * `setState` merges over the previous state and drops keys set to
+ * `undefined`. So a field that is merely OMITTED keeps its old value — the
+ * name of a store unloaded a minute ago would go on showing — while one set
+ * to `undefined` is cleared. Omitting is only right when the engine sent no
+ * data source at all.
+ *
+ * The widening to `Partial` is the honest direction: the generated type
+ * describes py-beacon 0.1.2, and the engine at the other end may be older.
+ */
+function dataStateOf(
+  body: HealthResponse
+): { [K in keyof DataFields]: DataFields[K] | undefined } | Record<string, never> {
+  const source = body.data_source as Partial<components['schemas']['DataSourceStatus']> | undefined
+  if (source === undefined) return {}
+  return {
+    dataLoaded: typeof source.configured === 'boolean' ? source.configured : undefined,
+    dataLoading: typeof source.loading === 'boolean' ? source.loading : undefined,
+    dataStore: typeof source.store_name === 'string' ? source.store_name : undefined,
+    dataVersion: typeof source.data_version === 'string' ? source.data_version : undefined
+  }
 }
 
 function sameState(a: EngineState, b: EngineState): boolean {
@@ -420,6 +462,7 @@ export class Engine extends EventEmitter {
         version: body.version,
         detail: undefined,
         restarts: 0,
+        ...dataStateOf(body),
         ...(settled ? {} : { stale: this.staleness(body.version) })
       })
     } catch {

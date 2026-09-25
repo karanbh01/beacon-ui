@@ -95,6 +95,28 @@ export const keys = {
  * mapping lives here rather than at the call site — otherwise every view would
  * have to know which datasets it depends on.
  */
+/**
+ * Which query prefixes a change of the SERVED DATA invalidates (BU-216).
+ *
+ * Everything derived from market or reference data: the data prefixes, the
+ * index views (computed from market data, which is why a market freshness
+ * event drops them too), and the universes — py-beacon reseeds GLOBAL for a
+ * new dataset, so its members belong to the old data.
+ *
+ * NOT the documents the user wrote: index definitions, report templates,
+ * constraint sets, and the engine's catalogues of rule types and calendars.
+ * A load does not change any of them, and refetching them all would be safe
+ * and wasteful. Getting this line right is the point — too little and the
+ * app shows the old data's lists under the new data's name.
+ */
+export function invalidationsForLoad(): readonly (readonly string[])[] {
+  return [
+    ...invalidationsFor('market'),
+    keys.strategy.universes(),
+    ['strategy', 'universe-members']
+  ]
+}
+
 export function invalidationsFor(dataset: string): readonly (readonly string[])[] {
   if (dataset === 'market') {
     // Prices, corporate actions and anything derived from them. Index views

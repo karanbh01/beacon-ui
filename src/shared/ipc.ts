@@ -56,6 +56,29 @@ export interface EngineState {
   token?: string
   /** Human-readable reason when degraded or stopped. */
   detail?: string
+  /*
+   * What data the engine is serving, from the same /health poll that sets
+   * `version` (BU-215, BU-216). Flat primitives rather than one `data`
+   * object, deliberately: main republishes only on a change and compares
+   * fields with `!==`, so a nested object would be a fresh one on every poll
+   * and re-render the app every four seconds forever.
+   *
+   * All absent from an engine before py-beacon 0.1.2, which does not publish
+   * them — and absent is not "nothing loaded".
+   */
+  /** True when data is loaded. False means the engine is running with none. */
+  dataLoaded?: boolean
+  /** True while a store loads; the previous data is served until it finishes. */
+  dataLoading?: boolean
+  /** What is being served, in the engine's words. */
+  dataStore?: string
+  /**
+   * Opaque token that changes whenever the served data does — every load,
+   * the same store re-activated included, and a sync that merges rows.
+   * Random rather than a counter, so a restarted engine cannot bring an old
+   * value back. Compare for equality only.
+   */
+  dataVersion?: string
   /** Consecutive failed starts; drives the restart backoff. */
   restarts?: number
   /**

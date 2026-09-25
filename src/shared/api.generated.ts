@@ -334,6 +334,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Files */
+        post: operations["import_files_data_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/import/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Template */
+        get: operations["template_data_import_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/data/prices/{identifier}": {
         parameters: {
             query?: never;
@@ -394,6 +428,98 @@ export interface paths {
         get: operations["reference_data_reference__identifier__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Stores */
+        get: operations["list_stores_data_stores_get"];
+        put?: never;
+        /**
+         * Register Store
+         * @description Register a folder or a database, checking it can be read first.
+         *
+         *     A database is connected to and read in full before it is registered,
+         *     so a store that is registered is one that loaded at least once. Its
+         *     problems are refused with one finding each, as an import's are.
+         */
+        post: operations["register_store_data_stores_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/stores/{store_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Store */
+        get: operations["get_store_data_stores__store_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Forget Store
+         * @description Forget a store.
+         *
+         *     A folder the user registered is left exactly as it is. A store the
+         *     engine created (`managed`) has its folder deleted too, since nothing
+         *     else knows it is there.
+         */
+        delete: operations["forget_store_data_stores__store_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename Store */
+        patch: operations["rename_store_data_stores__store_id__patch"];
+        trace?: never;
+    };
+    "/data/stores/{store_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate Store */
+        post: operations["activate_store_data_stores__store_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/synthetic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate
+         * @description Generate synthetic data into a new store, and serve it by default.
+         *
+         *     The store is registered at once, so it appears in `GET /data/stores`
+         *     while it is being written (not yet readable). If generation fails or
+         *     is cancelled, it is removed again.
+         */
+        post: operations["generate_data_synthetic_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1286,7 +1412,10 @@ export interface components {
         BacktestJobStatus: {
             /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
-            /** Job Id */
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
             job_id: string;
             /**
              * Kind
@@ -2101,19 +2230,166 @@ export interface components {
         };
         /**
          * DataSourceStatus
-         * @description Whether this process has a data source, and how much it covers.
+         * @description Whether data is loaded, how much, and from where.
          */
         DataSourceStatus: {
             /**
              * Configured
-             * @description True when a DataFetcher is attached.
+             * @description True when data is loaded.
              */
             configured: boolean;
+            /**
+             * Data Version
+             * @description An opaque token that changes whenever the data being served changes: at startup, on every store load (the same store loaded again included), and after a sync. Compare it for equality only: if it differs from the value a client cached against, the client's copy is stale. Never reused, even across engine restarts. The `data.loaded` and `data.freshness` events carry the new value.
+             * @default
+             */
+            data_version: string;
             /**
              * Identifiers
              * @description Distinct identifiers in market data.
              */
             identifiers: number;
+            /**
+             * Loading
+             * @description True while a data store is being loaded. The data served until it finishes is the previous store's.
+             * @default false
+             */
+            loading: boolean;
+            /**
+             * Store Id
+             * @description The registered data store being served. Null when nothing is loaded, or when the data came from `--data` or `BEACON_DATA_PATH` rather than a registered store.
+             */
+            store_id?: string | null;
+            /**
+             * Store Name
+             * @description A name for what is being served: the store's name, or where unregistered data came from. Null when nothing is loaded.
+             */
+            store_name?: string | null;
+        };
+        /**
+         * DataStore
+         * @description One registered data store.
+         */
+        DataStore: {
+            /**
+             * Active
+             * @description Whether this is the store the engine is serving.
+             */
+            active: boolean;
+            /** @description For a Postgres store, its connection details. */
+            connection?: components["schemas"]["PostgresConnection"] | null;
+            /**
+             * Created At
+             * @description When it was registered, ISO 8601 UTC.
+             */
+            created_at: string;
+            /**
+             * Id
+             * @description Stable id, from the name it was created with.
+             */
+            id: string;
+            /**
+             * Kind
+             * @description What the store is physically.
+             * @enum {string}
+             */
+            kind: "folder" | "postgres";
+            /**
+             * Last Loaded At
+             * @description When the engine last loaded it, ISO 8601 UTC. Null if never.
+             */
+            last_loaded_at?: string | null;
+            /**
+             * Managed
+             * @description True for a store the engine created, such as generated synthetic data, in its own folder. Deleting a managed store deletes its files; deleting any other store only forgets it and leaves the folder alone.
+             * @default false
+             */
+            managed: boolean;
+            /**
+             * Name
+             * @description Display name.
+             */
+            name: string;
+            /**
+             * Path
+             * @description Where the store is: a folder, or a database described without its password.
+             */
+            path: string;
+            /**
+             * Readable
+             * @description Whether the store can be read now. A folder that has been moved or deleted stays registered but is not readable.
+             */
+            readable: boolean;
+            /**
+             * Size Bytes
+             * @description Size of the store's files. Null when it cannot be read.
+             */
+            size_bytes?: number | null;
+            /**
+             * Source
+             * @description Where the rows came from, as the store records it: 'synthetic' for generated data, 'imported' for data loaded from files, 'yfinance' for downloaded prices, 'local' for a folder written another way. Null when the store cannot be read.
+             */
+            source?: string | null;
+        };
+        /**
+         * DataStoreCollection
+         * @description Response of `GET /data/stores`.
+         */
+        DataStoreCollection: {
+            /**
+             * Active
+             * @description The id of the store being served, or null when none is, or when the data came from `--data` or `BEACON_DATA_PATH` rather than a registered store.
+             */
+            active?: string | null;
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
+            /**
+             * Stores
+             * @description Every readable registered store, in name order.
+             */
+            stores: components["schemas"]["DataStore"][];
+        };
+        /**
+         * DataStoreCreate
+         * @description Body of `POST /data/stores`: register an existing store.
+         */
+        DataStoreCreate: {
+            /** @description For a Postgres database: where to connect. */
+            connection?: components["schemas"]["PostgresConnection"] | null;
+            /**
+             * Kind
+             * @description 'folder' for a py-beacon data folder, 'postgres' for a database.
+             * @default folder
+             * @enum {string}
+             */
+            kind: "folder" | "postgres";
+            /**
+             * Name
+             * @description Display name, e.g. 'My data'. Also the basis of the store's id.
+             */
+            name: string;
+            /**
+             * Path
+             * @description For a folder: its absolute path on the machine the engine runs on.
+             */
+            path?: string | null;
+        };
+        /**
+         * DataStoreUpdate
+         * @description Body of `PATCH /data/stores/{store_id}`.
+         */
+        DataStoreUpdate: {
+            /**
+             * Name
+             * @description The new display name. The id does not change.
+             */
+            name: string;
         };
         /**
          * DatasetCoverage
@@ -2776,6 +3052,143 @@ export interface components {
             time_to_expiry: number;
         };
         /**
+         * GenerateJobStatus
+         * @description A `generate:{store_id}` job. `result` describes the new store.
+         */
+        GenerateJobStatus: {
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
+            job_id: string;
+            /**
+             * Kind
+             * @description What the job is, e.g. 'backtest'.
+             */
+            kind: string;
+            /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
+             * Progress
+             * @description Fraction complete, 0.0 to 1.0.
+             */
+            progress: number;
+            /** @description Present only once the job has succeeded; null otherwise. */
+            result?: components["schemas"]["GenerateResult"] | null;
+            /**
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             */
+            status: string;
+        };
+        /**
+         * GenerateResult
+         * @description Result payload of a completed `generate:{store_id}` job (BN-237).
+         */
+        GenerateResult: {
+            /**
+             * Activated
+             * @description Whether the engine is now serving it.
+             */
+            activated: boolean;
+            /**
+             * Name
+             * @description Its display name.
+             */
+            name: string;
+            /**
+             * Path
+             * @description The folder the engine wrote it to.
+             */
+            path: string;
+            /**
+             * Store Id
+             * @description The new store's id.
+             */
+            store_id: string;
+        };
+        /**
+         * GenerateSyntheticRequest
+         * @description Body of `POST /data/synthetic`: generate a synthetic data store.
+         *
+         *     Every field is optional. Anything left out takes the same default as
+         *     `python -m beacon.synthetic`, because the engine runs that command: the
+         *     same settings always give the same data, whichever way it was made.
+         */
+        GenerateSyntheticRequest: {
+            /**
+             * Activate
+             * @description Serve the new store as soon as it is written.
+             * @default true
+             */
+            activate: boolean;
+            /**
+             * Assets
+             * @description How many names. Default 6,000, or 10,000 with `extended_universe`.
+             */
+            assets?: number | null;
+            /**
+             * Calendar
+             * @description Exchange code whose trading days the data has prices on. Default XNYS.
+             */
+            calendar?: string | null;
+            /**
+             * End
+             * @description Last date. Default today.
+             */
+            end?: string | null;
+            /**
+             * Equity Premium
+             * @description Annualised excess return on a beta-one name, as a decimal.
+             */
+            equity_premium?: number | null;
+            /**
+             * Extended Universe
+             * @description 10,000 names instead of 6,000. Ignored when `assets` is given.
+             * @default false
+             */
+            extended_universe: boolean;
+            /**
+             * Features
+             * @description Include fundamental ratios and alternative data.
+             * @default true
+             */
+            features: boolean;
+            /**
+             * Long History
+             * @description Reach back to cover every crisis the generator models. Ignored when `start` is given.
+             * @default false
+             */
+            long_history: boolean;
+            /**
+             * Name
+             * @description Display name for the new store.
+             * @default Synthetic data
+             */
+            name: string;
+            /**
+             * Risk Free Rate
+             * @description Annualised, as a decimal.
+             */
+            risk_free_rate?: number | null;
+            /**
+             * Seed
+             * @description Everything random is drawn from this, so the same seed and settings always give the same data.
+             */
+            seed?: number | null;
+            /**
+             * Start
+             * @description First date. Default ten years before `end`, or the start of the crises the generator models with `long_history`.
+             */
+            start?: string | null;
+        };
+        /**
          * HealthResponse
          * @description Response of `GET /health`.
          */
@@ -2875,6 +3288,39 @@ export interface components {
              * @default
              */
             version: string;
+        };
+        /**
+         * ImportRequest
+         * @description Body of `POST /data/import`: load CSV files or an Excel workbook.
+         */
+        ImportRequest: {
+            /**
+             * Activate
+             * @description Load the new store as soon as it is saved.
+             * @default true
+             */
+            activate: boolean;
+            /**
+             * Name
+             * @description Display name for the new store.
+             * @default Imported data
+             */
+            name: string;
+            /**
+             * Paths
+             * @description Absolute paths on the machine the engine runs on: CSV files named after their sheet (market.csv, reference.csv, ...), or one Excel workbook with those sheets. `GET /data/import/template` has the layout.
+             */
+            paths: string[];
+        };
+        /**
+         * ImportResult
+         * @description Response of `POST /data/import`.
+         */
+        ImportResult: {
+            /** @description The job loading it, when `activate` was set and no other load was running. Null otherwise: the store is saved and can be activated later. */
+            load_job?: components["schemas"]["LoadJobStatus"] | null;
+            /** @description The new store, saved and registered. */
+            store: components["schemas"]["DataStore"];
         };
         /**
          * IndexBooksPayload
@@ -3043,7 +3489,10 @@ export interface components {
         JobStatus: {
             /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
-            /** Job Id */
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
             job_id: string;
             /**
              * Kind
@@ -3073,6 +3522,73 @@ export interface components {
             status: string;
         };
         /**
+         * LoadJobStatus
+         * @description A `load:{store_id}` job. `result` describes the store now served.
+         */
+        LoadJobStatus: {
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
+            job_id: string;
+            /**
+             * Kind
+             * @description What the job is, e.g. 'backtest'.
+             */
+            kind: string;
+            /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
+             * Progress
+             * @description Fraction complete, 0.0 to 1.0.
+             */
+            progress: number;
+            /** @description Present only once the job has succeeded; null otherwise. */
+            result?: components["schemas"]["LoadResult"] | null;
+            /**
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             */
+            status: string;
+        };
+        /**
+         * LoadResult
+         * @description Result payload of a completed `load:{store_id}` job (BN-236).
+         */
+        LoadResult: {
+            /**
+             * End
+             * @description Latest date held, ISO 8601.
+             */
+            end?: string | null;
+            /**
+             * Identifiers
+             * @description Distinct identifiers in its market data.
+             */
+            identifiers: number;
+            /**
+             * Name
+             * @description Its display name.
+             */
+            name: string;
+            /**
+             * Start
+             * @description Earliest date held, ISO 8601.
+             */
+            start?: string | null;
+            /**
+             * Store Id
+             * @description The store now being served.
+             */
+            store_id: string;
+        };
+        /**
          * NotNode
          * @description The negation of an expression: `expressions.core.Not`.
          */
@@ -3091,7 +3607,10 @@ export interface components {
         OptimisationJobStatus: {
             /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
-            /** Job Id */
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
             job_id: string;
             /**
              * Kind
@@ -3378,6 +3897,44 @@ export interface components {
              * @description Dates the weights panel actually covers; larger than the rows served when the panel was truncated.
              */
             weights_dates_total: number;
+        };
+        /**
+         * PostgresConnection
+         * @description Where a Postgres store's tables or views are. Read-only.
+         */
+        PostgresConnection: {
+            /**
+             * Database
+             * @description The database name.
+             */
+            database: string;
+            /**
+             * Host
+             * @description The database server.
+             */
+            host: string;
+            /**
+             * Password Env
+             * @description The environment variable holding the password, read each time the engine connects. The password itself is never sent to the engine or saved. Null when the server needs none.
+             */
+            password_env?: string | null;
+            /**
+             * Port
+             * @description The server's port.
+             * @default 5432
+             */
+            port: number;
+            /**
+             * Schema
+             * @description The schema holding tables or views named market, reference, and optionally fx, corporate_actions and features, with the import template's columns.
+             * @default public
+             */
+            schema: string;
+            /**
+             * User
+             * @description The user to connect as. Read access is all it needs.
+             */
+            user: string;
         };
         /**
          * PreviewAsset
@@ -3845,7 +4402,10 @@ export interface components {
         RenderJobStatus: {
             /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
-            /** Job Id */
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
             job_id: string;
             /**
              * Kind
@@ -4064,7 +4624,10 @@ export interface components {
         RiskModelJobStatus: {
             /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
-            /** Job Id */
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
             job_id: string;
             /**
              * Kind
@@ -4482,7 +5045,10 @@ export interface components {
         SyncJobStatus: {
             /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
-            /** Job Id */
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
             job_id: string;
             /**
              * Kind
@@ -6925,6 +7491,198 @@ export interface operations {
             };
         };
     };
+    import_files_data_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The files cannot be read, or rows have problems: one finding per problem in detail.findings. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    template_data_import_template_get: {
+        parameters: {
+            query?: {
+                /** @description 'xlsx' for an Excel workbook, 'csv' for a zip of CSV files. */
+                format?: "xlsx" | "csv";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A blank template with one example row per sheet. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                    "application/zip": unknown;
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     prices_data_prices__identifier__get: {
         parameters: {
             query?: {
@@ -7156,6 +7914,695 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReferenceResponse"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_stores_data_stores_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataStoreCollection"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    register_store_data_stores_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataStoreCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataStore"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The engine's state refuses the request: a store is already loading, the store is the one being served, or the folder is already registered. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_store_data_stores__store_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                store_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataStore"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    forget_store_data_stores__store_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                store_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The engine's state refuses the request: a store is already loading, the store is the one being served, or the folder is already registered. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rename_store_data_stores__store_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                store_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataStoreUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataStore"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    activate_store_data_stores__store_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                store_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadJobStatus"];
+                };
+            };
+            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The engine's state refuses the request: a store is already loading, the store is the one being served, or the folder is already registered. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    generate_data_synthetic_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["GenerateSyntheticRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateJobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -9464,7 +10911,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["SyncJobStatus"] | components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["SyncJobStatus"] | components["schemas"]["LoadJobStatus"] | components["schemas"]["GenerateJobStatus"] | components["schemas"]["JobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
@@ -9558,7 +11005,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["SyncJobStatus"] | components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["SyncJobStatus"] | components["schemas"]["LoadJobStatus"] | components["schemas"]["GenerateJobStatus"] | components["schemas"]["JobStatus"];
                 };
             };
             /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
