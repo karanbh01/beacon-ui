@@ -106,6 +106,15 @@ surprise later.
 `pnpm spec:refresh` re-exports `openapi.json` from the sibling py-beacon
 checkout and regenerates the client from it.
 
+The client is generated with openapi-typescript's default
+`defaultNonNullable: true`, so a field with a default is required in the
+generated type — in request bodies as well as responses, since py-beacon
+publishes one schema for both. That is right for responses: the engine
+always sends the field, and turning the option off breaks about twenty
+reads that would then need the engine's defaults restated as fallbacks.
+For requests it means sending a defaulted field (`refresh_from: 'source'`)
+explicitly. Requests are few, and the explicit value states the choice.
+
 CI runs the drift checks, format check, lint, typecheck, tests and the E2E
 suite on every push to `main` and every PR; the packaging dry-run runs on
 `main` only.
