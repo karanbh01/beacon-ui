@@ -142,24 +142,15 @@ function runSeries(base: number, drift: number): { index: string[]; data: number
 }
 
 /**
- * The portfolio's series from the initial capital (BN-246): 100 on the eve of
- * the first trading day, then the days. 2 January 2025 is a Thursday, so the
- * eve is the Wednesday before.
- */
-function fromCapital(days: { index: string[]; data: number[] }): typeof days {
-  return { index: ['2025-01-01T00:00:00', ...days.index], data: [100, ...days.data] }
-}
-
-/**
  * The result payload of a completed backtest.
  *
- * Since py-beacon BN-246 `level` opens on the eve of the first trading day
- * at the initial capital, so it is one point longer than `index_level` and
- * starts a day earlier — the opening trades' cost is its first return.
- * `index_level` still starts on day one.
+ * `level` and `index_level` both start on the first trading day. Since
+ * py-beacon BN-246 (as corrected in 5968c4b) `returns` has the same dates as
+ * `level` rather than one fewer: its first value is day one's return from
+ * the initial capital, which is the opening trades' cost.
  */
 function backtestResult(withBenchmark: boolean): Record<string, unknown> {
-  const level = fromCapital(runSeries(100, 0.0004))
+  const level = runSeries(100, 0.0004)
   const indexLevel = runSeries(100, 0.00042)
 
   return {
@@ -182,7 +173,11 @@ function backtestResult(withBenchmark: boolean): Record<string, unknown> {
      * the same picture. The Risk pane is safe today only because it
      * computes drawdown itself from the level series, which moves.
      */
-    returns: { index: level.index.slice(1), data: level.data.slice(1).map(() => 0.0004) },
+    returns: {
+      index: level.index,
+      // The opening trades' cost first, then the flat days.
+      data: level.data.map((_, day) => (day === 0 ? -0.0008 : 0.0004))
+    },
     drawdown: { index: level.index, data: level.data.map(() => 0) },
     annual_returns: { '2025': 0.1042, '2026': 0.0631 },
     metrics: {
