@@ -37,6 +37,15 @@ jobs:
       - name: Icon drift
         run: pnpm run icons:check
 
+      # Ubuntu 24.04 runners restrict unprivileged user namespaces through
+      # AppArmor. Chromium's sandbox needs them, and without them Electron
+      # falls back to a setuid helper that is not root-owned in node_modules,
+      # so it aborts (SIGTRAP) rather than run unsandboxed. Lifted on the
+      # runner only; the app's own sandbox is unchanged. CI was red on this
+      # from BU-73 (6 Aug), when the first Electron step joined this job.
+      - name: Allow Chromium's sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       # The app icon, derived from build/icon-source.png. Under xvfb because
       # it runs Electron — nativeImage does the resizing and no window is
       # opened, but app.whenReady() still wants a display on Linux.
@@ -87,6 +96,14 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      # Ubuntu 24.04 runners restrict unprivileged user namespaces through
+      # AppArmor. Chromium's sandbox needs them, and without them Electron
+      # falls back to a setuid helper that is not root-owned in node_modules,
+      # so it aborts (SIGTRAP) rather than run unsandboxed. Lifted on the
+      # runner only; the app's own sandbox is unchanged.
+      - name: Allow Chromium's sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       # No `playwright install` — these tests drive the Electron binary that
       # is already a dependency, not a downloaded browser.
