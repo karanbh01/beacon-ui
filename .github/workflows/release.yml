@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
     inputs:
       py_beacon_ref:
-        description: 'py-beacon ref to bundle'
-        default: main
+        description: 'py-beacon git ref to bundle instead of the pinned release (not for releases)'
+        default: ''
 
 permissions:
   contents: write
@@ -68,22 +68,23 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # ~450 MB of interpreter and wheels (ADR-0003). The key covers the
-      # script because the pinned release and the py-beacon source both live
-      # in it — changing either has to invalidate this.
+      # script, which pins the interpreter, and apiVersion.ts, which pins
+      # py-beacon — changing either has to invalidate this.
       - name: Cache python payload
         uses: actions/cache@v4
         with:
           path: node_modules/.cache/python-standalone
-          key: python-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('scripts/fetch-python.mjs') }}
+          key: python-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('scripts/fetch-python.mjs', 'src/shared/apiVersion.ts') }}
 
       - name: Build
         run: pnpm run build
 
       - name: Bundled python
-        # Pinning py-beacon is what makes a release reproducible; `main` is a
-        # moving target and only the default because most runs are dry ones.
+        # The release GENERATED_AGAINST names, from PyPI, unless a manual run
+        # asks for a git ref. A tag push has no inputs, so it always bundles
+        # the pinned release.
         env:
-          PY_BEACON_REF: ${{ inputs.py_beacon_ref || 'main' }}
+          PY_BEACON_REF: ${{ inputs.py_beacon_ref }}
         run: node scripts/fetch-python.mjs --arch ${{ matrix.arch }}
 
       - name: Package and publish

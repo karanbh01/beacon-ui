@@ -71,10 +71,11 @@ waiting for an answer.
 - **package.json is the version, not the tag.** electron-builder ignores the
   tag, so the workflow fails the build when they disagree rather than
   publishing a release whose contents contradict its name.
-- **The bundled py-beacon defaults to `main`.** A release built today and one
-  built next week from the same tag can therefore differ. `PY_BEACON_REF` is
-  a workflow input so a release can pin it; making that pin mandatory is
-  worth doing once py-beacon starts tagging.
+- **The bundled py-beacon is the release the client was generated against.**
+  It defaulted to `main` until py-beacon tagged, so a release built today and
+  one built next week from the same tag could differ. Since 0.2.0 it is
+  `py-beacon-kit==GENERATED_AGAINST` from PyPI (BU-209); `PY_BEACON_REF`
+  remains a workflow input for a dry run against an unreleased fix.
 - **Updates are all-or-nothing on macOS, differential on Windows.** NSIS
   emits a `.blockmap` beside the installer (verified — 165 KB next to the
   159 MB exe), so a Windows user re-downloads only the blocks that changed,

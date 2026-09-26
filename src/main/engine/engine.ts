@@ -12,7 +12,7 @@ import { EventEmitter } from 'node:events'
 import type { EngineState } from '@shared/ipc'
 import type { components } from '@shared/api.generated'
 import { restartDelay, shouldGiveUp } from './backoff'
-import { SERVER_MODULE, locatePython, parsePort } from './python'
+import { SERVER_MODULE, interpreterFlags, locatePython, parsePort } from './python'
 
 /** How often to confirm the server is still answering. */
 const HEALTH_INTERVAL_MS = 4_000
@@ -248,7 +248,8 @@ export class Engine extends EventEmitter {
     this.setState({ status: 'starting', detail: undefined, restarts: this.attempt })
 
     const launch = this.options.spawnImpl ?? spawn
-    const child = launch(python, ['-m', SERVER_MODULE, '--port', '0'], {
+    const flags = interpreterFlags(python, this.options.resourcesPath)
+    const child = launch(python, [...flags, '-m', SERVER_MODULE, '--port', '0'], {
       env: { ...process.env, BEACON_API_TOKEN: this.token, PYTHONUNBUFFERED: '1' },
       stdio: ['ignore', 'pipe', 'pipe']
     })

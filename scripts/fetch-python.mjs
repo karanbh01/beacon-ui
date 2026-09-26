@@ -9,7 +9,7 @@
 
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { createWriteStream, existsSync } from 'node:fs'
+import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import { mkdir, rm, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { pipeline } from 'node:stream/promises'
@@ -40,27 +40,44 @@ const ASSETS = {
 const BASE = `https://github.com/astral-sh/python-build-standalone/releases/download/${RELEASE}`
 
 /**
- * Where py-beacon comes from.
+ * Where py-beacon comes from: the release this client was generated against.
  *
- * A sibling checkout wins when there is one, so a packaging run on this
- * machine ships the py-beacon being worked on; CI has no checkout and falls
- * back to the git ref, which is the same source the spec-drift workflow
- * installs from.
+ * `GENERATED_AGAINST` is the version `spec:refresh` read off the spec, so an
+ * installer bundles exactly the engine whose contract the app was built
+ * for, from PyPI, and two builds of one commit bundle the same engine. It
+ * used to be a sibling checkout when there was one and git `main` when not —
+ * either of which could ship an engine no release contains (ADR-0004 said
+ * to pin once py-beacon tagged; 0.2.0 is its third tag).
+ *
+ * Two deliberate overrides, for builds that are not releases:
+ *
+ * - `PY_BEACON_REF=<ref>` installs that git ref — an unreleased fix.
+ * - `PY_BEACON_SOURCE=sibling` installs the sibling checkout, as this script
+ *   did by default before, to package the py-beacon being worked on.
  *
  * The DISTRIBUTION is `py-beacon-kit` since 0.1.0 (PyPI refused `py-beacon`
- * as too close to `pybeacon`); the import and the repo kept their names. A
- * direct reference names the distribution, so the git fallback broke on the
- * rename while the sibling path — which names none — went on working here.
- *
- * It is on PyPI now, and whether a RELEASE build should install the pinned
- * release rather than a git ref is BU-209's to decide, not this line's.
+ * as too close to `pybeacon`); the import and the repo kept their names.
  */
-const PY_BEACON_REF = process.env.PY_BEACON_REF ?? 'main'
+function generatedAgainst(root) {
+  const source = readFileSync(join(root, 'src', 'shared', 'apiVersion.ts'), 'utf-8')
+  const version = /GENERATED_AGAINST = '([^']+)'/.exec(source)?.[1]
+  if (version === undefined) throw new Error('No GENERATED_AGAINST in src/shared/apiVersion.ts')
+  return version
+}
 
 function pyBeaconRequirement(root) {
-  const sibling = resolve(root, '..', 'py-beacon')
-  if (existsSync(join(sibling, 'pyproject.toml'))) return `${sibling}[server]`
-  return `py-beacon-kit[server] @ git+https://github.com/karanbh01/py-beacon@${PY_BEACON_REF}`
+  const ref = (process.env.PY_BEACON_REF ?? '').trim()
+  if (ref !== '') return `py-beacon-kit[server] @ git+https://github.com/karanbh01/py-beacon@${ref}`
+
+  if (process.env.PY_BEACON_SOURCE === 'sibling') {
+    const sibling = resolve(root, '..', 'py-beacon')
+    if (!existsSync(join(sibling, 'pyproject.toml'))) {
+      throw new Error(`PY_BEACON_SOURCE=sibling, but there is no checkout at ${sibling}`)
+    }
+    return `${sibling}[server]`
+  }
+
+  return `py-beacon-kit[server]==${generatedAgainst(root)}`
 }
 
 function arg(name, fallback) {
@@ -170,7 +187,11 @@ async function main() {
   // module, not a console script.
   const requirement = pyBeaconRequirement(ROOT)
   console.log(`[python] source: ${requirement}`)
-  execFileSync(python, ['-m', 'pip', 'install', '--no-warn-script-location', requirement], {
+  // `-I`: isolated from the build machine's own Python. Without it pip counts
+  // packages in the user's site-packages as installed and leaves them out of
+  // the payload — an installer that works only where it was built. The app
+  // runs the bundle isolated too (interpreterFlags).
+  execFileSync(python, ['-I', '-m', 'pip', 'install', '--no-warn-script-location', requirement], {
     stdio: 'inherit'
   })
 

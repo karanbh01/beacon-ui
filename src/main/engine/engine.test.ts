@@ -6,6 +6,7 @@ import {
   PORT_PREFIX,
   SERVER_MODULE,
   bundledPython,
+  interpreterFlags,
   locatePython,
   parsePort,
   pythonCandidates
@@ -172,5 +173,26 @@ describe('the bundled interpreter (BU-33)', () => {
     const path = bundledPython(RESOURCES)
     expect(path.startsWith(join(RESOURCES))).toBe(true)
     expect(path).toMatch(/python(\.exe|3)$/)
+  })
+})
+
+describe('isolating the bundled interpreter (BU-209)', () => {
+  const RESOURCES = 'C:/Program Files/Beacon/resources'
+
+  it('runs the bundle isolated from the user’s own Python', () => {
+    /*
+     * Python puts the per-user site-packages ahead of the bundle's own, so a
+     * `pip install --user` numpy would replace the engine's. Found on a
+     * freshly built payload whose `pip check` listed packages nothing there
+     * had installed.
+     */
+    expect(interpreterFlags(bundledPython(RESOURCES), RESOURCES)).toEqual(['-I', '-u'])
+  })
+
+  it('leaves a development or chosen interpreter as it is', () => {
+    // A venv already excludes the user site; BEACON_PYTHON or PATH python is
+    // configured by whoever chose it.
+    expect(interpreterFlags('/work/py-beacon/.venv/bin/python', undefined)).toEqual([])
+    expect(interpreterFlags('/opt/py/bin/python', RESOURCES)).toEqual([])
   })
 })

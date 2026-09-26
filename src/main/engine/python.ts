@@ -54,6 +54,29 @@ export function bundledPython(resourcesPath: string): string {
 }
 
 /**
+ * Flags for the interpreter about to run the server.
+ *
+ * The bundled one runs isolated (`-I`), because a user's own Python
+ * environment otherwise reaches into it. Python puts the per-user
+ * site-packages (`%APPDATA%\Python\Python312\site-packages`, filled by
+ * `pip install --user`) AHEAD of the bundle's own, and honours PYTHONPATH:
+ * either would load that user's numpy, pandas or fastapi in place of the
+ * versions the bundled engine was installed with. Found by `pip check` on a
+ * freshly built payload listing packages nothing had installed there.
+ *
+ * `-I` also ignores PYTHONUNBUFFERED, which the spawn sets so the port is
+ * announced at once — so `-u` says the same thing as a flag.
+ *
+ * A venv already excludes the user site, and an interpreter named by
+ * BEACON_PYTHON or found on PATH is the developer's to configure: isolating
+ * those could hide a py-beacon installed the way they chose.
+ */
+export function interpreterFlags(python: string, resourcesPath: string | undefined): string[] {
+  if (resourcesPath === undefined || resourcesPath === '') return []
+  return python === bundledPython(resourcesPath) ? ['-I', '-u'] : []
+}
+
+/**
  * Candidate interpreters, most specific first.
  *
  * The bundled runtime wins when the app is packaged (ADR-0003): a shipped app
