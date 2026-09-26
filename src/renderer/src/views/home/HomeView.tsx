@@ -7,8 +7,8 @@ import {
   LineChartIcon,
   type IconProps
 } from '../../icons/generated'
-import { StatusPill } from '@/components/Badge/Badge'
-import { CHANGELOG, GUIDES, QUICKSTART, formatHomeDate } from './homeContent'
+import { GUIDES, QUICKSTART, formatHomeDate } from './homeContent'
+import { ReleaseList, type ReleaseListProps } from './ReleaseList'
 import { RecentActivity, type Activity } from './RecentActivity'
 import './HomeView.css'
 
@@ -26,6 +26,8 @@ export interface HomeViewProps {
   activity: readonly Activity[]
   onQuickstart: (page: string, tab: string) => void
   onOpenActivity?: (id: string) => void
+  /** The app's and the engine's versions, for the changelog's `current`. */
+  running?: ReleaseListProps['running']
 }
 
 /**
@@ -40,7 +42,8 @@ export function HomeView({
   today,
   activity,
   onQuickstart,
-  onOpenActivity
+  onOpenActivity,
+  running
 }: HomeViewProps): ReactElement {
   return (
     <div className="home">
@@ -82,17 +85,7 @@ export function HomeView({
 
         <section className="home-section home-changelog">
           <h2 className="type-section-label home-label">Changelog</h2>
-          {CHANGELOG.map((entry) => (
-            <div key={entry.version} className="home-changelog-entry">
-              <p className="home-changelog-version">
-                {entry.version}
-                {entry.pill !== undefined && (
-                  <StatusPill status={entry.pill.status}>{entry.pill.label}</StatusPill>
-                )}
-              </p>
-              <p className="home-changelog-summary">{entry.summary}</p>
-            </div>
-          ))}
+          <ReleaseList running={running ?? {}} />
         </section>
       </div>
 

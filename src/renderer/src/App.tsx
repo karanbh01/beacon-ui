@@ -241,6 +241,7 @@ function AppBody(): ReactElement {
       {page === HOME_PAGE ? (
         <HomeView
           today={today}
+          running={{ app: appVersion, engine: engine.version }}
           activity={activityRows(jobs, today.getTime())}
           onQuickstart={(target, tab) => {
             setPage(target)

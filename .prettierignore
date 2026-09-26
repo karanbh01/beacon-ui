@@ -27,3 +27,7 @@ openapi.json
 # whenever a permission is granted — formatting it is churn on a file that
 # is not project source and never reaches CI.
 .claude/
+
+# A byte-for-byte copy of py-beacon's changelog, made by spec:refresh for the
+# home page. py-beacon owns its format.
+py-beacon.CHANGELOG.md

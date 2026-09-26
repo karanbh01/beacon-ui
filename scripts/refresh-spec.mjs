@@ -12,7 +12,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -79,3 +79,9 @@ export const GENERATED_AGAINST = '${version}'
 )
 
 console.log(`Pinned py-beacon ${version} in src/shared/apiVersion.ts`)
+
+// py-beacon's changelog, for the home page (BU-219). Copied at the same
+// moment as the spec so the releases listed are the ones the client was
+// generated against, and committed so the app builds and runs offline.
+copyFileSync(join(repo, 'CHANGELOG.md'), join(root, 'py-beacon.CHANGELOG.md'))
+console.log('Copied py-beacon CHANGELOG.md to py-beacon.CHANGELOG.md')

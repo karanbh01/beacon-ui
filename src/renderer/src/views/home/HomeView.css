@@ -204,8 +204,29 @@
 
 /* ---- Changelog (40:295) ---------------------------------------------- */
 
+/*
+ * Both products' releases (BU-219). The column is the frame's 238px, so each
+ * release is one line until opened, and the list scrolls rather than pushing
+ * Guides down the page.
+ */
+.home-changelog-list {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
 .home-changelog-entry {
   margin-top: 6px;
+}
+
+.home-changelog-head {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  list-style: none;
+}
+
+.home-changelog-head::-webkit-details-marker {
+  display: none;
 }
 
 .home-changelog-version {
@@ -218,13 +239,44 @@
   color: var(--text-primary);
 }
 
-/* 11.5px is the frame's, not a rounding of 12 — the two sit side by side. */
+.home-changelog-product {
+  color: var(--text-muted);
+}
+
 .home-changelog-summary {
   margin: 4px 0 0;
   font-family: var(--font-ui);
   font-size: 11.5px;
   line-height: 20px;
   color: var(--text-secondary);
+}
+
+.home-changelog-date,
+.home-changelog-heading {
+  margin: 6px 0 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.home-changelog-notes ul {
+  margin: 2px 0 0;
+  padding-left: 14px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-secondary);
+}
+
+.home-changelog-notes li + li {
+  margin-top: 3px;
+}
+
+/* As the validation findings set code, which has no token of its own. */
+.home-changelog-entry code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
 }
 
 /* ---- Guides (71:188) -------------------------------------------------- */

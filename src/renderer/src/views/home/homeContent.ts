@@ -1,5 +1,3 @@
-import type { PillStatus } from '@/components/Badge/Badge'
-
 /**
  * The Home screen's fixed content (Figma 7:113).
  *
@@ -63,22 +61,6 @@ export const QUICKSTART: readonly QuickstartAction[] = [
     page: 'derivatives',
     tab: 'seed-futures'
   }
-]
-
-export interface ChangelogEntry {
-  version: string
-  /** `current` marks the running build; anything else is history. */
-  pill?: { label: string; status: PillStatus }
-  summary: string
-}
-
-export const CHANGELOG: readonly ChangelogEntry[] = [
-  {
-    version: 'v0.0.2',
-    pill: { label: 'current', status: 'info' },
-    summary: 'Derivatives module, asset views, lookthrough groundwork'
-  },
-  { version: 'v0.0.1', summary: 'Core index calculator, backtest engine, portfolio' }
 ]
 
 export interface Guide {

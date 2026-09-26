@@ -158,10 +158,19 @@ describe('HomeView', () => {
     expect(screen.queryByText(/Nothing has run yet/)).toBeNull()
   })
 
-  it('marks the running build in the changelog', () => {
-    render(<HomeView {...props} onQuickstart={vi.fn()} />)
+  it('lists both products’ releases, and marks what is running', () => {
+    /*
+     * BU-219. The list was two invented entries, one tagged "current" that
+     * was true of nothing running. Both changelogs now, and `current` on the
+     * engine's version only when the engine reports it.
+     */
+    render(<HomeView {...props} running={{ engine: '0.1.1' }} onQuickstart={vi.fn()} />)
 
-    expect(screen.getByText('v0.0.2')).toBeInTheDocument()
-    expect(screen.getByText('current')).toBeInTheDocument()
+    expect(screen.getAllByText('Beacon').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('py-beacon').length).toBeGreaterThan(0)
+    const current = screen.getByText('current').closest('.home-changelog-version')
+    expect(current?.textContent).toContain('py-beacon')
+    expect(current?.textContent).toContain('v0.1.1')
+    expect(screen.queryByText('v0.0.2')).toBeNull()
   })
 })
