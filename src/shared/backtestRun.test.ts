@@ -7,7 +7,10 @@ import { parseRecord, parseRun } from './backtestRun'
  * in the contract, and a job of another kind lands in the same field.
  */
 const RUN = {
-  level: { index: ['2025-01-02T00:00:00', '2025-01-03T00:00:00'], data: [100, 101.2] },
+  level: {
+    index: ['2025-01-01T00:00:00', '2025-01-02T00:00:00', '2025-01-03T00:00:00'],
+    data: [100, 99.9, 101.2]
+  },
   index_level: { index: ['2025-01-02T00:00:00', '2025-01-03T00:00:00'], data: [100, 101.4] },
   drawdown: { index: ['2025-01-02T00:00:00'], data: [0] },
   annual_returns: { '2025': 0.1042 },
@@ -24,7 +27,7 @@ describe('parseRun', () => {
     const run = parseRun(RUN)
 
     expect(run?.indexLevel.data).toEqual([100, 101.4])
-    expect(run?.level.data).toEqual([100, 101.2])
+    expect(run?.level.data).toEqual([100, 99.9, 101.2])
   })
 
   it('keeps "not measured" apart from measured', () => {
@@ -37,11 +40,18 @@ describe('parseRun', () => {
     )
   })
 
-  it('opens on the first trading day, with no day-zero row', () => {
-    // Verified against py-beacon d92e182: `level` and `index_level` are
-    // rebased trading-day series. Day zero belongs to `portfolio.nav` in the
-    // record payload, which has no route — so nothing is dropped here.
-    expect(parseRun(RUN)?.level.index[0]).toBe('2025-01-02T00:00:00')
+  it('opens the portfolio on the eve of trading, a day before the index', () => {
+    /*
+     * BN-246. The portfolio level starts at the initial capital on the eve of
+     * the first trading day, so the opening trades' cost is its first
+     * return; the index level still starts on day one. Read as sent, not
+     * aligned: a portfolio line beginning a day before the index is the true
+     * picture. Before BN-246 both started on day one (checked at d92e182).
+     */
+    const run = parseRun(RUN)
+    expect(run?.level.index[0]).toBe('2025-01-01T00:00:00')
+    expect(run?.indexLevel.index[0]).toBe('2025-01-02T00:00:00')
+    expect(run?.level.data.length).toBe((run?.indexLevel.data.length ?? 0) + 1)
   })
 
   it('refuses anything that is not a backtest result', () => {

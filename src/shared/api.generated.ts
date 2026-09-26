@@ -13,18 +13,18 @@ export interface paths {
         };
         /**
          * Backtest Records
-         * @description Every stored backtest record, newest first (BN-162).
+         * @description Every stored backtest record, newest first.
          *
-         *     The enumeration Beacon View's search bar needs: which indices HAVE a
-         *     record, and when each was captured. One row per index — the record
-         *     store keeps the latest run only — and the row is deliberately thin;
+         *     The enumeration Beacon View's search bar needs: which indices have a
+         *     record, and when each was captured. One row per index (the record
+         *     store keeps the latest run only), and the row is deliberately thin;
          *     `/beacon/{index_id}/record` serves the books.
          *
          *     A record that cannot be read is skipped with a warning rather than
-         *     failing the listing: one bad file must not hide every good one. Since
-         *     BN-174 "cannot be read" means the same thing here as at `/record`, and
-         *     the count of what was skipped is published beside the rows — a listing
-         *     silently short is indistinguishable from a complete one.
+         *     failing the listing: one bad file must not hide every good one.
+         *     "Cannot be read" means the same thing here as at `/record`, and the
+         *     count of what was skipped is published beside the rows, because a
+         *     listing silently short is indistinguishable from a complete one.
          */
         get: operations["backtest_records_beacon_backtests_get"];
         put?: never;
@@ -131,20 +131,20 @@ export interface paths {
          * Backtest Record
          * @description The latest run's books, nested: the record, not the derived view.
          *
-         *     `BacktestJobStatus.result` carries the run payload — rebased level,
-         *     returns, drawdown — which is what a chart wants. This is the other
-         *     half BN-155 shaped and BN-158 finally serves: the portfolio book with
-         *     its day-zero NAV, bounded positions and weights with true totals, and
-         *     the comparator books, null when the run had none.
+         *     `BacktestJobStatus.result` carries the run payload (rebased level,
+         *     returns, drawdown), which is what a chart wants. This is the other
+         *     half: the portfolio book with its day-zero NAV, bounded positions and
+         *     weights with true totals, and the comparator books, null when the run
+         *     had none.
          *
          *     Raises:
          *         DataNotFoundError: If the index has never been backtested
-         *             successfully — the same answer, and the same pointer, as the
-         *             overview. Since BN-174 a record that cannot be parsed or
-         *             validated answers the same way rather than 500ing: it is the
-         *             document the listing skips, and a stored artefact the server
-         *             cannot interpret is indistinguishable, from here, from one that
-         *             was never written. The fault is logged at WARNING.
+         *             successfully (the same answer, and the same pointer, as the
+         *             overview). A record that cannot be parsed or validated answers
+         *             the same way rather than with a 500: it is the document the
+         *             listing skips, and a stored artefact the server cannot
+         *             interpret is indistinguishable, from here, from one that was
+         *             never written. The fault is logged at WARNING.
          */
         get: operations["backtest_record_beacon__index_id__record_get"];
         put?: never;
@@ -240,8 +240,8 @@ export interface paths {
          *
          *     Kept so existing clients work. It refreshes the whole active store
          *     from its own source, whichever dataset is named; the body's fields
-         *     are ignored. It no longer downloads from Yahoo Finance unless the
-         *     store is set to refresh from it.
+         *     are ignored. It downloads from Yahoo Finance only when the store is
+         *     set to refresh from it.
          */
         post: operations["sync_data_coverage__dataset__sync_post"];
         delete?: never;
@@ -424,16 +424,10 @@ export interface paths {
          * @description One instrument's reference record, stored and derived.
          *
          *     `fields` and `currency` are honoured on the same terms as the batch
-         *     form: a parameter one of the two accepts and the other ignores is the
-         *     drift BN-149 closed here once already. Before it, `fields` was
-         *     accepted and ignored, so `market_cap` came back empty from here and
-         *     populated from `/data/reference` -- a parameter that looks supported
-         *     while doing nothing, which is the failure a client cannot diagnose.
+         *     form `/data/reference`, so a derived field such as `market_cap` comes
+         *     back the same from either.
          *
-         *     Universe memberships are answered here and not there: they were not
-         *     answerable when this endpoint was written, because no universe could
-         *     be created through the API and none was seeded, so the answer was
-         *     always "none". BN-132 changed that.
+         *     Universe memberships are answered here and not by the batch form.
          */
         get: operations["reference_data_reference__identifier__get"];
         put?: never;
@@ -577,9 +571,9 @@ export interface paths {
          * @description One page of a stored dataset, optionally narrowed to some names.
          *
          *     `identifiers` is the only filter, and it exists because one
-         *     instrument's *history* -- its feature rows, its actions -- was
-         *     otherwise reachable only by paging the whole table and filtering
-         *     client-side, which is 964k rows to find a few dozen (BN-150).
+         *     instrument's *history* (its feature rows, its actions) would otherwise
+         *     be reachable only by paging the whole table and filtering client-side,
+         *     which can be close to a million rows to find a few dozen.
          *
          *     Still no sorting or predicate parameters. A client needing those wants
          *     a query language, and this is the wrong place to grow one -- the
@@ -818,14 +812,14 @@ export interface paths {
          * @description Remove a stored index definition, its optimised children, and the
          *     backtest results of every one of them.
          *
-         *     The first cascade is deliberate (BN-157): results are keyed
+         *     The first cascade is deliberate: results are keyed
          *     `backtest:{index_id}`, and orphaning them would leave records
-         *     addressable by an id that no longer resolves -- the overview route
-         *     404s on the definition load before it ever reaches them.
+         *     addressable by an id that no longer resolves (the overview route
+         *     404s on the definition load before it ever reaches them).
          *
-         *     The second is the owner's call for BN-168: an optimised index
+         *     The second follows from how an optimised index is stored: it
          *     *references* its source rather than copying it, so a child left behind
-         *     would be a methodology with no methodology — it could never be
+         *     would be a methodology with no methodology, and could never be
          *     calculated again. Each child goes through the identical cascade, and
          *     the chain is followed recursively. The confirmation warning stays
          *     client-side: documents carry `source_index_id`, so the UI computes the
@@ -858,11 +852,11 @@ export interface paths {
          *     the source is the index in the URL, and the body has no way to assert
          *     a parentage the server did not create.
          *
-         *     The derived document inherits the parent's identity — base date, base
+         *     The derived document inherits the parent's identity: base date, base
          *     value, currency, calendar, and the rebalancing cadence in particular,
          *     because the child solves exactly at the parent's published snapshots
          *     and a cadence of its own would have no parent weights at the extra
-         *     dates (design record, default 2).
+         *     dates.
          */
         post: operations["optimise_index_indices__index_id__optimise_post"];
         delete?: never;
@@ -1214,11 +1208,11 @@ export interface paths {
          * @description Replace a universe, repairing an unreadable one if that is what it is.
          *
          *     A PUT carries a complete valid replacement, so over an unreadable
-         *     document it is a repair — and the read-only check cannot run, because
+         *     document it is a repair, and the read-only check cannot run, because
          *     `source` is one of the fields the server cannot read. Refusing would
-         *     leave the document unfixable through the API, the same trap the delete
-         *     had (BN-177), so the check is skipped and logged. It is *not* skipped
-         *     for a document that reads: that is the whole point of it.
+         *     leave the document unfixable through the API, so the check is skipped
+         *     and logged. It is *not* skipped for a document that reads: that is the
+         *     whole point of it.
          */
         put: operations["put_universe_universes__universe_id__put"];
         post?: never;
@@ -1226,10 +1220,10 @@ export interface paths {
          * Delete Universe
          * @description Remove a universe, whether or not the server can read it.
          *
-         *     Removal needs the file to be PRESENT, not valid, so this asks existence
-         *     and not readability (BN-177). Going through a strict read made an
-         *     unreadable universe 500 here, which left the id occupied forever — only
-         *     deleting the file on the server could clear it.
+         *     Removal needs the file to be present, not valid, so this asks existence
+         *     and not readability. A strict read would answer 500 for an unreadable
+         *     universe and leave the id occupied until someone deleted the file on
+         *     the server.
          *
          *     The read-only check is skipped when the document cannot be read: you
          *     cannot protect the contents of a file you cannot read, and refusing
@@ -1277,7 +1271,7 @@ export interface components {
          * @description How tracking error against a benchmark divides among active positions.
          *
          *     Contributions sum to `tracking_error` exactly, the same identity the total
-         *     decomposition satisfies — on active weights rather than holdings.
+         *     decomposition satisfies, on active weights rather than holdings.
          */
         ActiveRiskPayload: {
             /**
@@ -1314,7 +1308,7 @@ export interface components {
             window_end?: string | null;
             /**
              * Window Start
-             * @description First date of the **run's own** level series, YYYY-MM-DD — the span the price fetch behind this estimate was given, not the dates prices came back on. It does not narrow: when the store covers less, the covariance is estimated from fewer observations and this still reports the run's span, so it is a bound rather than a measurement. Null when the run carries no level series. `window_end` is the other end.
+             * @description First date of the **run's own** level series, YYYY-MM-DD: the span the price fetch behind this estimate was given, not the dates prices came back on. It does not narrow: when the store covers less, the covariance is estimated from fewer observations and this still reports the run's span, so it is a bound rather than a measurement. Null when the run carries no level series. `window_end` is the other end.
              */
             window_start?: string | null;
         };
@@ -1372,7 +1366,7 @@ export interface components {
             price: components["schemas"]["SeriesPayload"];
             /**
              * Raw Weight History
-             * @description The same dates -> the weight before capping. Added alongside `weight_history` rather than replacing it, so the drilldown can show what the cap did to this name over time without breaking a client reading only the applied series.
+             * @description The same dates -> the weight before capping, so the drilldown can show what the cap did to this name over time. Carried alongside `weight_history`, which stays the applied series.
              */
             raw_weight_history?: {
                 [key: string]: number;
@@ -1431,7 +1425,7 @@ export interface components {
             requested_end?: string | null;
             /**
              * Requested Start
-             * @description The window's first date **as asked for**, YYYY-MM-DD: the `start` query echoed back unchanged, or the run's own first date when the query was omitted, which is what the window then defaulted to. It does not resolve — no data moves it — so it is the field to label a range with. `start` is the resolved counterpart and is a trading day later. Null only when the query was omitted and the run carries no level series to default from. `requested_end` is the other end.
+             * @description The window's first date **as asked for**, YYYY-MM-DD: the `start` query echoed back unchanged, or the run's own first date when the query was omitted, which is what the window then defaulted to. It does not resolve (no data moves it), so it is the field to label a range with. `start` is the resolved counterpart and is a trading day later. Null only when the query was omitted and the run carries no level series to default from. `requested_end` is the other end.
              */
             requested_start?: string | null;
             /** Residual */
@@ -1449,7 +1443,7 @@ export interface components {
          * @description A `backtest:{index_id}` job. `result` is the run payload.
          */
         BacktestJobStatus: {
-            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
             /**
              * Job Id
@@ -1518,10 +1512,8 @@ export interface components {
          * BacktestRecordCollection
          * @description Response of `GET /beacon/backtests`.
          *
-         *     An envelope rather than the bare array this used to return (BN-174). The
-         *     rows could not carry the skip count, and a listing that leaves documents
-         *     out without saying how many is making the same class of false statement as
-         *     a listing that 500s: the client is told something complete that is not.
+         *     An envelope rather than a bare array, so the listing can say how many
+         *     stored records it left out.
          */
         BacktestRecordCollection: {
             /** Backtests */
@@ -1537,9 +1529,9 @@ export interface components {
         };
         /**
          * BacktestRecordRow
-         * @description One stored backtest record, as a listing knows it (BN-162).
+         * @description One stored backtest record, as a listing knows it.
          *
-         *     The row is deliberately thin — the id to fetch the record by, and when it
+         *     The row is deliberately thin: the id to fetch the record by, and when it
          *     was captured. Names come from the index catalogue the client already
          *     holds, and everything else from `/beacon/{index_id}/record`.
          */
@@ -1585,11 +1577,9 @@ export interface components {
          * BacktestResultSummary
          * @description Serialised view of a `BacktestResult`, in the shape of its books.
          *
-         *     The nested shape mirrors the library object (BN-155): one home per fact,
-         *     and the new data — positions, daily index weights — has a natural place
-         *     instead of being bolted flat beside old names. Books the run did not have
-         *     (no benchmark given, no index calculated) are null rather than empty, so
-         *     a client can tell "not measured" from "measured and empty". Since BN-164
+         *     The nested shape mirrors the library object, one home per fact. Books the
+         *     run did not have (no benchmark given, no index calculated) are null rather
+         *     than empty, so a client can tell "not measured" from "measured and empty".
          *     `index` is a container of two books, `{target, optimised}`, matching the
          *     library's `IndexBooks`.
          */
@@ -1600,7 +1590,7 @@ export interface components {
             portfolio: components["schemas"]["PortfolioBookPayload"];
             /**
              * Price Gaps
-             * @description Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data — a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.
+             * @description Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data: a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.
              */
             price_gaps?: components["schemas"]["PriceGapPayload"][];
             /**
@@ -1610,7 +1600,7 @@ export interface components {
             rebalance_pricing?: components["schemas"]["RebalancePricingPayload"][];
             /**
              * Run At
-             * @description When this record was captured, ISO-8601 UTC with an offset — wall-clock at the moment the finished run was serialised, within a second of the backtest completing. **Not a market date, and not the period the backtest covered**: that span is the index of `portfolio.nav`. `BacktestRecordRow.run_at` on `GET /beacon/backtests` is the same stamp. Null only on records written before BN-162 began stamping them.
+             * @description When this record was captured, ISO-8601 UTC with an offset: wall-clock at the moment the finished run was serialised, within a second of the backtest completing. **Not a market date, and not the period the backtest covered**: that span is the index of `portfolio.nav`. `BacktestRecordRow.run_at` on `GET /beacon/backtests` is the same stamp. Null only on records written by an older engine that did not stamp them.
              */
             run_at?: string | null;
             /** Unfilled */
@@ -1637,7 +1627,7 @@ export interface components {
             benchmark?: components["schemas"]["RelativeMetricsPayload"] | null;
             /** @description Level against its running peak; 0 at a new high. */
             drawdown: components["schemas"]["SeriesPayload"];
-            /** @description The tracked index, rebased to 100 on the same axis. Named `benchmark_level` before BN-155; renamed because the tracked index and the benchmark of record are different comparators, and this series is the former. */
+            /** @description The tracked index, rebased to 100 on the same axis. Not the external benchmark, which is `benchmark`. */
             index_level: components["schemas"]["SeriesPayload"];
             /**
              * Initial Capital
@@ -1650,7 +1640,7 @@ export interface components {
             metrics: components["schemas"]["BacktestMetrics"];
             /**
              * Price Gaps
-             * @description Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data — a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.
+             * @description Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data: a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.
              */
             price_gaps?: components["schemas"]["PriceGapPayload"][];
             /**
@@ -1720,9 +1710,9 @@ export interface components {
          * BookPayload
          * @description One comparator's record on the wire.
          *
-         *     Two different facts about weights, not two copies of one (BN-173):
-         *     `weights` is the daily panel — what the book actually HELD each day, drift
-         *     included — and `rebalances` is what each rebalance DECIDED. They agree only
+         *     Two different facts about weights, not two copies of one: `weights` is
+         *     the daily panel (what the book actually HELD each day, drift included)
+         *     and `rebalances` is what each rebalance DECIDED. They agree only
          *     on a rebalance date; everywhere else prices have moved the held weights
          *     away from the decided ones. A client wanting decided weights reads
          *     `rebalances` rather than resampling the panel, which cannot answer what
@@ -1734,7 +1724,7 @@ export interface components {
             levels: components["schemas"]["SeriesPayload"];
             /**
              * Rebalances
-             * @description What each rebalance decided — applied weights, their uncapped counterparts and the announcement date — in date order; most recent MAX_REBALANCES at most. The same rows the run payload publishes, kept here because the record is what survives the job result. Empty for a comparator supplied as a bare level series, which decided nothing.
+             * @description What each rebalance decided (applied weights, their uncapped counterparts and the announcement date), in date order; most recent MAX_REBALANCES at most. The same rows the run payload publishes, kept here because the record is what survives the job result. Empty for a comparator supplied as a bare level series, which decided nothing.
              */
             rebalances?: components["schemas"]["RebalanceSnapshot"][];
             /**
@@ -1747,17 +1737,17 @@ export interface components {
             weights: components["schemas"]["TableFrame"];
             /**
              * Weights Dates Total
-             * @description Dates the book's daily weights panel actually covers — a count, not a date. Larger than the rows in `weights` whenever the panel was truncated to its most recent MAX_WEIGHT_DATES, and 0 for a comparator supplied as a bare level series. `rebalances_total` says the same thing for `rebalances`.
+             * @description Dates the book's daily weights panel actually covers: a count, not a date. Larger than the rows in `weights` whenever the panel was truncated to its most recent MAX_WEIGHT_DATES, and 0 for a comparator supplied as a bare level series. `rebalances_total` says the same thing for `rebalances`.
              */
             weights_dates_total: number;
         };
         /**
          * CalendarCoveragePayload
-         * @description The window asked for beside the one the calendar could offer (BN-198).
+         * @description The window asked for beside the one the calendar could offer.
          *
          *     Present only when the calendar narrowed the run, so its presence is the
          *     signal. A window the calendar covers *nothing* of never reaches a result at
-         *     all — that refuses, because an empty index is a failure wearing a success.
+         *     all: that refuses, because an empty index is a failure wearing a success.
          */
         CalendarCoveragePayload: {
             /**
@@ -1782,7 +1772,7 @@ export interface components {
             requested_end: string;
             /**
              * Requested Start
-             * @description First date the run asked for, ISO 8601. Not the date it produced — see covered_start.
+             * @description First date the run asked for, ISO 8601. Not the date it produced; see covered_start.
              */
             requested_start: string;
             /**
@@ -1800,13 +1790,11 @@ export interface components {
          * CalendarList
          * @description Response of `GET /indices/calendars`.
          *
-         *     `IndexDocument.calendar` is required (BN-180), so a client that cannot see
-         *     the accepted set has two bad options: hard-code a hundred-odd MICs, or ship
-         *     a free-text box that now fails a 422 on a mandatory field. This publishes
-         *     what the engine accepts, the way `/indices/rule-types` and
-         *     `/optimise/constraint-types` do — read from `exchange_calendars` at request
-         *     time, never a hand-kept copy, so the wire set cannot drift from the set the
-         *     calculation schedules on.
+         *     `IndexDocument.calendar` is required, so this publishes the calendars the
+         *     engine accepts, the way `/indices/rule-types` and
+         *     `/optimise/constraint-types` publish theirs. It is read from
+         *     `exchange_calendars` at request time, never a hand-kept copy, so the wire
+         *     set cannot drift from the set the calculation schedules on.
          */
         CalendarList: {
             /**
@@ -1816,7 +1804,7 @@ export interface components {
             calendars: components["schemas"]["CalendarOption"][];
             /**
              * Default
-             * @description The calendar code to preselect. The same value stored documents without a calendar were migrated to, so it is a reasonable default for a new index rather than an arbitrary one — but it is a suggestion for the form, not a server-side fallback: `IndexDocument.calendar` has no default and omitting it is a 422.
+             * @description The calendar code to preselect. The same value stored documents without a calendar were migrated to, so it is a reasonable default for a new index rather than an arbitrary one. It is a suggestion for the form, not a server-side fallback: `IndexDocument.calendar` has no default and omitting it is a 422.
              */
             default: string;
         };
@@ -1837,12 +1825,12 @@ export interface components {
             code: string;
             /**
              * Name
-             * @description Display name, e.g. 'New York Stock Exchange'. Curated for the major venues only and **falls back to `code`** for the rest — `exchange_calendars` carries no friendly names, so a partial list that degrades to the MIC is the honest option. A row where `name` equals `code` is an uncurated calendar, not a broken one.
+             * @description Display name, e.g. 'New York Stock Exchange'. Curated for the major venues only and **falls back to `code`** for the rest. `exchange_calendars` carries no friendly names, so a partial list that degrades to the MIC is the honest option. A row where `name` equals `code` is an uncurated calendar, not a broken one.
              */
             name: string;
             /**
              * Region
-             * @description Derived, not curated: the first segment of the calendar's own IANA timezone, so 'Europe/Oslo' gives 'Europe'. A noun as the tz database spells it — group headings are the client's wording, since 'Atlantic' and 'Pacific' have no distinct adjective and a mapping to one would be the hand-kept table this field exists to avoid. Two calendars sit on bare UTC and so report 'UTC', which is not a region; that is deliberate rather than a gap, and whether it becomes an 'Other' heading is the client's call.
+             * @description Derived, not curated: the first segment of the calendar's own IANA timezone, so 'Europe/Oslo' gives 'Europe'. A noun as the tz database spells it; group headings are the client's wording, since 'Atlantic' and 'Pacific' have no distinct adjective and a mapping to one would be the hand-kept table this field exists to avoid. Two calendars sit on bare UTC and so report 'UTC', which is not a region; that is deliberate rather than a gap, and whether it becomes an 'Other' heading is the client's call.
              */
             region: string;
             /**
@@ -1872,7 +1860,7 @@ export interface components {
             financing: number;
             /**
              * Residual
-             * @description Total minus the three parts — the compounding the decomposition cannot attribute.
+             * @description Total minus the three parts: the compounding the decomposition cannot attribute.
              */
             residual: number;
             /**
@@ -1967,7 +1955,7 @@ export interface components {
             observations: number;
             /**
              * Start
-             * @description First date **every** index in `index_ids` covers, YYYY-MM-DD — the intersection of their level series, not the earliest start among them. Resolved: one index whose history begins later moves this forward for all of them, which is why each entry's level is rebased from here. Nothing was requested — `GET /beacon/compare` takes only `ids` — so there is no window to echo. `end` is the other end of the same shared span.
+             * @description First date **every** index in `index_ids` covers, YYYY-MM-DD: the intersection of their level series, not the earliest start among them. Resolved: one index whose history begins later moves this forward for all of them, which is why each entry's level is rebased from here. Nothing was requested (`GET /beacon/compare` takes only `ids`), so there is no window to echo. `end` is the other end of the same shared span.
              */
             start: string;
         };
@@ -2067,7 +2055,7 @@ export interface components {
             risk_contribution?: number | null;
             /**
              * Shares Outstanding
-             * @description The company's shares outstanding on this date, from market data. Deliberately NOT the number of shares the index holds — that is a different figure needing a divisor and a notional, and naming this one `shares` would let the two be confused silently.
+             * @description The company's shares outstanding on this date, from market data. Deliberately NOT the number of shares the index holds: that is a different figure needing a divisor and a notional, and naming this one `shares` would let the two be confused silently.
              */
             shares_outstanding?: number | null;
             /**
@@ -2154,7 +2142,7 @@ export interface components {
             specs?: components["schemas"]["TypeSpec"][];
             /**
              * Types
-             * @description Constraint type -> the parameters it accepts. Kept for clients written against the original shape; `specs` carries the same set with everything needed to render it.
+             * @description Constraint type -> the parameters it accepts. The compact shape, kept for existing clients; `specs` carries the same set with everything needed to render it.
              */
             types: {
                 [key: string]: string[];
@@ -2181,7 +2169,7 @@ export interface components {
          *     `kind` is the authoritative answer to what `value` means, and the reason a
          *     client needs no list of type strings. Reading `type` and inferring cash or
          *     ratio from a hardcoded list works until a type the client has never seen
-         *     arrives, at which point it renders as whichever the list defaults to —
+         *     arrives, at which point it renders as whichever the list defaults to:
          *     confidently, and wrongly.
          */
         CorporateAction: {
@@ -2198,7 +2186,7 @@ export interface components {
             kind: "cash" | "ratio" | "structural";
             /**
              * Pay Date
-             * @description Payment date, ISO 8601, where the source knows it. Null means unknown — omit the field in the UI rather than dashing it, since a dash reads as 'there is none'.
+             * @description Payment date, ISO 8601, where the source knows it. Null means unknown: omit the field in the UI rather than dashing it, since a dash reads as 'there is none'.
              */
             pay_date?: string | null;
             /**
@@ -2244,7 +2232,7 @@ export interface components {
             trailing_dividend: number;
             /**
              * Trailing Dividend Yield
-             * @description Trailing dividend over the close on the as-of date. Null when no price is available — a missing price is a reason to say nothing rather than to guess.
+             * @description Trailing dividend over the close on the as-of date. Null when no price is available, since a missing price is a reason to say nothing rather than to guess.
              */
             trailing_dividend_yield?: number | null;
         };
@@ -2279,7 +2267,7 @@ export interface components {
             configured: boolean;
             /**
              * Data Version
-             * @description An opaque token that changes whenever the data being served changes: at startup, on every store load (the same store loaded again included), and after a sync. Compare it for equality only: if it differs from the value a client cached against, the client's copy is stale. Never reused, even across engine restarts. The `data.loaded` and `data.freshness` events carry the new value.
+             * @description An opaque token that changes whenever the data being served changes: at startup, on every store load (the same store loaded again included), and when a refresh of the served store (`POST /data/stores/{id}/refresh`) finishes. Compare it for equality only: if it differs from the value a client cached against, the client's copy is stale. Never reused, even across engine restarts. The `data.loaded` and `data.freshness` events carry the new value.
              * @default
              */
             data_version: string;
@@ -2361,7 +2349,7 @@ export interface components {
             readable: boolean;
             /**
              * Refresh
-             * @description What `POST /data/stores/{id}/refresh` would do: 'extend' synthetic data to today, 'reread' a folder or database, or 'download' from Yahoo Finance. Null when there is nothing to refresh: imported files (import again instead), synthetic data generated before py-beacon 0.1.2, or a store that cannot be read.
+             * @description What `POST /data/stores/{id}/refresh` would do: 'extend' synthetic data to today, 'reread' a folder or database, or 'download' from Yahoo Finance. Null when there is nothing to refresh: imported files (import again instead), synthetic data generated before py-beacon 0.2.0, or a store that cannot be read.
              */
             refresh?: ("extend" | "reread" | "download") | null;
             /**
@@ -2461,7 +2449,7 @@ export interface components {
         DatasetCoverage: {
             /**
              * Cache Age
-             * @description Seconds since this dataset was last loaded or synced. Null when the dataset is not loaded at all, which is a different statement from 'loaded and never refreshed'.
+             * @description Seconds since this dataset was last loaded or refreshed. Null when the dataset is not loaded at all, which is a different statement from 'loaded and never refreshed'.
              */
             cache_age?: number | null;
             /**
@@ -2503,7 +2491,7 @@ export interface components {
             identifiers: number;
             /**
              * Last Refreshed
-             * @description When this dataset was last loaded or synced, ISO 8601. Carried alongside the age because an age is only meaningful at the instant it was read, and a client holding a response for a minute needs the timestamp.
+             * @description When this dataset was last loaded or refreshed, ISO 8601. Carried alongside the age because an age is only meaningful at the instant it was read, and a client holding a response for a minute needs the timestamp.
              */
             last_refreshed?: string | null;
             /**
@@ -2553,14 +2541,14 @@ export interface components {
          * @description How an optimised index is derived from the index it was built on.
          *
          *     The whole of an optimised index's methodology: the source it reallocates,
-         *     what the solve minimises, and what the answer must satisfy. No weights —
-         *     neither the parent's nor the solved ones — because definitions are rules
+         *     what the solve minimises, and what the answer must satisfy. No weights
+         *     (neither the parent's nor the solved ones), because definitions are rules
          *     and weights are calculated.
          */
         DerivationPayload: {
             /**
              * Constraints
-             * @description What the solved weights must satisfy — exactly the rows `/optimise/constraint-sets` stores, so one editor serves both. Empty leaves the solver's own full-investment default.
+             * @description What the solved weights must satisfy: exactly the rows `/optimise/constraint-sets` stores, so one editor serves both. Empty leaves the solver's own full-investment default.
              */
             constraints?: components["schemas"]["ConstraintRow"][];
             /**
@@ -2640,8 +2628,8 @@ export interface components {
          * ExposuresView
          * @description Response of `GET /optimise/runs/{run_id}/exposures`.
          *
-         *     Factors are the ones derivable from price and share count — size, momentum,
-         *     volatility — plus a market intercept. Value and quality are absent rather
+         *     Factors are the ones derivable from price and share count (size, momentum,
+         *     volatility), plus a market intercept. Value and quality are absent rather
          *     than approximated: a momentum factor built from prices is the real thing, a
          *     value factor faked without book values would not be.
          */
@@ -2668,8 +2656,8 @@ export interface components {
          * @description One node of a serialised expression, discriminated on `node`.
          *
          *     The grammar a screen is written in: a field, a comparison over one, or a
-         *     boolean composition of either. Recursive — `all`, `any` and `not` carry
-         *     nodes of this same union — so an arbitrarily nested screen is one type.
+         *     boolean composition of either. Recursive (`all`, `any` and `not` carry
+         *     nodes of this same union), so an arbitrarily nested screen is one type.
          *
          *     A `RootModel` rather than a bare union so the union is a *named* schema in
          *     this document: a recursive `$ref` needs a name to point at, and so does
@@ -2703,7 +2691,7 @@ export interface components {
         FeatureBatchResponse: {
             /**
              * As Of
-             * @description The cutoff the features were read at, YYYY-MM-DD: the `date` query echoed back unchanged, or the last date the loaded market data carries when none was given. Never resolved back — a request for a weekend stays a weekend — because each feature independently takes the latest row published on or before it. What was actually read is each `entries[].features[].date`, the announcement date of the row that answered, which is usually earlier than this and differs from feature to feature. `FeatureResponse.as_of` is the same field on the single-instrument endpoint.
+             * @description The cutoff the features were read at, YYYY-MM-DD: the `date` query echoed back unchanged, or the last date the loaded market data carries when none was given. Never resolved back (a request for a weekend stays a weekend), because each feature independently takes the latest row published on or before it. What was actually read is each `entries[].features[].date`, the announcement date of the row that answered, which is usually earlier than this and differs from feature to feature. `FeatureResponse.as_of` is the same field on the single-instrument endpoint.
              */
             as_of: string;
             /** Entries */
@@ -2759,7 +2747,7 @@ export interface components {
         FeatureResponse: {
             /**
              * As Of
-             * @description The cutoff the features were read at, YYYY-MM-DD: the `date` query echoed back unchanged, or the last date the loaded market data carries when none was given. Never resolved back — a request for a weekend stays a weekend — because each feature independently takes the latest row published on or before it. What was actually read is each `features[].date`, the announcement date of the row that answered, which is usually earlier than this and differs from feature to feature. `FeatureBatchResponse.as_of` is the same field on the batch endpoint.
+             * @description The cutoff the features were read at, YYYY-MM-DD: the `date` query echoed back unchanged, or the last date the loaded market data carries when none was given. Never resolved back (a request for a weekend stays a weekend), because each feature independently takes the latest row published on or before it. What was actually read is each `features[].date`, the announcement date of the row that answered, which is usually earlier than this and differs from feature to feature. `FeatureBatchResponse.as_of` is the same field on the batch endpoint.
              */
             as_of: string;
             /** Features */
@@ -2813,7 +2801,7 @@ export interface components {
         FeatureValue: {
             /**
              * Date
-             * @description When the value became knowable — the announcement date, not the period it describes.
+             * @description When the value became knowable: the announcement date, not the period it describes.
              */
             date?: string | null;
             /**
@@ -2860,7 +2848,7 @@ export interface components {
             dataset?: string | null;
             /**
              * Derived
-             * @description Computed per request rather than stored. Screenable either way — a client should not have to care.
+             * @description Computed per request rather than stored. Screenable either way; a client should not have to care.
              * @default false
              */
             derived: boolean;
@@ -3110,7 +3098,7 @@ export interface components {
             sensitivity: components["schemas"]["TableFrame"];
             /**
              * Time To Expiry
-             * @description Years the contract was priced over, ACT/365 — what the calculation used, which is not always what the request sent. Computed from `valuation_date` to `expiry` when both were given, dates being the less ambiguous statement; the request's own `time_to_expiry` is echoed back only when the dates were omitted. Nothing is resolved against market data — this endpoint reads none.
+             * @description Years the contract was priced over, ACT/365: what the calculation used, which is not always what the request sent. Computed from `valuation_date` to `expiry` when both were given, dates being the less ambiguous statement; the request's own `time_to_expiry` is echoed back only when the dates were omitted. Nothing is resolved against market data; this endpoint reads none.
              */
             time_to_expiry: number;
         };
@@ -3119,7 +3107,7 @@ export interface components {
          * @description A `generate:{store_id}` job. `result` describes the new store.
          */
         GenerateJobStatus: {
-            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
             /**
              * Job Id
@@ -3152,7 +3140,7 @@ export interface components {
         };
         /**
          * GenerateResult
-         * @description Result payload of a completed `generate:{store_id}` job (BN-237).
+         * @description Result payload of a completed `generate:{store_id}` job.
          */
         GenerateResult: {
             /**
@@ -3258,7 +3246,7 @@ export interface components {
         HealthResponse: {
             /**
              * Cache Age
-             * @description Seconds since the market data was last loaded or synced. Null only when no data source is configured — there is then nothing whose age could be reported.
+             * @description Seconds since the market data being served was loaded. Loading a store and refreshing the served one both reset it. Null only when no data source is configured, since there is then nothing whose age could be reported.
              */
             cache_age?: number | null;
             data_source: components["schemas"]["DataSourceStatus"];
@@ -3269,12 +3257,12 @@ export interface components {
             free_float_backfill_days?: number | null;
             /**
              * Fx Policy
-             * @description How this installation reads an exchange rate on a day the pair printed none: CARRY_FORWARD uses the last rate in force, EXACT_DAY refuses unless the rate is dated that day. A modelling assumption rather than a preference — the same holding converts to different money under the two, and every conversion in the library obeys whichever is set. Null when no data source is configured, since nothing is being converted.
+             * @description How this installation reads an exchange rate on a day the pair printed none: CARRY_FORWARD uses the last rate in force, EXACT_DAY refuses unless the rate is dated that day. A modelling assumption rather than a preference: the same holding converts to different money under the two, and every conversion in the library obeys whichever is set. Null when no data source is configured, since nothing is being converted.
              */
             fx_policy?: string | null;
             /**
              * Max Price Staleness Days
-             * @description How long a name may go without trading before this installation drops it from an index and from a backtest's targets. Null means keep everything regardless, which is the default and what the library did before the setting existed. A modelling choice, not a preference: it changes index membership, so two runs either side of a change are different indices. Also null when no data source is configured.
+             * @description How long a name may go without trading before this installation drops it from an index and from a backtest's targets. Null means keep everything regardless, which is the default. A modelling choice, not a preference: it changes index membership, so two runs either side of a change are different indices. Also null when no data source is configured.
              */
             max_price_staleness_days?: number | null;
             /**
@@ -3347,7 +3335,7 @@ export interface components {
             truncated: boolean;
             /**
              * Version
-             * @description Fingerprint of the data this was built from, also served as the ETag. Changes only when a dataset syncs, so a client can cache an enumeration and revalidate cheaply.
+             * @description Fingerprint of the data this was built from, also served as the ETag. Changes only when the served data changes (a store load or refresh, or a feature import), so a client can cache an enumeration and revalidate cheaply.
              * @default
              */
             version: string;
@@ -3387,7 +3375,7 @@ export interface components {
         };
         /**
          * IndexBooksPayload
-         * @description The run's calculated indices on the wire (BN-164).
+         * @description The run's calculated indices on the wire.
          *
          *     Mirrors the library's `IndexBooks`: `target` is the index being aimed
          *     at, pre-optimisation; `optimised` is the solved index's own
@@ -3436,13 +3424,9 @@ export interface components {
          * @description A stored index definition, in one of its two faces.
          *
          *     A document carries **either** a rule pipeline (`pipeline` and `universe`)
-         *     **or** a `derivation` — never both, never neither. `derivation` is the
+         *     **or** a `derivation`, never both and never neither. `derivation` is the
          *     discriminator: present, the index is optimiser-derived and its methodology
          *     is the derivation; absent, it is a rule pipeline over a universe.
-         *
-         *     A synthesised pipeline for optimised documents was considered and rejected
-         *     (design record, "Document schema"): it would be a methodology nobody wrote
-         *     and nobody can meaningfully edit.
          */
         IndexDocument: {
             /**
@@ -3457,7 +3441,7 @@ export interface components {
             base_value: number;
             /**
              * Calendar
-             * @description Exchange MIC backing trading-day arithmetic, e.g. 'XNYS'. **Required since BN-180**, and the one field on this model that changed from optional to required. It used to default to null, meaning Monday to Friday — which schedules rebalances on 1 January, 4 July and 25 December, days no exchange has a session for. Stored documents without one were migrated to 'XNYS' by schema version 2. `GET /indices/calendars` publishes every value this server accepts, read from the calendar package itself, so a client renders a closed list instead of guessing a MIC.
+             * @description Exchange MIC backing trading-day arithmetic, e.g. 'XNYS'. Required: every index schedules against a real exchange calendar, so rebalances never land on days no exchange has a session for. Stored documents without one are read as 'XNYS' (schema version 2 migrates them). `GET /indices/calendars` publishes every value this server accepts, read from the calendar package itself, so a client renders a closed list instead of guessing a MIC.
              */
             calendar: string;
             /**
@@ -3471,7 +3455,7 @@ export interface components {
             description?: string | null;
             /**
              * Effective Lag Sessions
-             * @description Sessions between a rebalance being announced and its weights taking effect. Stored now, honoured by the calculator in BN-126; until then it is declared and not applied, and 0 is the behaviour in force.
+             * @description Sessions between a rebalance being announced and its weights taking effect, counted on the index's calendar. 0, the default, means the weights take effect on the announcement date.
              * @default 0
              */
             effective_lag_sessions: number;
@@ -3505,7 +3489,7 @@ export interface components {
             rebalancing_frequency: string;
             /**
              * Return Type
-             * @description How returns accumulate. PRICE ignores distributions; TOTAL_RETURN reinvests them across the index by shrinking the divisor; NET_TOTAL_RETURN does the same after withholding tax. PRICE is the default, so an index defined before this existed is unchanged.
+             * @description How returns accumulate. PRICE ignores distributions; TOTAL_RETURN reinvests them across the index by shrinking the divisor; NET_TOTAL_RETURN does the same after withholding tax. PRICE is the default.
              * @default PRICE
              * @enum {string}
              */
@@ -3543,14 +3527,11 @@ export interface components {
          * JobStatus
          * @description State of one background job, with an untyped result.
          *
-         *     The name and the shape are unchanged from before BN-172, deliberately:
-         *     `JobStatus` is already a published schema a client generates from, so the
-         *     generic arrived as a new base rather than by renaming this to
-         *     `JobStatus_Any_`. Still the right answer for a listing, which mixes kinds,
-         *     and the fallback arm of `AnyJobStatus` for a kind nothing models yet.
+         *     Used for a listing, which mixes kinds, and as the fallback arm of
+         *     `AnyJobStatus` for a kind nothing models yet.
          */
         JobStatus: {
-            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
             /**
              * Job Id
@@ -3589,7 +3570,7 @@ export interface components {
          * @description A `load:{store_id}` job. `result` describes the store now served.
          */
         LoadJobStatus: {
-            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
             /**
              * Job Id
@@ -3622,7 +3603,7 @@ export interface components {
         };
         /**
          * LoadResult
-         * @description Result payload of a completed `load:{store_id}` job (BN-236).
+         * @description Result payload of a completed `load:{store_id}` job.
          */
         LoadResult: {
             /**
@@ -3668,7 +3649,7 @@ export interface components {
          * @description An `optimise:{run_id}` job. `result` is the solved portfolio.
          */
         OptimisationJobStatus: {
-            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
             /**
              * Job Id
@@ -3781,7 +3762,7 @@ export interface components {
             solver_message: string;
             /**
              * Start
-             * @description First date the constituent price frame actually carries, YYYY-MM-DD — the window the risk model behind this solve was estimated over. Resolved rather than echoed: the request's `start` is a bound on the fetch, and this is later than it whenever the store does not reach back that far. `end` is the other end.
+             * @description First date the constituent price frame actually carries, YYYY-MM-DD: the window the risk model behind this solve was estimated over. Resolved rather than echoed: the request's `start` is a bound on the fetch, and this is later than it whenever the store does not reach back that far. `end` is the other end.
              */
             start: string;
             /** Tracking Error */
@@ -3813,7 +3794,7 @@ export interface components {
             constraints?: components["schemas"]["ConstraintRow"][];
             /**
              * Description
-             * @description Optional description for the derived index. Null inherits nothing — the parent's description describes the parent.
+             * @description Optional description for the derived index. Null inherits nothing: the parent's description describes the parent.
              */
             description?: string | null;
             /**
@@ -3858,7 +3839,7 @@ export interface components {
             rebalances: number;
             /**
              * Start
-             * @description First date the stored run's level series covers, YYYY-MM-DD — the same form `CompareView.start` uses. Resolved from the data rather than requested: it is **later than the index's `base_date`** whenever the price store does not reach back that far, so labelling it as the base date shows a different figure from the one the definition carries. `end` is the other end of the same series; the window the backtest was asked for is not published here.
+             * @description First date the stored run's level series covers, YYYY-MM-DD, the same form `CompareView.start` uses. Resolved from the data rather than requested: it is **later than the index's `base_date`** whenever the price store does not reach back that far, so labelling it as the base date shows a different figure from the one the definition carries. `end` is the other end of the same series; the window the backtest was asked for is not published here.
              */
             start: string;
         };
@@ -3904,7 +3885,7 @@ export interface components {
             order: number;
             /**
              * Ref
-             * @description Component schema this parameter's value must conform to, e.g. 'ExpressionNode' — resolve it under `components.schemas` in this document. Null for a scalar parameter. `type` stays the coarse render hint, so a client that ignores this still renders a JSON editor.
+             * @description Component schema this parameter's value must conform to, e.g. 'ExpressionNode'; resolve it under `components.schemas` in this document. Null for a scalar parameter. `type` stays the coarse render hint, so a client that ignores this still renders a JSON editor.
              */
             ref?: string | null;
             /**
@@ -3932,16 +3913,15 @@ export interface components {
          * PortfolioBookPayload
          * @description The portfolio's books on the wire.
          *
-         *     No `rebalances` here, unlike the index books (BN-173): a portfolio makes no
-         *     rebalance decision of its own — it trades toward one — so decided weights
-         *     would be a field with nothing honest to put in it. Its own model rather than
-         *     a shared base with `BookPayload`, which is what keeps that omission simple.
+         *     No `rebalances` here, unlike the index books: a portfolio makes no
+         *     rebalance decision of its own (it trades toward one), so decided weights
+         *     would be a field with nothing honest to put in it.
          */
         PortfolioBookPayload: {
             cash: components["schemas"]["SeriesPayload"];
             /** Initial Capital */
             initial_capital: number;
-            /** @description The full NAV book, day-zero row included: it opens with initial capital on the eve of the first trading day. Metrics derive from the series without that row, and a client deriving its own period figures should do the same — a period holding only the day-zero row measures that row against itself and reads as a flat period rather than one that never traded. */
+            /** @description The full NAV book, day-zero row included: it opens with initial capital on the eve of the first trading day. Metrics derive from the series without that row, and a client deriving its own period figures should do the same. A period holding only the day-zero row measures that row against itself and reads as a flat period rather than one that never traded. */
             nav: components["schemas"]["SeriesPayload"];
             /** Portfolio Id */
             portfolio_id: string;
@@ -4038,12 +4018,12 @@ export interface components {
             included: boolean;
             /**
              * Solved Weight
-             * @description Derived preview only: what the optimiser allocated it — the 'after'. Equal to `weight`, and carried separately so the before/after/delta triple reads as one row without a client having to know which face it is on.
+             * @description Derived preview only: what the optimiser allocated it, the 'after'. Equal to `weight`, and carried separately so the before/after/delta triple reads as one row without a client having to know which face it is on.
              */
             solved_weight?: number | null;
             /**
              * Source Weight
-             * @description Derived preview only: what the parent index published for this name at the rebalance being previewed — the 'before'.
+             * @description Derived preview only: what the parent index published for this name at the rebalance being previewed: the 'before'.
              */
             source_weight?: number | null;
             /**
@@ -4089,12 +4069,12 @@ export interface components {
             label: string;
             /**
              * Slack
-             * @description Signed room at the solution: zero sits exactly on the boundary, positive has room, negative would be a violation and is never returned. Measured in `unit`, not in a common currency — there is no shadow price here and slacks of different constraints are not comparable.
+             * @description Signed room at the solution: zero sits exactly on the boundary, positive has room, negative would be a violation and is never returned. Measured in `unit`, not in a common currency: there is no shadow price here and slacks of different constraints are not comparable.
              */
             slack: number;
             /**
              * Unit
-             * @description What `slack` is measured in, declared by the constraint class and also published by `/optimise/constraint-types`. 'fraction' means a proportion — of the portfolio for a weight or turnover limit, of return for a return target — and formats as a percentage; 'count' is a whole number of names.
+             * @description What `slack` is measured in, declared by the constraint class and also published by `/optimise/constraint-types`. 'fraction' means a proportion (of the portfolio for a weight or turnover limit, of return for a return target) and formats as a percentage; 'count' is a whole number of names.
              */
             unit: string;
         };
@@ -4103,7 +4083,7 @@ export interface components {
          * @description Body of `POST /indices/preview`, which previews a document as supplied.
          *
          *     The route for a draft. The by-id route reads what is stored, so while an
-         *     editor holds unsaved changes its figures describe the old definition — with
+         *     editor holds unsaved changes its figures describe the old definition, with
          *     nothing on screen to say they are stale. This one previews exactly what was
          *     sent, so editing a rule updates the resolved figures without saving.
          */
@@ -4188,17 +4168,17 @@ export interface components {
         };
         /**
          * PreviewSolve
-         * @description What the optimiser did at one rebalance — the derived face of a preview.
+         * @description What the optimiser did at one rebalance: the derived face of a preview.
          *
          *     A derivation has no waterfall: the solve moves every weight at once rather
          *     than eliminating names in steps, so there are no rungs to show. This is the
-         *     honest analogue — which parent snapshot was solved, under what, and which
+         *     honest analogue: which parent snapshot was solved, under what, and which
          *     rules cost something.
          */
         PreviewSolve: {
             /**
              * Binding
-             * @description Labels of the constraints the solution sits on — the headline answer to 'what did my constraints do?'. Each also appears in `constraints` with its slack.
+             * @description Labels of the constraints the solution sits on: the headline answer to 'what did my constraints do?'. Each also appears in `constraints` with its slack.
              */
             binding?: string[];
             /**
@@ -4315,14 +4295,11 @@ export interface components {
          *     Both weight sets are carried. `weights` is what the index applied;
          *     `uncapped_weights` is what the weighting scheme produced before any cap.
          *     They are equal on an uncapped index, and the difference is the only way to
-         *     answer what capping cost — a question that cannot be reconstructed from the
+         *     answer what capping cost, a question that cannot be reconstructed from the
          *     applied weights alone.
          *
-         *     Declared here, above the book payloads, because since BN-173 it is carried
-         *     by both: the transient run payload publishes the snapshots as
-         *     `rebalances[]`, and the durable record publishes the same rows on each
-         *     index book. One shape for one fact — a second model for the decided
-         *     weights would be free to drift from this one.
+         *     The run payload publishes these snapshots as `rebalances`, and the stored
+         *     backtest record publishes the same rows on each index book.
          */
         RebalanceSnapshot: {
             /**
@@ -4390,8 +4367,8 @@ export interface components {
          * ReferenceResponse
          * @description Response of `GET /data/reference/{identifier}`.
          *
-         *     Fields are whatever columns the loaded reference data carries — the
-         *     library does not impose a schema on it — so they are returned as a
+         *     Fields are whatever columns the loaded reference data carries (the
+         *     library does not impose a schema on it), so they are returned as a
          *     mapping rather than as named attributes.
          */
         ReferenceResponse: {
@@ -4415,7 +4392,7 @@ export interface components {
          * @description A `refresh:{store_id}` job. `result` says what changed.
          */
         RefreshJobStatus: {
-            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
             /**
              * Job Id
@@ -4459,7 +4436,7 @@ export interface components {
         };
         /**
          * RefreshResult
-         * @description Result payload of a completed `refresh:{store_id}` job (BN-240).
+         * @description Result payload of a completed `refresh:{store_id}` job.
          */
         RefreshResult: {
             /**
@@ -4547,7 +4524,7 @@ export interface components {
          * @description A `render:{render_id}` job. `result` describes the rendered document.
          */
         RenderJobStatus: {
-            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
             /**
              * Job Id
@@ -4617,7 +4594,7 @@ export interface components {
             render_id: string;
             /**
              * Rendered At
-             * @description When the PDF was written, ISO-8601 UTC with an offset — wall-clock at render time. **Not the as-of date of anything printed inside it**: the figures come from the index's latest completed backtest, whose own dates this does not carry, so rendering the same template twice gives two `rendered_at` values over identical content.
+             * @description When the PDF was written, ISO-8601 UTC with an offset: wall-clock at render time. **Not the as-of date of anything printed inside it**: the figures come from the index's latest completed backtest, whose own dates this does not carry, so rendering the same template twice gives two `rendered_at` values over identical content.
              */
             rendered_at: string;
             /** Template Id */
@@ -4769,7 +4746,7 @@ export interface components {
          * @description A `risk:{model_id}` job. `result` is the estimated model.
          */
         RiskModelJobStatus: {
-            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema — so a failed job branches on `error.code` exactly as an HTTP error does (BN-199). It was a bare string until then, which left the job path the one place a deliberate refusal and a crash looked alike. A job that failed before this carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
             error?: components["schemas"]["ErrorDetail"] | null;
             /**
              * Job Id
@@ -4880,12 +4857,12 @@ export interface components {
             model_id: string;
             /**
              * Start
-             * @description The request's own `start`, echoed back unchanged — the bound the price fetch was given, not the first date prices were found on. Null when the request omitted it, which estimates over the whole stored history. No field here reports the dates the returns actually spanned; `diagnostics.observations` is the only measure of what survived. `end` is the other bound.
+             * @description The request's own `start`, echoed back unchanged: the bound the price fetch was given, not the first date prices were found on. Null when the request omitted it, which estimates over the whole stored history. No field here reports the dates the returns actually spanned; `diagnostics.observations` is the only measure of what survived. `end` is the other bound.
              */
             start?: string | null;
             /**
              * Volatilities
-             * @description Annualised standard deviation per asset — the square root of the covariance diagonal.
+             * @description Annualised standard deviation per asset: the square root of the covariance diagonal.
              */
             volatilities: {
                 [key: string]: number;
@@ -4895,7 +4872,7 @@ export interface components {
          * RiskPayload
          * @description How the index's volatility divides among its holdings.
          *
-         *     Contributions sum to `volatility` exactly rather than approximately — the
+         *     Contributions sum to `volatility` exactly rather than approximately: the
          *     decomposition is an identity, so a client can show the parts and the whole
          *     without them disagreeing.
          */
@@ -4922,7 +4899,7 @@ export interface components {
             window_end?: string | null;
             /**
              * Window Start
-             * @description First date of the **run's own** level series, YYYY-MM-DD — the span the price fetch behind this estimate was given, not the dates prices came back on. It does not narrow: when the store covers less, the covariance is estimated from fewer observations and this still reports the run's span, so it is a bound rather than a measurement. Null when the run carries no level series. `window_end` is the other end, and `active_risk.window_start` is this same window — both come from the run, not from a query.
+             * @description First date of the **run's own** level series, YYYY-MM-DD: the span the price fetch behind this estimate was given, not the dates prices came back on. It does not narrow: when the store covers less, the covariance is estimated from fewer observations and this still reports the run's span, so it is a bound rather than a measurement. Null when the run carries no level series. `window_end` is the other end, and `active_risk.window_start` is this same window; both come from the run, not from a query.
              */
             window_start?: string | null;
         };
@@ -4941,7 +4918,7 @@ export interface components {
             annualised_roll: number;
             /**
              * As Of
-             * @description The session both legs were priced from, YYYY-MM-DD: the latest date with a close on or before the `as_of` query, or the last date the store carries when none was given. Resolved rather than echoed — a request landing on a weekend or a holiday answers from the session before it — and the date asked for is not published anywhere. Both expiries are measured from this date, so it also sets `annualised_roll`.
+             * @description The session both legs were priced from, YYYY-MM-DD: the latest date with a close on or before the `as_of` query, or the last date the store carries when none was given. Resolved rather than echoed (a request landing on a weekend or a holiday answers from the session before it), and the date asked for is not published anywhere. Both expiries are measured from this date, so it also sets `annualised_roll`.
              */
             as_of: string;
             /** Back Expiry */
@@ -5045,7 +5022,7 @@ export interface components {
             as_of: string;
             /**
              * Calendar
-             * @description Exchange MIC the dates were computed on. Always present since BN-180 made the calendar required.
+             * @description Exchange MIC the dates were computed on. Always present, since every index has a calendar.
              */
             calendar: string;
             /**
@@ -5057,7 +5034,7 @@ export interface components {
             index_id: string;
             /**
              * Next Rebalance
-             * @description Next rebalance date, ISO 8601. Null when none falls within the lookahead — which happens only for a schedule this server cannot project, not for a normal index.
+             * @description Next rebalance date, ISO 8601. Null when none falls within the lookahead, which happens only for a schedule this server cannot project, not for a normal index.
              */
             next_rebalance?: string | null;
             /** Rebalance Day Rule */
@@ -5071,7 +5048,7 @@ export interface components {
             recent?: string[];
             /**
              * Recent Total
-             * @description Rebalances between the base date and `as_of` — the length `recent` would have had before the `limit` trim, so equal to it when nothing was trimmed. A client reads these two together to tell 'these are all of them' from 'the last four of many'.
+             * @description Rebalances between the base date and `as_of`: the length `recent` would have had before the `limit` trim, so equal to it when nothing was trimmed. A client reads these two together to tell 'these are all of them' from 'the last four of many'.
              * @default 0
              */
             recent_total: number;
@@ -5082,7 +5059,7 @@ export interface components {
             upcoming?: string[];
             /**
              * Upcoming Total
-             * @description Rebalances the lookahead projection found after `as_of` — the length `upcoming` would have had before the `limit` trim, not the number that will ever occur. The projection runs a fixed few periods ahead and `limit` does not extend it, so this is a bound on what was computed, not on the schedule, which has no end.
+             * @description Rebalances the lookahead projection found after `as_of`: the length `upcoming` would have had before the `limit` trim, not the number that will ever occur. The projection runs a fixed few periods ahead and `limit` does not extend it, so this is a bound on what was computed, not on the schedule, which has no end.
              * @default 0
              */
             upcoming_total: number;
@@ -5110,12 +5087,10 @@ export interface components {
         };
         /**
          * SkippedCauses
-         * @description Why a listing left documents out, one count per cause (BN-201).
+         * @description Why a listing left documents out, one count per cause.
          *
-         *     `skipped` could only say *how many*, and the one sentence a client could
-         *     write over it -- "could not be read" -- invites restoring a file that may
-         *     be perfectly fine. Each cause has its own remedy, so each has its own
-         *     count and a description that names it.
+         *     Each cause has its own remedy, so each has its own count and a
+         *     description that names it.
          */
         SkippedCauses: {
             /**
@@ -5142,22 +5117,23 @@ export interface components {
          * @description Body of `POST /data/coverage/{dataset}/sync`.
          *
          *     Deprecated with the endpoint. Its fields are accepted and ignored: a sync
-         *     now refreshes the whole active store from its own source.
+         *     refreshes the whole active store from its own source, as
+         *     `POST /data/stores/{id}/refresh` does.
          */
         SyncRequest: {
             /**
              * End
-             * @description Inclusive end date, YYYY-MM-DD.
+             * @description Ignored. YYYY-MM-DD.
              */
             end?: string | null;
             /**
              * Identifiers
-             * @description What to fetch. Empty re-syncs everything already loaded, which is the common case: refresh what I have.
+             * @description Ignored. Accepted so existing clients keep working.
              */
             identifiers?: string[];
             /**
              * Start
-             * @description Inclusive start date, YYYY-MM-DD.
+             * @description Ignored. YYYY-MM-DD.
              */
             start?: string | null;
         };
@@ -5189,8 +5165,8 @@ export interface components {
          * @description Response of `GET /data/tables/{dataset}`.
          *
          *     The stored data as it is, before any view shapes it. Paged because the
-         *     default synthetic store holds 11.8M market rows — an unbounded dump is not
-         *     something a client can render or an engine should assemble.
+         *     default synthetic store holds 11.8M market rows, and an unbounded dump is
+         *     not something a client can render or an engine should assemble.
          */
         TablePage: {
             /** Dataset */
@@ -5236,7 +5212,7 @@ export interface components {
         TermStructureResponse: {
             /**
              * As Of
-             * @description The session `spot` was read from, YYYY-MM-DD: the latest date with a close on or before the `as_of` query, or the last date the store carries when none was given. Resolved rather than echoed — a request landing on a weekend or a holiday answers from the session before it — and the date asked for is not published anywhere. Every `entries[].time_to_expiry` is measured from this date.
+             * @description The session `spot` was read from, YYYY-MM-DD: the latest date with a close on or before the `as_of` query, or the last date the store carries when none was given. Resolved rather than echoed (a request landing on a weekend or a holiday answers from the session before it), and the date asked for is not published anywhere. Every `entries[].time_to_expiry` is measured from this date.
              */
             as_of: string;
             /** Entries */
@@ -5284,7 +5260,7 @@ export interface components {
             rate: number;
             /**
              * Start
-             * @description First day of this financing period, YYYY-MM-DD. Derived from the request alone, never resolved against a calendar or market data: the schedule begins at `last_reset_date` — or `start_date` when no reset was given — and steps by `payment_frequency`. Business days are not observed, so a boundary can fall on a weekend. `end` is the other end.
+             * @description First day of this financing period, YYYY-MM-DD. Derived from the request alone, never resolved against a calendar or market data: the schedule begins at `last_reset_date` (or `start_date` when no reset was given) and steps by `payment_frequency`. Business days are not observed, so a boundary can fall on a weekend. `end` is the other end.
              */
             start: string;
         };
@@ -5410,14 +5386,14 @@ export interface components {
             accrual_fraction: number;
             /**
              * Breakeven
-             * @description Breakeven financing spread against each supplied futures price — what makes a swap and a future agree.
+             * @description Breakeven financing spread against each supplied futures price: what makes a swap and a future agree.
              */
             breakeven?: {
                 [key: string]: number;
             }[];
             /**
              * Dv01
-             * @description Value change per +1bp. Negative for a receiver, who pays financing — the sign carries the information a magnitude would lose. Exactly zero on a funded swap, where only the spread accrues.
+             * @description Value change per +1bp. Negative for a receiver, who pays financing: the sign carries the information a magnitude would lose. Exactly zero on a funded swap, where only the spread accrues.
              */
             dv01: number;
             /**
@@ -5702,7 +5678,7 @@ export interface components {
          * WatchlistUpsert
          * @description Body of `PUT /data/watchlists/{id}`.
          *
-         *     The id comes from the URL, so it is not repeated here — accepting it in
+         *     The id comes from the URL, so it is not repeated here: accepting it in
          *     both places invites the two to disagree.
          */
         WatchlistUpsert: {
@@ -5838,7 +5814,7 @@ export interface operations {
                     "application/json": components["schemas"]["BacktestRecordCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -5933,7 +5909,7 @@ export interface operations {
                     "application/json": components["schemas"]["CompareView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6028,7 +6004,7 @@ export interface operations {
                     "application/json": components["schemas"]["AssetView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6127,7 +6103,7 @@ export interface operations {
                     "application/json": components["schemas"]["AttributionView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6225,7 +6201,7 @@ export interface operations {
                     "application/json": components["schemas"]["BacktestJobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6319,7 +6295,7 @@ export interface operations {
                     "application/json": components["schemas"]["OverviewView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6413,7 +6389,7 @@ export interface operations {
                     "application/json": components["schemas"]["BacktestResultSummary"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6514,7 +6490,7 @@ export interface operations {
                     "application/json": components["schemas"]["WeightsView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6609,7 +6585,7 @@ export interface operations {
                     "application/json": components["schemas"]["ChangelogResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6710,7 +6686,7 @@ export interface operations {
                     "application/json": components["schemas"]["CorporateActionsResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6802,7 +6778,7 @@ export interface operations {
                     "application/json": components["schemas"]["CoverageResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6900,7 +6876,7 @@ export interface operations {
                     "application/json": components["schemas"]["RefreshJobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7001,7 +6977,7 @@ export interface operations {
                     "application/json": components["schemas"]["FeatureBatchResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7097,7 +7073,7 @@ export interface operations {
                     "application/json": components["schemas"]["FeatureImportResult"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7189,7 +7165,7 @@ export interface operations {
                     "application/json": components["schemas"]["FeatureCatalogue"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7290,7 +7266,7 @@ export interface operations {
                     "application/json": components["schemas"]["FeatureResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7382,7 +7358,7 @@ export interface operations {
                     "application/json": components["schemas"]["FieldCatalogue"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7483,7 +7459,7 @@ export interface operations {
                     "application/json": components["schemas"]["IdentifierSearchResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7579,7 +7555,7 @@ export interface operations {
                     "application/json": components["schemas"]["ImportResult"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7675,7 +7651,7 @@ export interface operations {
                     "application/zip": unknown;
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7780,7 +7756,7 @@ export interface operations {
                     "application/json": components["schemas"]["PricesResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7863,7 +7839,7 @@ export interface operations {
                 date?: string | null;
                 /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
                 fields?: string[] | null;
-                /** @description ISO code the converted money fields (market_cap, free_float_market_cap) are converted into, e.g. EUR — name the index's currency to compare caps against its weights. USD by default. The unconverted figures come back in market_cap_local and free_float_market_cap_local regardless. */
+                /** @description ISO code the converted money fields (market_cap, free_float_market_cap) are converted into, e.g. EUR. Name the index's currency to compare caps against its weights. USD by default. The unconverted figures come back in market_cap_local and free_float_market_cap_local regardless. */
                 currency?: string | null;
             };
             header?: never;
@@ -7881,7 +7857,7 @@ export interface operations {
                     "application/json": components["schemas"]["BatchReferenceResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7962,7 +7938,7 @@ export interface operations {
                 date?: string | null;
                 /** @description Reference columns to return, plus derived fields such as adv_3m. All stored columns and no derived field by default. */
                 fields?: string[] | null;
-                /** @description ISO code the converted money fields (market_cap, free_float_market_cap) are converted into, e.g. EUR — name the index's currency to compare caps against its weights. USD by default. The unconverted figures come back in market_cap_local and free_float_market_cap_local regardless. */
+                /** @description ISO code the converted money fields (market_cap, free_float_market_cap) are converted into, e.g. EUR. Name the index's currency to compare caps against its weights. USD by default. The unconverted figures come back in market_cap_local and free_float_market_cap_local regardless. */
                 currency?: string | null;
             };
             header?: never;
@@ -7982,7 +7958,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReferenceResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8074,7 +8050,7 @@ export interface operations {
                     "application/json": components["schemas"]["DataStoreCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8170,7 +8146,7 @@ export interface operations {
                     "application/json": components["schemas"]["DataStore"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8273,7 +8249,7 @@ export interface operations {
                     "application/json": components["schemas"]["DataStore"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8365,7 +8341,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8472,7 +8448,7 @@ export interface operations {
                     "application/json": components["schemas"]["DataStore"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8566,7 +8542,7 @@ export interface operations {
                     "application/json": components["schemas"]["LoadJobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8673,7 +8649,7 @@ export interface operations {
                     "application/json": components["schemas"]["RefreshJobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8778,7 +8754,7 @@ export interface operations {
                     "application/json": components["schemas"]["GenerateJobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8879,7 +8855,7 @@ export interface operations {
                     "application/json": components["schemas"]["TablePage"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8971,7 +8947,7 @@ export interface operations {
                     "application/json": components["schemas"]["WatchlistCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9065,7 +9041,7 @@ export interface operations {
                     "application/json": components["schemas"]["Watchlist"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9163,7 +9139,7 @@ export interface operations {
                     "application/json": components["schemas"]["Watchlist"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9255,7 +9231,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9351,7 +9327,7 @@ export interface operations {
                     "application/json": components["schemas"]["FuturesPriceResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9447,7 +9423,7 @@ export interface operations {
                     "application/json": components["schemas"]["TrsPriceResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9552,7 +9528,7 @@ export interface operations {
                     "application/json": components["schemas"]["RollResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9655,7 +9631,7 @@ export interface operations {
                     "application/json": components["schemas"]["TermStructureResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9747,7 +9723,7 @@ export interface operations {
                     "application/json": components["schemas"]["HealthResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9839,7 +9815,7 @@ export interface operations {
                     "application/json": components["schemas"]["IndexCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9935,7 +9911,7 @@ export interface operations {
                     "application/json": components["schemas"]["SavedIndex"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10027,7 +10003,7 @@ export interface operations {
                     "application/json": components["schemas"]["CalendarList"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10123,7 +10099,7 @@ export interface operations {
                     "application/json": components["schemas"]["PreviewResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10215,7 +10191,7 @@ export interface operations {
                     "application/json": components["schemas"]["RuleTypes"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10311,7 +10287,7 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationReport"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10405,7 +10381,7 @@ export interface operations {
                     "application/json": components["schemas"]["IndexDocument"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10503,7 +10479,7 @@ export interface operations {
                     "application/json": components["schemas"]["SavedIndex"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10597,7 +10573,7 @@ export interface operations {
                     "application/json": components["schemas"]["IndexDeletion"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10695,7 +10671,7 @@ export interface operations {
                     "application/json": components["schemas"]["SavedIndex"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10802,7 +10778,7 @@ export interface operations {
                     "application/json": components["schemas"]["PreviewResponse"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10901,7 +10877,7 @@ export interface operations {
                     "application/json": components["schemas"]["ScheduleView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10993,7 +10969,7 @@ export interface operations {
                     "application/json": components["schemas"]["JobCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11087,7 +11063,7 @@ export interface operations {
                     "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["LoadJobStatus"] | components["schemas"]["GenerateJobStatus"] | components["schemas"]["RefreshJobStatus"] | components["schemas"]["JobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11181,7 +11157,7 @@ export interface operations {
                     "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["LoadJobStatus"] | components["schemas"]["GenerateJobStatus"] | components["schemas"]["RefreshJobStatus"] | components["schemas"]["JobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11273,7 +11249,7 @@ export interface operations {
                     "application/json": components["schemas"]["ConstraintSetCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11369,7 +11345,7 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationReport"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11463,7 +11439,7 @@ export interface operations {
                     "application/json": components["schemas"]["ConstraintSet"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11561,7 +11537,7 @@ export interface operations {
                     "application/json": components["schemas"]["SavedConstraintSet"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11653,7 +11629,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11745,7 +11721,7 @@ export interface operations {
                     "application/json": components["schemas"]["ConstraintTypes"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11841,7 +11817,7 @@ export interface operations {
                     "application/json": components["schemas"]["OptimisationJobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11935,7 +11911,7 @@ export interface operations {
                     "application/json": components["schemas"]["ExposuresView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12032,7 +12008,7 @@ export interface operations {
                     "application/json": components["schemas"]["FrontierView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12128,7 +12104,7 @@ export interface operations {
                     "application/json": components["schemas"]["RenderJobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12231,7 +12207,7 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12323,7 +12299,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReportTemplateCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12417,7 +12393,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReportTemplateDocument"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12515,7 +12491,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReportTemplateDocument"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12607,7 +12583,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12699,7 +12675,7 @@ export interface operations {
                     "application/json": components["schemas"]["RiskModelCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12793,7 +12769,7 @@ export interface operations {
                     "application/json": components["schemas"]["RiskModelView"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12891,7 +12867,7 @@ export interface operations {
                     "application/json": components["schemas"]["RiskModelJobStatus"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12983,7 +12959,7 @@ export interface operations {
                     "application/json": components["schemas"]["UniverseCollection"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -13079,7 +13055,7 @@ export interface operations {
                     "application/json": components["schemas"]["Universe"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -13173,7 +13149,7 @@ export interface operations {
                     "application/json": components["schemas"]["Universe"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -13271,7 +13247,7 @@ export interface operations {
                     "application/json": components["schemas"]["Universe"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -13372,7 +13348,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -13478,7 +13454,7 @@ export interface operations {
                     "application/json": components["schemas"]["UniverseMembers"];
                 };
             };
-            /** @description The request could not be read at all — a body that is not decodable, or headers that contradict it. */
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
                 headers: {
                     [name: string]: unknown;

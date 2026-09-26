@@ -43,9 +43,16 @@ export interface RunMetrics {
 }
 
 export interface BacktestRun {
-  /** Portfolio NAV, rebased to 100. Trading days only — no day-zero row. */
+  /**
+   * Portfolio NAV, rebased to 100. Opens on the eve of the first trading day
+   * at the initial capital (BN-246), so it is one point longer than
+   * `indexLevel` and starts a day earlier.
+   */
   level: RunSeries
-  /** The tracked index, rebased to 100 on the same axis. Was `benchmark_level`. */
+  /**
+   * The tracked index, rebased to 100. Was `benchmark_level`. Starts on the
+   * first trading day, a day after `level`.
+   */
   indexLevel: RunSeries
   drawdown: RunSeries
   /** Calendar year → return, as a fraction. */
@@ -159,9 +166,9 @@ function rebased(source: RunSeries): RunSeries {
  *
  * - `index` is a CONTAINER and is never null; `index.target` is the one that
  *   can be (BN-164). A guard written against the container would never fire.
- * - `portfolio.nav` includes day zero, where a job result starts at the first
- *   traded close. So a record's 100 is the starting capital — one extra
- *   leading point, which is real rather than a discrepancy.
+ * - `portfolio.nav` includes day zero, so a record's 100 is the starting
+ *   capital. A job result's `level` has opened the same way since BN-246;
+ *   before that it started at the first traded close.
  */
 export function parseRecord(result: unknown): BacktestRun | undefined {
   if (!isRecord(result)) return undefined

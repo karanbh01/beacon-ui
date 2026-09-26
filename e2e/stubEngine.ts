@@ -141,9 +141,25 @@ function runSeries(base: number, drift: number): { index: string[]; data: number
   return { index, data }
 }
 
-/** The result payload of a completed backtest, as `d92e182` sends it. */
+/**
+ * The portfolio's series from the initial capital (BN-246): 100 on the eve of
+ * the first trading day, then the days. 2 January 2025 is a Thursday, so the
+ * eve is the Wednesday before.
+ */
+function fromCapital(days: { index: string[]; data: number[] }): typeof days {
+  return { index: ['2025-01-01T00:00:00', ...days.index], data: [100, ...days.data] }
+}
+
+/**
+ * The result payload of a completed backtest.
+ *
+ * Since py-beacon BN-246 `level` opens on the eve of the first trading day
+ * at the initial capital, so it is one point longer than `index_level` and
+ * starts a day earlier — the opening trades' cost is its first return.
+ * `index_level` still starts on day one.
+ */
 function backtestResult(withBenchmark: boolean): Record<string, unknown> {
-  const level = runSeries(100, 0.0004)
+  const level = fromCapital(runSeries(100, 0.0004))
   const indexLevel = runSeries(100, 0.00042)
 
   return {
