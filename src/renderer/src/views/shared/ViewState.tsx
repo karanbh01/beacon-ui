@@ -137,7 +137,7 @@ function FindingList({ fault }: { fault: Fault }): ReactElement | null {
 }
 
 export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
-  if (fault.code === 'INVALID_RULE') {
+  if (fault.code === 'INVALID_RULE' || fault.code === 'INVALID_EXPRESSION') {
     /*
      * The input, as written, is what was refused (BU-212).
      *
@@ -146,6 +146,11 @@ export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
      * `detail.findings`. "Could not load" over a list of what is wrong with
      * the reader's own document points at the engine when the remedy is in
      * the document — the heading-as-remedy lesson from BU-199 again.
+     *
+     * An expression naming a field the data does not have is the same kind
+     * of refusal (py-beacon #267): a universe filter or an expression rule
+     * used to select nothing for it, and answers INVALID_EXPRESSION now, the
+     * message naming each bad field and the close matches.
      */
     return (
       <div className="view-state">

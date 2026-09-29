@@ -178,6 +178,26 @@ describe('a refusal that names what is wrong (BU-212)', () => {
   })
 })
 
+describe('an expression the engine cannot read (py-beacon #267)', () => {
+  it('is a refusal of what was written, not a failure to load', () => {
+    /*
+     * A filter naming a field the loaded data does not have used to select
+     * nothing. It is refused now, with the bad field and close matches in
+     * the message — which is the remedy, so the heading must not point at
+     * the engine the way "Could not load" does.
+     */
+    const refused = new ApiError(422, {
+      code: 'INVALID_EXPRESSION',
+      message: "Unknown field 'reference.sectr'. Did you mean 'reference.sector'?"
+    })
+    render(<ViewError error={refused} />)
+
+    expect(screen.getByText('The engine rejected this as written.')).toBeInTheDocument()
+    expect(screen.getByText(/Did you mean 'reference.sector'/)).toBeInTheDocument()
+    expect(screen.queryByText('Could not load.')).toBeNull()
+  })
+})
+
 describe('an engine without usable data (BU-213, BN-236)', () => {
   /*
    * CONFIGURATION_ERROR used to mean only "no data source", and its heading
