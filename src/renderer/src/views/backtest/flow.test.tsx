@@ -56,11 +56,13 @@ interface Calls {
 
 let calls: Calls
 let queries: QueryClient
+/** The index document the client serves; a test can make it another currency. */
+let served: IndexDocument
 
 function makeClient(): BeaconClient {
   return {
     indices: {
-      get: () => Promise.resolve(FRESH),
+      get: () => Promise.resolve(served),
       save: (_id: string, document: IndexDocument) => {
         calls.saved.push(document)
         return Promise.resolve({ index: document, findings: [] })
@@ -233,6 +235,7 @@ function tabFor(id: string): Tab {
 
 beforeEach(() => {
   calls = { saved: [], previewed: [], backtested: [], optimised: [], overviews: [] }
+  served = FRESH
   queries = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   })
@@ -427,6 +430,25 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     // observation, which beats any default this form could choose.
     expect(calls.backtested[0]?.body).not.toHaveProperty('start')
     expect(calls.backtested[0]?.body).not.toHaveProperty('end')
+  })
+
+  it('asks for capital in the currency the engine keeps the book in', async () => {
+    /*
+     * USD through py-beacon 0.3.x, whatever the index's currency: the engine
+     * builds the backtest with no currency and the book defaults to USD. The
+     * label said the index's, so a GBP index asked for pounds and ran with
+     * dollars. Waits for the label to settle, since it used to change once
+     * the document arrived.
+     */
+    served = { ...FRESH, currency: 'GBP' }
+    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+    await screen.findByLabelText('Initial capital')
+    await waitFor(() => {
+      expect(screen.getByText(/^Initial capital \(/)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Initial capital (USD)')).toBeInTheDocument()
+    expect(screen.queryByText('Initial capital (GBP)')).toBeNull()
   })
 
   it('will not submit a body the engine would refuse', async () => {

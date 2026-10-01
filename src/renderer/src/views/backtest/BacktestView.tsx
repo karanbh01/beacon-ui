@@ -253,7 +253,7 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
             />
           </Field>
 
-          <Field label={capitalLabel(document.data?.currency)} width={180}>
+          <Field label={CAPITAL_LABEL} width={180}>
             <input
               className="backtest-input"
               type="number"
@@ -405,10 +405,18 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
   )
 }
 
-/** The index's own currency, when the document has arrived to say so. */
-function capitalLabel(currency: string | undefined): string {
-  return currency === undefined ? 'Initial capital' : `Initial capital (${currency})`
-}
+/**
+ * The currency the engine keeps a backtest's book in: USD, whatever the
+ * index's own currency, through py-beacon 0.3.x.
+ *
+ * This said the index's currency (BU-174), which was an assumption the
+ * engine never matched: its server builds the backtest with no currency,
+ * and the book defaults to USD. A GBP index's form asked for "Initial
+ * capital (GBP)" and ran with that many dollars. py-beacon 0.4.0 (#241)
+ * makes the book default to the index's currency and puts `currency` on
+ * the run — the moment this goes back to reading the index (BU-222).
+ */
+const CAPITAL_LABEL = 'Initial capital (USD)'
 
 function suggested(indexId: string, name: string): { derivedId: string; derivedName: string } {
   const derived = suggestDerived(indexId, name)
