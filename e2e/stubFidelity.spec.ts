@@ -283,3 +283,48 @@ test('the engine says which releases it is', async ({ engine }) => {
   expect(changelog.entries.some((entry) => entry.version === changelog.version)).toBe(true)
   expect(changelog.entries.every((entry) => 'summary' in entry)).toBe(true)
 })
+
+test('the preview’s caps are the reference answer’s, field for field', async ({ engine }) => {
+  /*
+   * py-beacon 0.4.0 (#291) returns each constituent's caps with the preview,
+   * computed by the same code as /data/reference and tested to match. The
+   * app reads them in place of that request, so a preview that disagreed
+   * with it would change the numbers on screen, not only the wait.
+   */
+  const response = await fetch(`${engine.url}/indices/${INDEX}/preview`, {
+    method: 'POST',
+    headers: { ...headers(engine.token), 'content-type': 'application/json' },
+    body: JSON.stringify({})
+  })
+  const preview = (await response.json()) as {
+    as_of: string
+    resolved_date?: string | null
+    assets: Record<string, unknown>[]
+  }
+  const sample = preview.assets.slice(0, 5)
+  const currency = String(sample[0]?.market_cap_currency)
+  const date = preview.resolved_date ?? preview.as_of.slice(0, 10)
+
+  const query = [
+    ...sample.map((asset) => `identifiers=${String(asset.identifier)}`),
+    'fields=market_cap',
+    'fields=free_float_market_cap',
+    `date=${date}`,
+    `currency=${currency}`
+  ].join('&')
+  const reference = (await get(engine, `/data/reference?${query}`)).body as unknown as {
+    entries: { identifier: string; fields: Record<string, unknown> | null }[]
+  }
+
+  for (const asset of sample) {
+    const entry = reference.entries.find((candidate) => candidate.identifier === asset.identifier)
+    for (const key of [
+      'market_cap',
+      'free_float_market_cap',
+      'market_cap_local',
+      'local_currency'
+    ]) {
+      expect(asset[key], `${String(asset.identifier)} ${key}`).toEqual(entry?.fields?.[key] ?? null)
+    }
+  }
+})

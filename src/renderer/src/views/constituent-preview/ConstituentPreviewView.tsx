@@ -28,7 +28,7 @@ import {
   type PreviewAsset,
   type PreviewResponse
 } from './derivation'
-import { capColumns, staleCount, type CapRows } from './capColumns'
+import { capColumns, capsFromPreview, staleCount, type CapRows } from './capColumns'
 import { SolveConstraints } from './Solve'
 import { solveColumns } from './solveColumns'
 import './ConstituentPreviewView.css'
@@ -174,9 +174,18 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   )
   const wantsCaps = weighting?.scheme === 'MarketCapWeighted'
 
-  const names = useMemo(
-    () => (wantsCaps ? (preview.data?.assets ?? []).map((asset) => asset.identifier) : []),
+  // Carried by the preview itself from py-beacon 0.4.0; asked for separately
+  // before it, and only then.
+  const carried = useMemo(
+    () => (wantsCaps ? capsFromPreview(preview.data?.assets) : undefined),
     [wantsCaps, preview.data]
+  )
+  const names = useMemo(
+    () =>
+      wantsCaps && carried === undefined
+        ? (preview.data?.assets ?? []).map((asset) => asset.identifier)
+        : [],
+    [wantsCaps, carried, preview.data]
   )
   /*
    * The date the ENGINE resolved to, not the one asked for (BN-181).
@@ -187,7 +196,9 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
    * actually computed from, so the two columns now describe one day.
    */
   const pricedAt = preview.data?.resolved_date ?? preview.data?.as_of.slice(0, 10) ?? asOf
-  const caps = useReferenceRows(names, PREVIEW_CAP_FIELDS, pricedAt, currency)
+  const asked = useReferenceRows(names, PREVIEW_CAP_FIELDS, pricedAt, currency)
+  const capRows = carried ?? asked.byIdentifier
+  const capsError = carried === undefined ? asked.error : undefined
 
   /*
    * Nothing runs until asked (BU-186).
@@ -214,7 +225,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   // not the pane's — the same index can be either between two saves.
   const solve = preview.data === undefined ? undefined : solveOf(preview.data)
 
-  const stale = wantsCaps ? staleCount(caps.byIdentifier, names) : 0
+  const stale = wantsCaps ? staleCount(capRows, [...capRows.keys()]) : 0
 
   const rows = useMemo(() => {
     if (preview.data === undefined) return []
@@ -223,15 +234,15 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const columns = useMemo(() => {
     if (preview.data === undefined) return []
     if (solve !== undefined) return solveColumns()
-    return buildColumns(preview.data, caps.byIdentifier, weighting, caps.error !== undefined)
-  }, [preview.data, solve, caps.byIdentifier, caps.error, weighting])
+    return buildColumns(preview.data, capRows, weighting, capsError !== undefined)
+  }, [preview.data, solve, capRows, capsError, weighting])
 
   /*
    * Working until BOTH halves are in: the resolve, and the caps that belong
    * beside it. `caps.loading` is false when no caps were asked for, so an
    * index that wants none is never held up by a request it never made.
    */
-  const working = preview.isPending || caps.loading
+  const working = preview.isPending || asked.loading
 
   const summary =
     preview.data === undefined || solve !== undefined ? undefined : summarise(preview.data)
@@ -322,10 +333,10 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         </p>
       )}
 
-      {wantsCaps && caps.error !== undefined && (
+      {wantsCaps && capsError !== undefined && (
         <p className="preview-warning type-11">
           Market caps could not be read, so those columns are not shown — the weights beside them
-          are the engine&rsquo;s and are unaffected. {messageOf(caps.error)}
+          are the engine&rsquo;s and are unaffected. {messageOf(capsError)}
         </p>
       )}
 

@@ -145,7 +145,13 @@ test('a cap with no rate is a missing rate, not a missing cap', async ({ window 
   await expect(row.locator('.cap-norate').first()).toHaveText('no rate')
 })
 
-test('the table waits for the caps rather than filling in as they land', async ({ window }) => {
+test('the table waits for the caps rather than filling in as they land', async ({
+  engine,
+  window
+}) => {
+  // An engine before py-beacon 0.4.0, whose preview carries no caps, so
+  // they come from the separate request this test is about.
+  engine.previewWithoutCaps()
   /*
    * BU-197. The caps come from a separate request — several of them above a
    * thousand names, since that is where the engine caps a batch — and the
@@ -346,7 +352,13 @@ test('a rebalance past the end of the data is refused, not approximated', async 
   await expect(window.locator('.tbl-body')).toHaveCount(0)
 })
 
-test('caps that could not be read are a fault, not a column of dashes', async ({ window }) => {
+test('caps that could not be read are a fault, not a column of dashes', async ({
+  engine,
+  window
+}) => {
+  // An engine before py-beacon 0.4.0, whose preview carries no caps, so
+  // they come from the separate request this test is about.
+  engine.previewWithoutCaps()
   /*
    * py-beacon #215, and the gap it exposed here. Asking for `market_cap`
    * on a store with no `FREE_FLOAT` column answers a bare 500 — and a
@@ -416,7 +428,10 @@ test('a cap says how old it is, and an old one says so', async ({ window }) => {
   )
 })
 
-test('asks for the caps it shows, and not the volumes it does not', async ({ window }) => {
+test('asks for the caps it shows, and not the volumes it does not', async ({ engine, window }) => {
+  // An engine before py-beacon 0.4.0, whose preview carries no caps, so
+  // they come from the separate request this test is about.
+  engine.previewWithoutCaps()
   /*
    * BU-225. It asked for adv_3m too, through a field list shared with the
    * universe views, and never showed it: the engine averaged three months of
@@ -431,4 +446,25 @@ test('asks for the caps it shows, and not the volumes it does not', async ({ win
   const fields = new URL((await asked).url()).searchParams.getAll('fields').join(',')
   expect(fields).toContain('market_cap')
   expect(fields).not.toContain('adv_3m')
+})
+
+test('from py-beacon 0.4.0 the caps come with the preview, in one request', async ({ window }) => {
+  /*
+   * BU-225 and py-beacon #291. The table waited on a second request for the
+   * caps, most of its wait; the engine now returns them with the preview,
+   * keyed as /data/reference keys them, so there is nothing more to ask.
+   */
+  let referenced = 0
+  window.on('request', (request) => {
+    if (request.url().includes('/data/reference?')) referenced += 1
+  })
+
+  await openPreview(window, 'CAP-NOSHARES')
+  await choose(window, 'As of', '2026-07-17')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  const row = window.locator('.tbl-row', { hasText: 'CMP007' }).first()
+  await expect(row).toContainText('CHF')
+  await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Local Ccy)')
+  expect(referenced).toBe(0)
 })

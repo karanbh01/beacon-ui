@@ -434,21 +434,15 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
 
   it('asks for capital in the currency the engine keeps the book in', async () => {
     /*
-     * USD through py-beacon 0.3.x, whatever the index's currency: the engine
-     * builds the backtest with no currency and the book defaults to USD. The
-     * label said the index's, so a GBP index asked for pounds and ran with
-     * dollars. Waits for the label to settle, since it used to change once
-     * the document arrived.
+     * The index's own since py-beacon 0.4.0 (#241). Through 0.3.x it was USD
+     * whatever the index's currency, and the label said so; a GBP index now
+     * keeps a sterling book, so the capital is asked for in pounds.
      */
     served = { ...FRESH, currency: 'GBP' }
     mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
-    await screen.findByLabelText('Initial capital')
-    await waitFor(() => {
-      expect(screen.getByText(/^Initial capital \(/)).toBeInTheDocument()
-    })
 
-    expect(screen.getByText('Initial capital (USD)')).toBeInTheDocument()
-    expect(screen.queryByText('Initial capital (GBP)')).toBeNull()
+    expect(await screen.findByText('Initial capital (GBP)')).toBeInTheDocument()
+    expect(screen.queryByText('Initial capital (USD)')).toBeNull()
   })
 
   it('will not submit a body the engine would refuse', async () => {

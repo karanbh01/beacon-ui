@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { capColumns, staleCount, type CapRows } from './capColumns'
+import { type CapRows, capColumns, capsFromPreview, staleCount } from './capColumns'
 import type { PreviewAsset } from './derivation'
 
 /**
@@ -237,5 +237,39 @@ describe('how old a cap is (BU-210, BN-210)', () => {
   it('counts the stale rows so the pane can say so once', () => {
     expect(staleCount(AGED, ['QUIET', 'LOUD'])).toBe(1)
     expect(staleCount(AGED, ['LOUD'])).toBe(0)
+  })
+})
+
+describe('caps the preview carried itself (py-beacon 0.4.0)', () => {
+  /*
+   * BU-225: the table waited on a second request for these, most of its
+   * wait. 0.4.0 returns them with the preview, keyed as /data/reference keys
+   * them; an engine before it sends none, and the view asks instead.
+   */
+  const priced = {
+    identifier: 'CMP000',
+    market_cap: 2.1e12,
+    market_cap_local: 1.7e12,
+    market_cap_currency: 'USD',
+    local_currency: 'GBP',
+    priced_from: '2026-07-17',
+    price_is_stale: false
+  }
+
+  it('reads them, keyed as the reference answer is', () => {
+    const rows = capsFromPreview([priced])
+    expect(rows?.get('CMP000')?.market_cap_local).toBe(1.7e12)
+    expect(rows?.get('CMP000')?.local_currency).toBe('GBP')
+  })
+
+  it('reads an unpriced name too, which still names the index currency', () => {
+    const unpriced = { identifier: 'CMP009', market_cap: null, market_cap_currency: 'USD' }
+    expect(capsFromPreview([priced, unpriced])?.get('CMP009')?.market_cap).toBeNull()
+  })
+
+  it('has none from an engine before 0.4.0, so the view asks for them', () => {
+    expect(capsFromPreview([{ identifier: 'CMP000' }])).toBeUndefined()
+    expect(capsFromPreview([])).toBeUndefined()
+    expect(capsFromPreview(undefined)).toBeUndefined()
   })
 })

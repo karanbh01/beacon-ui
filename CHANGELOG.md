@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The home page's changelog runs down to Guides instead of stopping short.
 - The constituent preview draws its table sooner: it no longer asks the engine for trading volumes it never showed, about a fifth of the wait.
 - While a constituent preview calculates, an animated orb says so.
+- py-beacon 0.4.0 inside: backtests receive dividends, size their buys net of costs and keep their book in the index's currency, so a backtest's starting capital is asked for in that currency.
+- The constituent preview's market caps arrive with the engine's answer, so the table draws in about a second and a half rather than eight on a 4,500-name index.
 
 ## [0.1.1] - 2026-10-02
 

@@ -6,6 +6,26 @@ import type { PreviewAsset } from './derivation'
 /** A reference row as the engine sends it: named fields, untyped values. */
 export type CapRows = ReadonlyMap<string, Record<string, unknown>>
 
+/**
+ * The caps the preview carried itself (py-beacon 0.4.0, #291).
+ *
+ * Keyed exactly as `/data/reference` keys them: the engine computes both with
+ * the same code and tests that they match field for field. Every asset has
+ * `market_cap_currency`, the unpriced ones too, so its absence is an engine
+ * from before 0.4.0, which sends no caps, and the view asks
+ * `/data/reference` instead. That second request was most of the wait
+ * before the table could draw (BU-225).
+ */
+export function capsFromPreview(
+  assets: readonly { identifier: string; market_cap_currency?: string | null }[] | undefined
+): CapRows | undefined {
+  if (assets === undefined || assets.length === 0) return undefined
+  if (!assets.every((asset) => typeof asset.market_cap_currency === 'string')) return undefined
+  return new Map(
+    assets.map((asset): [string, Record<string, unknown>] => [asset.identifier, { ...asset }])
+  )
+}
+
 const CONVERTED = {
   full: 'market_cap',
   float: 'free_float_market_cap'

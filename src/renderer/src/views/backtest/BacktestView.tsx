@@ -253,7 +253,7 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
             />
           </Field>
 
-          <Field label={CAPITAL_LABEL} width={180}>
+          <Field label={capitalLabel(document.data?.currency)} width={180}>
             <input
               className="backtest-input"
               type="number"
@@ -406,17 +406,17 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
 }
 
 /**
- * The currency the engine keeps a backtest's book in: USD, whatever the
- * index's own currency, through py-beacon 0.3.x.
+ * The capital, in the currency the engine keeps the book in: the index's own
+ * since py-beacon 0.4.0 (#241), which also records it on the run.
  *
- * This said the index's currency (BU-174), which was an assumption the
- * engine never matched: its server builds the backtest with no currency,
- * and the book defaults to USD. A GBP index's form asked for "Initial
- * capital (GBP)" and ran with that many dollars. py-beacon 0.4.0 (#241)
- * makes the book default to the index's currency and puts `currency` on
- * the run — the moment this goes back to reading the index (BU-222).
+ * It said USD through 0.3.x, when the engine built the book in dollars
+ * whatever the index's currency and a GBP index ran with that many dollars.
+ * Before the document arrives there is nothing to name, and naming a guess
+ * would be the same mistake the other way round.
  */
-const CAPITAL_LABEL = 'Initial capital (USD)'
+function capitalLabel(currency: string | undefined): string {
+  return currency === undefined ? 'Initial capital' : `Initial capital (${currency})`
+}
 
 function suggested(indexId: string, name: string): { derivedId: string; derivedName: string } {
   const derived = suggestDerived(indexId, name)

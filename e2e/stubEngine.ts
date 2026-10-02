@@ -155,6 +155,8 @@ function backtestResult(withBenchmark: boolean): Record<string, unknown> {
 
   return {
     level,
+    // The book's currency, the index's own since py-beacon 0.4.0 (#241).
+    currency: 'USD',
     // Renamed from `benchmark_level` in BN-155: the tracked index, rebased.
     index_level: indexLevel,
     /*
@@ -1685,7 +1687,8 @@ function body(url: URL): unknown {
     // "Returns only rows valid then" — the endpoint's own words. A name not
     // yet listed comes back `found: false` with no fields, exactly as a real
     // engine answers it, rather than being omitted from the response.
-    const entries = ids.map((identifier, index) => {
+    const entries = ids.map((identifier, position) => {
+      const index = seedOf(identifier, position)
       const entry = referenceEntry(identifier, index, into)
       if (date === '' || date >= listedFrom(index)) return entry
       return { identifier, found: false, fields: null }
@@ -2135,6 +2138,8 @@ export interface StubEngine {
   skipUniverses: (count: number, causes?: SkippedCauses) => void
   /** Serve nothing, as an engine started without data does (BN-236). */
   unloadData: () => void
+  /** Answer previews as py-beacon before 0.4.0 did: with no caps (#291). */
+  previewWithoutCaps: () => void
 }
 
 /**
@@ -2255,12 +2260,64 @@ function previewPayload(indexId: string, asOf: string): unknown {
 
 function previewFace(indexId: string, asOf: string, derived: boolean): unknown {
   const common = { index_id: indexId, as_of: `${asOf}T00:00:00`, total_weight: 1 }
+  const face = derived ? solvedPreview() : walkedPreview(indexId)
+  const currency = (indexDocument(indexId) as { currency: string }).currency
+  const assets = (face.assets as Record<string, unknown>[]).map((asset) =>
+    withCaps(asset, currency)
+  )
 
   if (derived) {
-    return { ...common, steps: null, cap: null, cap_redistributed: 0, ...solvedPreview() }
+    return { ...common, steps: null, cap: null, cap_redistributed: 0, ...face, assets }
   }
 
-  return { ...common, solve: null, ...walkedPreview(indexId) }
+  return { ...common, solve: null, ...face, assets }
+}
+
+/**
+ * The number a fixture name's figures derive from: CMP005 is 5.
+ *
+ * The reference answer derived them from the name's position in the request,
+ * so CMP005 asked for alone came back with CMP000's caps — an answer about
+ * the request, not the name, which no engine gives. Anything not named that
+ * way keeps its position.
+ */
+function seedOf(identifier: string, position: number): number {
+  return /^CMP\d+$/.test(identifier) ? Number(identifier.slice(3)) : position
+}
+
+/** Off for an engine before 0.4.0, whose preview carries no caps. */
+let previewCarriesCaps = true
+
+const PREVIEW_CAP_KEYS = [
+  'market_cap',
+  'free_float_market_cap',
+  'market_cap_local',
+  'free_float_market_cap_local',
+  'market_cap_currency',
+  'local_currency',
+  'priced_from',
+  'price_is_stale'
+]
+
+/**
+ * A constituent's caps, as py-beacon 0.4.0 returns them with the preview
+ * (#291): every asset, excluded ones included, in the index currency.
+ *
+ * From the same derivation as /data/reference, keyed by the name, so the two
+ * match field for field —
+ * which py-beacon's own test checks, and the fidelity suite here does too.
+ */
+function withCaps(asset: Record<string, unknown>, currency: string): Record<string, unknown> {
+  if (!previewCarriesCaps) return asset
+  const identifier = String(asset.identifier)
+  const fields = referenceEntry(identifier, seedOf(identifier, 0), currency).fields as Record<
+    string,
+    unknown
+  >
+  return {
+    ...asset,
+    ...Object.fromEntries(PREVIEW_CAP_KEYS.map((key) => [key, fields[key] ?? null]))
+  }
 }
 
 /** Ten names out of the universe, two of them at the cap. */
@@ -2630,6 +2687,7 @@ function resetState(): void {
   dataLoaded = true
   dataVersion = 'v0'
   generated = 0
+  previewCarriesCaps = true
   resetStores()
 }
 
@@ -3205,6 +3263,9 @@ export function startStubEngine(): Promise<StubEngine> {
           dataLoaded = false
           activeStore = null
           dataVersion = 'empty'
+        },
+        previewWithoutCaps: () => {
+          previewCarriesCaps = false
         },
         skipUniverses: (count: number, causes?: SkippedCauses) => {
           skippedUniverses = count
