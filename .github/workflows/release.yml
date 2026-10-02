@@ -28,16 +28,20 @@ jobs:
           - os: windows-latest
             arch: x64
             target: --win --x64
+          # macOS is parked for 0.1.0, which ships for Windows only (BU-209):
+          # no Mac to notarise or test on. Unblock both entries together with
+          # the mac block in electron-builder.yml.
+          #
           # macos-14 is arm64 and macos-13 is x64. Matching the runner to the
           # arch keeps `pip install` native: cross-installing a payload for
           # the other architecture would need Rosetta and silently produce
           # wheels for the wrong machine.
-          - os: macos-14
-            arch: arm64
-            target: --mac --arm64
-          - os: macos-13
-            arch: x64
-            target: --mac --x64
+          # - os: macos-14
+          #   arch: arm64
+          #   target: --mac --arm64
+          # - os: macos-13
+          #   arch: x64
+          #   target: --mac --x64
 
     steps:
       - uses: actions/checkout@v4

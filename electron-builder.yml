@@ -37,26 +37,33 @@ extraResources:
       - '!**/tests/**'
       - '!**/test/**'
 
-# One arch per run, always. `extraResources` ships whatever
-# scripts/fetch-python.mjs last unpacked, and that payload is arch-specific —
-# building both arches from one checkout would put an arm64 interpreter inside
-# the x64 app. The release workflow passes --arm64 or --x64 explicitly and
-# fetches a matching python first.
-mac:
-  category: public.app-category.finance
-  # electron-builder derives .icns from the 1024px png (scripts/build-app-icon.mjs).
-  icon: build/icon.png
-  target:
-    - target: dmg
-      arch: [arm64, x64]
-    # Not redundant: Squirrel.Mac updates from the zip, never from the dmg.
-    # Without this, macOS installs fine and then can never update itself.
-    - target: zip
-      arch: [arm64, x64]
-  # Hardened runtime is required for notarisation, and the bundled python
-  # binaries need the same treatment — BU-34.
-  hardenedRuntime: true
-  gatekeeperAssess: false
+# ---- macOS: parked for 0.1.0, which ships for Windows only (BU-209) ------
+# Karan has no Mac, and a build that cannot be notarised or tested on one is
+# not one to hand anyone. Unblocked by access to a Mac: uncomment this block
+# and the two macOS entries in .github/workflows/release.yml, and take up
+# the mac half of #49 (signing and notarisation). The reasoning below is kept
+# because it was expensive to work out and is invisible once deleted.
+#
+# # One arch per run, always. `extraResources` ships whatever
+# # scripts/fetch-python.mjs last unpacked, and that payload is arch-specific —
+# # building both arches from one checkout would put an arm64 interpreter inside
+# # the x64 app. The release workflow passes --arm64 or --x64 explicitly and
+# # fetches a matching python first.
+# mac:
+#   category: public.app-category.finance
+#   # electron-builder derives .icns from the 1024px png (scripts/build-app-icon.mjs).
+#   icon: build/icon.png
+#   target:
+#     - target: dmg
+#       arch: [arm64, x64]
+#     # Not redundant: Squirrel.Mac updates from the zip, never from the dmg.
+#     # Without this, macOS installs fine and then can never update itself.
+#     - target: zip
+#       arch: [arm64, x64]
+#   # Hardened runtime is required for notarisation, and the bundled python
+#   # binaries need the same treatment — BU-34.
+#   hardenedRuntime: true
+#   gatekeeperAssess: false
 
 win:
   # The real multi-size .ico, not the png — electron-builder would derive one,
@@ -73,6 +80,10 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
 
-linux:
-  target: AppImage
-  category: Office
+# ---- Linux: parked for 0.1.0 (BU-209) ------------------------------------
+# Never a release target yet. CI's dry run packages an unpacked directory on
+# Linux (`--dir`), which needs no block here. Unblocked by deciding to ship
+# for Linux at all.
+# linux:
+#   target: AppImage
+#   category: Office

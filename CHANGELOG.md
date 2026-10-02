@@ -6,7 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-The first release, to be 0.1.0, for Windows.
+## [0.1.0] - 2026-10-02
+
+The first release, for Windows, with py-beacon 0.3.1 inside: load data, define an index, back-test it, read the result.
 
 ### Added
 
