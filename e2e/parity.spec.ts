@@ -108,12 +108,14 @@ const HOME: Anchor[] = [
     tolerance: 2
   },
   {
-    // Not the frame's 238 since BU-223, by Karan's call: the frame held
-    // one-word entries, and real release summaries broke over four lines in
-    // it while the space to its right sat empty. The left edge still holds.
-    what: 'changelog width (BU-223, was 238 in 40:295)',
-    measure: `document.querySelector('.home-changelog').getBoundingClientRect().width`,
-    expected: 440
+    // Not the frame's 238 since BU-223, and on the right edge since BU-224,
+    // by Karan's call: release summaries are sentences, and beside the main
+    // column it floated mid-page. Its right edge is the date's — measured
+    // against the date itself, so the anchor holds whatever the window.
+    what: 'changelog right edge = date right edge (BU-224)',
+    measure: `document.querySelector('.home-changelog').getBoundingClientRect().right -
+      document.querySelector('.home-date').getBoundingClientRect().right`,
+    expected: 0
   },
   {
     what: 'guide card width (71:188)',

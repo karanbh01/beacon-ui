@@ -72,15 +72,18 @@
 }
 
 /*
- * Wider than the frame's 238 (Karan, after 0.1.0). The frame held invented
- * one-word entries; real release summaries are a sentence, and at 238 every
- * one broke over three or four lines while the space to its right sat
- * empty. 440 fills that space at the default window; it gives way down to
- * the frame's width before the main column has to.
+ * Not the frame's 238 (Karan, after 0.1.0 and again after 0.1.1). The frame
+ * held one-word entries; real release summaries are a sentence. 540 wide,
+ * and pushed to the right edge so it lines up under the date: left beside
+ * the main column it floated mid-page on a wide window, belonging to
+ * neither. On a narrower window it gives up width before the main column
+ * does — the shrink weight is what makes it the one that yields — down to
+ * the frame's 238.
  */
 .home-changelog {
-  flex: 0 1 440px;
+  flex: 0 100 540px;
   min-width: 238px;
+  margin-left: auto;
 }
 
 .home-section {

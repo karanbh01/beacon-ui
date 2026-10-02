@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+
+- The home page's changelog is wider again and sits against the right edge, under the date, instead of floating mid-page on a wide window.
+
 ## [0.1.1] - 2026-10-02
 
 Fixes to 0.1.0: a changelog you can read at a glance, and an installer in Beacon's colours.
