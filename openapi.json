@@ -131,7 +131,20 @@
             "title": "Correlation",
             "type": "number"
           },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The currency `total_return`, `excess_return`, `tracking_error`, `correlation` and `beta` are measured in: the index's.",
+            "title": "Currency"
+          },
           "excess_return": {
+            "description": "`total_return` less `index_return`, both in the index's currency.",
             "title": "Excess Return",
             "type": "number"
           },
@@ -152,7 +165,20 @@
             "type": "integer"
           },
           "price": {
-            "$ref": "#/components/schemas/SeriesPayload"
+            "$ref": "#/components/schemas/SeriesPayload",
+            "description": "The name's close, in its own currency."
+          },
+          "price_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The currency `price` is in: the name's own, from its latest reference record. Null when no currency is on record for it, in which case its prices are taken to be in the index's currency.",
+            "title": "Price Currency"
           },
           "raw_weight_history": {
             "additionalProperties": {
@@ -167,6 +193,7 @@
             "type": "integer"
           },
           "total_return": {
+            "description": "The name's return over the run, in the index's currency.",
             "title": "Total Return",
             "type": "number"
           },
@@ -964,6 +991,18 @@
             },
             "title": "Sections",
             "type": "array"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The release's one-paragraph summary, as markdown: the prose between its heading and its first section. Null when it has none.",
+            "title": "Summary"
           },
           "version": {
             "description": "e.g. '0.1.0', or 'Unreleased'.",
@@ -2376,9 +2415,27 @@
             "title": "Accepted",
             "type": "integer"
           },
+          "data_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The engine's `data_version` after the import. It changes on every import, and a `data.freshness` event for the `features` dataset carries the same value.",
+            "title": "Data Version"
+          },
           "identifiers": {
             "title": "Identifiers",
             "type": "integer"
+          },
+          "saved": {
+            "default": false,
+            "description": "Whether the rows were written into the served data store, so they survive a restart and a reload. True for a folder store. False for a Postgres store, which is read-only, and for data not registered as a store: there the rows are served until the engine stops or other data is loaded.",
+            "title": "Saved",
+            "type": "boolean"
           },
           "types": {
             "description": "Datasets the import touched.",
@@ -4122,6 +4179,18 @@
             "title": "Converged",
             "type": "boolean"
           },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The index's currency, which every name's prices were converted into before the risk model was estimated. Null on a run saved before this was recorded, whose prices were in each name's own currency.",
+            "title": "Currency"
+          },
           "end": {
             "description": "Last date the constituent price frame carries, YYYY-MM-DD, resolved on the same terms as `start`, which is the other end: earlier than the requested `end` whenever the store stops short of it.",
             "title": "End",
@@ -5751,6 +5820,19 @@
       "RiskModelRequest": {
         "description": "Body of `POST /risk-models/{model_id}/estimate`.",
         "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The currency returns are measured in: every name's prices are converted into it first, so exchange-rate moves are part of the risk. Null uses the index's currency when `index_id` is given, otherwise USD.",
+            "title": "Currency"
+          },
           "end": {
             "anyOf": [
               {
@@ -5874,6 +5956,18 @@
           "covariance": {
             "$ref": "#/components/schemas/TableFrame",
             "description": "Annualised."
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The currency the returns were measured in. Null on a model estimated before this was recorded, whose returns were in each name's own currency.",
+            "title": "Currency"
           },
           "diagnostics": {
             "$ref": "#/components/schemas/RiskDiagnosticsPayload"
@@ -7409,7 +7503,7 @@
   },
   "info": {
     "title": "Beacon API",
-    "version": "0.2.0"
+    "version": "0.3.1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7527,9 +7621,11 @@
             "schema": {
               "description": "Index ids to compare, two or more.",
               "items": {
-                "minLength": 1,
+                "description": "Letters, digits, dash and underscore; up to 64.",
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
                 "type": "string"
               },
+              "minItems": 2,
               "title": "Ids",
               "type": "array"
             }
@@ -8433,21 +8529,16 @@
         "operationId": "changelog_changelog_get",
         "parameters": [
           {
-            "description": "A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned.",
+            "description": "A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned. Omit it for every release.",
             "in": "query",
             "name": "since",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned.",
-              "title": "Since"
+              "default": "",
+              "description": "A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned. Omit it for every release.",
+              "pattern": "^([0-9]+(\\.[0-9]+)*)?$",
+              "title": "Since",
+              "type": "string"
             }
           }
         ],

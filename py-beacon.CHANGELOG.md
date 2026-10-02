@@ -8,6 +8,64 @@ Before 1.0, a breaking change raises the middle number, as in 0.1 to 0.2.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-01
+
+One fix: futures and roll pricing refuse bad input as a 422 rather than a 404.
+
+### Fixed
+
+- Futures and roll pricing answer 422 `INVALID_ARGUMENT`, not 404 `DATA_NOT_FOUND`, for a negative or missing time to expiry, an expiry before the valuation date, and a back expiry that is not after the front.
+
+## [0.3.0] - 2026-09-30
+
+Money in one currency across multi-currency indices, prices carried over gaps, expressions that refuse fields the data does not have, and engine state that survives. Two breaking changes: `data.actions` is gone from expressions, and some requests the engine cannot answer as put answer 422 instead of 404.
+
+### Added
+
+- `DataFetcher.fetch_prices` reads prices for several instruments at once, converted into one currency day by day under the dataset's FX policy.
+- `IndexResult.price_gaps` and `beacon.index.PriceGap`: the days a held name had no bar and was valued at its last close. `PriceGap` is still importable from `beacon.backtest`.
+- The asset view reports `currency`, which its returns, beta and tracking error are measured in (the index's), and `price_currency`, which its price series is in (the name's own).
+- A feature import's response says whether the rows were `saved` into the served store, and gives the new `data_version`.
+- `BacktestResult.get_annual_returns()`: calendar-year returns that compound to the whole run's return.
+- `TotalReturnSwap` takes `underlying_type` (`INDEX`, the default, `ETF` or `EQUITY`). It was always `INDEX`.
+- Each release from `GET /changelog` carries its `summary`, the prose between its heading and its first section.
+- A risk model request takes an optional `currency`, and a risk model and an optimisation run report the currency they were measured in.
+
+### Changed
+
+- Requests that cannot be answered as put answer 422 `INVALID_ARGUMENT` instead of 404 `DATA_NOT_FOUND`: an unknown price interval, an adjusted series without `CLOSE`, and an empty or oversized feature batch.
+- An expression with a field the data does not have is refused with `ExpressionError` by `universe.where`, `ExpressionScreen` and an index's `ExpressionRule`, naming the field and suggesting close matches. Before, it selected nothing.
+- `IndexDefinition` refuses an unknown calendar or rebalancing frequency when it is built, naming the valid values and suggesting close calendar codes. Before, the mistake surfaced only when rebalance dates were first computed.
+- The API schema states more of what it accepts: `since` on `/changelog` is a dotted version, and `/beacon/compare` needs at least two `ids`, each a valid identifier. These are now refused as `VALIDATION_ERROR` by the schema check. The boolean fields of a synthetic-data or import request no longer accept `0`, `1` or strings.
+
+### Removed
+
+- `data.actions` in expressions. No expression could read its fields, so every name was missing a value; it now raises `UnknownDatasetError`, and the field catalogue and `GET /data/fields` no longer list an `actions` namespace. Read corporate actions from the fetcher's `corporate_actions`.
+
+### Fixed
+
+- Money is compared in one currency wherever names are compared or added up. `LiquidityRule`'s traded-value floor, the engine's risk models, optimisation runs, the weights pane (drift, risk contributions, active risk), attribution and the asset view all read each name's prices in its own currency, so a multi-currency index mixed yen with dollars and left exchange-rate returns and risk out. They now convert into the index's currency.
+- An index values a held name with no bar on a session at its last close, as the backtest engine does, and lists the day in `IndexResult.price_gaps`. It used to value the name at zero, so the level dipped by the name's weight for the day and recovered when the bar returned.
+- An expression's `market_cap` inside an index is in the index's currency, as `MarketCapRule`'s bounds are. Outside an index it stays in USD.
+- `POST /data/features` now saves the rows into the served store when it is a folder, so they survive a restart, and changes `data_version` and sends a `data.freshness` event for `features`. Before, a client caching on `data_version` missed the change and a restart lost the rows.
+- The engine always keeps the saved results its views read: the latest backtest of each index, every optimisation run and the latest estimate of each risk model. The limit of 50 saved jobs now applies only to the rest, so a run of loads, refreshes or renders no longer makes those views answer 404.
+- `data.market.free_float` and `free_float_market_cap` in an expression carry the free float forward as far as the data's `free_float_backfill_days`, as every other read does, rather than 10 days.
+- Attribution for a capped index no longer fails when its window starts after the index's first rebalance. The cap drag is measured over the same periods as the contributions.
+- A cancelled dividend is no longer reinvested by a total-return index, counted in the trailing dividend and yield, or applied to adjusted closes; a cancelled split is no longer applied to adjusted closes either.
+- The engine checks for a token before it loads any data, so a missing token is reported at once rather than after a large store has loaded.
+- `http://127.0.0.1` and `http://[::1]` on any port are allowed origins, as `http://localhost` already was.
+- A wrong or missing token on the event socket closes it with code 1008 and a reason, as intended, instead of refusing the handshake with an HTTP 403 a browser cannot read.
+- `BacktestPlots.annual_returns` measures each year from the previous year's close, and the first from the initial capital. It measured each year from its own first close, so every year after the first lost its first day's return.
+- A chart drawn before `beacon.plot.use()` gets the light colours on matplotlib's white background, not the dark mode's.
+- `OptimisationPlots.frontier` starts the capital market line at the rate the frontier was traced at, unless another is passed, so the line is tangent.
+- The Excel reports accept a `pathlib.Path` as well as a string, and the holdings report writes `valuation_date` into its sheet instead of only logging it.
+- `futures_roll_return` uses 365-day years, like every other year fraction in the derivatives. It used 365.25, so its rates came out smaller than the rest by a factor of 365/365.25.
+- The sample dataset in `beacon.testing.dataset` stores its GBPUSD rate in `RATE`, so `fx_pairs` and the coverage view list it. A pair stored without `RATE` still converts but now logs a warning that it is not listed.
+- A report template with an unknown page setting answers 422 instead of 500, and so does a futures or swap price whose inputs overflow.
+- A plain `OPTIONS` request answers 405 with an `Allow` header listing every method its path supports. It listed only one route's methods on a path with several, such as `/data/features`. CORS preflights are unchanged.
+- The nightly API fuzz run passes again: it leaves out operations that start heavy work, and skips the check that a schema-valid request is accepted only where a rule spans fields or depends on the data.
+- Generating or extending synthetic data from an isolated engine (`python -I`, as the Beacon app runs it) keeps the child process isolated too, so it cannot load packages from the user's own site-packages.
+
 ## [0.2.0] - 2026-09-26
 
 Choose where the engine's data comes from: named stores, synthetic data you can extend to today, CSV and Excel import, and read-only Postgres. Also documentation at pybeacon.dev, and fixes to index levels and backtests around splits and delistings.
@@ -78,7 +136,9 @@ The first release.
 - An index or backtest never uses a price, rate or free float dated after the day it is working on.
 - Requires Python 3.11 or later.
 
-[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/karanbh01/py-beacon/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/karanbh01/py-beacon/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/karanbh01/py-beacon/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/karanbh01/py-beacon/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/karanbh01/py-beacon/releases/tag/v0.1.0

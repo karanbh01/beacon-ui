@@ -1353,7 +1353,15 @@ export interface components {
             beta: number;
             /** Correlation */
             correlation: number;
-            /** Excess Return */
+            /**
+             * Currency
+             * @description The currency `total_return`, `excess_return`, `tracking_error`, `correlation` and `beta` are measured in: the index's.
+             */
+            currency?: string | null;
+            /**
+             * Excess Return
+             * @description `total_return` less `index_return`, both in the index's currency.
+             */
             excess_return: number;
             /** Identifier */
             identifier: string;
@@ -1363,7 +1371,13 @@ export interface components {
             index_return: number;
             /** Observations */
             observations: number;
+            /** @description The name's close, in its own currency. */
             price: components["schemas"]["SeriesPayload"];
+            /**
+             * Price Currency
+             * @description The currency `price` is in: the name's own, from its latest reference record. Null when no currency is on record for it, in which case its prices are taken to be in the index's currency.
+             */
+            price_currency?: string | null;
             /**
              * Raw Weight History
              * @description The same dates -> the weight before capping, so the drilldown can show what the cap did to this name over time. Carried alongside `weight_history`, which stays the applied series.
@@ -1373,7 +1387,10 @@ export interface components {
             };
             /** Rebalances Held */
             rebalances_held: number;
-            /** Total Return */
+            /**
+             * Total Return
+             * @description The name's return over the run, in the index's currency.
+             */
             total_return: number;
             /** Tracking Error */
             tracking_error: number;
@@ -1884,6 +1901,11 @@ export interface components {
              * @description What changed, grouped by kind of change. Empty for an Unreleased entry with nothing in it yet.
              */
             sections: components["schemas"]["ChangelogSectionView"][];
+            /**
+             * Summary
+             * @description The release's one-paragraph summary, as markdown: the prose between its heading and its first section. Null when it has none.
+             */
+            summary?: string | null;
             /**
              * Version
              * @description e.g. '0.1.0', or 'Unreleased'.
@@ -2732,8 +2754,19 @@ export interface components {
         FeatureImportResult: {
             /** Accepted */
             accepted: number;
+            /**
+             * Data Version
+             * @description The engine's `data_version` after the import. It changes on every import, and a `data.freshness` event for the `features` dataset carries the same value.
+             */
+            data_version?: string | null;
             /** Identifiers */
             identifiers: number;
+            /**
+             * Saved
+             * @description Whether the rows were written into the served data store, so they survive a restart and a reload. True for a folder store. False for a Postgres store, which is read-only, and for data not registered as a store: there the rows are served until the engine stops or other data is loaded.
+             * @default false
+             */
+            saved: boolean;
             /**
              * Types
              * @description Datasets the import touched.
@@ -3738,6 +3771,11 @@ export interface components {
             constraint_set_id: string;
             /** Converged */
             converged: boolean;
+            /**
+             * Currency
+             * @description The index's currency, which every name's prices were converted into before the risk model was estimated. Null on a run saved before this was recorded, whose prices were in each name's own currency.
+             */
+            currency?: string | null;
             /**
              * End
              * @description Last date the constituent price frame carries, YYYY-MM-DD, resolved on the same terms as `start`, which is the other end: earlier than the requested `end` whenever the store stops short of it.
@@ -4783,6 +4821,11 @@ export interface components {
          */
         RiskModelRequest: {
             /**
+             * Currency
+             * @description The currency returns are measured in: every name's prices are converted into it first, so exchange-rate moves are part of the risk. Null uses the index's currency when `index_id` is given, otherwise USD.
+             */
+            currency?: string | null;
+            /**
              * End
              * @description End of that window.
              */
@@ -4847,6 +4890,11 @@ export interface components {
             correlation: components["schemas"]["TableFrame"];
             /** @description Annualised. */
             covariance: components["schemas"]["TableFrame"];
+            /**
+             * Currency
+             * @description The currency the returns were measured in. Null on a model estimated before this was recorded, whose returns were in each name's own currency.
+             */
+            currency?: string | null;
             diagnostics: components["schemas"]["RiskDiagnosticsPayload"];
             /**
              * End
@@ -6567,8 +6615,8 @@ export interface operations {
     changelog_changelog_get: {
         parameters: {
             query?: {
-                /** @description A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned. */
-                since?: string | null;
+                /** @description A version the client has already shown, e.g. '0.1.0'. Only releases after it are returned. Omit it for every release. */
+                since?: string;
             };
             header?: never;
             path?: never;

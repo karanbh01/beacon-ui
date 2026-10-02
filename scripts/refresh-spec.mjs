@@ -1,12 +1,19 @@
 /**
- * Regenerate openapi.json from a local py-beacon checkout.
+ * Regenerate openapi.json, and py-beacon's changelog beside it.
  *
  * py-beacon owns the spec; this repo commits a copy so the client can be
  * generated without python, a network, or a py-beacon install. Its exporter
  * already sorts keys and adds a trailing newline precisely so the file diffs
  * cleanly here.
  *
- *   pnpm run spec:refresh
+ *   PY_BEACON_RELEASE=v0.3.1 pnpm run spec:refresh   from a published release
+ *   pnpm run spec:refresh                            from the sibling checkout
+ *
+ * A release is what to ship against. The version this writes to
+ * GENERATED_AGAINST is the one packaging installs from PyPI (BU-209), and
+ * the sibling checkout is usually `main`, ahead of every release — refreshed
+ * from it, the client is typed against an engine nobody can install. That
+ * mode stays for working against an unreleased change, as py-beacon makes it.
  *
  * Set BEACON_PY_REPO to point at the checkout if it is not a sibling.
  */
@@ -19,6 +26,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const OUTPUT = join(root, 'openapi.json')
 const VERSION_FILE = join(root, 'src', 'shared', 'apiVersion.ts')
+const CHANGELOG = join(root, 'py-beacon.CHANGELOG.md')
 
 const WINDOWS = process.platform === 'win32'
 
@@ -51,16 +59,48 @@ function findPython(repo) {
   return WINDOWS ? 'python.exe' : 'python3'
 }
 
-const repo = findRepo()
-const python = findPython(repo)
+const RELEASES = 'https://github.com/karanbh01/py-beacon/releases/download'
+const RAW = 'https://raw.githubusercontent.com/karanbh01/py-beacon'
 
-console.log(`py-beacon: ${repo}`)
-console.log(`python:    ${python}`)
+async function download(url) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`${url} answered ${response.status}`)
+  return response.text()
+}
 
-execFileSync(python, [join('scripts', 'export_openapi.py'), OUTPUT], {
-  cwd: repo,
-  stdio: 'inherit'
-})
+/**
+ * The spec attached to the GitHub release, and the changelog at its tag.
+ * Refuses a spec whose own version is not the tag's, since that version is
+ * what gets pinned.
+ */
+async function fromRelease(tag) {
+  console.log(`py-beacon: release ${tag}`)
+  writeFileSync(OUTPUT, await download(`${RELEASES}/${tag}/openapi.json`), 'utf-8')
+  const published = JSON.parse(readFileSync(OUTPUT, 'utf-8')).info.version
+  if (`v${published}` !== tag) {
+    throw new Error(`The ${tag} release carries a spec for ${published}; not pinning it.`)
+  }
+  writeFileSync(CHANGELOG, await download(`${RAW}/${tag}/CHANGELOG.md`), 'utf-8')
+}
+
+/** Exported by the sibling checkout's own script, from whatever it has. */
+function fromCheckout() {
+  const repo = findRepo()
+  const python = findPython(repo)
+
+  console.log(`py-beacon: ${repo}`)
+  console.log(`python:    ${python}`)
+
+  execFileSync(python, [join('scripts', 'export_openapi.py'), OUTPUT], {
+    cwd: repo,
+    stdio: 'inherit'
+  })
+  copyFileSync(join(repo, 'CHANGELOG.md'), CHANGELOG)
+}
+
+const release = (process.env.PY_BEACON_RELEASE ?? '').trim()
+if (release === '') fromCheckout()
+else await fromRelease(release)
 
 // Pin the version the client was generated against. The runtime check
 // compares this with what /health reports, which catches running a newer
@@ -80,8 +120,7 @@ export const GENERATED_AGAINST = '${version}'
 
 console.log(`Pinned py-beacon ${version} in src/shared/apiVersion.ts`)
 
-// py-beacon's changelog, for the home page (BU-219). Copied at the same
-// moment as the spec so the releases listed are the ones the client was
-// generated against, and committed so the app builds and runs offline.
-copyFileSync(join(repo, 'CHANGELOG.md'), join(root, 'py-beacon.CHANGELOG.md'))
-console.log('Copied py-beacon CHANGELOG.md to py-beacon.CHANGELOG.md')
+// py-beacon's changelog, for the home page (BU-219), from the same source
+// as the spec so the releases listed are the ones the client was generated
+// against, and committed so the app builds and runs offline.
+console.log('Wrote py-beacon CHANGELOG.md to py-beacon.CHANGELOG.md')
