@@ -14,7 +14,7 @@ export interface CalculatingProps {
  * dotted sash rolling round a sphere. Drawn on a 2D canvas, so it costs a
  * frame loop and nothing more; and it follows the app's theme by itself,
  * through the `data-theme` attribute on the root, so it needs no tokens of
- * its own. The pill around it is the app's surface and border.
+ * its own. No pill around it, by Karan's call.
  *
  * A status, announced politely: the orb is decoration and is hidden from
  * assistive technology, which hears the word instead.
