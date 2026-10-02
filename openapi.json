@@ -647,6 +647,18 @@
             ],
             "description": "Comparison against the requested external benchmark, if one was given. Null otherwise; `metrics.tracking_error` still reports replication accuracy against the tracked index either way."
           },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The book's currency, which `total_costs` and `initial_capital` are in: the index's. Null on a run saved before this was recorded, whose book was in USD.",
+            "title": "Currency"
+          },
           "drawdown": {
             "$ref": "#/components/schemas/SeriesPayload",
             "description": "Level against its running peak; 0 at a new high."
@@ -4625,6 +4637,30 @@
             "description": "Id of the first rule that excluded it. Null when included, and always null on a derived preview.",
             "title": "Excluded By"
           },
+          "free_float_market_cap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`market_cap` x free float, in `market_cap_currency`. Null when the free float is unknown or `market_cap` is null.",
+            "title": "Free Float Market Cap"
+          },
+          "free_float_market_cap_local": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`market_cap_local` x free float, in `local_currency`. Null when the free float is unknown.",
+            "title": "Free Float Market Cap Local"
+          },
           "identifier": {
             "title": "Identifier",
             "type": "string"
@@ -4633,6 +4669,78 @@
             "description": "Whether it reached the final index.",
             "title": "Included",
             "type": "boolean"
+          },
+          "local_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO code the `_local` caps are in: the instrument's own quote currency. Null when the name has no price.",
+            "title": "Local Currency"
+          },
+          "market_cap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Price x shares outstanding at `resolved_date`, converted into `market_cap_currency`, the index currency. Null when the name has no price or share count, or no rate converts it. Computed as `/data/reference` computes it.",
+            "title": "Market Cap"
+          },
+          "market_cap_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO code the converted caps are in: the index currency.",
+            "title": "Market Cap Currency"
+          },
+          "market_cap_local": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Price x shares outstanding, unconverted, in `local_currency`.",
+            "title": "Market Cap Local"
+          },
+          "price_is_stale": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether `priced_from` is more than 30 days before `resolved_date`. Null when the name has no price at all.",
+            "title": "Price Is Stale"
+          },
+          "priced_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The date of the close and share count behind the caps, YYYY-MM-DD: the last print on or before `resolved_date`. Null when the name has no price at all.",
+            "title": "Priced From"
           },
           "solved_weight": {
             "anyOf": [
@@ -6899,7 +7007,7 @@
         "type": "object"
       },
       "UnfilledOrderPayload": {
-        "description": "A buy the simulation could not execute in full.",
+        "description": "An order the simulation could not execute in full.",
         "properties": {
           "asset_id": {
             "title": "Asset Id",
@@ -6915,16 +7023,38 @@
             "type": "number"
           },
           "price": {
-            "title": "Price",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The execution price used. Null when there was none: a name that could not be priced, or an order an execution limit left unfinished.",
+            "title": "Price"
+          },
+          "reason": {
+            "default": "cash",
+            "description": "Why: 'cash' (not enough to buy it all), 'no price' (the name could not be priced on the day) or 'execution limit' (still working when the next rebalance replaced it or the run ended).",
+            "title": "Reason",
+            "type": "string"
           },
           "requested_quantity": {
             "title": "Requested Quantity",
             "type": "number"
           },
           "shortfall_value": {
-            "title": "Shortfall Value",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The value that went unfilled. For a name that could not be priced, the value the rebalance aimed to hold. Null for an order an execution limit left unfinished.",
+            "title": "Shortfall Value"
           }
         },
         "required": [
@@ -7503,7 +7633,7 @@
   },
   "info": {
     "title": "Beacon API",
-    "version": "0.3.1"
+    "version": "0.4.0"
   },
   "openapi": "3.1.0",
   "paths": {

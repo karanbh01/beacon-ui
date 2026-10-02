@@ -8,6 +8,39 @@ Before 1.0, a breaking change raises the middle number, as in 0.1 to 0.2.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-02
+
+A backtest can now model how a fund carries out its index at its size: screens, capacity caps, market impact and execution limits, dividends, and its modelling assumptions in one object. Results change: a backtest receives dividends, sizes its buys net of costs, and keeps its book in the index's currency. `ExpressionScreen` moved to `beacon.backtest`.
+
+### Added
+
+- `Implementation`: how a backtest carries out its index at its size, without changing the index. Its screens decide which names may be held at each rebalance (`MarketCapScreen`, `LiquidityScreen`, `MinimumPriceScreen`, `ListingAgeScreen`, `ExclusionScreen`, `ExpressionScreen`), with optional exit levels (buffers) so names near a threshold do not flip in and out. Removed weight is spread pro rata across the remaining names or held as cash. Pass it as `Backtest(implementation=...)`.
+- Capacity caps in a backtest's `Implementation`: `OwnershipCap` (a share of free-float market cap), `LiquidityCap` (days of traded value at a participation rate) and `WeightCap` limit each position at the book's size, with the excess spread across the names still under their caps or held as cash. `MinimumPosition` drops positions too small to keep. Each rebalance's `RebalanceStep` records what was capped.
+- Market impact and execution limits in a backtest's `Implementation`. `MarketImpact` charges each trade for its size against the name's traded value, by the square-root law, so the same weights cost a large fund more. `ExecutionLimit` caps how much of an order trades in a day, by participation in the day's volume or spread over a number of days; the rest is worked on the following sessions. A blank volume is replaced by the last one reported within `volume_backfill_days` (a new modelling assumption, 5 days unless set), and otherwise by the average daily volume.
+- `UnfilledOrder.reason`: why an order went unfilled, `"cash"`, `"no price"` or `"execution limit"`. The server's unfilled orders carry it too.
+- `BacktestResult.rebalance_steps`: for each rebalance, the target, the names removed and the screen that removed each, and the weights traded to.
+- `ModellingAssumptions`: what a backtest takes as given about markets and data in one object. FX policy, stale-price threshold and free-float backfill (shared with the index calculation), and cash rate, risk-free rate and periods per year. Set a process-wide default with `use_modelling_assumptions`, and override it per backtest with `Backtest(modelling_assumptions=...)`. Results and index results record what they assumed. The defaults change no result.
+- Dividends in the backtest. A holding is paid each cash distribution on the pay date, for the shares held at the start of the ex-date, converted into the book's currency and net of `withholding_tax_rate` (a new modelling assumption). `Backtest(dividends=...)` reinvests the cash in the current holdings the day it arrives (the default), keeps it as cash until the next rebalance, or distributes it, with returns adding distributions back. Each payment is recorded in `portfolio.cash_flows`.
+- Cash can earn interest (`cash_rate`), recorded in `Portfolio.cash_flows`.
+- `IndexResult.currency` and `BacktestResult.currency`: the currency an index's levels and a backtest's book are in. A backtest run from the engine reports its `currency` too.
+- `IndexFund` and `ETF` take the backtest settings as keyword arguments (`currency`, `modelling_assumptions`, `dividends`, `implementation`, `modifiers`, `benchmark` and `cache`) and pass them to the backtest they run. A fund ran with the defaults whatever was needed.
+- `Backtest(cache=False)` turns the index result cache off. `cache=None` already meant the default location, so there was no way to ask for none.
+- The index preview returns each constituent's market caps: `market_cap` and `free_float_market_cap` in the index currency, `market_cap_local` and `free_float_market_cap_local` in `local_currency`, with `market_cap_currency`, `priced_from` and `price_is_stale`. Every name has them, excluded ones included, at the preview's `resolved_date`, and they match `GET /data/reference` field for field. Null where a name has no price or the data has no free float.
+
+### Changed
+
+- `GET /data/reference` computes `market_cap` and `free_float_market_cap` about 12 times faster for a large batch: 0.3s for 1,000 names, from 1.8s. Each name's currency, latest row and FX rate were read separately; they are now read once for the batch. The answers are unchanged.
+- A rebalance sizes its buys so that they and their costs fit the cash, so it fills in full. Buys were sized before costs, so the last buy of almost every rebalance with costs came up short and was recorded in `unfilled`.
+- A target name with no price on a rebalance day is recorded in `unfilled` with the reason `"no price"`. It was skipped without a record. In the server's unfilled orders, `price` and `shortfall_value` can now be null.
+- A backtest over data with cash distributions now receives them, so its NAV and every figure from it rise by about the dividend yield. It earned the price return only, and trailed a total-return index by about that much.
+- `ExpressionScreen` is a screen, passed in `Implementation(screens=[...])`, and no longer takes a `fetcher`. It was a trade modifier that cancelled buys of a failing name, left its weight in cash and only trimmed a failing holding. A failing name is now removed from the target, sold in full and its weight redistributed. It moved from `beacon.backtest.rules` to `beacon.backtest`, and a screen passed in `modifiers` is refused with a message saying where it goes.
+- A backtest keeps its book in the index's currency unless `currency` is passed. It defaulted to USD whatever the index's currency, so a euro or sterling index was valued in dollars and its NAV picked up exchange-rate moves the index does not have. This includes backtests run from the engine and by an `IndexFund`.
+
+### Fixed
+
+- An index over data with no `SHARES_OUTSTANDING` column is refused before the run starts, saying the calculation sizes every index from market cap. An equal-weighted index passed the check, since its scheme reads no columns, and then failed at the divisor as an index worth 0.0.
+- The index result cache keys on the data source's FX policy, stale-price threshold and free-float backfill. It keyed on the store alone, so changing one of those settings could reuse an index calculated under the old one.
+
 ## [0.3.1] - 2026-10-01
 
 One fix: futures and roll pricing refuse bad input as a 422 rather than a 404.
@@ -136,7 +169,8 @@ The first release.
 - An index or backtest never uses a price, rate or free float dated after the day it is working on.
 - Requires Python 3.11 or later.
 
-[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/karanbh01/py-beacon/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/karanbh01/py-beacon/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/karanbh01/py-beacon/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/karanbh01/py-beacon/compare/v0.1.1...v0.2.0

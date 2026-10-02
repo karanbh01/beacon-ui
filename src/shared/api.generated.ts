@@ -1642,6 +1642,11 @@ export interface components {
             };
             /** @description Comparison against the requested external benchmark, if one was given. Null otherwise; `metrics.tracking_error` still reports replication accuracy against the tracked index either way. */
             benchmark?: components["schemas"]["RelativeMetricsPayload"] | null;
+            /**
+             * Currency
+             * @description The book's currency, which `total_costs` and `initial_capital` are in: the index's. Null on a run saved before this was recorded, whose book was in USD.
+             */
+            currency?: string | null;
             /** @description Level against its running peak; 0 at a new high. */
             drawdown: components["schemas"]["SeriesPayload"];
             /** @description The tracked index, rebased to 100 on the same axis. Not the external benchmark, which is `benchmark`. */
@@ -4047,6 +4052,16 @@ export interface components {
              * @description Id of the first rule that excluded it. Null when included, and always null on a derived preview.
              */
             excluded_by?: string | null;
+            /**
+             * Free Float Market Cap
+             * @description `market_cap` x free float, in `market_cap_currency`. Null when the free float is unknown or `market_cap` is null.
+             */
+            free_float_market_cap?: number | null;
+            /**
+             * Free Float Market Cap Local
+             * @description `market_cap_local` x free float, in `local_currency`. Null when the free float is unknown.
+             */
+            free_float_market_cap_local?: number | null;
             /** Identifier */
             identifier: string;
             /**
@@ -4054,6 +4069,36 @@ export interface components {
              * @description Whether it reached the final index.
              */
             included: boolean;
+            /**
+             * Local Currency
+             * @description ISO code the `_local` caps are in: the instrument's own quote currency. Null when the name has no price.
+             */
+            local_currency?: string | null;
+            /**
+             * Market Cap
+             * @description Price x shares outstanding at `resolved_date`, converted into `market_cap_currency`, the index currency. Null when the name has no price or share count, or no rate converts it. Computed as `/data/reference` computes it.
+             */
+            market_cap?: number | null;
+            /**
+             * Market Cap Currency
+             * @description ISO code the converted caps are in: the index currency.
+             */
+            market_cap_currency?: string | null;
+            /**
+             * Market Cap Local
+             * @description Price x shares outstanding, unconverted, in `local_currency`.
+             */
+            market_cap_local?: number | null;
+            /**
+             * Price Is Stale
+             * @description Whether `priced_from` is more than 30 days before `resolved_date`. Null when the name has no price at all.
+             */
+            price_is_stale?: boolean | null;
+            /**
+             * Priced From
+             * @description The date of the close and share count behind the caps, YYYY-MM-DD: the last print on or before `resolved_date`. Null when the name has no price at all.
+             */
+            priced_from?: string | null;
             /**
              * Solved Weight
              * @description Derived preview only: what the optimiser allocated it, the 'after'. Equal to `weight`, and carried separately so the before/after/delta triple reads as one row without a client having to know which face it is on.
@@ -5500,7 +5545,7 @@ export interface components {
         };
         /**
          * UnfilledOrderPayload
-         * @description A buy the simulation could not execute in full.
+         * @description An order the simulation could not execute in full.
          */
         UnfilledOrderPayload: {
             /** Asset Id */
@@ -5512,12 +5557,24 @@ export interface components {
             date: string;
             /** Filled Quantity */
             filled_quantity: number;
-            /** Price */
-            price: number;
+            /**
+             * Price
+             * @description The execution price used. Null when there was none: a name that could not be priced, or an order an execution limit left unfinished.
+             */
+            price: number | null;
+            /**
+             * Reason
+             * @description Why: 'cash' (not enough to buy it all), 'no price' (the name could not be priced on the day) or 'execution limit' (still working when the next rebalance replaced it or the run ended).
+             * @default cash
+             */
+            reason: string;
             /** Requested Quantity */
             requested_quantity: number;
-            /** Shortfall Value */
-            shortfall_value: number;
+            /**
+             * Shortfall Value
+             * @description The value that went unfilled. For a name that could not be priced, the value the rebalance aimed to hold. Null for an order an execution limit left unfinished.
+             */
+            shortfall_value: number | null;
         };
         /**
          * Universe
