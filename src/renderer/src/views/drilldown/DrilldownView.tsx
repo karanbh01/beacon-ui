@@ -105,6 +105,7 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
   )
 
   const assetPoints = useMemo(() => rebase100(toPoints(asset.data?.price)), [asset.data])
+  const money = currenciesOf(asset.data)
   const indexPoints = useMemo(() => rebase100(toPoints(overview.data?.level)), [overview.data])
 
   const ranked = useMemo(
@@ -182,12 +183,12 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
               },
               { label: 'capped', value: mine?.capped === true ? 'yes' : 'no' },
               {
-                label: 'total return',
+                label: `total return${inCurrency(money.returns)}`,
                 value: signedPercent(asset.data.total_return * 100),
                 tone: tone(asset.data.total_return)
               },
               {
-                label: 'excess vs index',
+                label: `excess vs index${inCurrency(money.returns)}`,
                 value: signedPercent(asset.data.excess_return * 100),
                 tone: tone(asset.data.excess_return)
               },
@@ -201,8 +202,10 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
               <LevelChart
                 mode={mode}
                 series={[
-                  { label: identifier, points: assetPoints },
-                  ...(indexPoints.length === 0 ? [] : [{ label: indexId, points: indexPoints }])
+                  { label: `${identifier}${inCurrency(money.price)}`, points: assetPoints },
+                  ...(indexPoints.length === 0
+                    ? []
+                    : [{ label: `${indexId}${inCurrency(money.returns)}`, points: indexPoints }])
                 ]}
                 note={`rebased · 100 = ${assetPoints[0]?.date ?? ''}`}
                 height={440}
@@ -234,4 +237,27 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
       )}
     </div>
   )
+}
+
+/**
+ * What the asset view's numbers are in (BU-220, py-beacon 0.3.0).
+ *
+ * The returns, beta and tracking error are measured in the index's currency
+ * and the price in the name's own, so for a GBP name in a USD index the
+ * headline return no longer matches where the price line ends — they are
+ * labelled, or the two read as one number disagreeing with itself. A name
+ * with no currency on record is priced as if in the index's, which is what
+ * the engine does with it. An engine before 0.3.0 says neither, and nor
+ * does this: a guessed currency is worse than none.
+ */
+function currenciesOf(
+  asset: { currency?: string | null; price_currency?: string | null } | undefined
+): { returns?: string; price?: string } {
+  const returns = asset?.currency ?? undefined
+  if (returns === undefined) return {}
+  return { returns, price: asset?.price_currency ?? returns }
+}
+
+function inCurrency(currency: string | undefined): string {
+  return currency === undefined ? '' : ` (${currency})`
 }

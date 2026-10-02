@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -52,7 +52,7 @@ function client(): BeaconClient {
   return {
     get: (path: string) => {
       if (path.includes('weights')) return Promise.resolve(WEIGHTS)
-      if (path.includes('assets')) return Promise.resolve(ASSET)
+      if (path.includes('assets')) return Promise.resolve(asset)
       return Promise.resolve({
         index_id: 'TECH10',
         name: 'TECH10',
@@ -87,7 +87,11 @@ function mountWeights(): void {
   )
 }
 
+/** The asset view the client serves; a test can give it currencies. */
+let asset: Record<string, unknown> = ASSET
+
 beforeEach(() => {
+  asset = ASSET
   localStorage.clear()
   const store = useWorkspace.getState()
   store.reset()
@@ -167,6 +171,25 @@ describe('Weights into Drilldown (BU-29, BU-166)', () => {
     )
   }
 
+  /** Click through from Weights, then draw the Drilldown that opened. */
+  async function mountDrilldown(): Promise<HTMLElement> {
+    mountWeightsLinked()
+    await userEvent.click(await screen.findByText('AVGO'))
+
+    const state = useWorkspace.getState()
+    const drill = state.tabs.find((tab) => tab.viewKind === 'asset-drilldown')
+    if (drill === undefined) throw new Error('no Drilldown opened')
+
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    return render(
+      <QueryClientProvider client={queries}>
+        <ClientContext.Provider value={client()}>
+          <DrilldownView tab={drill} subject={resolveSubject(state, drill)} pane={0} />
+        </ClientContext.Provider>
+      </QueryClientProvider>
+    ).container
+  }
+
   it('opens Drilldown on the name that was clicked', async () => {
     /*
      * This used to write the ticker into the Weights tab's own subject and
@@ -220,5 +243,27 @@ describe('Weights into Drilldown (BU-29, BU-166)', () => {
 
     // The index comes from Overview, not from a hard-coded 'TECH10' (BU-166).
     expect(await screen.findByText(/constituent of TECH10/)).toBeInTheDocument()
+  })
+
+  it('says which currency the returns are in, and which the price is', async () => {
+    /*
+     * BU-220. Since py-beacon 0.3.0 the returns are the index's currency and
+     * the price the name's own; for a GBP name in a USD index the headline
+     * return no longer matches the price line, so both say what they are.
+     */
+    asset = { ...ASSET, currency: 'USD', price_currency: 'GBP' }
+    const drilldown = within(await mountDrilldown())
+
+    expect(await drilldown.findByText('total return (USD)')).toBeInTheDocument()
+    expect(drilldown.getByText('excess vs index (USD)')).toBeInTheDocument()
+  })
+
+  it('says nothing about currency for an engine that does not', async () => {
+    // Before 0.3.0 the view carries neither field; a guessed label would be
+    // a claim about money the engine never made.
+    const drilldown = within(await mountDrilldown())
+
+    expect(await drilldown.findByText('total return')).toBeInTheDocument()
+    expect(drilldown.queryByText(/total return \(/)).toBeNull()
   })
 })
