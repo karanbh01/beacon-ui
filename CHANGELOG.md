@@ -9,6 +9,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Changed
 
 - The home page's changelog is wider again and sits against the right edge, under the date, instead of floating mid-page on a wide window.
+- The home page's changelog runs down to Guides instead of stopping short.
+- The constituent preview draws its table sooner: it no longer asks the engine for trading volumes it never showed, about a fifth of the wait.
+- While a constituent preview calculates, an animated orb says so.
 
 ## [0.1.1] - 2026-10-02
 

@@ -55,12 +55,18 @@
  * Quickstart and Recent Activity share a 663-wide column; Changelog sits
  * 64.6 to its right. Not a symmetric two-up.
  */
+/*
+ * Takes the height between the header and Guides (BU-225), so the
+ * changelog beside the main column can run down to Guides rather than
+ * stopping at a fixed height with the page empty below it.
+ */
 .home-band {
   display: flex;
   align-items: flex-start;
   gap: 64.6px;
   margin-top: 51.4px;
-  flex: none;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .home-main {
@@ -84,6 +90,8 @@
   flex: 0 100 540px;
   min-width: 238px;
   margin-left: auto;
+  align-self: stretch;
+  min-height: 0;
 }
 
 .home-section {
@@ -218,8 +226,14 @@
  * release is one line until opened, and the list scrolls rather than pushing
  * Guides down the page.
  */
+/*
+ * Down to Guides, scrolling inside (Karan, after 0.1.1). It stopped at 340px
+ * with the page empty below it. 160 is the floor on a short window, where
+ * the page itself scrolls instead.
+ */
 .home-changelog-list {
-  max-height: 340px;
+  flex: 1 1 0;
+  min-height: 160px;
   overflow-y: auto;
 }
 

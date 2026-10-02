@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
+import { Calculating } from '../../components/Calculating/Calculating'
 import { Field } from '../../components/Field/Field'
 import { Select } from '../../components/Select/Select'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
@@ -9,7 +10,7 @@ import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useIndex, usePreviewIndex, useSchedule } from '../shared/strategyQueries'
-import { TABLE_REFERENCE_FIELDS, useReferenceRows } from '../shared/queries'
+import { useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
 import {
   CELL_GLYPH,
@@ -31,6 +32,16 @@ import { capColumns, staleCount, type CapRows } from './capColumns'
 import { SolveConstraints } from './Solve'
 import { solveColumns } from './solveColumns'
 import './ConstituentPreviewView.css'
+
+/**
+ * The caps this table shows, and nothing else (BU-225).
+ *
+ * It asked for `adv_3m` too, through the field list it shared with the
+ * universe views, and never showed it: the engine pulled three months of
+ * market data for every constituent to average volumes nobody read, about a
+ * fifth of the wait before the table could draw.
+ */
+const PREVIEW_CAP_FIELDS = ['market_cap', 'free_float_market_cap'] as const
 
 function buildColumns(
   preview: PreviewResponse,
@@ -176,7 +187,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
    * actually computed from, so the two columns now describe one day.
    */
   const pricedAt = preview.data?.resolved_date ?? preview.data?.as_of.slice(0, 10) ?? asOf
-  const caps = useReferenceRows(names, TABLE_REFERENCE_FIELDS, pricedAt, currency)
+  const caps = useReferenceRows(names, PREVIEW_CAP_FIELDS, pricedAt, currency)
 
   /*
    * Nothing runs until asked (BU-186).
@@ -339,11 +350,11 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
 
         The elapsed counter this replaces could only speak for its own pane,
         so work left running while the reader moved on was invisible. The
-        footer says what is still going, for the whole app; this line only
-        has to stop the pane reading as broken while it waits, which a blank
-        one does.
+        footer says what is still going, for the whole app; this only has to
+        stop the pane reading as broken while it waits, which a blank one
+        does. The orb since BU-225, Karan's pick from libraries.dev.
       */}
-      {working && indexId !== '' && <ViewEmpty>Resolving {indexId}…</ViewEmpty>}
+      {working && indexId !== '' && <Calculating subject={indexId} />}
 
       {preview.isError && <ViewError error={preview.error} />}
 

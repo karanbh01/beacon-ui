@@ -1,0 +1,28 @@
+/* Centred in what is left of the pane, where the result will appear. */
+.calculating-host {
+  display: flex;
+  flex: 1;
+  /* A column parent that aligns its children to the start would shrink this
+     to the pill and leave it against the left edge. */
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+/* The pill from Karan's reference: orb left, word right, generous radius. */
+.calculating {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 36px 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.calculating-label {
+  color: var(--text-secondary);
+}

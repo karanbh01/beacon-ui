@@ -169,7 +169,7 @@ test('the table waits for the caps rather than filling in as they land', async (
 
   // The resolve has answered and the table is still not drawn: a cap column
   // full of dashes is a table that is wrong the first time it is read.
-  await expect(window.locator('.view-state')).toContainText('Resolving CAP-NOSHARES')
+  await expect(window.getByRole('status', { name: 'Calculating CAP-NOSHARES' })).toBeVisible()
   await expect(window.locator('.tbl-body')).toHaveCount(0)
   // Nor the summary, so the pane moves from working to done in one step.
   await expect(window.locator('.summary-line')).toHaveCount(0)
@@ -414,4 +414,21 @@ test('a cap says how old it is, and an old one says so', async ({ window }) => {
   await expect(window.locator('.preview-warning', { hasText: 'last priced' })).toContainText(
     '1 name was last priced more than 30 days before this date'
   )
+})
+
+test('asks for the caps it shows, and not the volumes it does not', async ({ window }) => {
+  /*
+   * BU-225. It asked for adv_3m too, through a field list shared with the
+   * universe views, and never showed it: the engine averaged three months of
+   * volume for every constituent, about a fifth of the wait before the table.
+   */
+  const asked = window.waitForRequest((request) => request.url().includes('/data/reference?'))
+  // A market-cap-weighted index, the only kind that asks for caps.
+  await openPreview(window, 'CAP-NOSHARES')
+  await choose(window, 'As of', '2026-07-17')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+
+  const fields = new URL((await asked).url()).searchParams.getAll('fields').join(',')
+  expect(fields).toContain('market_cap')
+  expect(fields).not.toContain('adv_3m')
 })
