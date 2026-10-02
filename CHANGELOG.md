@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-02
+
+Fixes to 0.1.0: a changelog you can read at a glance, and an installer in Beacon's colours.
+
+### Changed
+
+- The home page's changelog is wider, so each release's summary reads as a line rather than a column of fragments.
+- The installer carries Beacon's colours and the β cube in its header and on its welcome and finish pages.
+
 ## [0.1.0] - 2026-10-02
 
 The first release, for Windows, with py-beacon 0.3.1 inside: load data, define an index, back-test it, read the result.
