@@ -3,7 +3,8 @@
 // The master is build/icon-source.png — Karan's artwork, used as-is. This
 // only reshapes it into what each platform wants: a square 1024px png for
 // electron-builder to derive .icns from, and a real multi-size .ico for
-// Windows.
+// Windows. Since 0.1.1 it also brands the Windows installer: the header and
+// finish-page bitmaps, and the colours behind them (build/installer.nsh).
 //
 //   pnpm run icon:build
 //
@@ -18,6 +19,23 @@ import { app, BrowserWindow, nativeImage } from 'electron'
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..')
 const SOURCE = join(ROOT, 'build', 'icon-source.png')
 const OUT = join(ROOT, 'build')
+
+/**
+ * The installer's palette, read from the tokens rather than restated, so the
+ * installer cannot drift from the app. Light: Windows draws the wizard's
+ * body in its own light dialog colours whatever the theme, and a dark strip
+ * above a light dialog reads as two programs.
+ */
+const TOKENS = JSON.parse(await readFile(join(ROOT, 'tokens', 'colors.json'), 'utf-8'))
+const INSTALLER_BACKGROUND = TOKENS.tokens.canvas.light
+const INSTALLER_TEXT = TOKENS.tokens['text-primary'].light
+
+/**
+ * NSIS's own sizes for the two bitmaps (MUI2): the header strip's image,
+ * drawn at its right, and the welcome and finish pages' left panel.
+ */
+const HEADER = { width: 150, height: 57, cube: 41, align: 'right' }
+const SIDEBAR = { width: 164, height: 314, cube: 96, align: 'centre' }
 
 /** electron-builder's floor for deriving .icns. */
 const MASTER = 1024
@@ -123,6 +141,100 @@ async function square(image, size) {
 }
 
 /**
+ * The cube on the installer's background, at one of NSIS's sizes.
+ *
+ * Composited in a page for the same reason `square` is: the cube keeps its
+ * aspect, and the background is the token, not a guess.
+ */
+async function panel(cube, { width, height, cube: size, align }) {
+  const window = new BrowserWindow({
+    width,
+    height,
+    show: false,
+    frame: false,
+    webPreferences: { offscreen: true }
+  })
+  const place =
+    align === 'right'
+      ? 'justify-content: flex-end; align-items: center; padding-right: 10px;'
+      : 'justify-content: center; align-items: flex-start; padding-top: 72px;'
+  const page = `<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  html, body {
+    margin: 0; width: ${width}px; height: ${height}px; overflow: hidden;
+    background: ${INSTALLER_BACKGROUND};
+  }
+  body { display: flex; box-sizing: border-box; ${place} }
+  img { display: block; width: ${size}px; height: ${size}px; object-fit: contain; }
+</style></head>
+<body><img src="${cube.toDataURL()}" /></body></html>`
+
+  await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page)}`)
+  // As in `square`: settle on the decode and one painted frame, or the
+  // capture races the image and two runs write two different files.
+  await window.webContents.executeJavaScript(
+    `document.querySelector('img').decode().then(() =>
+       new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))))`
+  )
+  const shot = await window.webContents.capturePage()
+  window.destroy()
+
+  // A HiDPI display captures at its scale; NSIS wants exactly its size.
+  const { width: captured } = shot.getSize()
+  return captured === width ? shot : shot.resize({ width, height, quality: 'best' })
+}
+
+/**
+ * A 24-bit BMP, the only image format NSIS's wizard reads.
+ *
+ * By hand, as the .ico is: `nativeImage` writes PNG and JPEG only, and a
+ * BMP is a 54-byte header over bottom-up rows of BGR, each padded to four
+ * bytes. `toBitmap` is BGRA top-down, so rows are reversed and alpha
+ * dropped — the background is opaque, so nothing is lost.
+ */
+function encodeBmp(image) {
+  const { width, height } = image.getSize()
+  const pixels = image.toBitmap()
+  const stride = Math.ceil((width * 3) / 4) * 4
+  const header = Buffer.alloc(54)
+
+  header.write('BM', 0)
+  header.writeUInt32LE(54 + stride * height, 2)
+  header.writeUInt32LE(54, 10) // pixel data offset
+  header.writeUInt32LE(40, 14) // BITMAPINFOHEADER
+  header.writeInt32LE(width, 18)
+  header.writeInt32LE(height, 22) // positive: rows run bottom-up
+  header.writeUInt16LE(1, 26) // planes
+  header.writeUInt16LE(24, 28) // bits per pixel
+  header.writeUInt32LE(stride * height, 34)
+
+  const rows = Buffer.alloc(stride * height)
+  for (let y = 0; y < height; y += 1) {
+    const from = y * width * 4
+    const to = (height - 1 - y) * stride
+    for (let x = 0; x < width; x += 1) {
+      pixels.copy(rows, to + x * 3, from + x * 4, from + x * 4 + 3)
+    }
+  }
+  return Buffer.concat([header, rows])
+}
+
+/**
+ * The colours behind the bitmaps, which electron-builder prepends to its
+ * own script — before MUI2 sets its defaults, which is what lets these win.
+ * MUI_BGCOLOR is the header strip and the welcome and finish pages; the
+ * pages' bodies stay Windows' own.
+ */
+function installerColours() {
+  const hex = (colour) => colour.replace('#', '').slice(0, 6).toUpperCase()
+  return `; GENERATED by scripts/build-app-icon.mjs from tokens/colors.json. Do not edit.
+; The installer's header and welcome and finish pages, in the app's light canvas.
+!define MUI_BGCOLOR "${hex(INSTALLER_BACKGROUND)}"
+!define MUI_TEXTCOLOR "${hex(INSTALLER_TEXT)}"
+`
+}
+
+/**
  * A minimal ICO container over PNG-compressed frames.
  *
  * Written by hand because `nativeImage` has no .ico encoder and the format is
@@ -194,12 +306,18 @@ async function main() {
     encodeIco(ICO_SIZES.map((s) => ({ size: s, png: at(s).toPNG() })))
   )
 
+  const cube = source.crop(ink)
+  await writeFile(join(OUT, 'installerHeader.bmp'), encodeBmp(await panel(cube, HEADER)))
+  await writeFile(join(OUT, 'installerSidebar.bmp'), encodeBmp(await panel(cube, SIDEBAR)))
+  await writeFile(join(OUT, 'installer.nsh'), installerColours())
+
   console.log(`[icon] source ${String(width)}x${String(height)}`)
   console.log(
     `[icon] ink ${String(ink.width)}x${String(ink.height)} at ${String(ink.x)},${String(ink.y)}`
   )
   console.log(`[icon] wrote icon.png at ${String(MASTER)}px, icon@256.png`)
   console.log(`[icon] wrote icon.ico with ${ICO_SIZES.join(', ')}`)
+  console.log('[icon] wrote installerHeader.bmp, installerSidebar.bmp, installer.nsh')
 
   const longest = Math.max(ink.width, ink.height)
   if (longest < MASTER) {

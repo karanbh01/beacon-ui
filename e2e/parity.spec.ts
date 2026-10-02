@@ -108,9 +108,12 @@ const HOME: Anchor[] = [
     tolerance: 2
   },
   {
-    what: 'changelog width (40:295)',
+    // Not the frame's 238 since BU-223, by Karan's call: the frame held
+    // one-word entries, and real release summaries broke over four lines in
+    // it while the space to its right sat empty. The left edge still holds.
+    what: 'changelog width (BU-223, was 238 in 40:295)',
     measure: `document.querySelector('.home-changelog').getBoundingClientRect().width`,
-    expected: 238
+    expected: 440
   },
   {
     what: 'guide card width (71:188)',

@@ -52,9 +52,8 @@
 }
 
 /*
- * Quickstart and Recent Activity share a 663-wide column; Changelog is a
- * 238-wide column 64.6 to its right. Not a symmetric two-up — the frame
- * leaves the space beyond the changelog empty.
+ * Quickstart and Recent Activity share a 663-wide column; Changelog sits
+ * 64.6 to its right. Not a symmetric two-up.
  */
 .home-band {
   display: flex;
@@ -72,9 +71,16 @@
   min-width: 0;
 }
 
+/*
+ * Wider than the frame's 238 (Karan, after 0.1.0). The frame held invented
+ * one-word entries; real release summaries are a sentence, and at 238 every
+ * one broke over three or four lines while the space to its right sat
+ * empty. 440 fills that space at the default window; it gives way down to
+ * the frame's width before the main column has to.
+ */
 .home-changelog {
-  flex: none;
-  width: 238px;
+  flex: 0 1 440px;
+  min-width: 238px;
 }
 
 .home-section {
