@@ -56,6 +56,11 @@ export function getView(viewKind: string): ViewComponent | undefined {
   return registry.get(viewKind)?.component
 }
 
+/** The page a view belongs to, when it was registered with one. */
+export function viewPage(viewKind: string): string | undefined {
+  return registry.get(viewKind)?.meta?.page
+}
+
 export function registeredViewKinds(): string[] {
   return [...registry.keys()]
 }

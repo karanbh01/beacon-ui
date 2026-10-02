@@ -287,9 +287,24 @@ export const ENGINE_CHANGED = 'engine:changed'
 /** Pushed on every update transition, including each download progress tick. */
 export const UPDATE_CHANGED = 'update:changed'
 
+/**
+ * The launch argument main hands the preload in a release build (BU-209).
+ *
+ * An argument rather than an IPC answer, because it has to be known before
+ * the first render: a release build must never draw the withheld pages,
+ * not even for the frame an async round trip would take.
+ */
+export const RELEASE_BUILD_ARG = '--beacon-release-build'
+
 /** The surface preload publishes on `window.beacon`. */
 export interface BeaconBridge {
   appInfo: () => Promise<AppInfo>
+  /**
+   * A release build: what electron-builder produced, which main alone can
+   * tell (`app.isPackaged`). The parts not finished for this release are
+   * withheld from it, and stay in `pnpm dev`, where they are worked on.
+   */
+  releaseBuild: boolean
   engine: {
     state: () => Promise<EngineState>
     /** Begin startup. A second call while it is already running does nothing. */

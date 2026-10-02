@@ -21,6 +21,7 @@ import { HOME_PAGE_ID } from './pages'
 import type { ViewOption } from './viewRegistry'
 import { WindowControls } from './WindowControls'
 import './MenuBar.css'
+import { assistantShips, isReleaseBuild } from './release'
 
 export interface MenuBarProps {
   onSearch?: (query: string) => void
@@ -142,7 +143,13 @@ export function MenuBar({
   const arrangeable = page !== HOME_PAGE_ID
   const served = useServedStore()
   const refreshable = served !== undefined && refreshOf(served).available
-  const menus = buildMenus({ theme: theme.preference, layout, arrangeable, refreshable })
+  const menus = buildMenus({
+    theme: theme.preference,
+    layout,
+    arrangeable,
+    refreshable,
+    releaseBuild: isReleaseBuild()
+  })
 
   /*
    * Dismissal is owned by the bar, not by each menu.
@@ -274,15 +281,19 @@ export function MenuBar({
           />
         </span>
 
-        <button
-          type="button"
-          className="menu-bar-icon"
-          aria-label="AI assistant"
-          onClick={onToggleAssistant}
-        >
-          <AiAgentsIcon size={30} />
-        </button>
-        <span className="menu-bar-rule" />
+        {assistantShips() && (
+          <>
+            <button
+              type="button"
+              className="menu-bar-icon"
+              aria-label="AI assistant"
+              onClick={onToggleAssistant}
+            >
+              <AiAgentsIcon size={30} />
+            </button>
+            <span className="menu-bar-rule" />
+          </>
+        )}
 
         <span className="menu-bar-anchor">
           <button

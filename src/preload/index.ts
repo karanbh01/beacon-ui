@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import {
   ENGINE_CHANGED,
   MAXIMIZE_CHANGED,
+  RELEASE_BUILD_ARG,
   UPDATE_CHANGED,
   type AppInfo,
   type BeaconBridge,
@@ -17,6 +18,8 @@ import {
  */
 const bridge: BeaconBridge = {
   appInfo: () => ipcRenderer.invoke('app:info') as Promise<AppInfo>,
+  // Read once, at load: main decides it and passes it as a launch argument.
+  releaseBuild: process.argv.includes(RELEASE_BUILD_ARG),
   engine: {
     state: () => ipcRenderer.invoke('engine:state') as Promise<EngineState>,
     start: () => ipcRenderer.invoke('engine:start') as Promise<void>,

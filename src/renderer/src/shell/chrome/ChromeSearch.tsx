@@ -9,6 +9,7 @@ import { SearchDropdown } from './SearchDropdown'
 import { allViews, type ViewOption } from '../viewRegistry'
 import { firstWord, recentRows, searchRows, type SearchRow } from './searchResults'
 import { usePaletteIndices } from './usePaletteIndices'
+import { viewShips } from '../release'
 
 export interface ChromeSearchProps {
   onSubmit?: (query: string) => void
@@ -88,7 +89,7 @@ export function ChromeSearch({
       : searchRows(query, tabs, {
           identifiers: found.suggestions,
           indices,
-          views: allViews(),
+          views: allViews().filter((view) => viewShips(view.viewKind)),
           presets
         })
 

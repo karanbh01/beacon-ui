@@ -13,6 +13,13 @@ export interface BeaconFixtures {
   /** The main window, already past the splash and on Home. */
   window: Page
   engine: StubEngine
+  /**
+   * Launch as a release build (BU-209), which withholds what 0.1.0 does not
+   * ship. Off by default, as `pnpm dev` is; `test.use({ releaseBuild: true })`
+   * checks the other side, since a flag only ever tested one way is a flag
+   * that works one way.
+   */
+  releaseBuild: boolean
 }
 
 const ROOT = join(__dirname, '..')
@@ -65,6 +72,8 @@ export async function appWindow(app: ElectronApplication): Promise<Page> {
 }
 
 export const test = base.extend<BeaconFixtures>({
+  releaseBuild: [false, { option: true }],
+
   // Playwright reads the destructuring pattern to work out which fixtures this
   // one depends on. `{}` is how you say "none" — an unused identifier there
   // would be read as depending on everything, so the rule is wrong here.
@@ -100,7 +109,7 @@ export const test = base.extend<BeaconFixtures>({
     await engine.close()
   },
 
-  app: async ({ engine }, use, testInfo) => {
+  app: async ({ engine, releaseBuild }, use, testInfo) => {
     const app = await electron.launch({
       args: [ROOT, `--user-data-dir=${testInfo.outputPath('profile')}`],
       env: {
@@ -109,7 +118,8 @@ export const test = base.extend<BeaconFixtures>({
         // Only set against a live engine; the stub does not check it.
         ...(engine.token === '' ? {} : { BEACON_API_TOKEN: engine.token }),
         // Nothing should reach GitHub from a test run.
-        BEACON_NO_UPDATE: '1'
+        BEACON_NO_UPDATE: '1',
+        ...(releaseBuild ? { BEACON_RELEASE_BUILD: '1' } : {})
       }
     })
     await use(app)

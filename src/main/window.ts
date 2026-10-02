@@ -5,6 +5,7 @@ import { BrowserWindow, shell } from 'electron'
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, MIN_HEIGHT, MIN_WIDTH } from './windowGeometry'
 import { forwardMaximizeChanges } from './ipc'
 import { persistWindowState, restoredBounds, wasMaximized } from './windowState'
+import { releaseArguments } from './releaseBuild'
 
 const isMac = process.platform === 'darwin'
 
@@ -88,7 +89,8 @@ export function createMainWindow(options: MainWindowOptions = {}): BrowserWindow
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      additionalArguments: releaseArguments()
     }
   })
 

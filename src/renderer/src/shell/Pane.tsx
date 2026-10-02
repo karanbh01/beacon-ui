@@ -1,4 +1,11 @@
-import { useRef, useState, type CSSProperties, type DragEvent, type ReactElement } from 'react'
+import {
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+  type DragEvent,
+  type ReactElement
+} from 'react'
 import { Tab } from '../components/Tab/Tab'
 import { TabBar } from '../components/Tab/TabBar'
 import { carriesTab, paneDropTarget, TAB_MIME, type DropTarget } from '../components/Tab/dragTab'
@@ -10,7 +17,9 @@ import { MissingView } from './MissingView'
 import { NewTabMenu } from './NewTabMenu'
 import { newTabOptions, tabForOption } from './newTabOptions'
 import { SIDEBAR_PAGES } from './pages'
-import { getView, viewsForPage } from './viewRegistry'
+import { getView, viewsForPage, type ViewProps } from './viewRegistry'
+import { viewShips } from './release'
+import { WithheldView } from './WithheldView'
 
 export interface PaneProps {
   page: string
@@ -62,7 +71,7 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
 
   const tabs = tabsForPane(state, page, index, paneCount)
   const active = activeTab(state, page, index, paneCount)
-  const View = active === undefined ? undefined : (getView(active.viewKind) ?? MissingView)
+  const View = active === undefined ? undefined : viewFor(active.viewKind)
   // This page's tabs: pages are independent workspaces, so an anchor on
   // another one is not one this page can use (BU-166).
   const options = newTabOptions(viewsForPage(page), tabsForPage(state, page))
@@ -236,4 +245,10 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
       </div>
     </div>
   )
+}
+
+/** What draws a tab: its view, or why there is none to draw. */
+function viewFor(viewKind: string): ComponentType<ViewProps> {
+  if (!viewShips(viewKind)) return WithheldView
+  return getView(viewKind) ?? MissingView
 }

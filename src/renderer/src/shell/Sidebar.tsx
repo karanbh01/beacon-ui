@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { GUIDES_PAGE, SIDEBAR_PAGES, type SidebarPage } from './pages'
 import './Sidebar.css'
+import { pageShips } from './release'
 
 export interface SidebarProps {
   activeId?: string
@@ -39,7 +40,7 @@ function SidebarButton({
 export function Sidebar({
   activeId,
   onSelect,
-  pages = SIDEBAR_PAGES,
+  pages = SIDEBAR_PAGES.filter((page) => pageShips(page.id)),
   className
 }: SidebarProps): ReactElement {
   const select = onSelect === undefined ? {} : { onSelect }

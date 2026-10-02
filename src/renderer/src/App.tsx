@@ -23,6 +23,7 @@ import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
 import type { ViewOption } from './shell/viewRegistry'
 import { useBackgroundWork } from './api/work'
+import { assistantShips } from './shell/release'
 
 type BridgeState = { status: 'pending' } | { status: 'ok'; info: AppInfo } | { status: 'failed' }
 
@@ -225,7 +226,7 @@ function AppBody(): ReactElement {
           void window.beacon?.shell.openExternal(REPO)
         }
       }}
-      {...(assistantOpen
+      {...(assistantOpen && assistantShips()
         ? {
             assistant: (
               <AssistantPanel

@@ -78,6 +78,11 @@ export interface MenuContext {
    * files, or synthetic data older than py-beacon 0.1.2.
    */
   refreshable?: boolean
+  /**
+   * A release build, which leaves out the Optimiser (BU-209). Its two rows
+   * here go with it rather than sitting inert for a page that is not there.
+   */
+  releaseBuild?: boolean
 }
 
 /**
@@ -216,7 +221,10 @@ export function buildMenus(context: MenuContext): Menu[] {
         enabled: true
       }
     ],
-    Analysis: [soon('Run backtest…'), soon('Run optimisation…'), soon('Risk model…')],
+    Analysis: [
+      soon('Run backtest…'),
+      ...(context.releaseBuild === true ? [] : [soon('Run optimisation…'), soon('Risk model…')])
+    ],
     Asset: [soon('Add to watchlist'), soon('Corporate actions'), soon('Reference data')],
     Portfolio: [soon('New portfolio…'), soon('Rebalance…'), soon('Attribution…')],
     Settings: [soon('Preferences…'), soon('Data directory…'), soon('Keyboard shortcuts…')],

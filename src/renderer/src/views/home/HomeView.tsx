@@ -11,6 +11,7 @@ import { GUIDES, QUICKSTART, formatHomeDate } from './homeContent'
 import { ReleaseList, type ReleaseListProps } from './ReleaseList'
 import { RecentActivity, type Activity } from './RecentActivity'
 import './HomeView.css'
+import { pageShips } from '../../shell/release'
 
 const GLYPHS: Record<string, (props: IconProps) => ReactElement> = {
   layers: LayersIcon,
@@ -60,7 +61,7 @@ export function HomeView({
           <section className="home-section">
             <h2 className="type-section-label home-label">Quickstart</h2>
             <ul className="home-quickstart">
-              {QUICKSTART.map((action) => {
+              {QUICKSTART.filter((action) => pageShips(action.page)).map((action) => {
                 const Glyph = GLYPHS[action.icon]
                 return (
                   <li key={action.id}>
