@@ -28,6 +28,8 @@ export interface HomeViewProps {
   onOpenActivity?: (id: string) => void
   /** The app's and the engine's versions, for the changelog's `current`. */
   running?: ReleaseListProps['running']
+  /** The running engine's own releases, once it answers (BU-221). */
+  engineChangelog?: ReleaseListProps['engine']
 }
 
 /**
@@ -43,7 +45,8 @@ export function HomeView({
   activity,
   onQuickstart,
   onOpenActivity,
-  running
+  running,
+  engineChangelog
 }: HomeViewProps): ReactElement {
   return (
     <div className="home">
@@ -85,7 +88,7 @@ export function HomeView({
 
         <section className="home-section home-changelog">
           <h2 className="type-section-label home-label">Changelog</h2>
-          <ReleaseList running={running ?? {}} />
+          <ReleaseList running={running ?? {}} engine={engineChangelog} />
         </section>
       </div>
 

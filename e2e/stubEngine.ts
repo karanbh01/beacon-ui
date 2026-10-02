@@ -1205,7 +1205,9 @@ const ROUTES: Record<string, unknown> = {
    * the engine has never heard of and no test here would notice.
    */
   '/data/fields': {
-    namespaces: ['market', 'reference', 'actions', 'features'],
+    // No `actions` since py-beacon 0.3.0 (#267): no expression could read
+    // those fields, so the engine stopped publishing them.
+    namespaces: ['market', 'reference', 'features'],
     fields: [
       ...REFERENCE_COLUMNS.filter((column) => column !== 'NAME').map((column) => ({
         path: `reference.${column.toLowerCase()}`,
@@ -1412,6 +1414,26 @@ function body(url: URL): unknown {
 
   if (path === '/health') return health()
 
+  /*
+   * The running engine's releases (py-beacon 0.3.0), which the home page
+   * lists once connected in place of the copy bundled at build time. One
+   * release, the stub's own version, so a test can tell the two sources
+   * apart.
+   */
+  if (path === '/changelog') {
+    return {
+      version: '0.0.2',
+      entries: [
+        {
+          version: '0.0.2',
+          date: '2026-09-01',
+          summary: 'The engine these tests run against.',
+          sections: [{ heading: 'Added', items: ['Every route the app calls.'] }]
+        }
+      ]
+    }
+  }
+
   if (path === '/data/stores') {
     return {
       stores: stores.map(storeRow),
@@ -1483,6 +1505,10 @@ function body(url: URL): unknown {
     // Echo the interval asked for (BU-106). It was hard-coded 'native', so a
     // client that never sent the parameter looked identical to one that did.
     const interval = url.searchParams.get('interval') ?? 'native'
+    // 422, not 404, since py-beacon 0.3.0: a bad argument, not missing data.
+    if (!['native', 'weekly', 'monthly'].includes(interval)) {
+      return refuse(422, 'INVALID_ARGUMENT', `Unknown interval '${interval}'.`)
+    }
 
     /*
      * `start` and `end` narrow the window (BU-141).
@@ -1818,6 +1844,19 @@ function body(url: URL): unknown {
    */
   if (path === '/beacon/compare') {
     const ids = url.searchParams.getAll('ids').flatMap((value) => value.split(','))
+    // The schema's own refusal since py-beacon 0.3.0 (`ids` minItems 2).
+    if (ids.length < 2) {
+      return refuse(422, 'VALIDATION_ERROR', 'Request validation failed.', {
+        errors: [
+          {
+            type: 'too_short',
+            loc: ['query', 'ids'],
+            msg: 'List should have at least 2 items after validation',
+            input: ids
+          }
+        ]
+      })
+    }
     const unknown = ids.filter((id) => !indexIds.includes(id))
     if (unknown.length > 0) {
       return notFound(`index '${unknown[0] ?? ''}'`, 'DocumentStore')
@@ -2187,6 +2226,29 @@ function writeUniverse(
  * leave the branch that matters untested. The derived index gets the solve;
  * everything else gets the rungs.
  */
+/**
+ * Fields an index's expressions name that the data does not publish.
+ *
+ * py-beacon 0.3.0 (#267) refuses these with INVALID_EXPRESSION where it used
+ * to select nothing for them — the case a saved index meets when the data
+ * behind it changes. Walks every node, since expressions nest.
+ */
+function unknownFields(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(unknownFields)
+  if (!isRecord(value)) return []
+  if (value.node === 'field') {
+    const path = `${String(value.namespace)}.${String(value.name)}`
+    return publishedFields().includes(path) ? [] : [path]
+  }
+  return Object.values(value).flatMap(unknownFields)
+}
+
+/** The paths `/data/fields` publishes, read from the route itself. */
+function publishedFields(): string[] {
+  const catalogue = ROUTES['/data/fields'] as { fields: { path: string }[] }
+  return catalogue.fields.map((field) => field.path)
+}
+
 function previewPayload(indexId: string, asOf: string): unknown {
   return previewFace(indexId, asOf, derivations.has(indexId))
 }
@@ -2674,6 +2736,17 @@ export function startStubEngine(): Promise<StubEngine> {
             response
               .writeHead(404)
               .end(JSON.stringify(notFound(`index '${parent}'`, 'DocumentStore').payload))
+            return
+          }
+
+          const unreadable = unknownFields(draft)
+          if (unreadable.length > 0) {
+            const refusal = refuse(
+              422,
+              'INVALID_EXPRESSION',
+              `The data has no field ${unreadable.map((field) => `'${field}'`).join(', ')}.`
+            )
+            response.writeHead(refusal.status).end(JSON.stringify(refusal.payload))
             return
           }
 

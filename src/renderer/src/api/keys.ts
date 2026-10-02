@@ -14,6 +14,8 @@
 
 export const keys = {
   health: () => ['health'] as const,
+  /** The running engine's own release history (BU-221). */
+  changelog: () => ['changelog'] as const,
 
   data: {
     all: () => ['data'] as const,

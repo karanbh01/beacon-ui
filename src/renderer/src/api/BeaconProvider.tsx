@@ -12,6 +12,17 @@ import { ClientContext, makeQueryClient } from './queryClient'
 /** Reconnect delay for the event socket. */
 const SOCKET_RETRY_MS = 1_500
 
+/**
+ * The close code py-beacon sends for a bad bearer token (0.3.0, #270).
+ *
+ * It refused at the handshake before, which a browser reports as 1006 —
+ * the same code as an engine that is not running, so the two could not be
+ * told apart. A refused token is not refused less on a second try, so this
+ * one is not retried; a new token re-runs the effect and connects afresh.
+ * The footer already reports it, through main's 401 on /health.
+ */
+const TOKEN_REFUSED = 1008
+
 export interface BeaconProviderProps {
   engine: EngineState
   children: ReactNode
@@ -135,8 +146,8 @@ export function BeaconProvider({
         }
       }
 
-      socket.onclose = () => {
-        if (closed) return
+      socket.onclose = (event: CloseEvent) => {
+        if (closed || event.code === TOKEN_REFUSED) return
         // The engine restarting closes this socket; reconnecting on a short
         // timer means events resume without the user doing anything.
         retryTimer.current = setTimeout(connect, SOCKET_RETRY_MS)

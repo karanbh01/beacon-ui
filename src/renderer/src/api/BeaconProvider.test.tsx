@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, useQuery } from '@tanstack/react-query'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EngineState } from '@shared/ipc'
 import { BeaconProvider } from './BeaconProvider'
 import { JobTray } from './JobTray'
@@ -11,7 +11,7 @@ import { keys } from './keys'
 /** Socket stand-in the test drives frame by frame. */
 class FakeSocket {
   onmessage: ((event: MessageEvent<string>) => void) | null = null
-  onclose: (() => void) | null = null
+  onclose: ((event: CloseEvent) => void) | null = null
   static current: FakeSocket | null = null
 
   constructor() {
@@ -217,6 +217,55 @@ describe('freshness invalidation', () => {
 
     // Still mounted, still showing the same data.
     expect(screen.getByText('run 1')).toBeInTheDocument()
+  })
+})
+
+describe('a socket the engine closes (BU-221)', () => {
+  // Restored here rather than at each test's end, so a failing assertion
+  // cannot leave fake timers running under every test after it.
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function connectCounting(): { opened: () => number; socket: () => FakeSocket } {
+    const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket)
+    render(
+      <BeaconProvider engine={ENGINE} socketFactory={factory}>
+        <p>shell</p>
+      </BeaconProvider>
+    )
+    return {
+      opened: () => factory.mock.calls.length,
+      socket: () => {
+        if (FakeSocket.current === null) throw new Error('no socket opened')
+        return FakeSocket.current
+      }
+    }
+  }
+
+  it('reconnects after an engine goes away', () => {
+    vi.useFakeTimers()
+    const { opened, socket } = connectCounting()
+
+    socket().onclose?.(new CloseEvent('close', { code: 1006 }))
+    vi.advanceTimersByTime(2_000)
+
+    expect(opened()).toBe(2)
+  })
+
+  it('does not retry a token the engine refused', () => {
+    /*
+     * py-beacon 0.3.0 closes with 1008 for a bad token. A refused token is
+     * refused again on every retry, so retrying only hammers the engine;
+     * the footer already says the token is wrong.
+     */
+    vi.useFakeTimers()
+    const { opened, socket } = connectCounting()
+
+    socket().onclose?.(new CloseEvent('close', { code: 1008 }))
+    vi.advanceTimersByTime(10_000)
+
+    expect(opened()).toBe(1)
   })
 })
 

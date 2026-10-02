@@ -13,6 +13,7 @@ import { PresetDialog } from './shell/PresetDialog'
 import { PresetSaved } from './shell/PresetSaved'
 import { useJobs } from './api/jobs'
 import { HomeView } from './views/home/HomeView'
+import { useEngineChangelog } from './views/shared/queries'
 import { activityRows } from './views/home/activityRows'
 import { useEngine } from './state/engine'
 import { useTheme } from './state/theme'
@@ -68,6 +69,7 @@ function AppBody(): ReactElement {
   const update = useUpdate()
   const dataAge = useDataAge()
   const work = useBackgroundWork()
+  const changelog = useEngineChangelog()
   const selectTab = useWorkspace((state) => state.selectTab)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
   const jobs = useJobs((state) => state.jobs)
@@ -242,6 +244,7 @@ function AppBody(): ReactElement {
         <HomeView
           today={today}
           running={{ app: appVersion, engine: engine.version }}
+          engineChangelog={changelog.data?.entries}
           activity={activityRows(jobs, today.getTime())}
           onQuickstart={(target, tab) => {
             setPage(target)

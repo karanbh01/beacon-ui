@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import appChangelog from '../../../../../CHANGELOG.md?raw'
 import engineChangelog from '../../../../../py-beacon.CHANGELOG.md?raw'
-import { isRunning, mergeReleases, parseChangelog } from './releases'
+import { fromEngine, isRunning, mergeReleases, parseChangelog } from './releases'
 
 /**
  * The home page's release list (BU-219), read from the two changelogs. The
@@ -108,5 +108,39 @@ describe('the changelogs the app ships', () => {
   it('has the app’s own entry, with something in it', () => {
     const releases = mergeReleases(parseChangelog(appChangelog, 'Beacon'))
     expect(releases.length).toBeGreaterThan(0)
+  })
+})
+
+describe('py-beacon’s releases from the running engine (BU-221)', () => {
+  /*
+   * GET /changelog reads the CHANGELOG.md inside the engine's own wheel, so
+   * once connected the list is of the engine actually running rather than
+   * the copy bundled at build time.
+   */
+  const ENTRIES = [
+    {
+      version: '0.3.1',
+      date: '2026-10-01',
+      summary: null,
+      sections: [{ heading: 'Fixed', items: ['Futures refuse a bad expiry.'] }]
+    },
+    {
+      version: '0.3.0',
+      date: '2026-09-30',
+      summary: 'Money in the index’s currency.',
+      sections: [{ heading: 'Changed', items: ['Returns are in the index currency.'] }]
+    }
+  ]
+
+  it('takes the engine’s summary, and counts where a release has none', () => {
+    const [latest, previous] = fromEngine(ENTRIES)
+    expect(previous?.summary).toBe('Money in the index’s currency.')
+    expect(latest?.summary).toBe('1 fixed')
+  })
+
+  it('reads as the bundled copy does, so the list keeps its shape', () => {
+    const [latest] = fromEngine(ENTRIES)
+    expect(latest).toMatchObject({ product: 'py-beacon', version: '0.3.1', date: '2026-10-01' })
+    expect(latest?.sections[0]?.items).toEqual(['Futures refuse a bad expiry.'])
   })
 })

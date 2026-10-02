@@ -375,3 +375,26 @@ export function useFieldCatalogue() {
     enabled: client !== null
   })
 }
+
+/**
+ * The running engine's release history, from its own wheel (py-beacon 0.3.0).
+ *
+ * What the home page lists for py-beacon once connected, so the list is of
+ * the engine actually running rather than the one the client was built
+ * against. It cannot change while the engine runs, so it is never refetched
+ * on a timer; a reconnect, which may be a different engine, invalidates it
+ * with everything else.
+ */
+export function useEngineChangelog() {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.changelog(),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/changelog', { signal })
+    },
+    enabled: client !== null,
+    staleTime: Infinity
+  })
+}

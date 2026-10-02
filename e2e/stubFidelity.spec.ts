@@ -201,3 +201,85 @@ test('a seeded universe refuses an edit as a conflict, not as bad input', async 
   // half an answer.
   expect(body.error?.message).toContain('POST /universes')
 })
+
+/*
+ * py-beacon 0.3.0 (BU-221). Each was checked against the engine's own
+ * changelog and code at the v0.3.1 tag.
+ */
+
+test('an expression naming a field the data lacks is refused, not empty', async ({ engine }) => {
+  /*
+   * #267: it used to select nothing, which read as "no name qualifies" — a
+   * claim about the market made by a typo. A saved index meets this when the
+   * data behind it changes, so the preview of its draft is where it lands.
+   */
+  const document = (await get(engine, `/indices/${INDEX}`)).body as unknown as {
+    pipeline: { selection: unknown[] }
+  }
+  const draft = {
+    ...document,
+    pipeline: {
+      ...document.pipeline,
+      selection: [
+        ...document.pipeline.selection,
+        {
+          id: 'no-such-field',
+          type: 'ExpressionRule',
+          params: {
+            expression: {
+              node: 'comparison',
+              field: { node: 'field', namespace: 'reference', name: 'no_such_field' },
+              comparison: 'eq',
+              value: 'x'
+            }
+          }
+        }
+      ]
+    }
+  }
+  const response = await fetch(`${engine.url}/indices/preview`, {
+    method: 'POST',
+    headers: { ...headers(engine.token), 'content-type': 'application/json' },
+    body: JSON.stringify({ document: draft })
+  })
+  const body = (await response.json()) as Envelope
+
+  expect(response.status).toBe(422)
+  expect(body.error?.code).toBe('INVALID_EXPRESSION')
+  expect(body.error?.message).toContain('no_such_field')
+})
+
+test('the fields catalogue no longer offers corporate-action fields', async ({ engine }) => {
+  // #267: no expression could read `actions.*`, so the engine stopped
+  // publishing them rather than fixing what nothing used.
+  const catalogue = (await get(engine, '/data/fields')).body as unknown as {
+    namespaces: string[]
+    fields: { namespace: string }[]
+  }
+  expect(catalogue.namespaces).not.toContain('actions')
+  expect(catalogue.fields.some((field) => field.namespace === 'actions')).toBe(false)
+})
+
+test('comparing fewer than two indices is refused by the schema', async ({ engine }) => {
+  // #263: `ids` declares minItems 2, so it never reaches the handler.
+  const { status, body } = await get(engine, `/beacon/compare?ids=${INDEX}`)
+  expect(status).toBe(422)
+  expect(body.error?.code).toBe('VALIDATION_ERROR')
+})
+
+test('an unknown price interval is a bad argument, not missing data', async ({ engine }) => {
+  // #270: it was 404 DATA_NOT_FOUND, which reads as "no prices exist".
+  const { status, body } = await get(engine, `/data/prices/${IDENTIFIER}?interval=hourly`)
+  expect(status).toBe(422)
+  expect(body.error?.code).toBe('INVALID_ARGUMENT')
+})
+
+test('the engine says which releases it is', async ({ engine }) => {
+  // What the home page lists once connected; `summary` arrived in 0.3.0.
+  const changelog = (await get(engine, '/changelog')).body as unknown as {
+    version: string
+    entries: { version: string; summary: string | null; sections: unknown[] }[]
+  }
+  expect(changelog.entries.some((entry) => entry.version === changelog.version)).toBe(true)
+  expect(changelog.entries.every((entry) => 'summary' in entry)).toBe(true)
+})

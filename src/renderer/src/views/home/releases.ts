@@ -7,7 +7,12 @@
  * "current", which was true of neither the app nor the engine.
  */
 
+import type { components } from '@shared/api.generated'
+
 export type Product = 'Beacon' | 'py-beacon'
+
+/** One release as the engine's GET /changelog sends it. */
+export type EngineRelease = components['schemas']['ChangelogEntryView']
 
 export interface ReleaseSection {
   /** "Added", "Changed", "Fixed" … as the changelog heads them. */
@@ -123,4 +128,29 @@ export function isRunning(
 ): boolean {
   const version = release.product === 'Beacon' ? running.app : running.engine
   return version !== undefined && release.version === version
+}
+
+/**
+ * py-beacon's releases as its running engine reports them (BU-221).
+ *
+ * The same entries as its CHANGELOG.md, read from the wheel the engine was
+ * installed from, so the list is true of the engine connected. Its summary
+ * is the same opening prose this file's parser takes; where a release has
+ * none, the counts stand in, as they do for the bundled copy.
+ */
+export function fromEngine(entries: readonly EngineRelease[]): Release[] {
+  return entries.map((entry) => {
+    const sections = entry.sections.map((section) => ({
+      heading: section.heading,
+      items: [...section.items]
+    }))
+    const unreleased = entry.version.toLowerCase() === 'unreleased'
+    return {
+      product: 'py-beacon',
+      version: unreleased ? 'unreleased' : entry.version,
+      ...(entry.date == null ? {} : { date: entry.date }),
+      summary: entry.summary ?? counted(sections),
+      sections
+    }
+  })
 }
