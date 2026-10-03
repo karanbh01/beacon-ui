@@ -1,4 +1,5 @@
-// Generate the app icon from the beta-cube artwork (BU-73).
+// Generate the app icon from Karan's artwork: the β card since 0.1.2,
+// replacing the beta cube of BU-73.
 //
 // The master is build/icon-source.png — Karan's artwork, used as-is. This
 // only reshapes it into what each platform wants: a square 1024px png for
@@ -34,8 +35,8 @@ const INSTALLER_TEXT = TOKENS.tokens['text-primary'].light
  * NSIS's own sizes for the two bitmaps (MUI2): the header strip's image,
  * drawn at its right, and the welcome and finish pages' left panel.
  */
-const HEADER = { width: 150, height: 57, cube: 41, align: 'right' }
-const SIDEBAR = { width: 164, height: 314, cube: 96, align: 'centre' }
+const HEADER = { width: 150, height: 57, mark: 41, align: 'right' }
+const SIDEBAR = { width: 164, height: 314, mark: 96, align: 'centre' }
 
 /** electron-builder's floor for deriving .icns. */
 const MASTER = 1024
@@ -85,7 +86,8 @@ function inkBounds(image) {
 /**
  * Centre the artwork in a square, letterboxed.
  *
- * `nativeImage.resize` to a square would STRETCH a 605x623 cube by 3% — small
+ * `nativeImage.resize` to a square would STRETCH artwork that is not square —
+ * the first, a 605x623 cube, by 3%; the β card is portrait — small
  * enough to pass review and wrong. Compositing in a page is how the aspect
  * survives: `object-fit: contain` fits the long edge and centres the rest,
  * and the surround stays transparent.
@@ -141,12 +143,12 @@ async function square(image, size) {
 }
 
 /**
- * The cube on the installer's background, at one of NSIS's sizes.
+ * The mark on the installer's background, at one of NSIS's sizes.
  *
- * Composited in a page for the same reason `square` is: the cube keeps its
+ * Composited in a page for the same reason `square` is: the mark keeps its
  * aspect, and the background is the token, not a guess.
  */
-async function panel(cube, { width, height, cube: size, align }) {
+async function panel(mark, { width, height, mark: size, align }) {
   const window = new BrowserWindow({
     width,
     height,
@@ -167,7 +169,7 @@ async function panel(cube, { width, height, cube: size, align }) {
   body { display: flex; box-sizing: border-box; ${place} }
   img { display: block; width: ${size}px; height: ${size}px; object-fit: contain; }
 </style></head>
-<body><img src="${cube.toDataURL()}" /></body></html>`
+<body><img src="${mark.toDataURL()}" /></body></html>`
 
   await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page)}`)
   // As in `square`: settle on the decode and one painted frame, or the
@@ -295,7 +297,7 @@ async function main() {
 
   // Everything below comes off the SQUARE master, so each is square-to-square
   // and nothing is stretched twice. `quality: 'best'` is Lanczos rather than
-  // nearest — it matters most on the downscales, where the cube's edges have
+  // nearest — it matters most on the downscales, where the mark's edges have
   // to survive reaching 16px.
   const at = (size) => master.resize({ width: size, height: size, quality: 'best' })
 
@@ -306,9 +308,9 @@ async function main() {
     encodeIco(ICO_SIZES.map((s) => ({ size: s, png: at(s).toPNG() })))
   )
 
-  const cube = source.crop(ink)
-  await writeFile(join(OUT, 'installerHeader.bmp'), encodeBmp(await panel(cube, HEADER)))
-  await writeFile(join(OUT, 'installerSidebar.bmp'), encodeBmp(await panel(cube, SIDEBAR)))
+  const mark = source.crop(ink)
+  await writeFile(join(OUT, 'installerHeader.bmp'), encodeBmp(await panel(mark, HEADER)))
+  await writeFile(join(OUT, 'installerSidebar.bmp'), encodeBmp(await panel(mark, SIDEBAR)))
   await writeFile(join(OUT, 'installer.nsh'), installerColours())
 
   console.log(`[icon] source ${String(width)}x${String(height)}`)
