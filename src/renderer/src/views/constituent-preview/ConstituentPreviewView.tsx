@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
 import { Calculating } from '../../components/Calculating/Calculating'
 import { Field } from '../../components/Field/Field'
@@ -6,10 +6,11 @@ import { Select } from '../../components/Select/Select'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
+import { usePreviewMemory } from '../../state/tabMemory'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError } from '../shared/ViewState'
-import { useIndex, usePreviewIndex, useSchedule } from '../shared/strategyQueries'
+import { useIndex, usePreviewIndex, useRanPreview, useSchedule } from '../shared/strategyQueries'
 import { useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
 import {
@@ -62,6 +63,7 @@ function buildColumns(
       key: 'ticker',
       header: 'Ticker',
       width: 80,
+      minWidth: 64,
       emphasis: true,
       render: (asset) => asset.identifier
     }
@@ -74,6 +76,8 @@ function buildColumns(
       key: column.key,
       header: column.header,
       width: 120,
+      minWidth: 72,
+      wrapHeader: true,
       render: (asset) => {
         const state = cellState(asset, column.position)
         return <span className={`derivation-${state}`}>{CELL_GLYPH[state]}</span>
@@ -102,6 +106,7 @@ function buildColumns(
     key: 'weight',
     header: 'Weights',
     width: 100,
+    minWidth: 64,
     align: 'right',
     render: (asset) => (
       <span className={asset.capped ? 'derivation-capped' : undefined}>
@@ -127,8 +132,19 @@ function buildColumns(
  */
 export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): ReactElement {
   const indexId = subject ?? ''
-  const [asOf, setAsOf] = useState('')
+  /*
+   * The date, and the date last run, kept per tab (BU-227): the pane draws
+   * only its active tab, so these went with the view whenever the reader
+   * looked at another. The result itself is cached under its date.
+   */
+  const [memory, remember] = usePreviewMemory(tab.id, indexId)
+  const { asOf, ran } = memory
+  const setAsOf = (next: string): void => {
+    remember({ asOf: next, ...(ran === undefined ? {} : { ran }) })
+  }
   const preview = usePreviewIndex()
+  const shown = useRanPreview(indexId, ran)
+  const result = shown.data
   const schedule = useSchedule(indexId)
   /*
    * Newest first, because that is the order a reader looks for one in — the
@@ -177,15 +193,15 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   // Carried by the preview itself from py-beacon 0.4.0; asked for separately
   // before it, and only then.
   const carried = useMemo(
-    () => (wantsCaps ? capsFromPreview(preview.data?.assets) : undefined),
-    [wantsCaps, preview.data]
+    () => (wantsCaps ? capsFromPreview(result?.assets) : undefined),
+    [wantsCaps, result]
   )
   const names = useMemo(
     () =>
       wantsCaps && carried === undefined
-        ? (preview.data?.assets ?? []).map((asset) => asset.identifier)
+        ? (result?.assets ?? []).map((asset) => asset.identifier)
         : [],
-    [wantsCaps, carried, preview.data]
+    [wantsCaps, carried, result]
   )
   /*
    * The date the ENGINE resolved to, not the one asked for (BN-181).
@@ -195,7 +211,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
    * column exists for. `resolved_date` is the session the weights were
    * actually computed from, so the two columns now describe one day.
    */
-  const pricedAt = preview.data?.resolved_date ?? preview.data?.as_of.slice(0, 10) ?? asOf
+  const pricedAt = result?.resolved_date ?? result?.as_of.slice(0, 10) ?? asOf
   const asked = useReferenceRows(names, PREVIEW_CAP_FIELDS, pricedAt, currency)
   const capRows = carried ?? asked.byIdentifier
   const capsError = carried === undefined ? asked.error : undefined
@@ -211,7 +227,14 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const { mutate, reset } = preview
   const run = (): void => {
     if (indexId === '' || asOf === '') return
-    mutate({ indexId, asOf })
+    mutate(
+      { indexId, asOf },
+      {
+        onSuccess: () => {
+          remember({ asOf, ran: asOf })
+        }
+      }
+    )
   }
 
   // A result belongs to the index it was asked for, so switching subject
@@ -223,33 +246,30 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   // Which face this preview is: a pipeline answers with the waterfall, a
   // derivation with the solve (BN-170). The discriminator is the response's,
   // not the pane's — the same index can be either between two saves.
-  const solve = preview.data === undefined ? undefined : solveOf(preview.data)
+  const solve = result === undefined ? undefined : solveOf(result)
 
   const stale = wantsCaps ? staleCount(capRows, [...capRows.keys()]) : 0
 
   const rows = useMemo(() => {
-    if (preview.data === undefined) return []
-    return solve === undefined ? sortAssets(preview.data.assets) : solveRows(preview.data.assets)
-  }, [preview.data, solve])
+    if (result === undefined) return []
+    return solve === undefined ? sortAssets(result.assets) : solveRows(result.assets)
+  }, [result, solve])
   const columns = useMemo(() => {
-    if (preview.data === undefined) return []
+    if (result === undefined) return []
     if (solve !== undefined) return solveColumns()
-    return buildColumns(preview.data, capRows, weighting, capsError !== undefined)
-  }, [preview.data, solve, capRows, capsError, weighting])
+    return buildColumns(result, capRows, weighting, capsError !== undefined)
+  }, [result, solve, capRows, capsError, weighting])
 
   /*
    * Working until BOTH halves are in: the resolve, and the caps that belong
    * beside it. `caps.loading` is false when no caps were asked for, so an
    * index that wants none is never held up by a request it never made.
    */
-  const working = preview.isPending || asked.loading
+  const working = preview.isPending || (shown.isFetching && result === undefined) || asked.loading
 
-  const summary =
-    preview.data === undefined || solve !== undefined ? undefined : summarise(preview.data)
+  const summary = result === undefined || solve !== undefined ? undefined : summarise(result)
   const solved =
-    preview.data === undefined || solve === undefined
-      ? undefined
-      : summariseSolve(preview.data, solve)
+    result === undefined || solve === undefined ? undefined : summariseSolve(result, solve)
 
   return (
     <div className="constituent-preview-view">
@@ -342,7 +362,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
 
       {/* Waiting to be asked, which is a different state from having no
           answer: the pane is ready and the reader has not chosen a date. */}
-      {indexId !== '' && preview.data === undefined && !preview.isPending && !preview.isError && (
+      {indexId !== '' && result === undefined && !preview.isPending && !preview.isError && (
         <ViewEmpty>
           {asOf === ''
             ? 'Choose a rebalance date to resolve this index at, then run the preview.'
@@ -369,7 +389,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
 
       {preview.isError && <ViewError error={preview.error} />}
 
-      {summary !== undefined && preview.data !== undefined && !working && (
+      {summary !== undefined && result !== undefined && !working && (
         <SummaryLine
           items={[
             { label: `${String(summary.constituents)} constituents`, value: indexId },
@@ -409,27 +429,30 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
 
       {solve !== undefined && <SolveConstraints solve={solve} />}
 
-      {preview.data !== undefined && rows.length > 0 && !working && (
+      {result !== undefined && rows.length > 0 && !working && (
         <>
+          {/* Fills the pane and narrows with it, down to each column's
+              minimum, before it scrolls sideways (BU-226). */}
           <Table
             columns={columns}
             rows={rows}
             getRowId={(asset) => asset.identifier}
             maxBodyHeight={560}
+            fillWidth
           />
           {solve === undefined ? (
             <p className="preview-footnote type-11">
               {rows.length.toLocaleString('en-US')} names evaluated · asked{' '}
-              {preview.data.as_of.slice(0, 10)}
-              {pricedAt !== preview.data.as_of.slice(0, 10) && `, priced ${pricedAt}`} · ✓ passed ·
-              ✕ excluded here · · already out · the methodology re-resolved at that date, not the
+              {result.as_of.slice(0, 10)}
+              {pricedAt !== result.as_of.slice(0, 10) && `, priced ${pricedAt}`} · ✓ passed · ✕
+              excluded here · · already out · the methodology re-resolved at that date, not the
               weights the index has drifted to · preview describes the SAVED definition
             </p>
           ) : (
             <p className="preview-footnote type-11">
               {rows.length.toLocaleString('en-US')} names · solved from {solve.source_index_id} at
-              its {solve.rebalance_date} rebalance · asked for {preview.data.as_of.slice(0, 10)} ·
-              preview describes the SAVED definition
+              its {solve.rebalance_date} rebalance · asked for {result.as_of.slice(0, 10)} · preview
+              describes the SAVED definition
             </p>
           )}
         </>

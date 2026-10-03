@@ -1,4 +1,5 @@
 import { useState, type ReactElement } from 'react'
+import { useOpenedDefinition } from '../../state/tabMemory'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
@@ -69,8 +70,12 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
    * tab's identity is its document (taxonomy 1). This tab is "Index
    * Definition", so what it is currently showing is the pane's business, and
    * the back control is just clearing it.
+   *
+   * Kept per tab rather than in `useState` (BU-227): the pane unmounts a tab
+   * the reader switches away from, and coming back on the catalogue rather
+   * than the definition that was open lost the reader's place.
    */
-  const [opened, setOpened] = useState<string | undefined>(undefined)
+  const [opened, setOpened] = useOpenedDefinition(tab.id)
 
   const named =
     subject ?? tab.subject ?? tab.pinnedDoc ?? (isDocumentId(tab.title) ? tab.title : undefined)

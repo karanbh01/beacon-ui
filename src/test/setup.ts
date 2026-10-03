@@ -1,4 +1,14 @@
 import '@testing-library/jest-dom/vitest'
+import { afterEach } from 'vitest'
+import { forgetAllTabs } from '../renderer/src/state/tabMemory'
+
+/**
+ * Tab memory is module state (BU-227), and tests reuse tab ids, so one
+ * test's opened definition would otherwise greet the next.
+ */
+afterEach(() => {
+  forgetAllTabs()
+})
 
 /**
  * jsdom does not implement matchMedia, and anything touching the theme calls

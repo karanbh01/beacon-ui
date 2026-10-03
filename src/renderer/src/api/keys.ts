@@ -72,7 +72,13 @@ export const keys = {
     // share an entry.
     schedule: (indexId: string, limit: number) => ['strategy', 'schedule', indexId, limit] as const,
     universes: () => ['strategy', 'universes'] as const,
-    universeMembers: (universeId: string) => ['strategy', 'universe-members', universeId] as const
+    universeMembers: (universeId: string) => ['strategy', 'universe-members', universeId] as const,
+    /**
+     * A constituent preview's result, by index and date (BU-227). Cached so a
+     * tab switched away from and back shows what it ran; a data load
+     * invalidates it, since it was resolved from the old data.
+     */
+    preview: (indexId: string, asOf: string) => ['strategy', 'preview', indexId, asOf] as const
   },
 
   beacon: {
@@ -118,7 +124,8 @@ export function invalidationsForLoad(): readonly (readonly string[])[] {
   return [
     ...invalidationsFor('market'),
     keys.strategy.universes(),
-    ['strategy', 'universe-members']
+    ['strategy', 'universe-members'],
+    ['strategy', 'preview']
   ]
 }
 

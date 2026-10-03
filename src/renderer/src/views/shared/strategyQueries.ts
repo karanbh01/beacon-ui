@@ -258,15 +258,52 @@ export function useValidateIndex() {
  * Right for a pane reading an index that exists — Constituent Preview opens
  * against a stored document and has no draft to resolve.
  */
+/** How long a ran preview stays cached unseen (BU-227). */
+const PREVIEW_KEPT_FOR = 30 * 60_000
+
 export function usePreviewIndex() {
   const client = useBeacon()
+  const queries = useQueryClient()
 
   return useMutation({
     mutationKey: workKey('previewing'),
-    mutationFn: ({ indexId, asOf }: { indexId: string; asOf?: string }) => {
+    mutationFn: ({ indexId, asOf }: { indexId: string; asOf: string }) => {
       if (client === null) throw new Error('No engine')
-      return client.indices.preview(indexId, asOf === undefined ? {} : { as_of: asOf })
+      return client.indices.preview(indexId, { as_of: asOf })
+    },
+    // Into the cache under its date, so the tab that ran it can show it again
+    // after the reader has been elsewhere (BU-227).
+    onSuccess: (result, { indexId, asOf }) => {
+      // Kept half an hour whoever's defaults apply: a cache that dropped it
+      // at once would leave the tab to fetch it again, a second run.
+      queries.setQueryDefaults(['strategy', 'preview'], { gcTime: PREVIEW_KEPT_FOR })
+      queries.setQueryData(keys.strategy.preview(indexId, asOf), result)
     }
+  })
+}
+
+/**
+ * A preview this tab already ran, read back from the cache (BU-227).
+ *
+ * Never fetched on its own account while the cached answer stands: a preview
+ * is run, not loaded, and coming back to a tab is not a request to run it
+ * again. It does fetch when that answer has gone — dropped after half an
+ * hour unseen, or invalidated by a data load — since showing nothing would
+ * lose the run, and showing the old answer would show the old data.
+ */
+export function useRanPreview(indexId: string, ran: string | undefined) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.strategy.preview(indexId, ran ?? ''),
+    queryFn: () => {
+      if (client === null || ran === undefined) throw new Error('No engine')
+      return client.indices.preview(indexId, { as_of: ran })
+    },
+    enabled: client !== null && indexId !== '' && ran !== undefined,
+    staleTime: Infinity,
+    gcTime: PREVIEW_KEPT_FOR,
+    retry: false
   })
 }
 
