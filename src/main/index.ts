@@ -11,8 +11,14 @@ import { createSplashWindow } from './splash'
 import { createMainWindow, revealMainWindow } from './window'
 
 // Windows: gives notifications and the taskbar a stable identity.
+//
+// A development run gets one of its own. Sharing the installed app's made
+// Windows group `pnpm dev` with the installed Beacon and draw the installed
+// build's icon on it, so a new icon in the repo looked as if it had not
+// taken (Karan, BU-229). It also kept two different builds on one taskbar
+// button.
 if (process.platform === 'win32') {
-  app.setAppUserModelId('com.beacon.ui')
+  app.setAppUserModelId(app.isPackaged ? 'com.beacon.ui' : 'com.beacon.ui.dev')
 }
 
 // Must run before the app is ready: privileged schemes cannot be registered
