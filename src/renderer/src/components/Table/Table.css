@@ -48,7 +48,8 @@
    * rather than as a first row that lost its numbers (BU-140). Our rows are
    * the taxonomy's 28, so the head takes the same proportion above them.
    */
-  height: 32px;
+  /* At least 32, and taller only when a wrapping label needs a second line. */
+  min-height: 32px;
   border-bottom: 1px solid var(--divider);
   font-family: var(--font-ui);
   /*
@@ -83,6 +84,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A long label that wraps as its column narrows, rather than truncating
+   (BU-226). Two lines at most: the head grows to fit and no further. */
+.tbl-wrap {
+  white-space: normal;
+  line-height: 1.25;
+  padding: 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 /* Numerics right-align so decimal points stack. */

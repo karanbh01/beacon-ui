@@ -147,25 +147,36 @@ export function capColumns(
    * converted one is what stands beside the weight. The unit trails its pair
    * rather than heading it, so a row scans as "this many, of those".
    */
+  /*
+   * Narrow enough to fit a pane, with minimums so they narrow further before
+   * the table scrolls; the long cap labels wrap rather than truncate
+   * (BU-226). The two currency columns hold three letters and the date ten.
+   */
   const local: Column<PreviewAsset>[] = [
     {
       key: 'market_cap_local',
       header: 'Market Cap (bn Local Ccy)',
-      width: 165,
+      width: 130,
+      minWidth: 84,
+      wrapHeader: true,
       align: 'right',
       render: (asset) => billions(number(rows, asset.identifier, LOCAL.full))
     },
     {
       key: 'free_float_market_cap_local',
       header: 'FF Market Cap (bn Local Ccy)',
-      width: 180,
+      width: 140,
+      minWidth: 84,
+      wrapHeader: true,
       align: 'right',
       render: (asset) => billions(number(rows, asset.identifier, LOCAL.float))
     },
     {
       key: 'local_currency',
       header: 'Local Ccy',
-      width: 75,
+      width: 60,
+      minWidth: 44,
+      wrapHeader: true,
       render: (asset) => text(rows, asset.identifier, 'local_currency') ?? '—'
     }
   ]
@@ -174,7 +185,9 @@ export function capColumns(
     {
       key: 'market_cap',
       header: 'Market Cap (bn Index Ccy)',
-      width: 170,
+      width: 130,
+      minWidth: 84,
+      wrapHeader: true,
       align: 'right',
       emphasis: !useFreeFloat,
       render: (asset) => convertedCell(rows, asset.identifier, 'full')
@@ -182,7 +195,9 @@ export function capColumns(
     {
       key: 'free_float_market_cap',
       header: 'FF Market Cap (bn Index Ccy)',
-      width: 185,
+      width: 140,
+      minWidth: 84,
+      wrapHeader: true,
       align: 'right',
       emphasis: useFreeFloat,
       render: (asset) => convertedCell(rows, asset.identifier, 'float')
@@ -192,7 +207,9 @@ export function capColumns(
       // beside it and the pair above reads wrong without its own.
       key: 'index_currency',
       header: 'Index Ccy',
-      width: 75,
+      width: 60,
+      minWidth: 44,
+      wrapHeader: true,
       render: () => currency
     },
     {
@@ -204,7 +221,9 @@ export function capColumns(
        */
       key: 'priced_from',
       header: 'Priced',
-      width: 125,
+      // Room for "2026-04-17 · stale": the marker is what the column is for.
+      width: 112,
+      minWidth: 104,
       render: (asset) => pricedCell(rows, asset.identifier)
     }
   ]

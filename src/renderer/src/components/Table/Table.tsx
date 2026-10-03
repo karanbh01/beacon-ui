@@ -16,6 +16,19 @@ export interface Column<T> {
   header: ReactNode
   /** Fixed px width. Tables here hug their content rather than fluid-fill. */
   width: number
+  /**
+   * How far a filling table may narrow this column before it scrolls (BU-226).
+   *
+   * Omitted, the declared width is the floor, as it always was. A table that
+   * has to fit a narrow pane gives each column a minimum, so the columns give
+   * way first and the table scrolls sideways only once none of them can.
+   */
+  minWidth?: number
+  /**
+   * Let the header wrap onto a second line as the column narrows, rather than
+   * ending in an ellipsis. For long labels, like the cap columns' units.
+   */
+  wrapHeader?: boolean
   align?: 'left' | 'right'
   /** Medium weight in primary — identity and headline columns. */
   emphasis?: boolean
@@ -84,17 +97,33 @@ function widthOf<T>(columns: readonly Column<T>[], count: number): number {
   return kept.reduce((sum, column) => sum + column.width, 0) + 32 + (kept.length - 1) * 10
 }
 
-/** The declared width, plus a share of anything left over when filling. */
-function cellStyle<T>(column: Column<T>, fill: boolean): CSSProperties {
-  if (!fill) return { width: column.width }
-  return { flexGrow: column.width, flexShrink: 0, flexBasis: column.width, width: column.width }
+/** The narrowest every column can go, gaps and padding included (BU-226). */
+function floorOf<T>(columns: readonly Column<T>[]): number {
+  const narrowest = columns.reduce((sum, column) => sum + (column.minWidth ?? column.width), 0)
+  return narrowest + 32 + Math.max(0, columns.length - 1) * 10
 }
 
-function cellClasses<T>(column: Column<T>): string {
+/**
+ * The declared width, plus a share of anything left over when filling — and,
+ * for a column with a minimum, a share of any shortfall down to it.
+ */
+function cellStyle<T>(column: Column<T>, fill: boolean): CSSProperties {
+  if (!fill) return { width: column.width }
+  const min = column.minWidth ?? column.width
+  return {
+    flexGrow: column.width,
+    flexShrink: min < column.width ? column.width - min : 0,
+    flexBasis: column.width,
+    minWidth: min
+  }
+}
+
+function cellClasses<T>(column: Column<T>, header = false): string {
   return [
     'tbl-cell',
     column.align === 'right' && 'tbl-right',
-    column.emphasis === true && 'tbl-emphasis'
+    column.emphasis === true && 'tbl-emphasis',
+    header && column.wrapHeader === true && 'tbl-wrap'
   ]
     .filter(Boolean)
     .join(' ')
@@ -181,6 +210,19 @@ export function Table<T>({
   // table itself, or a five-column table would demand room for five and a
   // half of them.
   const floor = minColumns === undefined ? width : Math.min(widthOf(columns, minColumns), width)
+  /*
+   * Columns that can narrow (BU-226): the card fits whatever the pane gives
+   * it, the columns give way down to their minimums, and past that the rows
+   * stop narrowing and the body scrolls sideways under a head that follows.
+   * Without a minimum anywhere, nothing here changes.
+   */
+  const shrinks = fillWidth && columns.some((column) => column.minWidth !== undefined)
+  const rowFloor: CSSProperties | undefined = shrinks ? { minWidth: floorOf(columns) } : undefined
+  const cardFloor = shrinks
+    ? minColumns === undefined
+      ? 0
+      : Math.min(widthOf(columns, minColumns), floorOf(columns))
+    : floor
 
   const renderRow = (row: T, index: number, offset?: number): ReactElement => {
     const id = getRowId(row)
@@ -209,8 +251,9 @@ export function Table<T>({
         }
         style={
           offset === undefined
-            ? undefined
+            ? rowFloor
             : {
+                ...rowFloor,
                 position: 'absolute',
                 top: 0,
                 left: 0,
@@ -236,7 +279,7 @@ export function Table<T>({
   return (
     <div
       className={['tbl', fillHeight && 'tbl-fill', className].filter(Boolean).join(' ')}
-      style={fillWidth ? { width: '100%', minWidth: floor } : { width }}
+      style={fillWidth ? { width: '100%', minWidth: cardFloor } : { width }}
       role="table"
     >
       {caption !== undefined && <span className="tbl-caption">{caption}</span>}
@@ -245,12 +288,12 @@ export function Table<T>({
         className="tbl-head"
         role="row"
         ref={headRef}
-        style={{ paddingRight: HEAD_PADDING + gutter }}
+        style={{ ...rowFloor, paddingRight: HEAD_PADDING + gutter }}
       >
         {columns.map((column) => (
           <div
             key={column.key}
-            className={cellClasses(column)}
+            className={cellClasses(column, true)}
             style={cellStyle(column, fillWidth)}
             role="columnheader"
           >
@@ -284,7 +327,7 @@ export function Table<T>({
       </div>
 
       {totalRow !== undefined && (
-        <div className="tbl-row tbl-total" role="row" ref={totalRef}>
+        <div className="tbl-row tbl-total" role="row" ref={totalRef} style={rowFloor}>
           {columns.map((column) => (
             <div
               key={column.key}
