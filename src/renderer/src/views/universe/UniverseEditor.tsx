@@ -16,6 +16,7 @@ import { addMember, draftProblem, parseMembers, removeMember, type DraftUniverse
 import { billions, buildRow, volume, type UniverseRow } from './universe'
 import { FilterRows } from './FilterRows'
 import './UniverseEditor.css'
+import { Calculating } from '../../components/Calculating/Calculating'
 
 export interface UniverseEditorProps {
   draft: DraftUniverse
@@ -156,7 +157,7 @@ export function UniverseEditor({
         </Field>
       </div>
 
-      {loading && <p className="universe-editor-note type-11">Loading the dataset to filter on…</p>}
+      {loading && <Calculating label="Loading" subject="the dataset to filter on" />}
 
       {/* No seeded universe means no dataset to filter over — BN-132 seeds it
           at engine startup, so an engine that predates it lands here. */}

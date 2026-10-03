@@ -6,7 +6,7 @@ import { Select } from '../../components/Select/Select'
 import { Table, type Column } from '../../components/Table/Table'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { ViewEmpty, ViewError } from '../shared/ViewState'
 import {
   isUnsupported,
   useCreateUniverse,
@@ -23,6 +23,7 @@ import { useCandidatePool } from './pool'
 import { UniverseEditor } from './UniverseEditor'
 import { UniverseOverview, type UniverseSummary } from './UniverseOverview'
 import './UniverseView.css'
+import { Calculating } from '../../components/Calculating/Calculating'
 
 const COLUMNS: readonly Column<UniverseRow>[] = [
   {
@@ -350,7 +351,13 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         />
       )}
 
-      {universes.isPending && <ViewLoading what="universes" />}
+      {/* The orb, saying Loading (Karan, BU-225): the list, and a universe
+          while its members and their listings arrive — which left the pane
+          blank before. */}
+      {universes.isPending && <Calculating label="Loading" subject="universes" />}
+      {selected !== '' && (members.isPending || (stored.length > 0 && reference.loading)) && (
+        <Calculating label="Loading" subject={selected} />
+      )}
       {universes.isError && <ViewError error={universes.error} />}
       {members.isError && <ViewError error={members.error} />}
 

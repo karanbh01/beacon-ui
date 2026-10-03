@@ -3,8 +3,14 @@ import { ThinkingOrb } from 'thinking-orbs'
 import './Calculating.css'
 
 export interface CalculatingProps {
-  /** What is being calculated, for a screen reader; not shown. */
+  /** What is being worked on, for a screen reader; not shown. */
   subject?: string
+  /**
+   * The word beside the orb. "Calculating" where the engine computes (the
+   * constituent preview); "Loading" where it reads what is stored (Universe
+   * Set), which is what Karan asked each to say.
+   */
+  label?: 'Calculating' | 'Loading'
 }
 
 /**
@@ -19,17 +25,17 @@ export interface CalculatingProps {
  * A status, announced politely: the orb is decoration and is hidden from
  * assistive technology, which hears the word instead.
  */
-export function Calculating({ subject }: CalculatingProps): ReactElement {
+export function Calculating({ subject, label = 'Calculating' }: CalculatingProps): ReactElement {
   return (
     <div className="calculating-host">
       <div
         className="calculating"
         role="status"
         aria-live="polite"
-        aria-label={subject === undefined ? 'Calculating' : `Calculating ${subject}`}
+        aria-label={subject === undefined ? label : `${label} ${subject}`}
       >
         <ThinkingOrb state="composing" size={64} aria-hidden="true" />
-        <span className="calculating-label type-16">Calculating…</span>
+        <span className="calculating-label type-16">{label}…</span>
       </div>
     </div>
   )
