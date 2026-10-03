@@ -22,8 +22,9 @@ import {
   type Interval,
   type Range
 } from './usePrices'
-import { compactVolume, price, signedPercent, summarise } from './summary'
+import { price, signedPercent, summarise } from './summary'
 import './PricesView.css'
+import { Count } from '../shared/LargeNumber'
 
 /** Column widths from the Figma table-card (266:2880). */
 function buildColumns(resolved: ReturnType<typeof summarise>['columns']): Column<FrameRow>[] {
@@ -209,7 +210,7 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
               : `${price(summary.low52)} – ${price(summary.high52)}`
           }
         />
-        <Stat label="AVG VOLUME · 3M" value={compactVolume(summary.avgVolume3M)} />
+        <Stat label="AVG VOLUME · 3M" value={<Count value={summary.avgVolume3M} />} />
 
         {/*
           The series as a shape, beside the numbers it summarises (BU-141).

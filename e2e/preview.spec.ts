@@ -468,3 +468,29 @@ test('from py-beacon 0.4.0 the caps come with the preview, in one request', asyn
   await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Local Ccy)')
   expect(referenced).toBe(0)
 })
+
+test('Data Preferences change how the caps read, everywhere at once', async ({ window }) => {
+  /*
+   * BU-228. Karan's ask: the unit and precision of large numbers as a global
+   * choice, under the Data menu. The headers name the unit chosen, where
+   * they always said bn.
+   */
+  await openPreview(window, 'CAP-NOSHARES')
+  await choose(window, 'As of', '2026-07-17')
+  await window.getByRole('button', { name: 'Run preview' }).click()
+  await expect(window.locator('.tbl-head')).toContainText('Market Cap (bn Local Ccy)')
+
+  await window.getByRole('button', { name: 'Data', exact: true }).click()
+  await window.getByRole('menuitem', { name: /Data Preferences/ }).click()
+  const dialog = window.getByRole('dialog', { name: 'Data preferences' })
+  await choose(window, 'Money amounts in', 'millions')
+  await choose(window, 'Decimal places', '1')
+  await expect(dialog).toContainText('3,164,250.0 mn')
+  await dialog.getByRole('button', { name: 'Done' }).click()
+
+  await expect(window.locator('.tbl-head')).toContainText('Market Cap (mn Local Ccy)')
+  // CMP000's local cap is 4.3288tn in the stub (4,329 bn): now in millions, to one place.
+  await expect(window.locator('.tbl-row', { hasText: 'CMP000' }).first()).toContainText(
+    '4,328,767.1'
+  )
+})

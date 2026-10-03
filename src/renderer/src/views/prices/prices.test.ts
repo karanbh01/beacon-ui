@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { findColumn, num, toRows, type TableFrame } from '../../api/frame'
-import { compactVolume, price, signedPercent, summarise } from './summary'
+import { price, signedPercent, summarise } from './summary'
 import { rangeStart } from './usePrices'
 
 const FRAME: TableFrame = {
@@ -116,13 +116,6 @@ describe('summarise', () => {
 })
 
 describe('formatting', () => {
-  it('compacts volume, which is unreadable at full precision', () => {
-    expect(compactVolume(58_400_000)).toBe('58.4M')
-    expect(compactVolume(1_240_000_000)).toBe('1.2B')
-    expect(compactVolume(4_300)).toBe('4.3k')
-    expect(compactVolume(undefined)).toBe('—')
-  })
-
   it('renders a missing price as a dash, never NaN', () => {
     expect(price(undefined)).toBe('—')
     expect(price(211.4)).toBe('211.40')

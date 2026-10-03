@@ -60,7 +60,10 @@ describe('the currency a cap is in', () => {
     const built = capColumns(MIXED, ['JPSML'], false, 'EUR')
     const index = built.find((column) => column.key === 'index_currency')
 
-    expect(built.map((column) => column.header)).toContain('Market Cap (bn Index Ccy)')
+    // Headers are components since BU-228, naming the unit Data Preferences
+    // chose; billions by default, as they always read.
+    const headers = built.map((column) => render(<>{column.header}</>).container.textContent)
+    expect(headers).toContain('Market Cap (bn Index Ccy)')
     expect(index?.render(ASSET('JPSML'))).toBe('EUR')
   })
 

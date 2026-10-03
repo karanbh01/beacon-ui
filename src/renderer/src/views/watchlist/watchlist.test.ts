@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TableFrame } from '../../api/frame'
-import { buildRow, compactCap, sparkPoints, summariseRows } from './watchlist'
+import { buildRow, sparkPoints, summariseRows } from './watchlist'
 
 /** 30 sessions straddling a year end, so YTD has a prior year to measure from. */
 function frame(): TableFrame {
@@ -95,18 +95,6 @@ describe('summariseRows', () => {
     const summary = summariseRows([])
     expect(summary.averageDay).toBeUndefined()
     expect(summary.best).toBeUndefined()
-  })
-})
-
-describe('compactCap', () => {
-  it('scales to the unit a reader expects', () => {
-    expect(compactCap(3.16e12)).toBe('3.16T')
-    expect(compactCap(2.784e11)).toBe('278.4B')
-    expect(compactCap(4.2e6)).toBe('4.2M')
-  })
-
-  it('says nothing when reference did not carry one', () => {
-    expect(compactCap(undefined)).toBe('—')
   })
 })
 

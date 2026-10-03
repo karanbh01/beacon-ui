@@ -23,6 +23,7 @@ export type MenuAction =
   | 'manage-sources'
   | 'generate-data'
   | 'refresh-data'
+  | 'data-preferences'
   | 'open-data-folder'
   | 'import-data'
   | `preset-apply-${string}`
@@ -219,6 +220,14 @@ export function buildMenus(context: MenuContext): Menu[] {
         label: 'Manage sources…',
         action: 'manage-sources',
         enabled: true
+      },
+      // How numbers read, rather than where they come from — set apart, as a
+      // setting for the data rather than a way to get some (BU-228).
+      {
+        label: 'Data Preferences…',
+        action: 'data-preferences',
+        enabled: true,
+        separatorBefore: true
       }
     ],
     Analysis: [

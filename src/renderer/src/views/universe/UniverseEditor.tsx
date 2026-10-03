@@ -13,10 +13,11 @@ import {
   type FilterRow
 } from './builder'
 import { addMember, draftProblem, parseMembers, removeMember, type DraftUniverse } from './members'
-import { billions, buildRow, volume, type UniverseRow } from './universe'
+import { buildRow, type UniverseRow } from './universe'
 import { FilterRows } from './FilterRows'
 import './UniverseEditor.css'
 import { Calculating } from '../../components/Calculating/Calculating'
+import { Count, Money, MoneyHeader } from '../shared/LargeNumber'
 
 export interface UniverseEditorProps {
   draft: DraftUniverse
@@ -56,12 +57,18 @@ const COLUMNS: readonly Column<UniverseRow>[] = [
   { key: 'sector', header: 'Sector', width: 170, render: (row) => row.sector ?? '—' },
   {
     key: 'cap',
-    header: 'FF Mkt Cap ($B)',
+    header: <MoneyHeader label="FF Mkt Cap" currency="USD" />,
     width: 120,
     align: 'right',
-    render: (row) => billions(row.marketCap)
+    render: (row) => <Money value={row.marketCap} />
   },
-  { key: 'adv', header: 'ADV 3M', width: 100, align: 'right', render: (row) => volume(row.adv) }
+  {
+    key: 'adv',
+    header: 'ADV 3M',
+    width: 100,
+    align: 'right',
+    render: (row) => <Count value={row.adv} />
+  }
 ]
 
 /**

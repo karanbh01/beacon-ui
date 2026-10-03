@@ -6,16 +6,8 @@ import type { BeaconClient } from '../../api/client'
 import { ClientContext } from '../../api/queryClient'
 import { useWorkspace } from '../../state/tabs.store'
 import { UniverseView } from './UniverseView'
-import { billions, buildRow, volume } from './universe'
+import { buildRow } from './universe'
 import { choose, optionsOf } from '../../../../test/select'
-
-describe('volume', () => {
-  it('reads as an order of magnitude rather than a count', () => {
-    expect(volume(4_182_000)).toBe('4.2M')
-    expect(volume(950)).toBe('950')
-    expect(volume(undefined)).toBe('—')
-  })
-})
 
 describe('buildRow', () => {
   it('reads reference fields case-insensitively', () => {
@@ -43,13 +35,6 @@ describe('buildRow', () => {
     expect(row.name).toBeUndefined()
     expect(row.marketCap).toBeUndefined()
     expect(row.detailed).toBe(false)
-  })
-})
-
-describe('billions', () => {
-  it('reports market cap in $bn, as the column header says', () => {
-    expect(billions(3.16e12)).toBe('3,160')
-    expect(billions(undefined)).toBe('—')
   })
 })
 
@@ -158,7 +143,8 @@ describe('UniverseView', () => {
     mount()
     await screen.findByText('T100 Corp')
 
-    expect(screen.getAllByText('4.2M').length).toBeGreaterThan(0)
+    // At Data Preferences' default precision, whole units (BU-228).
+    expect(screen.getAllByText('4M').length).toBeGreaterThan(0)
   })
 
   it('opens Reference Data for a clicked row', async () => {

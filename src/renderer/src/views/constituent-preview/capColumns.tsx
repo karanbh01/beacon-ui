@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import type { Column } from '../../components/Table/Table'
-import { billions } from '../universe/universe'
 import type { PreviewAsset } from './derivation'
+import { Money, MoneyHeader } from '../shared/LargeNumber'
 
 /** A reference row as the engine sends it: named fields, untyped values. */
 export type CapRows = ReadonlyMap<string, Record<string, unknown>>
@@ -106,7 +106,7 @@ function allLocal(rows: CapRows, identifiers: readonly string[], currency: strin
  */
 function convertedCell(rows: CapRows, identifier: string, key: 'full' | 'float'): ReactElement {
   const value = number(rows, identifier, CONVERTED[key])
-  if (value !== undefined) return <>{billions(value)}</>
+  if (value !== undefined) return <Money value={value} />
 
   const local = number(rows, identifier, LOCAL[key])
   if (local === undefined) return <>—</>
@@ -155,21 +155,21 @@ export function capColumns(
   const local: Column<PreviewAsset>[] = [
     {
       key: 'market_cap_local',
-      header: 'Market Cap (bn Local Ccy)',
+      header: <MoneyHeader label="Market Cap" currency="Local Ccy" />,
       width: 130,
       minWidth: 84,
       wrapHeader: true,
       align: 'right',
-      render: (asset) => billions(number(rows, asset.identifier, LOCAL.full))
+      render: (asset) => <Money value={number(rows, asset.identifier, LOCAL.full)} />
     },
     {
       key: 'free_float_market_cap_local',
-      header: 'FF Market Cap (bn Local Ccy)',
+      header: <MoneyHeader label="FF Market Cap" currency="Local Ccy" />,
       width: 140,
       minWidth: 84,
       wrapHeader: true,
       align: 'right',
-      render: (asset) => billions(number(rows, asset.identifier, LOCAL.float))
+      render: (asset) => <Money value={number(rows, asset.identifier, LOCAL.float)} />
     },
     {
       key: 'local_currency',
@@ -184,7 +184,7 @@ export function capColumns(
   const converted: Column<PreviewAsset>[] = [
     {
       key: 'market_cap',
-      header: 'Market Cap (bn Index Ccy)',
+      header: <MoneyHeader label="Market Cap" currency="Index Ccy" />,
       width: 130,
       minWidth: 84,
       wrapHeader: true,
@@ -194,7 +194,7 @@ export function capColumns(
     },
     {
       key: 'free_float_market_cap',
-      header: 'FF Market Cap (bn Index Ccy)',
+      header: <MoneyHeader label="FF Market Cap" currency="Index Ccy" />,
       width: 140,
       minWidth: 84,
       wrapHeader: true,

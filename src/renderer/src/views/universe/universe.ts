@@ -50,18 +50,3 @@ export function buildRow(
     detailed
   }
 }
-
-/** 4_182_000 → "4.2M". ADV is read as an order of magnitude, not a count. */
-export function volume(value: number | undefined): string {
-  if (value === undefined) return '—'
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
-  return String(Math.round(value))
-}
-
-/** 3.16e12 → "3,160" — the design reports market cap in $bn. */
-export function billions(value: number | undefined): string {
-  if (value === undefined) return '—'
-  return Math.round(value / 1e9).toLocaleString('en-US')
-}

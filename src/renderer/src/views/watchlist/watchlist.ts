@@ -142,15 +142,6 @@ export function summariseRows(rows: readonly WatchRow[]): WatchSummary {
   }
 }
 
-/** 3.16e12 → "3.16T". Market caps are unreadable at full precision. */
-export function compactCap(value: number | undefined): string {
-  if (value === undefined) return '—'
-  if (value >= 1e12) return `${(value / 1e12).toFixed(2)}T`
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
-  return value.toLocaleString('en-US')
-}
-
 /**
  * A polyline through the closes, normalised into a 0–1 box.
  *

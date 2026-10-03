@@ -573,7 +573,9 @@ test('the Data menu offers what this app imports, and where it comes from', asyn
   // Everything at once, then the imports, then where it all comes from
   // (BU-146).
   expect(items[0]).toContain('Refresh data')
-  expect(items.at(-1)).toContain('Manage sources')
+  expect(items.at(-2)).toContain('Manage sources')
+  // And how its numbers read, set apart at the foot (BU-228).
+  expect(items.at(-1)).toContain('Data Preferences')
   // One Import files… where there was a row per dataset (BU-215): the engine
   // takes every sheet in one import, so per-dataset rows promised something
   // it does not do.

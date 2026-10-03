@@ -1,0 +1,50 @@
+/*
+ * Data Preferences (BU-228). The same family as Data sources and the preset
+ * dialog: backdrop, canvas panel, title and note.
+ */
+.preferences-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 28%);
+}
+
+.preferences-dialog {
+  width: 460px;
+  padding: 16px 18px;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 22%);
+}
+
+.preferences-title {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+}
+
+.preferences-note,
+.preferences-example {
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+}
+
+.preferences-example strong {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.preferences-fields {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.preferences-footer {
+  display: flex;
+  justify-content: flex-end;
+}

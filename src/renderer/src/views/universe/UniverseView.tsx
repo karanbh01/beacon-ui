@@ -17,13 +17,14 @@ import {
 } from '../shared/strategyQueries'
 import { catalogueDisabled, cataloguePlaceholder, describeSkipped } from '../shared/pickers'
 import { useCoverage, useReferenceRows } from '../shared/queries'
-import { billions, buildRow, volume, type UniverseRow } from './universe'
+import { buildRow, type UniverseRow } from './universe'
 import { blankUniverse, isEditable, type DraftUniverse } from './members'
 import { useCandidatePool } from './pool'
 import { UniverseEditor } from './UniverseEditor'
 import { UniverseOverview, type UniverseSummary } from './UniverseOverview'
 import './UniverseView.css'
 import { Calculating } from '../../components/Calculating/Calculating'
+import { Count, Money, MoneyHeader } from '../shared/LargeNumber'
 
 const COLUMNS: readonly Column<UniverseRow>[] = [
   {
@@ -38,12 +39,18 @@ const COLUMNS: readonly Column<UniverseRow>[] = [
   { key: 'sector', header: 'GICS Sector', width: 190, render: (row) => row.sector ?? '—' },
   {
     key: 'cap',
-    header: 'FF Mkt Cap ($B)',
+    header: <MoneyHeader label="FF Mkt Cap" currency="USD" />,
     width: 130,
     align: 'right',
-    render: (row) => billions(row.marketCap)
+    render: (row) => <Money value={row.marketCap} />
   },
-  { key: 'adv', header: 'ADV 3M', width: 100, align: 'right', render: (row) => volume(row.adv) }
+  {
+    key: 'adv',
+    header: 'ADV 3M',
+    width: 100,
+    align: 'right',
+    render: (row) => <Count value={row.adv} />
+  }
 ]
 
 /**

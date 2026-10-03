@@ -24,6 +24,7 @@ import { registerPlaceholderViews } from './views/register'
 import type { ViewOption } from './shell/viewRegistry'
 import { useBackgroundWork } from './api/work'
 import { assistantShips } from './shell/release'
+import { DataPreferencesDialog } from './shell/DataPreferencesDialog'
 
 type BridgeState = { status: 'pending' } | { status: 'ok'; info: AppInfo } | { status: 'failed' }
 
@@ -65,6 +66,7 @@ function AppBody(): ReactElement {
   const [managingSources, setManagingSources] = useState<SourcesStart | 'list' | undefined>(
     undefined
   )
+  const [editingPreferences, setEditingPreferences] = useState(false)
   const [justSaved, setJustSaved] = useState<Preset | undefined>(undefined)
   const engine = useEngine()
   const update = useUpdate()
@@ -165,6 +167,9 @@ function AppBody(): ReactElement {
         engine: engine.status,
         onManageSources: (start) => {
           setManagingSources(start ?? 'list')
+        },
+        onDataPreferences: () => {
+          setEditingPreferences(true)
         },
         onSelectTab: selectTab,
         onOpenIdentifier: openIdentifier,
@@ -270,6 +275,14 @@ function AppBody(): ReactElement {
           {...(managingSources === 'list' ? {} : { start: managingSources })}
           onClose={() => {
             setManagingSources(undefined)
+          }}
+        />
+      )}
+
+      {editingPreferences && (
+        <DataPreferencesDialog
+          onClose={() => {
+            setEditingPreferences(false)
           }}
         />
       )}

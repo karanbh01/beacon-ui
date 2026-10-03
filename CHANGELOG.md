@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The constituent preview table narrows with the window, its long column names wrapping, before it scrolls sideways.
 - A tab keeps what it was showing: a preview you ran, or the definition you had open, is still there when you come back to it.
 - Universe Set shows the orb while it loads.
+- Data → Data Preferences chooses the unit money amounts read in (thousands to trillions, or each value its own) and the decimal places on every large number. Column headers name the unit chosen.
 
 ## [0.1.1] - 2026-10-02
 

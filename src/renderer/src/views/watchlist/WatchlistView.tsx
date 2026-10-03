@@ -12,8 +12,9 @@ import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useSaveWatchlist, useWatchlists } from '../shared/queries'
 import { Sparkline } from './Sparkline'
 import { useWatchRows } from './useWatchRows'
-import { compactCap, summariseRows, type WatchRow } from './watchlist'
+import { summariseRows, type WatchRow } from './watchlist'
 import './WatchlistView.css'
+import { Money, MoneyHeader } from '../shared/LargeNumber'
 
 function toneOf(value: number | undefined): 'positive' | 'negative' | 'default' {
   if (value === undefined || value === 0) return 'default'
@@ -52,10 +53,10 @@ const COLUMNS: readonly Column<WatchRow>[] = [
   },
   {
     key: 'cap',
-    header: 'Mkt Cap',
+    header: <MoneyHeader label="Mkt Cap" currency="USD" />,
     width: 100,
     align: 'right',
-    render: (row) => compactCap(row.marketCap)
+    render: (row) => <Money value={row.marketCap} />
   },
   {
     key: 'spark',

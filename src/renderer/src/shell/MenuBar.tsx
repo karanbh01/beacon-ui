@@ -38,6 +38,8 @@ export interface MenuBarProps {
    * Import items.
    */
   onManageSources?: (start?: SourcesStart) => void
+  /** Opens Data Preferences: how large numbers read, app-wide (BU-228). */
+  onDataPreferences?: () => void
   onSelectTab?: (id: string) => void
   /** An identifier picked from search: open it on Prices. */
   onOpenIdentifier?: (subject: string) => void
@@ -93,6 +95,7 @@ export function MenuBar({
   onToggleAssistant,
   engine = 'starting',
   onManageSources,
+  onDataPreferences,
   onSelectTab,
   onOpenIdentifier,
   onOpenView,
@@ -193,6 +196,7 @@ export function MenuBar({
     else if (action === 'import-data') onManageSources?.('import')
     else if (action === 'generate-data') generate.mutate()
     else if (action === 'refresh-data' && served !== undefined) refreshStore.mutate(served.id)
+    else if (action === 'data-preferences') onDataPreferences?.()
     else if (action === 'layout-reset') {
       // Both halves, or it is not a reset: a single pane still holding six
       // tabs is the arrangement you were trying to get out of.
