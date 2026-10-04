@@ -1,7 +1,6 @@
 import { useEffect, useMemo, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
 import { Calculating } from '../../components/Calculating/Calculating'
-import { Field } from '../../components/Field/Field'
 import { Select } from '../../components/Select/Select'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
@@ -41,7 +40,6 @@ import { SolveConstraints } from './Solve'
 import { solveColumns } from './solveColumns'
 import './ConstituentPreviewView.css'
 import { IndexOverview } from '../index-definition/IndexOverview'
-import { TickerField } from '../../components/TickerField/TickerField'
 
 /**
  * The caps this table shows, and nothing else (BU-225).
@@ -287,10 +285,45 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
 
   return (
     <div className="constituent-preview-view">
+      {/*
+        The query bar the Data Explorer views have (Karan, BU-230): the index
+        is searched for in the header, suggesting from the catalogue, so a
+        reader need not go through Index Definition to preview one. The date
+        and the actions sit in the controls, as Prices keeps its interval.
+      */}
       <PaneHeader
-        kind="fields"
+        kind="query"
+        subject={indexId}
+        index={catalogue.rows}
+        {...(document.data?.name === undefined ? {} : { meta: document.data.name })}
+        onQuery={(next) => {
+          setSubject(tab.id, next.toUpperCase())
+        }}
         controls={
           <>
+            {/*
+              Rebalance dates, not a free date (BU-202).
+
+              The pane re-resolves the methodology and deliberately shows no
+              drift, so every date between two rebalances resolves to the
+              portfolio of the rebalance before it. A date field invited a
+              question this view cannot answer differently; the schedule is the
+              set of dates where the answer actually changes.
+
+              Past only. A future rebalance has no data to resolve against, and
+              offering one produces the equal-weight fallback under a heading
+              that says market cap.
+            */}
+            <div className="preview-asof">
+              <Select
+                label="As of"
+                value={asOf}
+                onChange={setAsOf}
+                options={rebalances}
+                placeholder={schedulePlaceholder(schedule, rebalances.length)}
+                disabled={rebalances.length === 0}
+              />
+            </div>
             <Button
               onClick={() => {
                 openOrRetarget({
@@ -301,6 +334,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
                   subject: indexId
                 })
               }}
+              disabled={indexId === ''}
             >
               Open definition
             </Button>
@@ -314,45 +348,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
             </Button>
           </>
         }
-      >
-        {/*
-          Which index, chosen here (Karan, BU-230): a reader had to go through
-          Index Definition to preview one. The same search the Backtest pane
-          uses, suggesting from the catalogue rather than from identifiers.
-        */}
-        <Field label="Index" width={200}>
-          <TickerField
-            subject={indexId}
-            index={catalogue.rows}
-            onQuery={(next) => {
-              setSubject(tab.id, next.toUpperCase())
-            }}
-          />
-        </Field>
-        {/*
-          Rebalance dates, not a free date (BU-202).
-
-          The pane re-resolves the methodology and deliberately shows no
-          drift, so every date between two rebalances resolves to the
-          portfolio of the rebalance before it. A date field invited a
-          question this view cannot answer differently; the schedule is the
-          set of dates where the answer actually changes.
-
-          Past only. A future rebalance has no data to resolve against, and
-          offering one produces the equal-weight fallback under a heading
-          that says market cap.
-        */}
-        <Field label="As of" width={150}>
-          <Select
-            label="As of"
-            value={asOf}
-            onChange={setAsOf}
-            options={rebalances}
-            placeholder={schedulePlaceholder(schedule, rebalances.length)}
-            disabled={rebalances.length === 0}
-          />
-        </Field>
-      </PaneHeader>
+      />
 
       {/* With no index named, the catalogue to pick one from (BU-230); it said
           only to open this from a definition. */}

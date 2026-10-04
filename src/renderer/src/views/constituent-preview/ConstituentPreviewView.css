@@ -159,3 +159,20 @@
 .cap-stale {
   color: var(--working);
 }
+
+/* The date among the header's controls (BU-230), wide enough for one and
+   the placeholder that says why there are none. */
+.preview-asof {
+  flex: none;
+  width: 170px;
+}
+
+/* A Select sizes to its text unless told otherwise; held to the box here, so
+   a long placeholder ends in an ellipsis rather than over the next button. */
+.preview-asof .select {
+  width: 100%;
+}
+
+.preview-asof .select-value {
+  min-width: 0;
+}
