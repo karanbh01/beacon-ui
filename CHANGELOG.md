@@ -17,7 +17,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A new app icon: a white β on a blue card.
 - The constituent preview table narrows with the window, its long column names wrapping, before it scrolls sideways.
 - A tab keeps what it was showing: a preview you ran, or the definition you had open, is still there when you come back to it.
-- Universe Set shows the orb while it loads.
+- Universe Set shows the orb while it reads a universe at a date.
+- Universe Set and Index Definition have a back button to their lists.
+- Constituent Preview has its own index search, and lists the indices when none is chosen, so it no longer has to be opened from Index Definition.
 - Data → Data Preferences chooses the unit money amounts read in (thousands to trillions, or each value its own) and the decimal places on every large number. Column headers name the unit chosen.
 
 ## [0.1.1] - 2026-10-02

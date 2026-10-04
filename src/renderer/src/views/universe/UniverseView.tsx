@@ -25,6 +25,7 @@ import { UniverseOverview, type UniverseSummary } from './UniverseOverview'
 import './UniverseView.css'
 import { Calculating } from '../../components/Calculating/Calculating'
 import { Count, Money, MoneyHeader } from '../shared/LargeNumber'
+import { BackButton } from '../../components/BackButton/BackButton'
 
 const COLUMNS: readonly Column<UniverseRow>[] = [
   {
@@ -241,6 +242,10 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
    * engine simply has no reference row, which is a fact worth drawing as a
    * row of dashes.
    */
+  // Under a date the membership is what was listed then, which is not known
+  // until every listing has arrived — so the table waits, behind the orb.
+  const datedLoading = selected !== '' && asOf !== '' && (members.isPending || reference.loading)
+
   const identifiers = useMemo(
     () => (asOf === '' ? stored : stored.filter((identifier) => byIdentifier.has(identifier))),
     [asOf, stored, byIdentifier]
@@ -264,6 +269,14 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
           </>
         }
       >
+        {selected !== '' && (
+          <BackButton
+            to="All universes"
+            onClick={() => {
+              setSubject(tab.id, '')
+            }}
+          />
+        )}
         <Select
           options={[
             { value: '', label: 'All universes' },
@@ -359,12 +372,10 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
       )}
 
       {/* The orb, saying Loading (Karan, BU-225): the list, and a universe
-          while its members and their listings arrive — which left the pane
-          blank before. */}
+          read at a date while its listings arrive. Not without a date, where
+          every member shows at once and fills in as it lands (BU-230). */}
       {universes.isPending && <Calculating label="Loading" subject="universes" />}
-      {selected !== '' && (members.isPending || (stored.length > 0 && reference.loading)) && (
-        <Calculating label="Loading" subject={selected} />
-      )}
+      {datedLoading && <Calculating label="Loading" subject={selected} />}
       {universes.isError && <ViewError error={universes.error} />}
       {members.isError && <ViewError error={members.error} />}
 
@@ -389,7 +400,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
         </ViewEmpty>
       )}
 
-      {identifiers.length > 0 && (
+      {identifiers.length > 0 && !datedLoading && (
         <>
           <Table
             columns={COLUMNS}

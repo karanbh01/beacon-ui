@@ -40,6 +40,7 @@ import {
   type IndexDocument
 } from './pipeline'
 import './IndexDefinitionView.css'
+import { BackButton } from '../../components/BackButton/BackButton'
 
 /**
  * Strategy Builder → Index Definition. Figma 234:6070.
@@ -208,6 +209,17 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
               the back arrow that #103 removes, so without it there would be
               no way out of a document opened from the overview.
             */}
+            {/* Back to the catalogue from a definition opened out of it (Karan,
+                BU-230): the picker's "All indices" was the only way, and it
+                did not read as one. */}
+            {named === undefined && opened !== undefined && (
+              <BackButton
+                to="All indices"
+                onClick={() => {
+                  setOpened(undefined)
+                }}
+              />
+            )}
             {named === undefined && (
               <Select
                 label="Index"

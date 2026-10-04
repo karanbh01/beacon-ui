@@ -13,6 +13,11 @@ export interface IndexOverviewProps {
   onOpen: (id: string) => void
   /** Omitted where deleting is not offered — there is no engine, say. */
   onDelete?: (index: IndexDocument) => void
+  /**
+   * Offer "New index…". Off where the list is for choosing one to look at —
+   * the constituent preview, which has nothing to preview in an unsaved id.
+   */
+  allowCreate?: boolean
 }
 
 const COLUMNS: readonly Column<IndexDocument>[] = [
@@ -83,7 +88,12 @@ function columns(
  * `GET /indices` returns whole documents rather than summaries, so every
  * column here is free.
  */
-export function IndexOverview({ indices, onOpen, onDelete }: IndexOverviewProps): ReactElement {
+export function IndexOverview({
+  indices,
+  onOpen,
+  onDelete,
+  allowCreate = true
+}: IndexOverviewProps): ReactElement {
   const [naming, setNaming] = useState(false)
   const [id, setId] = useState('')
 
@@ -99,7 +109,7 @@ export function IndexOverview({ indices, onOpen, onDelete }: IndexOverviewProps)
 
   return (
     <div className="index-overview">
-      {!naming && (
+      {allowCreate && !naming && (
         <Button
           variant="accent"
           onClick={() => {

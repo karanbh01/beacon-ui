@@ -1,4 +1,4 @@
-// Generate the app icon from Karan's artwork: the β card since 0.1.2,
+// Generate the app icon from Karan's artwork: the β card since 0.2.0,
 // replacing the beta cube of BU-73.
 //
 // The master is build/icon-source.png — Karan's artwork, used as-is. This

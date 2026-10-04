@@ -10,7 +10,14 @@ import { usePreviewMemory } from '../../state/tabMemory'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError } from '../shared/ViewState'
-import { useIndex, usePreviewIndex, useRanPreview, useSchedule } from '../shared/strategyQueries'
+import {
+  useIndex,
+  useIndexCatalogue,
+  useIndices,
+  usePreviewIndex,
+  useRanPreview,
+  useSchedule
+} from '../shared/strategyQueries'
 import { useReferenceRows } from '../shared/queries'
 import { pipelineOf } from '../index-definition/pipeline'
 import {
@@ -33,6 +40,8 @@ import { capColumns, capsFromPreview, staleCount, type CapRows } from './capColu
 import { SolveConstraints } from './Solve'
 import { solveColumns } from './solveColumns'
 import './ConstituentPreviewView.css'
+import { IndexOverview } from '../index-definition/IndexOverview'
+import { TickerField } from '../../components/TickerField/TickerField'
 
 /**
  * The caps this table shows, and nothing else (BU-225).
@@ -162,6 +171,11 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   )
   const document = useIndex(indexId)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
+  const setSubject = useWorkspace((state) => state.setSubject)
+  // The list a preview is chosen from when none is (BU-230), and the search
+  // in the header that names one.
+  const indices = useIndices()
+  const catalogue = useIndexCatalogue()
 
   /*
    * The weighting decides whether caps are worth a column at all.
@@ -302,6 +316,20 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         }
       >
         {/*
+          Which index, chosen here (Karan, BU-230): a reader had to go through
+          Index Definition to preview one. The same search the Backtest pane
+          uses, suggesting from the catalogue rather than from identifiers.
+        */}
+        <Field label="Index" width={200}>
+          <TickerField
+            subject={indexId}
+            index={catalogue.rows}
+            onQuery={(next) => {
+              setSubject(tab.id, next.toUpperCase())
+            }}
+          />
+        </Field>
+        {/*
           Rebalance dates, not a free date (BU-202).
 
           The pane re-resolves the methodology and deliberately shows no
@@ -326,7 +354,17 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
         </Field>
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Open this from an index definition to preview it.</ViewEmpty>}
+      {/* With no index named, the catalogue to pick one from (BU-230); it said
+          only to open this from a definition. */}
+      {indexId === '' && (
+        <IndexOverview
+          indices={indices.data?.indices ?? []}
+          allowCreate={false}
+          onOpen={(id) => {
+            setSubject(tab.id, id)
+          }}
+        />
+      )}
 
       {shortSchedule !== undefined && <p className="preview-warning type-11">{shortSchedule}</p>}
 
