@@ -1,5 +1,5 @@
-// Generate the app icon from Karan's artwork: the β card since 0.2.0,
-// replacing the beta cube of BU-73.
+// Generate the app icon from Karan's artwork: the cube logo since 0.2.0,
+// after the beta cube of BU-73 and a β card that was tried and replaced.
 //
 // The master is build/icon-source.png — Karan's artwork, used as-is. This
 // only reshapes it into what each platform wants: a square 1024px png for
@@ -87,7 +87,7 @@ function inkBounds(image) {
  * Centre the artwork in a square, letterboxed.
  *
  * `nativeImage.resize` to a square would STRETCH artwork that is not square —
- * the first, a 605x623 cube, by 3%; the β card is portrait — small
+ * the first, a 605x623 cube, by 3% — small
  * enough to pass review and wrong. Compositing in a page is how the aspect
  * survives: `object-fit: contain` fits the long edge and centres the rest,
  * and the surround stays transparent.

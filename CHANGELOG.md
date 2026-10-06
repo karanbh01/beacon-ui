@@ -14,7 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - While a constituent preview calculates, an animated orb says so.
 - py-beacon 0.4.0 inside: backtests receive dividends, size their buys net of costs and keep their book in the index's currency, so a backtest's starting capital is asked for in that currency.
 - The constituent preview's market caps arrive with the engine's answer, so the table draws in about a second and a half rather than eight on a 4,500-name index.
-- A new app icon: a white β on a blue card.
+- A new app icon: Beacon's cube logo.
 - The constituent preview table narrows with the window, its long column names wrapping, before it scrolls sideways.
 - A tab keeps what it was showing: a preview you ran, or the definition you had open, is still there when you come back to it.
 - Universe Set shows the orb while it reads a universe at a date.
