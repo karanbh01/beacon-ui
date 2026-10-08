@@ -17,7 +17,7 @@
  * children, and the range control is the one that visibly loses — it went
  * from a row of buttons to a 4px strip in a short pane.
  */
-.prices-view > *:not(.tbl) {
+.prices-view > *:not(.tbl, .view-empty) {
   flex: none;
   /* Everything else still hugs its own content, as `align-items: flex-start`
      used to do for all of them. */

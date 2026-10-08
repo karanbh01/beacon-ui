@@ -54,6 +54,9 @@ const COLUMNS: readonly Column<UniverseRow>[] = [
   }
 ]
 
+/** Nothing to look up: what the listings are asked for before a date is chosen. */
+const NO_MEMBERS: readonly string[] = []
+
 /**
  * Strategy Builder → Universe Set. Figma 234:6348.
  *
@@ -65,9 +68,6 @@ const COLUMNS: readonly Column<UniverseRow>[] = [
  * field, returned only when named in `fields`. The endpoint's default is
  * stored columns, so asking for everything would still not have produced it.
  */
-/** Nothing to look up: what the listings are asked for before a date is chosen. */
-const NO_MEMBERS: readonly string[] = []
-
 export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
   const universes = useUniverses()
   const setSubject = useWorkspace((state) => state.setSubject)
@@ -402,8 +402,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
 
       {awaitingDate && (
         <ViewEmpty figure="calendar">
-          Choose an as-of date to see which of the {stored.length.toLocaleString('en-US')} members
-          of {current?.name ?? selected} were listed then.
+          Choose an as-of date to see which members of {current?.name ?? selected} were listed then.
         </ViewEmpty>
       )}
 

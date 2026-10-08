@@ -14,7 +14,7 @@
  * Only the table gives ground — otherwise a short pane takes the shortfall
  * out of the dataset picker and the paging row instead.
  */
-.database-view > *:not(.tbl) {
+.database-view > *:not(.tbl, .view-empty) {
   flex: none;
   align-self: flex-start;
 }

@@ -5,7 +5,7 @@
  * The bright stroke is the accent, Karan's pick over ink.
  */
 .empty-figure {
-  width: 240px;
+  width: 320px;
   max-width: 100%;
   --hairline-plate: var(--canvas);
   --hairline-hi: var(--accent);

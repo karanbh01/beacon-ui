@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import { StatusPill } from '../../components/Badge/Badge'
 import { Button } from '../../components/Button/Button'
+import { Calculating } from '../../components/Calculating/Calculating'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
 import { Stat, StatStrip } from '../../components/Stat/Stat'
 import { Table, type Column } from '../../components/Table/Table'
-import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useCoverage } from '../shared/queries'
 import { refreshOf, useRefreshStore, useServedStore } from '../shared/storeQueries'
 import {
@@ -89,7 +90,9 @@ export function CoverageView(): ReactElement {
         />
       </PaneHeader>
 
-      {query.isPending && <ViewLoading what="coverage" />}
+      {/* The orb, as Universe Set has (Karan): the coverage summary reads every
+          dataset's span, and is slow enough on a large store to need one. */}
+      {query.isPending && <Calculating label="Loading" subject="coverage" />}
       {query.isError && <ViewError error={query.error} />}
       {refresh.isError && <ViewError error={refresh.error} />}
 

@@ -34,7 +34,7 @@ test('a universe without a date asks for one, with no orb and no table', async (
   await choose(window, 'Universe', 'GLOBAL')
 
   await expect(
-    window.getByText(/Choose an as-of date to see which of the 120 members/)
+    window.getByText(/Choose an as-of date to see which members of All loaded assets/)
   ).toBeVisible()
   await expect(window.locator('[data-hairline="calendar"]')).toBeVisible()
   await expect(window.getByRole('status', { name: /Loading GLOBAL/ })).toHaveCount(0)

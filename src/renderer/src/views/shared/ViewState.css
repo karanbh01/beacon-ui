@@ -24,12 +24,27 @@
  */
 .view-empty {
   align-self: stretch;
+  /* The room under the header, with the figure in its middle both ways
+     (Karan): sitting at the top, it read as the start of a list. */
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 24px 24px 32px;
+  /* 100px more below than above sets the figure 50px over the true middle,
+     where it sits better under a header (Karan): dead centre read low. */
+  padding: 24px 24px 132px;
   color: var(--text-muted);
+}
+
+/*
+ * A view answering with an empty state takes the pane's height, so there is
+ * room under its header to centre in. Most views are only as tall as their
+ * content; the ones holding a filling table already take the height.
+ */
+.pane-body > :has(> .view-empty) {
+  min-height: 100%;
 }
 
 .view-empty-message {
