@@ -169,8 +169,34 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
     )
   }
 
+  /*
+   * Asked for by name and not there (BU-231). Inside the view's own frame,
+   * with its header, where it used to be the bare sentence and nothing else
+   * — no title saying which tab this was, and no way back to the catalogue.
+   */
   if (draft === undefined) {
-    return <ViewEmpty>No index definition named “{indexId}” on this engine.</ViewEmpty>
+    return (
+      <div className="index-definition-view">
+        <PaneHeader
+          kind="document"
+          title={indexId}
+          meta="not on this engine"
+          controls={
+            named === undefined && (
+              <BackButton
+                to="All indices"
+                onClick={() => {
+                  setOpened(undefined)
+                }}
+              />
+            )
+          }
+        />
+        <ViewEmpty figure="binders">
+          No index definition named “{indexId}” on this engine.
+        </ViewEmpty>
+      </div>
+    )
   }
 
   /*

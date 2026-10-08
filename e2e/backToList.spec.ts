@@ -11,7 +11,7 @@ test('Universe Set goes back to its list from an opened universe', async ({ wind
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
   await choose(window, 'Universe', 'GLOBAL')
-  await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
+  await expect(window.getByText(/Choose an as-of date/)).toBeVisible()
 
   await window.getByRole('button', { name: 'Back to all universes' }).click()
   await expect(window.locator('.universe-overview')).toBeVisible()
@@ -19,30 +19,34 @@ test('Universe Set goes back to its list from an opened universe', async ({ wind
   await expect(window.getByRole('button', { name: 'Back to all universes' })).toHaveCount(0)
 })
 
-test('a universe without a date shows its members, not the orb', async ({ window }) => {
-  let held: (() => void) | undefined
-  await window.route(/\/data\/reference\?/, async (route) => {
-    // Hold the listings: without a date there must be nothing to wait for.
-    await new Promise<void>((resolve) => {
-      held = resolve
-      setTimeout(resolve, 1_500)
-    })
-    await route.continue()
+test('a universe without a date asks for one, with no orb and no table', async ({ window }) => {
+  // Without a date there is nothing to wait for (BU-230), and since BU-231
+  // nothing to list either: the members show only as they stood on a date.
+  // Undated listings only: the list of universes counts its members at the
+  // latest date, which is a different request and is meant to happen.
+  let asked = 0
+  window.on('request', (request) => {
+    const url = request.url()
+    if (url.includes('/data/reference?') && !url.includes('date=')) asked += 1
   })
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
   await choose(window, 'Universe', 'GLOBAL')
 
-  await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
+  await expect(
+    window.getByText(/Choose an as-of date to see which of the 120 members/)
+  ).toBeVisible()
+  await expect(window.locator('[data-hairline="calendar"]')).toBeVisible()
   await expect(window.getByRole('status', { name: /Loading GLOBAL/ })).toHaveCount(0)
-  held?.()
+  await expect(window.locator('.universe-footnote')).toHaveCount(0)
+  expect(asked).toBe(0)
 })
 
 test('a universe at a date waits behind the orb, then shows who was listed', async ({ window }) => {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
   await choose(window, 'Universe', 'GLOBAL')
-  await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
+  await expect(window.getByText(/Choose an as-of date/)).toBeVisible()
 
   let release: () => void = () => undefined
   const gate = new Promise<void>((resolve) => {

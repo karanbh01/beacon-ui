@@ -8,7 +8,7 @@ import { Table, type Column } from '../../components/Table/Table'
 import { usePreviewMemory } from '../../state/tabMemory'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { ViewEmpty, ViewError } from '../shared/ViewState'
+import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import {
   useIndex,
   useIndexCatalogue,
@@ -352,9 +352,13 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
 
       {/* With no index named, the catalogue to pick one from (BU-230); it said
           only to open this from a definition. */}
-      {indexId === '' && (
+      {/* Only once the list is in: before, its "no definitions" sentence
+          was showing while the list was still loading, and after a failure. */}
+      {indexId === '' && indices.isPending && <ViewLoading what="indices" />}
+      {indexId === '' && indices.isError && <ViewError error={indices.error} />}
+      {indexId === '' && indices.isSuccess && (
         <IndexOverview
-          indices={indices.data?.indices ?? []}
+          indices={indices.data.indices}
           allowCreate={false}
           onOpen={(id) => {
             setSubject(tab.id, id)
@@ -397,7 +401,9 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
       {/* Waiting to be asked, which is a different state from having no
           answer: the pane is ready and the reader has not chosen a date. */}
       {indexId !== '' && result === undefined && !preview.isPending && !preview.isError && (
-        <ViewEmpty>
+        // The same calendar once a date is chosen, by Karan's call: the
+        // prompt changes, the absence it draws does not.
+        <ViewEmpty figure="calendar">
           {asOf === ''
             ? 'Choose a rebalance date to resolve this index at, then run the preview.'
             : `Run the preview to resolve ${indexId} at ${asOf}.`}
@@ -462,6 +468,14 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
       )}
 
       {solve !== undefined && <SolveConstraints solve={solve} />}
+
+      {/* It ran and resolved no one: said, where the table used to just
+          not appear under a summary of "0 constituents" (BU-231). */}
+      {result !== undefined && rows.length === 0 && !working && (
+        <ViewEmpty figure="plot">
+          The preview resolved no names for {indexId} at {result.as_of.slice(0, 10)}.
+        </ViewEmpty>
+      )}
 
       {result !== undefined && rows.length > 0 && !working && (
         <>

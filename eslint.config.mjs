@@ -18,7 +18,12 @@ export default tseslint.config(
       // Generated from py-beacon's OpenAPI spec. Its style is openapi-
       // typescript's business, not ours, and it is still typechecked — which
       // is the part that actually makes the client safe.
-      'src/shared/api.generated.ts'
+      'src/shared/api.generated.ts',
+      // Hairline's figure kit (MIT) and the figures drawn on it, kept in the
+      // shape its hairline-create skill writes, so the skill's own validator
+      // and look can be run on them again when one is redrawn. Typed at the
+      // boundary by the .d.ts files beside them.
+      'src/renderer/src/components/EmptyFigure/kit/*.js'
     ]
   },
   js.configs.recommended,

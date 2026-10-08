@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -90,6 +90,16 @@ function mount(subject: string | undefined = 'US-LARGECAP'): Call[] {
   return calls
 }
 
+/**
+ * Universe Set shows a universe's members only at a date (BU-231): with none
+ * it asks for one, so a test about the table chooses one first.
+ */
+async function chooseDate(date = '2026-08-04'): Promise<void> {
+  // One change, as a date picker makes: typed a key at a time, a date input
+  // passes through invalid values on the way, which is only slower.
+  fireEvent.change(await screen.findByLabelText('As of'), { target: { value: date } })
+}
+
 beforeEach(() => {
   localStorage.clear()
   const store = useWorkspace.getState()
@@ -111,6 +121,7 @@ beforeEach(() => {
 describe('UniverseView', () => {
   it('lists every member, not only the ones it has detail for', async () => {
     mount()
+    await chooseDate()
     await screen.findByText('T000')
 
     expect(
@@ -122,6 +133,7 @@ describe('UniverseView', () => {
     // This is the whole of #45. The table used to fan out a call per
     // identifier and stop at 60, filling the rest with dashes.
     const calls = mount()
+    await chooseDate()
     await screen.findByText('T000')
 
     expect(calls).toHaveLength(1)
@@ -134,6 +146,7 @@ describe('UniverseView', () => {
     // not name it would come back without it however many identifiers it
     // carried — the fan-out was never the only reason ADV was missing.
     const calls = mount()
+    await chooseDate()
     await screen.findByText('T000')
 
     expect(calls[0]?.fields).toContain('adv_3m')
@@ -141,6 +154,7 @@ describe('UniverseView', () => {
 
   it('fills the detail columns past where the old cap was', async () => {
     mount()
+    await chooseDate()
     await screen.findByText('T100 Corp')
 
     // At Data Preferences' default precision, whole units (BU-228).
@@ -149,6 +163,7 @@ describe('UniverseView', () => {
 
   it('opens Reference Data for a clicked row', async () => {
     mount()
+    await chooseDate()
     await userEvent.click(await screen.findByText('T000'))
 
     const tabs = useWorkspace.getState().tabs
@@ -160,6 +175,7 @@ describe('UniverseView', () => {
 
   it('records the chosen universe on the tab, so the choice survives a switch', async () => {
     mount()
+    await chooseDate()
     await screen.findByText('T000')
 
     await choose('Universe', 'US-LARGECAP')
@@ -232,7 +248,8 @@ describe('opening with no universe chosen', () => {
 
   it('offers a way back, since the picker is the only route out of a universe', async () => {
     mount()
-    await screen.findByText('T000')
+    // The picker is all this is about; no date, so no table to wait for.
+    await screen.findByText(/Choose an as-of date/)
 
     expect(await optionsOf('Universe')).toContain('All universes')
   })
@@ -518,20 +535,22 @@ function mountPointInTime(): { dates: (string | undefined)[] } {
 }
 
 describe('a universe as it stood on a date', () => {
-  it('asks for today until a date is set, so nothing changes by default', async () => {
+  it('asks for nothing until a date is set, and asks the reader for one', async () => {
+    // The undated list mixed names long delisted with today's under one
+    // count, and read as a membership it never was (Karan, BU-231).
     const { dates } = mountPointInTime()
-    await screen.findByText('AAA')
+    await screen.findByText(/Choose an as-of date/)
 
-    expect(dates).toEqual([''])
-    expect(screen.getByText(LISTED_LATE)).toBeInTheDocument()
-    expect(screen.getByText('2 assets', { exact: false })).toBeInTheDocument()
+    expect(dates).toEqual([])
+    expect(screen.queryByText('AAA')).toBeNull()
+    expect(screen.queryByText(LISTED_LATE)).toBeNull()
   })
 
   it('passes the date to the engine rather than filtering here', async () => {
     // py-beacon owns what "valid then" means; a second implementation off
     // DATE_FROM and DATE_TO would be one more thing to keep in step.
     const { dates } = mountPointInTime()
-    await screen.findByText('AAA')
+    await screen.findByText(/Choose an as-of date/)
 
     await userEvent.type(screen.getByLabelText('As of'), '2018-01-02')
     await waitFor(() => {
@@ -541,7 +560,7 @@ describe('a universe as it stood on a date', () => {
 
   it('drops a name that was not listed then, rather than drawing it blank', async () => {
     const { dates } = mountPointInTime()
-    await screen.findByText('AAA')
+    await screen.findByText(/Choose an as-of date/)
     await userEvent.type(screen.getByLabelText('As of'), '2018-01-02')
 
     await waitFor(() => {
@@ -556,7 +575,7 @@ describe('a universe as it stood on a date', () => {
   it('says how many of the stored members were not listed then', async () => {
     // "512 assets" and "487 assets as of 2021-03-31" are different claims.
     mountPointInTime()
-    await screen.findByText('AAA')
+    await screen.findByText(/Choose an as-of date/)
     await userEvent.type(screen.getByLabelText('As of'), '2018-01-02')
 
     await waitFor(() => {
@@ -617,6 +636,7 @@ describe('a universe past the engine cap', () => {
   it('asks about every member, in calls of the cap', async () => {
     // 2,400 names is three calls, not one truncated to 1,000.
     const calls = mountBig()
+    await chooseDate()
 
     await waitFor(() => {
       expect(calls).toHaveLength(3)
@@ -630,6 +650,7 @@ describe('a universe past the engine cap', () => {
     // The bug behind "757 assets" against an overview saying 3,849: the same
     // proportion, measured on a fifth of the population.
     mountBig()
+    await chooseDate()
 
     await waitFor(() => {
       expect(footnote()).toContain('2,400 assets')
@@ -644,7 +665,8 @@ describe('getting back to the list', () => {
     // #103 removed the back arrow: the picker already carried "All universes"
     // and two routes to one place was one too many in a crowded header.
     mount()
-    await screen.findByText('T000')
+    // The picker is all this is about; no date, so no table to wait for.
+    await screen.findByText(/Choose an as-of date/)
 
     await choose('Universe', '')
 

@@ -160,7 +160,7 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
       />
 
       {identifier === '' && (
-        <ViewEmpty>
+        <ViewEmpty figure="ticker">
           {tab.archetype === 'linked'
             ? 'The tab this one follows has no subject yet.'
             : 'Type an identifier to chart it.'}
@@ -172,6 +172,14 @@ export function ChartingView({ tab, subject }: ViewProps): ReactElement {
       )}
 
       {data.error !== undefined && <ViewError error={data.error} />}
+
+      {/* It answered, with nothing to draw: said, rather than a blank chart area. */}
+      {identifier !== '' &&
+        !data.loading &&
+        data.error === undefined &&
+        data.series.length === 0 && (
+          <ViewEmpty figure="plot">No prices for {identifier} in this range.</ViewEmpty>
+        )}
 
       {data.series.length > 0 && (
         <LevelChart

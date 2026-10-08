@@ -113,7 +113,9 @@ export function CoverageView(): ReactElement {
             />
           </StatStrip>
 
-          {shown.length === 0 && <ViewEmpty>This engine reports no datasets.</ViewEmpty>}
+          {shown.length === 0 && (
+            <ViewEmpty figure="drawer">This engine reports no datasets.</ViewEmpty>
+          )}
 
           {shown.length > 0 && (
             <Table columns={COLUMNS} rows={shown} getRowId={(row) => row.dataset} />

@@ -18,6 +18,7 @@ import { FilterRows } from './FilterRows'
 import './UniverseEditor.css'
 import { Calculating } from '../../components/Calculating/Calculating'
 import { Count, Money, MoneyHeader } from '../shared/LargeNumber'
+import { ViewEmpty } from '../shared/ViewState'
 
 export interface UniverseEditorProps {
   draft: DraftUniverse
@@ -230,6 +231,14 @@ export function UniverseEditor({
             </span>
           )}
         </p>
+      )}
+
+      {/* Where the members will appear, saying so while there are none, rather
+          than leaving a gap the reader has to interpret (BU-231). */}
+      {!loading && tableRows.length === 0 && (
+        <ViewEmpty figure="cardindex">
+          No members yet — add a filter, a symbol, or paste a list.
+        </ViewEmpty>
       )}
 
       {tableRows.length > 0 && (

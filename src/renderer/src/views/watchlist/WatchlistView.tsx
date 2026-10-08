@@ -113,7 +113,7 @@ export function WatchlistView({ tab, pane }: ViewProps): ReactElement {
       {lists.isError && <ViewError error={lists.error} />}
 
       {lists.isSuccess && current === undefined && (
-        <ViewEmpty>
+        <ViewEmpty figure="drawer">
           This engine has no watchlists — py-beacon stores them in{' '}
           <code>~/.py-beacon/watchlists.json</code>
         </ViewEmpty>
@@ -152,7 +152,9 @@ export function WatchlistView({ tab, pane }: ViewProps): ReactElement {
 
           {error !== undefined && <ViewError error={error} />}
 
-          {identifiers.length === 0 && <ViewEmpty>This watchlist is empty.</ViewEmpty>}
+          {identifiers.length === 0 && (
+            <ViewEmpty figure="cardindex">This watchlist is empty.</ViewEmpty>
+          )}
 
           {identifiers.length > 0 && (
             <Table

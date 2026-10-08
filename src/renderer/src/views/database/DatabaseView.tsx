@@ -179,7 +179,7 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
       {page.isError && <ViewError error={page.error} />}
 
       {page.isSuccess && table.rows.length === 0 && (
-        <ViewEmpty>
+        <ViewEmpty figure="drawer">
           The {dataset} dataset holds nothing{identifier === '' ? '' : ` for ${identifier}`}.
         </ViewEmpty>
       )}
@@ -236,7 +236,12 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
                 )}
               </>
             )}
-            fillHeight
+            /*
+             * Not when the filters let nothing through: the header stays,
+             * since the filters live in it, and the body would be a block of
+             * blank rows above the message saying so.
+             */
+            fillHeight={shown.rows.length > 0}
             fillWidth
             /*
              * Five columns before the card starts scrolling itself (BU-153).
@@ -247,6 +252,10 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
              */
             minColumns={5}
           />
+
+          {shown.rows.length === 0 && (
+            <ViewEmpty figure="sieve">No rows on this page match the column filters.</ViewEmpty>
+          )}
 
           <div className="database-paging">
             <Button

@@ -1,0 +1,15 @@
+/*
+ * Hairline reads its palette from six custom properties, so the figures
+ * follow the theme through the app's own tokens. The plate is the pane's
+ * ground: plates are opaque, and a different colour would show as boxes.
+ * The bright stroke is the accent, Karan's pick over ink.
+ */
+.empty-figure {
+  width: 240px;
+  max-width: 100%;
+  --hairline-plate: var(--canvas);
+  --hairline-hi: var(--accent);
+  --hairline-edge: var(--text-muted);
+  --hairline-mid: color-mix(in srgb, var(--text-muted) 55%, var(--border));
+  --hairline-lo: var(--border);
+}

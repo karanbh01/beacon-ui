@@ -165,8 +165,9 @@ export function IndexOverview({
       )}
 
       {indices.length === 0 && (
-        <ViewEmpty>
-          This engine has no stored index definitions yet — “New index…” starts one.
+        <ViewEmpty figure="drawer">
+          This engine has no stored index definitions yet —{' '}
+          {allowCreate ? '“New index…” starts one.' : 'Index Definition starts one.'}
         </ViewEmpty>
       )}
 

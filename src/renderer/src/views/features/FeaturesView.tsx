@@ -147,7 +147,9 @@ export function FeaturesView({ tab, subject }: ViewProps): ReactElement {
         )}
       </div>
 
-      {identifier === '' && <ViewEmpty>Name an instrument to see its features.</ViewEmpty>}
+      {identifier === '' && (
+        <ViewEmpty figure="ticker">Name an instrument to see its features.</ViewEmpty>
+      )}
 
       {identifier !== '' && table.isPending && <ViewLoading what="features" />}
       {table.isError && <ViewError error={table.error} />}
@@ -157,14 +159,18 @@ export function FeaturesView({ tab, subject }: ViewProps): ReactElement {
         answers emptily rather than erroring, which reads as a client fault.
       */}
       {table.isSuccess && rows.length === 0 && (
-        <ViewEmpty>
+        <ViewEmpty figure="drawer">
           The engine holds no features for {identifier}. A store generated before they existed has
           none — Data Coverage can replace it.
         </ViewEmpty>
       )}
 
       {table.isSuccess && rows.length > 0 && shown.length === 0 && (
-        <ViewEmpty>No values in this range.</ViewEmpty>
+        // The range held values and the Field filter let none through: a
+        // different cause, and a different thing to change.
+        <ViewEmpty figure={field === '' ? 'plot' : 'sieve'}>
+          {field === '' ? 'No values in this range.' : `No ${field} values in this range.`}
+        </ViewEmpty>
       )}
 
       {shown.length > 0 && (

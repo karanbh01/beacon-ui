@@ -65,6 +65,9 @@ const COLUMNS: readonly Column<UniverseRow>[] = [
  * field, returned only when named in `fields`. The endpoint's default is
  * stored columns, so asking for everything would still not have produced it.
  */
+/** Nothing to look up: what the listings are asked for before a date is chosen. */
+const NO_MEMBERS: readonly string[] = []
+
 export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
   const universes = useUniverses()
   const setSubject = useWorkspace((state) => state.setSubject)
@@ -226,28 +229,33 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
    * with dashes — harmless until BU-92 started DROPPING rows the engine had
    * not confirmed, at which point the truncation was deciding the count. A
    * 5,000-name universe reported 757 where the answer was 3,849.
+   *
+   * Not asked at all before a date is chosen (BU-231): the members show only
+   * at a date, so reading every listing undated would fetch what is never
+   * drawn.
    */
-  const reference = useReferenceRows(stored, undefined, asOf)
+  const reference = useReferenceRows(asOf === '' ? NO_MEMBERS : stored, undefined, asOf)
   const byIdentifier = reference.byIdentifier
 
   /*
-   * Under an as-of date the membership is the names LISTED THEN.
+   * The membership is the names LISTED on the as-of date.
    *
    * The stored document is a fixed list that outlives its members, and the
    * engine answers `found: false` for a row that was not valid on the date.
    * Showing those as blank rows would say "we have no data for this" where
    * the truth is "this was not a listed instrument yet" — so they come out.
    *
-   * With no date this must not change anything: `found: false` then means the
-   * engine simply has no reference row, which is a fact worth drawing as a
-   * row of dashes.
+   * No date, no table (Karan, BU-231): the undated list mixed names long
+   * delisted with today's, under one count, and read as a membership it
+   * never was. The pane asks for the date instead.
    */
   // Under a date the membership is what was listed then, which is not known
   // until every listing has arrived — so the table waits, behind the orb.
   const datedLoading = selected !== '' && asOf !== '' && (members.isPending || reference.loading)
+  const awaitingDate = selected !== '' && asOf === '' && draft === undefined && stored.length > 0
 
   const identifiers = useMemo(
-    () => (asOf === '' ? stored : stored.filter((identifier) => byIdentifier.has(identifier))),
+    () => (asOf === '' ? NO_MEMBERS : stored.filter((identifier) => byIdentifier.has(identifier))),
     [asOf, stored, byIdentifier]
   )
 
@@ -380,7 +388,7 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
       {members.isError && <ViewError error={members.error} />}
 
       {universes.isSuccess && catalogue.length === 0 && draft === undefined && (
-        <ViewEmpty>
+        <ViewEmpty figure="drawer">
           This engine has no stored universes.{' '}
           <button type="button" className="universe-link" onClick={startCreate}>
             Create a universe…
@@ -389,12 +397,19 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
       )}
 
       {members.isSuccess && stored.length === 0 && (
-        <ViewEmpty>This universe has no members.</ViewEmpty>
+        <ViewEmpty figure="cardindex">This universe has no members.</ViewEmpty>
+      )}
+
+      {awaitingDate && (
+        <ViewEmpty figure="calendar">
+          Choose an as-of date to see which of the {stored.length.toLocaleString('en-US')} members
+          of {current?.name ?? selected} were listed then.
+        </ViewEmpty>
       )}
 
       {/* Emptied by the date rather than empty — a different sentence. */}
-      {stored.length > 0 && identifiers.length === 0 && !reference.loading && (
-        <ViewEmpty>
+      {asOf !== '' && stored.length > 0 && identifiers.length === 0 && !reference.loading && (
+        <ViewEmpty figure="plot">
           None of this universe’s {stored.length.toLocaleString('en-US')} members were listed on{' '}
           {asOf}.
         </ViewEmpty>
@@ -418,10 +433,8 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
             maxBodyHeight={620}
           />
           <p className="universe-footnote type-11">
-            {identifiers.length.toLocaleString('en-US')} assets
-            {asOf !== '' && ` as of ${asOf}`}
-            {asOf !== '' &&
-              identifiers.length < stored.length &&
+            {identifiers.length.toLocaleString('en-US')} assets as of {asOf}
+            {identifiers.length < stored.length &&
               ` · ${(stored.length - identifiers.length).toLocaleString('en-US')} of the stored ${stored.length.toLocaleString('en-US')} were not listed then`}{' '}
             · click a row to open Reference Data
           </p>

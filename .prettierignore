@@ -31,3 +31,8 @@ openapi.json
 # A byte-for-byte copy of py-beacon's changelog, made by spec:refresh for the
 # home page. py-beacon owns its format.
 py-beacon.CHANGELOG.md
+
+# Hairline's figure kit and the figures drawn on it (BU-231), in the shape
+# its hairline-create skill writes and checks. Reformatting them would make
+# every redraw a diff against Prettier rather than against the figure.
+src/renderer/src/components/EmptyFigure/kit/*.js

@@ -136,13 +136,13 @@ export function CorporateActionsView({ tab, subject }: ViewProps): ReactElement 
       )}
 
       {identifier === '' && (
-        <ViewEmpty>Type an identifier to load its corporate actions.</ViewEmpty>
+        <ViewEmpty figure="ticker">Type an identifier to load its corporate actions.</ViewEmpty>
       )}
       {query.isPending && identifier !== '' && <ViewLoading what={identifier} />}
       {query.isError && <ViewError error={query.error} />}
 
       {query.isSuccess && shown.length === 0 && (
-        <ViewEmpty>No corporate actions in the last ten years.</ViewEmpty>
+        <ViewEmpty figure="plot">No corporate actions in the last ten years.</ViewEmpty>
       )}
 
       {query.isSuccess && shown.length > 0 && (

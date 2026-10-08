@@ -44,7 +44,9 @@ export function ReferenceView({ tab, subject }: ViewProps): ReactElement {
         controls={<Button chevron>Export</Button>}
       />
 
-      {identifier === '' && <ViewEmpty>Type an identifier to load its reference data.</ViewEmpty>}
+      {identifier === '' && (
+        <ViewEmpty figure="ticker">Type an identifier to load its reference data.</ViewEmpty>
+      )}
       {query.isPending && identifier !== '' && <ViewLoading what={identifier} />}
       {query.isError && <ViewError error={query.error} />}
 

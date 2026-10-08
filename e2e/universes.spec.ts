@@ -113,7 +113,7 @@ test('a universe is built by filtering the dataset, and previewed before it is s
     'data-value',
     'HEALTH-NAMES'
   )
-  await expect(window.getByText('40 assets', { exact: false })).toBeVisible()
+  await expect(window.getByText(/which of the 40 members of Health Names/)).toBeVisible()
 })
 
 test('a symbol the dataset does not carry is called out as it is added', async ({ window }) => {
@@ -137,7 +137,8 @@ test('a universe can be read as it stood on a past date', async ({ window }) => 
   await openView(window, 'Universe Set')
   await choose(window, 'Universe', 'GLOBAL')
 
-  await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
+  // Asked for first: the members show only as they stood on a date (BU-231).
+  await expect(window.getByText(/which of the 120 members/)).toBeVisible()
 
   await window.getByLabel('As of').fill('2018-01-02')
 
@@ -163,7 +164,7 @@ test('the tab opens on a list of universes rather than inside one', async ({ win
   await expect(window.getByText(/\d+ universes? · /)).toBeVisible()
 
   await overview.getByText('All loaded assets').click()
-  await expect(window.getByText('120 assets', { exact: false })).toBeVisible()
+  await expect(window.getByText(/which of the 120 members of All loaded assets/)).toBeVisible()
 })
 
 test('an index definition can be created, which is what the tab is for', async ({ window }) => {

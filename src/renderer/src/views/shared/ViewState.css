@@ -10,9 +10,33 @@
   color: var(--text-muted);
 }
 
-.view-state code {
+.view-state code,
+.view-empty code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--text-secondary);
+}
+
+/*
+ * An empty state with its figure (BU-231). No card: the figure's plates are
+ * the pane's own ground, and a box round them would frame the drawing as a
+ * picture of something. `align-self` because most view roots align their
+ * children to the start, which would push the figure to the left edge.
+ */
+.view-empty {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px 24px 32px;
+  color: var(--text-muted);
+}
+
+.view-empty-message {
+  margin: 0;
+  max-width: 52ch;
+  text-align: center;
+  text-wrap: balance;
 }
 
 /*

@@ -243,14 +243,16 @@ export function PricesView({ tab, subject }: ViewProps): ReactElement {
 
       <SegmentedControl segments={RANGES} value={range} onChange={setRange} label="Range" />
 
-      {identifier === '' && <ViewEmpty>Type an identifier to load its price history.</ViewEmpty>}
+      {identifier === '' && (
+        <ViewEmpty figure="ticker">Type an identifier to load its price history.</ViewEmpty>
+      )}
 
       {prices.isPending && identifier !== '' && <ViewLoading what={identifier} />}
 
       {prices.isError && <ViewError error={prices.error} />}
 
       {prices.isSuccess && summary.rows.length === 0 && (
-        <ViewEmpty>No rows in this range.</ViewEmpty>
+        <ViewEmpty figure="plot">No rows in this range.</ViewEmpty>
       )}
 
       {prices.isSuccess && summary.rows.length > 0 && (

@@ -60,6 +60,36 @@ if (typeof globalThis.ResizeObserver !== 'function') {
 }
 
 /**
+ * Nor an IntersectionObserver, which the empty-state figures use to sleep
+ * their frame loop offscreen (BU-231). Stubbed for the same reason as the
+ * ResizeObserver: with no layout, never intersecting is what a real one
+ * would report.
+ */
+if (typeof globalThis.IntersectionObserver !== 'function') {
+  globalThis.IntersectionObserver = class {
+    readonly root = null
+    readonly rootMargin = '0px'
+    readonly thresholds: readonly number[] = []
+
+    observe(): void {
+      return undefined
+    }
+
+    unobserve(): void {
+      return undefined
+    }
+
+    disconnect(): void {
+      return undefined
+    }
+
+    takeRecords(): IntersectionObserverEntry[] {
+      return []
+    }
+  }
+}
+
+/**
  * jsdom has no canvas, and `getContext` returns null (ADR-0002).
  *
  * lightweight-charts asks for one while sizing its price axis, and throws

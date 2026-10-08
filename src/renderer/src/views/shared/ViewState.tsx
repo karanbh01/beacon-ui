@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from 'react'
 import { ApiError, NetworkError } from '../../api/errors'
+import { EmptyFigure, type FigureKind } from '../../components/EmptyFigure/EmptyFigure'
 import './ViewState.css'
 
 /**
@@ -45,8 +46,25 @@ export function ViewWorking({ what, since }: { what: string; since: number }): R
   )
 }
 
-export function ViewEmpty({ children }: { children: ReactNode }): ReactElement {
-  return <p className="view-state type-11">{children}</p>
+/**
+ * Nothing to show, and why. With a `figure` (BU-231) the message sits under
+ * a drawing of the absence and takes the pane's width, centred; it is the
+ * whole of the pane's answer, not a note beside something else.
+ */
+export function ViewEmpty({
+  children,
+  figure
+}: {
+  children: ReactNode
+  figure?: FigureKind
+}): ReactElement {
+  if (figure === undefined) return <p className="view-state type-11">{children}</p>
+  return (
+    <div className="view-empty">
+      <EmptyFigure kind={figure} />
+      <p className="view-empty-message type-11">{children}</p>
+    </div>
+  )
 }
 
 /**
