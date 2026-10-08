@@ -42,6 +42,8 @@ test('a universe is created from pasted names and appears in the catalogue', asy
     'data-value',
     'TECH-TEN'
   )
+  // Members show as they stood on a date (BU-231).
+  await window.getByLabel('As of').fill('2026-08-03')
   await expect(window.locator('.tbl-row')).toHaveCount(3)
 })
 
@@ -197,6 +199,8 @@ test('market cap fills its column and becomes a filter', async ({ window }) => {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Universe Set')
   await choose(window, 'Universe', 'GLOBAL')
+  // Members show as they stood on a date (BU-231).
+  await window.getByLabel('As of').fill('2026-08-03')
 
   const table = window.locator('.universe-view .tbl-row').first()
   await expect(table).toBeVisible()

@@ -67,6 +67,9 @@ test('Strategy Builder → Universe fills every row from one request', async ({ 
   await openView(window, 'Universe Set')
   // The tab lands on the overview (BU-93), so open a universe to get a table.
   await choose(window, 'Universe', 'GLOBAL')
+  // Members show as they stood on a date (BU-231); every name is listed by
+  // the stub's last day.
+  await window.getByLabel('As of').fill('2026-08-03')
 
   // BU-63: the table used to fetch a call per name and stop at 60. The stub
   // serves 120, so a row past that proves the batch is being used.
