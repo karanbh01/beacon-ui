@@ -490,6 +490,10 @@ export function useRunBacktest() {
           ...(options.end === undefined ? {} : { end: options.end }),
           initial_capital: options.initialCapital,
           transaction_cost_bps: options.transactionCostBps,
+          // The engine's own default since 0.5.0, said outright: the generated
+          // type requires every field that has a default. A choice once the
+          // backtest views are redesigned for strategies and vehicles.
+          dividends: 'reinvest',
           ...(options.benchmarkIndexId === undefined
             ? {}
             : {

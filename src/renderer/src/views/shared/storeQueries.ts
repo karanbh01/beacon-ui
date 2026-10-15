@@ -155,6 +155,9 @@ export function removalOf(store: DataStore): { deletesFiles: boolean; detail: st
  * deleted?" would send a reader looking for a folder that never existed.
  */
 export function unreadableReason(store: DataStore): string {
+  // The engine's own sentence when it can tell, as for a store saved before
+  // py-beacon 0.7.0 (BN-309): it says what is wrong and what to do about it.
+  if (store.problem != null) return store.problem.message
   if (store.kind !== 'postgres') return 'cannot be read — moved or deleted?'
   const variable = store.connection?.password_env
   return variable == null

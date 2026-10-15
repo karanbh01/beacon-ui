@@ -21,7 +21,6 @@ import {
   isNarrowing,
   isNumericColumn,
   readNumber,
-  withoutHidden,
   type ColumnQueries,
   type DatasetId,
   type RawRow
@@ -75,11 +74,9 @@ export function DatabaseView({ tab, subject }: ViewProps): ReactElement {
      * the schema documents it as "the {index, columns, data} frame shape
      * used elsewhere" without saying so in types, which is the same cast
      * the Features view makes.
-     *
-     * RATE goes too, on market: it is the FX dataset's column (BU-139).
      */
-    () => withoutHidden(dataset, fromFrame(page.data?.rows as TableFrame | undefined)),
-    [dataset, page.data]
+    () => fromFrame(page.data?.rows as TableFrame | undefined),
+    [page.data]
   )
 
   /*

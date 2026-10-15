@@ -247,6 +247,20 @@ describe('an engine without usable data (BU-213, BN-236)', () => {
     )
     expect(screen.getByText(/no data source is configured/)).toBeInTheDocument()
   })
+
+  it('names a store in the old format as that, with the engine’s remedy (BN-309)', () => {
+    render(
+      <ViewError
+        error={apiError(
+          409,
+          'STORE_FORMAT_OUTDATED',
+          'It was saved before py-beacon 0.7.0, with exchange rates in a RATE column, which is no longer read. Regenerate or re-import it.'
+        )}
+      />
+    )
+    expect(screen.getByText('This store was saved in an older format.')).toBeInTheDocument()
+    expect(screen.getByText(/Regenerate or re-import it/)).toBeInTheDocument()
+  })
 })
 
 describe('findings past the engine’s cap (BN-239)', () => {

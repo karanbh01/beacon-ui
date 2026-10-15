@@ -288,3 +288,22 @@ test('with nothing served there is nothing to refresh', async ({ engine, window 
   await window.getByRole('button', { name: 'Data', exact: true }).click()
   await expect(window.getByRole('menuitem', { name: 'Refresh data' })).toBeDisabled()
 })
+
+test('a store saved before py-beacon 0.7.0 says why, and cannot be used', async ({
+  engine,
+  window
+}) => {
+  // BN-309, py-beacon 0.8.0: the engine names the problem without loading the
+  // store, and the dialog shows its sentence rather than guessing at a move.
+  engine.outdatedStore()
+  // The store list is read once and cached, so the app reads it again.
+  await window.reload()
+  const dialog = await openSources(window)
+  const old = dialog.locator('.sources-row', { hasText: 'Old prices' })
+
+  await expect(old).toContainText('saved before py-beacon 0.7.0')
+  await expect(old).toContainText('Regenerate or re-import it.')
+  await expect(old).not.toContainText('moved or deleted')
+  await expect(old.getByRole('button', { name: 'Use' })).toBeDisabled()
+  await expect(old.getByRole('button', { name: 'Refresh' })).toBeDisabled()
+})

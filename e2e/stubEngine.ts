@@ -2140,6 +2140,8 @@ export interface StubEngine {
   unloadData: () => void
   /** Answer previews as py-beacon before 0.4.0 did: with no caps (#291). */
   previewWithoutCaps: () => void
+  /** Register a store saved before py-beacon 0.7.0, which 0.8.0 lists as outdated (BN-309). */
+  outdatedStore: () => void
 }
 
 /**
@@ -2490,7 +2492,13 @@ interface StubStore {
   source: string
   managed: boolean
   readable: boolean
+  /** Why it cannot be read, when the engine can tell without loading it (BN-309). */
+  problem: { code: string; message: string } | null
 }
+
+/** The engine's own sentence for a store saved before py-beacon 0.7.0 (BN-309). */
+const OUTDATED_MESSAGE =
+  'It was saved before py-beacon 0.7.0, with exchange rates in a RATE column, which is no longer read. Regenerate or re-import it.'
 
 /**
  * The engine's registry (BN-236). Two by default: the generated store it is
@@ -2509,7 +2517,8 @@ function resetStores(): void {
       path: 'C:/Users/me/AppData/Roaming/beacon/stores/synthetic',
       source: 'synthetic',
       managed: true,
-      readable: true
+      readable: true,
+      problem: null
     },
     {
       id: 'my-prices',
@@ -2518,7 +2527,8 @@ function resetStores(): void {
       path: 'D:/research/prices',
       source: 'local',
       managed: false,
-      readable: true
+      readable: true,
+      problem: null
     }
   ]
   activeStore = 'synthetic'
@@ -2538,7 +2548,8 @@ function storeRow(store: StubStore): unknown {
   return {
     ...store,
     refresh_from: 'source',
-    refresh: refreshFor(store),
+    // Nothing to refresh in a store the engine cannot read (BN-309).
+    refresh: store.problem === null ? refreshFor(store) : null,
     active: dataLoaded && store.id === activeStore,
     created_at: '2026-09-25T09:00:00Z',
     last_loaded_at: store.id === activeStore ? '2026-09-25T09:00:00Z' : null,
@@ -3014,7 +3025,8 @@ export function startStubEngine(): Promise<StubEngine> {
             path: `C:/Users/me/AppData/Roaming/beacon/stores/${storeId}`,
             source: 'synthetic',
             managed: true,
-            readable: true
+            readable: true,
+            problem: null
           }
         ]
         serveStore(storeId)
@@ -3047,7 +3059,8 @@ export function startStubEngine(): Promise<StubEngine> {
           path,
           source: 'local',
           managed: false,
-          readable: true
+          readable: true,
+          problem: null
         }
         stores = [...stores, store]
         response.writeHead(201).end(JSON.stringify(storeRow(store)))
@@ -3077,7 +3090,8 @@ export function startStubEngine(): Promise<StubEngine> {
           path: `C:/Users/me/AppData/Roaming/beacon/stores/imported-${String(generated)}`,
           source: 'imported',
           managed: true,
-          readable: true
+          readable: true,
+          problem: null
         }
         stores = [...stores, store]
         serveStore(store.id)
@@ -3106,6 +3120,12 @@ export function startStubEngine(): Promise<StubEngine> {
       }
 
       if (method === 'POST' && storeMatch[2] === '/activate') {
+        // Refused at once since 0.8.0, rather than a load job that fails later.
+        if (found.problem !== null) {
+          const refusal = refuse(409, found.problem.code, found.problem.message)
+          response.writeHead(refusal.status).end(JSON.stringify(refusal.payload))
+          return
+        }
         const jobId = `load:${id}`
         const job = {
           job_id: jobId,
@@ -3266,6 +3286,18 @@ export function startStubEngine(): Promise<StubEngine> {
         },
         previewWithoutCaps: () => {
           previewCarriesCaps = false
+        },
+        outdatedStore: () => {
+          stores.push({
+            id: 'old-prices',
+            name: 'Old prices',
+            kind: 'folder',
+            path: 'D:/research/old-prices',
+            source: 'local',
+            managed: false,
+            readable: false,
+            problem: { code: 'STORE_FORMAT_OUTDATED', message: OUTDATED_MESSAGE }
+          })
         },
         skipUniverses: (count: number, causes?: SkippedCauses) => {
           skippedUniverses = count

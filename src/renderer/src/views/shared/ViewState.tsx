@@ -298,6 +298,21 @@ export function ViewError({ error }: { error: unknown }): ReactElement {
     )
   }
 
+  if (error instanceof ApiError && error.code === 'STORE_FORMAT_OUTDATED') {
+    /*
+     * A store saved before py-beacon 0.7.0 (BN-309, BU-232), refused when
+     * asked to serve it. Its own heading, because the generic one reads as
+     * the engine having failed, where the store simply needs regenerating
+     * or re-importing — which the engine's sentence says.
+     */
+    return (
+      <div className="view-state">
+        <p className="type-13">This store was saved in an older format.</p>
+        <p className="type-11">{error.message}</p>
+      </div>
+    )
+  }
+
   if (error instanceof ApiError && error.isNotFound) {
     return (
       <div className="view-state">

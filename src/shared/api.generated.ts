@@ -4,6 +4,33 @@
  */
 
 export interface paths {
+    "/backtest/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Options
+         * @description Everything a backtest request may carry, from the engine.
+         *
+         *     Each family's types with their fields (the shape
+         *     `/indices/rule-types` uses), the vehicle presets with their resolved
+         *     settings, the vehicle, market and implementation settings described
+         *     field by field, the modelling assumptions with the engine's defaults,
+         *     and the closed choices. Reads no data, so it answers on a server with
+         *     none loaded.
+         */
+        get: operations["options_backtest_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/beacon/backtests": {
         parameters: {
             query?: never;
@@ -97,6 +124,31 @@ export interface paths {
         put?: never;
         /** Submit Backtest */
         post: operations["submit_backtest_beacon__index_id__backtest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/beacon/{index_id}/backtest/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Backtest
+         * @description What a backtest request would run, without running it.
+         *
+         *     The same body `POST /beacon/{index_id}/backtest` takes. Answers the
+         *     fully resolved settings (the preset filled in, the modelling
+         *     assumptions resolved against the loaded data) or every finding, each
+         *     at its field's path.
+         */
+        post: operations["validate_backtest_beacon__index_id__backtest_validate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1313,6 +1365,48 @@ export interface components {
             window_start?: string | null;
         };
         /**
+         * ActiveStepPayload
+         * @description What an active strategy did at one rebalance.
+         */
+        ActiveStepPayload: {
+            /**
+             * Active Share
+             * @description Half the summed absolute differences from the benchmark.
+             */
+            active_share: number;
+            /**
+             * Date
+             * @description YYYY-MM-DD.
+             */
+            date: string;
+            /**
+             * Exposures
+             * @description What the construction reports, such as a factor tilt's active exposure to each factor. Empty for most.
+             */
+            exposures?: {
+                [key: string]: number;
+            };
+            /**
+             * Risk Contributions
+             * @description Each holding's share of the portfolio's variance, adding up to one over the names the construction placed.
+             */
+            risk_contributions?: {
+                [key: string]: number;
+            };
+            /**
+             * Tracking Error
+             * @description Ex-ante, annualised.
+             */
+            tracking_error: number;
+            /**
+             * Weights
+             * @description The weights traded to.
+             */
+            weights: {
+                [key: string]: number;
+            };
+        };
+        /**
          * AllNode
          * @description Every operand must pass: `expressions.core.All`.
          */
@@ -1504,10 +1598,50 @@ export interface components {
              */
             annualised_return: number;
             /**
+             * Average Active Share
+             * @description For an active strategy, the mean active share at its rebalances.
+             */
+            average_active_share?: number | null;
+            /**
+             * Average Ex Ante Tracking Error
+             * @description For an active strategy, the mean ex-ante tracking error at its rebalances.
+             */
+            average_ex_ante_tracking_error?: number | null;
+            /**
+             * Average Premium
+             * @description For an ETF, the mean premium to NAV.
+             */
+            average_premium?: number | null;
+            /**
+             * Average Spread
+             * @description For an ETF, the mean bid-ask spread.
+             */
+            average_spread?: number | null;
+            /**
+             * Days At Premium
+             * @description For an ETF, the share of days its price was above NAV.
+             */
+            days_at_premium?: number | null;
+            /**
+             * Information Ratio
+             * @description For an active strategy, annualised active return over tracking error against its benchmark.
+             */
+            information_ratio?: number | null;
+            /**
+             * Market Return
+             * @description For an ETF, an exchange investor's return: bought at the ask on the first day, sold at the bid on the last.
+             */
+            market_return?: number | null;
+            /**
              * Max Drawdown
              * @description Fraction, not percent: 0.0523 means 5.23%.
              */
             max_drawdown: number;
+            /**
+             * Money Weighted Return
+             * @description The investors' annual internal rate of return, when money flowed. Null otherwise.
+             */
+            money_weighted_return?: number | null;
             /** Sharpe Ratio */
             sharpe_ratio: number;
             /**
@@ -1524,6 +1658,94 @@ export interface components {
              * @description Fraction, not percent: 0.0523 means 5.23%.
              */
             volatility: number;
+        };
+        /**
+         * BacktestOptions
+         * @description Response of `GET /backtest/options`.
+         *
+         *     Everything a backtest form needs, from the engine itself: each family's
+         *     types with their fields (in the shape `/indices/rule-types` uses), the
+         *     vehicle presets with their resolved settings, the settings' descriptors,
+         *     the modelling assumptions with their defaults, and the closed choices.
+         */
+        BacktestOptions: {
+            /**
+             * Active Constraints
+             * @description For `strategy.constraints`.
+             */
+            active_constraints: components["schemas"]["TypeSpec"][];
+            /**
+             * Caps
+             * @description For `implementation.caps`.
+             */
+            caps: components["schemas"]["TypeSpec"][];
+            /**
+             * Choices
+             * @description Closed sets: 'dividends', 'strategy', 'rebalancing', 'redistribution', 'invest_flows' and 'fx_policy'.
+             */
+            choices: {
+                [key: string]: string[];
+            };
+            /**
+             * Constructions
+             * @description For `strategy.construction`.
+             */
+            constructions: components["schemas"]["TypeSpec"][];
+            /**
+             * Flows
+             * @description For `flows`.
+             */
+            flows: components["schemas"]["TypeSpec"][];
+            /**
+             * Implementation Settings
+             * @description The implementation's plain settings: `minimum_position`, `impact` and `execution` fields, `redistribution`, `cash_buffer` and `invest_flows`.
+             */
+            implementation_settings: components["schemas"]["ParameterSpec"][];
+            /**
+             * Limits
+             * @description For a vehicle's `limits`.
+             */
+            limits: components["schemas"]["TypeSpec"][];
+            /**
+             * Market Settings
+             * @description What an ETF's `market` setting accepts.
+             */
+            market_settings: components["schemas"]["ParameterSpec"][];
+            /**
+             * Modelling Assumptions
+             * @description Each modelling assumption, with the engine's default as its `default`.
+             */
+            modelling_assumptions: components["schemas"]["ParameterSpec"][];
+            /**
+             * Presets
+             * @description Every preset, `generic` first: the vehicle used when `preset` is null.
+             */
+            presets: components["schemas"]["VehiclePreset"][];
+            /**
+             * Pricing
+             * @description For a vehicle's `pricing`.
+             */
+            pricing: components["schemas"]["TypeSpec"][];
+            /**
+             * Replications
+             * @description For `strategy.replication`.
+             */
+            replications: components["schemas"]["TypeSpec"][];
+            /**
+             * Screens
+             * @description For `implementation.screens`.
+             */
+            screens: components["schemas"]["TypeSpec"][];
+            /**
+             * Signals
+             * @description For `strategy.signal`.
+             */
+            signals: components["schemas"]["TypeSpec"][];
+            /**
+             * Vehicle Settings
+             * @description What `vehicle.settings` accepts; `applies_to` marks the exchange-traded ones.
+             */
+            vehicle_settings: components["schemas"]["ParameterSpec"][];
         };
         /**
          * BacktestRecordCollection
@@ -1553,6 +1775,11 @@ export interface components {
          *     holds, and everything else from `/beacon/{index_id}/record`.
          */
         BacktestRecordRow: {
+            /**
+             * Currency
+             * @description The book's currency.
+             */
+            currency?: string | null;
             /** Index Id */
             index_id: string;
             /**
@@ -1560,35 +1787,77 @@ export interface components {
              * @description ISO-8601 UTC capture time; null on records written before they were stamped.
              */
             run_at?: string | null;
+            /**
+             * Strategy
+             * @description The strategy's type: 'index', 'index_tracking' or 'active'. Null on a record from before it was kept.
+             */
+            strategy?: string | null;
+            /**
+             * Vehicle
+             * @description The vehicle's name; null for a plain backtest.
+             */
+            vehicle?: string | null;
+            /**
+             * Vehicle Preset
+             * @description The preset's key, stable across renames; null for a plain backtest or a generic vehicle.
+             */
+            vehicle_preset?: string | null;
         };
         /**
          * BacktestRequest
          * @description Body of `POST /beacon/{index_id}/backtest`.
+         *
+         *     Every field past the first five is optional, and a request without them
+         *     runs exactly as one with only the dates, capital and cost does.
          */
         BacktestRequest: {
             /** @description Optional external benchmark. The tracked index is always reported separately; this adds a second comparison. */
             benchmark?: components["schemas"]["BenchmarkRef"] | null;
+            /**
+             * Currency
+             * @description The book's currency. Null keeps it in the index's.
+             */
+            currency?: string | null;
+            /**
+             * Dividends
+             * @description What happens to cash distributions: 'reinvest', 'cash' or 'distribute'.
+             * @default reinvest
+             */
+            dividends: string;
             /**
              * End
              * @description End date, YYYY-MM-DD.
              */
             end?: string | null;
             /**
+             * Flows
+             * @description Money arriving and leaving, added together. Amounts are in the book's currency.
+             */
+            flows?: components["schemas"]["TypedSpec"][];
+            /** @description Screens, caps, costs and execution; none beyond stale prices when null. */
+            implementation?: components["schemas"]["ImplementationSpec"] | null;
+            /**
              * Initial Capital
              * @default 1000000
              */
             initial_capital: number;
+            /** @description What the run takes as given; each unset field takes the engine's default. */
+            modelling_assumptions?: components["schemas"]["ModellingAssumptionsSpec"] | null;
             /**
              * Start
              * @description Start date, YYYY-MM-DD. Defaults to the index base date.
              */
             start?: string | null;
+            /** @description What is held; the index in full when null. */
+            strategy?: components["schemas"]["StrategySpec"] | null;
             /**
              * Transaction Cost Bps
              * @description Cost per trade in basis points of notional.
              * @default 0
              */
             transaction_cost_bps: number;
+            /** @description Null for a plain backtest, with no fee. */
+            vehicle?: components["schemas"]["VehicleSpec"] | null;
         };
         /**
          * BacktestResultSummary
@@ -1602,6 +1871,11 @@ export interface components {
          */
         BacktestResultSummary: {
             benchmark?: components["schemas"]["BookPayload"] | null;
+            /**
+             * Currency
+             * @description The book's currency.
+             */
+            currency?: string | null;
             index?: components["schemas"]["IndexBooksPayload"];
             metrics: components["schemas"]["BacktestMetrics"];
             portfolio: components["schemas"]["PortfolioBookPayload"];
@@ -1620,6 +1894,13 @@ export interface components {
              * @description When this record was captured, ISO-8601 UTC with an offset: wall-clock at the moment the finished run was serialised, within a second of the backtest completing. **Not a market date, and not the period the backtest covered**: that span is the index of `portfolio.nav`. `BacktestRecordRow.run_at` on `GET /beacon/backtests` is the same stamp. Null only on records written by an older engine that did not stamp them.
              */
             run_at?: string | null;
+            /**
+             * Settings
+             * @description What ran, fully resolved, as the run payload's `settings`. Null on a record from before it was kept.
+             */
+            settings?: {
+                [key: string]: unknown;
+            } | null;
             /** Unfilled */
             unfilled?: components["schemas"]["UnfilledOrderPayload"][];
         };
@@ -1633,6 +1914,11 @@ export interface components {
          *     recomputes any of them lands on these numbers exactly.
          */
         BacktestRunResult: {
+            /**
+             * Active
+             * @description For an active strategy, what it did at each rebalance. Empty otherwise.
+             */
+            active?: components["schemas"]["ActiveStepPayload"][];
             /**
              * Annual Returns
              * @description Calendar year -> return. Compounds to total_return.
@@ -1649,6 +1935,17 @@ export interface components {
             currency?: string | null;
             /** @description Level against its running peak; 0 at a new high. */
             drawdown: components["schemas"]["SeriesPayload"];
+            /**
+             * Fees Paid
+             * @description The vehicle's management fee paid, in the book's currency.
+             * @default 0
+             */
+            fees_paid: number;
+            /**
+             * Flows
+             * @description Each flow as dealt. Empty without flows.
+             */
+            flows?: components["schemas"]["FlowPayload"][];
             /** @description The tracked index, rebased to 100 on the same axis. Not the external benchmark, which is `benchmark`. */
             index_level: components["schemas"]["SeriesPayload"];
             /**
@@ -1659,7 +1956,11 @@ export interface components {
             initial_capital: number;
             /** @description Portfolio value, rebased to 100. */
             level: components["schemas"]["SeriesPayload"];
+            /** @description An ETF's exchange quotes. Null otherwise. */
+            market?: components["schemas"]["MarketPayload"] | null;
             metrics: components["schemas"]["BacktestMetrics"];
+            /** @description NAV per unit on `level`'s dates. With flows `level` is this series rebased, so a flow is not drawn as a gain. */
+            nav_per_unit?: components["schemas"]["SeriesPayload"] | null;
             /**
              * Price Gaps
              * @description Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data: a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.
@@ -1671,18 +1972,65 @@ export interface components {
              */
             rebalance_pricing?: components["schemas"]["RebalancePricingPayload"][];
             /**
+             * Rebalance Steps
+             * @description What the implementation's stages did at each rebalance.
+             */
+            rebalance_steps?: components["schemas"]["RebalanceStepPayload"][];
+            /**
              * Rebalances
              * @description Composition at each rebalance. Everything the view endpoints say about weights, attribution and individual names is derived from these, so a run is readable without recalculating the index. Daily weights are deliberately absent: they are reconstructed from these and the prices, and storing one per name per day would multiply the payload by the number of trading days to save an inexpensive calculation.
              */
             rebalances?: components["schemas"]["RebalanceSnapshot"][];
+            /**
+             * Replication
+             * @description For index tracking, what the replication did at each rebalance. Empty otherwise.
+             */
+            replication?: components["schemas"]["ReplicationPayload"][];
             /** @description Period returns of `level`. */
             returns: components["schemas"]["SeriesPayload"];
+            /**
+             * Settings
+             * @description What ran, fully resolved: strategy, implementation, flows, vehicle (preset and every setting), modelling assumptions and dividend policy. Null on a run saved before it was recorded.
+             */
+            settings?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Total Costs
              * @description Transaction costs paid across the run, for the cost drag.
              * @default 0
              */
             total_costs: number;
+            /**
+             * Unfilled
+             * @description Orders not filled in full.
+             */
+            unfilled?: components["schemas"]["UnfilledOrderPayload"][];
+            /** @description Units outstanding on `level`'s dates. */
+            units?: components["schemas"]["SeriesPayload"] | null;
+        };
+        /**
+         * BacktestValidation
+         * @description Response of `POST /beacon/{index_id}/backtest/validate`.
+         */
+        BacktestValidation: {
+            /**
+             * Findings
+             * @description Every problem, each at its field's dotted path, such as 'vehicle.settings.pricing.params.threshold'.
+             */
+            findings?: components["schemas"]["Finding"][];
+            /**
+             * Settings
+             * @description What would run, fully resolved, in the shape a run's `settings` takes. Null when the request is not valid.
+             */
+            settings?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Valid
+             * @description False when any finding is an error.
+             */
+            valid: boolean;
         };
         /**
          * BatchReferenceResponse
@@ -2369,9 +2717,11 @@ export interface components {
              * @description Where the store is: a folder, or a database described without its password.
              */
             path: string;
+            /** @description Why the store is not readable, when that is known: a store saved before py-beacon 0.7.0 has the code 'STORE_FORMAT_OUTDATED'. Null otherwise, including for a folder that was moved or deleted. */
+            problem?: components["schemas"]["StoreProblem"] | null;
             /**
              * Readable
-             * @description Whether the store can be read now. A folder that has been moved or deleted stays registered but is not readable.
+             * @description Whether the store can be read now. A folder that has been moved or deleted stays registered but is not readable, and nor is one saved in a format this version no longer reads (see `problem`).
              */
             readable: boolean;
             /**
@@ -2965,6 +3315,47 @@ export interface components {
             severity: string;
         };
         /**
+         * FlowPayload
+         * @description One day's flow, as the run dealt it.
+         */
+        FlowPayload: {
+            /**
+             * Adjustment
+             * @description What the dealing investors paid into the fund through the price or a levy, in the book's currency.
+             */
+            adjustment: number;
+            /**
+             * Amount
+             * @description Paid in (positive) or out (negative), in the book's currency.
+             */
+            amount: number;
+            /**
+             * Creation Units
+             * @description For an ETF, the creation units; null otherwise.
+             */
+            creation_units?: number | null;
+            /**
+             * Date
+             * @description YYYY-MM-DD.
+             */
+            date: string;
+            /**
+             * Dealing Price
+             * @description The price per unit dealt at, after the vehicle's pricing.
+             */
+            dealing_price: number;
+            /**
+             * Nav Per Unit
+             * @description The day's NAV per unit, before it.
+             */
+            nav_per_unit: number;
+            /**
+             * Units
+             * @description Units created (positive) or cancelled.
+             */
+            units: number;
+        };
+        /**
          * FrontierPoint
          * @description One portfolio on the efficient frontier.
          */
@@ -3379,6 +3770,68 @@ export interface components {
             version: string;
         };
         /**
+         * ImplementationSpec
+         * @description How the strategy is carried out at the fund's size.
+         */
+        ImplementationSpec: {
+            /**
+             * Caps
+             * @description How much of each may be held.
+             */
+            caps?: components["schemas"]["TypedSpec"][];
+            /**
+             * Cash Buffer
+             * @description The share of the book kept in cash, a fraction.
+             * @default 0
+             */
+            cash_buffer: number;
+            /**
+             * Equitise
+             * @description Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps` and `dividend_yield` (null to estimate it). Null leaves the cash as cash.
+             */
+            equitise?: {
+                [key: string]: number | null;
+            } | null;
+            /**
+             * Execution
+             * @description Execution limits: `participation` (a fraction of the day's volume), `days` and `lookback_days`. Null to trade every order on the rebalance day.
+             */
+            execution?: {
+                [key: string]: number | null;
+            } | null;
+            /**
+             * Impact
+             * @description Market impact: `coefficient` and `lookback_days`. Null for none.
+             */
+            impact?: {
+                [key: string]: number;
+            } | null;
+            /**
+             * Invest Flows
+             * @description What money arriving between rebalances buys: 'target' (the last rebalance's weights) or 'holdings'.
+             * @default target
+             */
+            invest_flows: string;
+            /**
+             * Minimum Position
+             * @description Positions too small to keep: `value` (money, in the book's currency) and `weight` (a fraction).
+             */
+            minimum_position?: {
+                [key: string]: number | null;
+            } | null;
+            /**
+             * Redistribution
+             * @description Where removed or capped weight goes: 'pro_rata' or 'cash'.
+             * @default pro_rata
+             */
+            redistribution: string;
+            /**
+             * Screens
+             * @description Which names may be held.
+             */
+            screens?: components["schemas"]["TypedSpec"][];
+        };
+        /**
          * ImportRequest
          * @description Body of `POST /data/import`: load CSV files or an Excel workbook.
          */
@@ -3671,6 +4124,67 @@ export interface components {
             store_id: string;
         };
         /**
+         * MarketPayload
+         * @description An ETF's quotes on the exchange, on `level`'s dates.
+         */
+        MarketPayload: {
+            ask: components["schemas"]["SeriesPayload"];
+            bid: components["schemas"]["SeriesPayload"];
+            market_price: components["schemas"]["SeriesPayload"];
+            /** @description Over NAV, a fraction; negative for a discount. */
+            premium: components["schemas"]["SeriesPayload"];
+            /** @description Full bid-ask, a fraction of the price. */
+            spread: components["schemas"]["SeriesPayload"];
+        };
+        /**
+         * ModellingAssumptionsSpec
+         * @description What the run takes as given about markets and data. Every field is
+         *     optional; an unset one takes the engine's default, which
+         *     `/backtest/options` lists.
+         */
+        ModellingAssumptionsSpec: {
+            /**
+             * Cash Rate
+             * @description The annual rate cash earns, a fraction, ACT/365.
+             */
+            cash_rate?: number | null;
+            /**
+             * Free Float Backfill Days
+             * @description Calendar days a reported free float carries over blanks.
+             */
+            free_float_backfill_days?: number | null;
+            /**
+             * Fx Policy
+             * @description The FX rate on a day a pair printed none: CARRY_FORWARD or EXACT_DAY.
+             */
+            fx_policy?: string | null;
+            /**
+             * Max Price Staleness Days
+             * @description Calendar days a name may go without trading before it is dropped as stale; 0 is no limit.
+             */
+            max_price_staleness_days?: number | null;
+            /**
+             * Periods Per Year
+             * @description How many periods make a year.
+             */
+            periods_per_year?: number | null;
+            /**
+             * Risk Free Rate
+             * @description The annual rate the Sharpe ratio is measured against.
+             */
+            risk_free_rate?: number | null;
+            /**
+             * Volume Backfill Days
+             * @description Calendar days a reported volume stands in for a blank one under an execution limit.
+             */
+            volume_backfill_days?: number | null;
+            /**
+             * Withholding Tax Rate
+             * @description The share of each dividend withheld, a fraction.
+             */
+            withholding_tax_rate?: number | null;
+        };
+        /**
          * NotNode
          * @description The negation of an expression: `expressions.core.Not`.
          */
@@ -3897,6 +4411,11 @@ export interface components {
          */
         ParameterSpec: {
             /**
+             * Applies To
+             * @description For a vehicle setting, the archetypes it belongs to, such as 'exchange_traded'. Null means every vehicle, and every type outside the vehicle settings.
+             */
+            applies_to?: string[] | null;
+            /**
              * Choices
              * @description The accepted values, when this is a closed set. Null means any value of `type` is allowed.
              */
@@ -3916,6 +4435,16 @@ export interface components {
              * @description Human-readable field name.
              */
             label: string;
+            /**
+             * Maximum
+             * @description The largest value accepted, when bounded.
+             */
+            maximum?: number | null;
+            /**
+             * Minimum
+             * @description The smallest value accepted, when bounded.
+             */
+            minimum?: number | null;
             /**
              * Name
              * @description Parameter name, as it must appear in `params`.
@@ -3941,6 +4470,11 @@ export interface components {
              * @description Display type: number, integer, boolean, string or json. What control to render, not the Python annotation.
              */
             type: string;
+            /**
+             * Unit
+             * @description What the value is measured in: 'fraction' (show 0.02 as 2%), 'bps', 'days', 'money' (in the book's currency), 'count' or 'ratio'. Null for a value with no unit.
+             */
+            unit?: string | null;
         };
         /**
          * PipelineSpec
@@ -4427,6 +4961,37 @@ export interface components {
             };
         };
         /**
+         * RebalanceStepPayload
+         * @description What the implementation's stages did at one rebalance.
+         */
+        RebalanceStepPayload: {
+            /**
+             * Capped
+             * @description Name -> the weight it was capped at.
+             */
+            capped?: {
+                [key: string]: number;
+            };
+            /**
+             * Cash Weight
+             * @description The share of the book the weights leave in cash.
+             * @default 0
+             */
+            cash_weight: number;
+            /**
+             * Date
+             * @description YYYY-MM-DD.
+             */
+            date: string;
+            /**
+             * Removed
+             * @description Name -> the screen that removed it.
+             */
+            removed?: {
+                [key: string]: string;
+            };
+        };
+        /**
          * ReferenceEntry
          * @description One identifier's row in a batch reference response.
          */
@@ -4682,6 +5247,39 @@ export interface components {
             rendered_at: string;
             /** Template Id */
             template_id: string;
+        };
+        /**
+         * ReplicationPayload
+         * @description What a replication did at one rebalance.
+         */
+        ReplicationPayload: {
+            /**
+             * Date
+             * @description YYYY-MM-DD.
+             */
+            date: string;
+            /**
+             * Holdings
+             * @description How many names the weights hold.
+             */
+            holdings: number;
+            /**
+             * Tracking Error
+             * @description Ex-ante, annualised; null when not estimated.
+             */
+            tracking_error?: number | null;
+            /**
+             * Unmeasured
+             * @description Names held at their index weight for want of history.
+             */
+            unmeasured?: string[];
+            /**
+             * Weights
+             * @description The weights traded to.
+             */
+            weights: {
+                [key: string]: number;
+            };
         };
         /**
          * ReportTemplateCollection
@@ -5206,6 +5804,76 @@ export interface components {
             unrecognised: number;
         };
         /**
+         * StoreProblem
+         * @description Why a store cannot be read, when the engine can tell without loading it.
+         */
+        StoreProblem: {
+            /**
+             * Code
+             * @description Stable machine-readable code: 'STORE_FORMAT_OUTDATED' for a store saved in a format this version no longer reads, which regenerating or re-importing fixes.
+             */
+            code: string;
+            /**
+             * Message
+             * @description What is wrong and what to do, in a sentence.
+             */
+            message: string;
+        };
+        /**
+         * StrategySpec
+         * @description What the backtest holds.
+         *
+         *     The path's index is the strategy's index: the one tracked, or the
+         *     benchmark an active strategy is measured against.
+         */
+        StrategySpec: {
+            /**
+             * Constraints
+             * @description For an active strategy: what its portfolio must satisfy.
+             */
+            constraints?: components["schemas"]["TypedSpec"][];
+            /** @description For an active strategy: how it builds its portfolio. MaxAlpha with its default budget when null. */
+            construction?: components["schemas"]["TypedSpec"] | null;
+            /**
+             * Lookback Days
+             * @description For an active strategy: trading days its covariance is estimated over; a year when null.
+             */
+            lookback_days?: number | null;
+            /**
+             * Minimum Observations
+             * @description For an active strategy: the fewest returns a name needs to be measured; 126 when null.
+             */
+            minimum_observations?: number | null;
+            /**
+             * Rebalancing
+             * @description For an active strategy: WEEKLY, MONTHLY, QUARTERLY or ANNUALLY.
+             * @default MONTHLY
+             */
+            rebalancing: string;
+            /** @description For index tracking: how the index is held. */
+            replication?: components["schemas"]["TypedSpec"] | null;
+            /**
+             * Screen
+             * @description For an active strategy: a condition every holding must pass, as an expression tree.
+             */
+            screen?: {
+                [key: string]: unknown;
+            } | null;
+            /** @description For an active strategy: what it believes. */
+            signal?: components["schemas"]["TypedSpec"] | null;
+            /**
+             * Type
+             * @description 'index' (the index in full, the default), 'index_tracking' (through a `replication`) or 'active'.
+             * @default index
+             */
+            type: string;
+            /**
+             * Universe
+             * @description For an active strategy: the names it may hold. Null means the benchmark's constituents.
+             */
+            universe?: string[] | null;
+        };
+        /**
          * SyncRequest
          * @description Body of `POST /data/coverage/{dataset}/sync`.
          *
@@ -5376,10 +6044,16 @@ export interface components {
             } | null;
             /**
              * Dividend Yield
-             * @description Continuous dividend yield on the underlying, used **only** for the breakeven table, alongside `futures_prices` and `time_to_expiry`. `present_value`, both legs and `fair_spread_bps` ignore it: the total-return leg is `spot` against `initial_price`, and that ratio already carries whatever the underlying paid. Sending it without `futures_prices` changes nothing in the response.
+             * @description Continuous dividend yield on the underlying, used **only** for the breakeven table, alongside `futures_prices` and `time_to_expiry`, because a futures price embeds expected dividends. `present_value`, both legs and `fair_spread_bps` count the dividends actually paid, through `dividends`, not an expected yield. Sending it without `futures_prices` changes nothing in the response.
              * @default 0
              */
             dividend_yield: number;
+            /**
+             * Dividends
+             * @description What the underlying paid per unit since `initial_price`, in its own points. They join the total-return leg: notional x ((spot + dividends) / initial_price - 1). Leave at 0 when `spot` is a total return level, which already counts them.
+             * @default 0
+             */
+            dividends: number;
             /**
              * End Date
              * Format: date
@@ -5542,6 +6216,26 @@ export interface components {
              * @default
              */
             summary: string;
+        };
+        /**
+         * TypedSpec
+         * @description One configurable object: its type and its parameters.
+         *
+         *     The types and what each accepts are listed by `GET /backtest/options`.
+         */
+        TypedSpec: {
+            /**
+             * Params
+             * @description Its parameters, by name.
+             */
+            params?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Type
+             * @description The type's name, as `/backtest/options` lists it.
+             */
+            type: string;
         };
         /**
          * UnfilledOrderPayload
@@ -5743,6 +6437,58 @@ export interface components {
             valid: boolean;
         };
         /**
+         * VehiclePreset
+         * @description One vehicle preset, with every setting resolved.
+         */
+        VehiclePreset: {
+            /**
+             * Archetype
+             * @description 'open_ended', 'exchange_traded' or 'generic'. A setting whose `applies_to` names an archetype belongs only to it.
+             */
+            archetype: string;
+            /**
+             * Key
+             * @description What `vehicle.preset` takes.
+             */
+            key: string;
+            /**
+             * Name
+             * @description What the structure is called.
+             */
+            name: string;
+            /**
+             * Settings
+             * @description Every setting as the preset fills it in, in the shape `vehicle.settings` takes.
+             */
+            settings: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * VehicleSpec
+         * @description How the money is held: a preset, with any settings laid over it.
+         *
+         *     Settings merge over the preset's: a typed object (`pricing`) or a list
+         *     (`limits`) replaces the preset's whole, a plain object (`market`) merges
+         *     key by key, an omitted key keeps the preset's value, and null means none
+         *     (refused on a setting that cannot be none). Money settings are in the
+         *     book's currency.
+         */
+        VehicleSpec: {
+            /**
+             * Preset
+             * @description A preset's key from `/backtest/options`, or null for the generic vehicle.
+             */
+            preset?: string | null;
+            /**
+             * Settings
+             * @description The settings to change, by name. Only what differs from the preset need be sent.
+             */
+            settings?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
          * Watchlist
          * @description A named set of instrument identifiers.
          */
@@ -5901,6 +6647,98 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    options_backtest_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestOptions"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     backtest_records_beacon_backtests_get: {
         parameters: {
             query?: never;
@@ -6304,6 +7142,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BacktestJobStatus"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    validate_backtest_beacon__index_id__backtest_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BacktestRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestValidation"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */

@@ -68,6 +68,58 @@
         "title": "ActiveRiskPayload",
         "type": "object"
       },
+      "ActiveStepPayload": {
+        "description": "What an active strategy did at one rebalance.",
+        "properties": {
+          "active_share": {
+            "description": "Half the summed absolute differences from the benchmark.",
+            "title": "Active Share",
+            "type": "number"
+          },
+          "date": {
+            "description": "YYYY-MM-DD.",
+            "title": "Date",
+            "type": "string"
+          },
+          "exposures": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "What the construction reports, such as a factor tilt's active exposure to each factor. Empty for most.",
+            "title": "Exposures",
+            "type": "object"
+          },
+          "risk_contributions": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Each holding's share of the portfolio's variance, adding up to one over the names the construction placed.",
+            "title": "Risk Contributions",
+            "type": "object"
+          },
+          "tracking_error": {
+            "description": "Ex-ante, annualised.",
+            "title": "Tracking Error",
+            "type": "number"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "The weights traded to.",
+            "title": "Weights",
+            "type": "object"
+          }
+        },
+        "required": [
+          "date",
+          "tracking_error",
+          "active_share",
+          "weights"
+        ],
+        "title": "ActiveStepPayload",
+        "type": "object"
+      },
       "AllNode": {
         "description": "Every operand must pass: `expressions.core.All`.",
         "properties": {
@@ -398,10 +450,113 @@
             "title": "Annualised Return",
             "type": "number"
           },
+          "average_active_share": {
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy, the mean active share at its rebalances.",
+            "title": "Average Active Share"
+          },
+          "average_ex_ante_tracking_error": {
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy, the mean ex-ante tracking error at its rebalances.",
+            "title": "Average Ex Ante Tracking Error"
+          },
+          "average_premium": {
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an ETF, the mean premium to NAV.",
+            "title": "Average Premium"
+          },
+          "average_spread": {
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an ETF, the mean bid-ask spread.",
+            "title": "Average Spread"
+          },
+          "days_at_premium": {
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an ETF, the share of days its price was above NAV.",
+            "title": "Days At Premium"
+          },
+          "information_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy, annualised active return over tracking error against its benchmark.",
+            "title": "Information Ratio"
+          },
+          "market_return": {
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an ETF, an exchange investor's return: bought at the ask on the first day, sold at the bid on the last.",
+            "title": "Market Return"
+          },
           "max_drawdown": {
             "description": "Fraction, not percent: 0.0523 means 5.23%.",
             "title": "Max Drawdown",
             "type": "number"
+          },
+          "money_weighted_return": {
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The investors' annual internal rate of return, when money flowed. Null otherwise.",
+            "title": "Money Weighted Return"
           },
           "sharpe_ratio": {
             "title": "Sharpe Ratio",
@@ -452,6 +607,153 @@
         "title": "BacktestMetrics",
         "type": "object"
       },
+      "BacktestOptions": {
+        "description": "Response of `GET /backtest/options`.\n\nEverything a backtest form needs, from the engine itself: each family's\ntypes with their fields (in the shape `/indices/rule-types` uses), the\nvehicle presets with their resolved settings, the settings' descriptors,\nthe modelling assumptions with their defaults, and the closed choices.",
+        "properties": {
+          "active_constraints": {
+            "description": "For `strategy.constraints`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Active Constraints",
+            "type": "array"
+          },
+          "caps": {
+            "description": "For `implementation.caps`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Caps",
+            "type": "array"
+          },
+          "choices": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Closed sets: 'dividends', 'strategy', 'rebalancing', 'redistribution', 'invest_flows' and 'fx_policy'.",
+            "title": "Choices",
+            "type": "object"
+          },
+          "constructions": {
+            "description": "For `strategy.construction`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Constructions",
+            "type": "array"
+          },
+          "flows": {
+            "description": "For `flows`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Flows",
+            "type": "array"
+          },
+          "implementation_settings": {
+            "description": "The implementation's plain settings: `minimum_position`, `impact` and `execution` fields, `redistribution`, `cash_buffer` and `invest_flows`.",
+            "items": {
+              "$ref": "#/components/schemas/ParameterSpec"
+            },
+            "title": "Implementation Settings",
+            "type": "array"
+          },
+          "limits": {
+            "description": "For a vehicle's `limits`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Limits",
+            "type": "array"
+          },
+          "market_settings": {
+            "description": "What an ETF's `market` setting accepts.",
+            "items": {
+              "$ref": "#/components/schemas/ParameterSpec"
+            },
+            "title": "Market Settings",
+            "type": "array"
+          },
+          "modelling_assumptions": {
+            "description": "Each modelling assumption, with the engine's default as its `default`.",
+            "items": {
+              "$ref": "#/components/schemas/ParameterSpec"
+            },
+            "title": "Modelling Assumptions",
+            "type": "array"
+          },
+          "presets": {
+            "description": "Every preset, `generic` first: the vehicle used when `preset` is null.",
+            "items": {
+              "$ref": "#/components/schemas/VehiclePreset"
+            },
+            "title": "Presets",
+            "type": "array"
+          },
+          "pricing": {
+            "description": "For a vehicle's `pricing`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Pricing",
+            "type": "array"
+          },
+          "replications": {
+            "description": "For `strategy.replication`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Replications",
+            "type": "array"
+          },
+          "screens": {
+            "description": "For `implementation.screens`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Screens",
+            "type": "array"
+          },
+          "signals": {
+            "description": "For `strategy.signal`.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "vehicle_settings": {
+            "description": "What `vehicle.settings` accepts; `applies_to` marks the exchange-traded ones.",
+            "items": {
+              "$ref": "#/components/schemas/ParameterSpec"
+            },
+            "title": "Vehicle Settings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "screens",
+          "caps",
+          "flows",
+          "pricing",
+          "limits",
+          "replications",
+          "signals",
+          "constructions",
+          "active_constraints",
+          "presets",
+          "vehicle_settings",
+          "market_settings",
+          "implementation_settings",
+          "modelling_assumptions",
+          "choices"
+        ],
+        "title": "BacktestOptions",
+        "type": "object"
+      },
       "BacktestRecordCollection": {
         "description": "Response of `GET /beacon/backtests`.\n\nAn envelope rather than a bare array, so the listing can say how many\nstored records it left out.",
         "properties": {
@@ -482,6 +784,18 @@
       "BacktestRecordRow": {
         "description": "One stored backtest record, as a listing knows it.\n\nThe row is deliberately thin: the id to fetch the record by, and when it\nwas captured. Names come from the index catalogue the client already\nholds, and everything else from `/beacon/{index_id}/record`.",
         "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The book's currency.",
+            "title": "Currency"
+          },
           "index_id": {
             "title": "Index Id",
             "type": "string"
@@ -497,6 +811,42 @@
             ],
             "description": "ISO-8601 UTC capture time; null on records written before they were stamped.",
             "title": "Run At"
+          },
+          "strategy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The strategy's type: 'index', 'index_tracking' or 'active'. Null on a record from before it was kept.",
+            "title": "Strategy"
+          },
+          "vehicle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The vehicle's name; null for a plain backtest.",
+            "title": "Vehicle"
+          },
+          "vehicle_preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The preset's key, stable across renames; null for a plain backtest or a generic vehicle.",
+            "title": "Vehicle Preset"
           }
         },
         "required": [
@@ -506,7 +856,7 @@
         "type": "object"
       },
       "BacktestRequest": {
-        "description": "Body of `POST /beacon/{index_id}/backtest`.",
+        "description": "Body of `POST /beacon/{index_id}/backtest`.\n\nEvery field past the first five is optional, and a request without them\nruns exactly as one with only the dates, capital and cost does.",
         "properties": {
           "benchmark": {
             "anyOf": [
@@ -518,6 +868,25 @@
               }
             ],
             "description": "Optional external benchmark. The tracked index is always reported separately; this adds a second comparison."
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The book's currency. Null keeps it in the index's.",
+            "title": "Currency"
+          },
+          "dividends": {
+            "default": "reinvest",
+            "description": "What happens to cash distributions: 'reinvest', 'cash' or 'distribute'.",
+            "title": "Dividends",
+            "type": "string"
           },
           "end": {
             "anyOf": [
@@ -531,11 +900,41 @@
             "description": "End date, YYYY-MM-DD.",
             "title": "End"
           },
+          "flows": {
+            "description": "Money arriving and leaving, added together. Amounts are in the book's currency.",
+            "items": {
+              "$ref": "#/components/schemas/TypedSpec"
+            },
+            "title": "Flows",
+            "type": "array"
+          },
+          "implementation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImplementationSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Screens, caps, costs and execution; none beyond stale prices when null."
+          },
           "initial_capital": {
             "default": 1000000.0,
             "exclusiveMinimum": 0.0,
             "title": "Initial Capital",
             "type": "number"
+          },
+          "modelling_assumptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModellingAssumptionsSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the run takes as given; each unset field takes the engine's default."
           },
           "start": {
             "anyOf": [
@@ -549,12 +948,34 @@
             "description": "Start date, YYYY-MM-DD. Defaults to the index base date.",
             "title": "Start"
           },
+          "strategy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StrategySpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What is held; the index in full when null."
+          },
           "transaction_cost_bps": {
             "default": 0.0,
             "description": "Cost per trade in basis points of notional.",
             "minimum": 0.0,
             "title": "Transaction Cost Bps",
             "type": "number"
+          },
+          "vehicle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VehicleSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null for a plain backtest, with no fee."
           }
         },
         "title": "BacktestRequest",
@@ -572,6 +993,18 @@
                 "type": "null"
               }
             ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The book's currency.",
+            "title": "Currency"
           },
           "index": {
             "$ref": "#/components/schemas/IndexBooksPayload"
@@ -610,6 +1043,19 @@
             "description": "When this record was captured, ISO-8601 UTC with an offset: wall-clock at the moment the finished run was serialised, within a second of the backtest completing. **Not a market date, and not the period the backtest covered**: that span is the index of `portfolio.nav`. `BacktestRecordRow.run_at` on `GET /beacon/backtests` is the same stamp. Null only on records written by an older engine that did not stamp them.",
             "title": "Run At"
           },
+          "settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What ran, fully resolved, as the run payload's `settings`. Null on a record from before it was kept.",
+            "title": "Settings"
+          },
           "unfilled": {
             "items": {
               "$ref": "#/components/schemas/UnfilledOrderPayload"
@@ -628,6 +1074,14 @@
       "BacktestRunResult": {
         "description": "Result payload of a completed backtest job.\n\nEvery series here derives from the same NAV, rebased to 100: `returns` is\nthe level's percentage change, `drawdown` is the level against its running\npeak, and `annual_returns` compound back to the total. A client that\nrecomputes any of them lands on these numbers exactly.",
         "properties": {
+          "active": {
+            "description": "For an active strategy, what it did at each rebalance. Empty otherwise.",
+            "items": {
+              "$ref": "#/components/schemas/ActiveStepPayload"
+            },
+            "title": "Active",
+            "type": "array"
+          },
           "annual_returns": {
             "additionalProperties": {
               "type": "number"
@@ -663,6 +1117,20 @@
             "$ref": "#/components/schemas/SeriesPayload",
             "description": "Level against its running peak; 0 at a new high."
           },
+          "fees_paid": {
+            "default": 0.0,
+            "description": "The vehicle's management fee paid, in the book's currency.",
+            "title": "Fees Paid",
+            "type": "number"
+          },
+          "flows": {
+            "description": "Each flow as dealt. Empty without flows.",
+            "items": {
+              "$ref": "#/components/schemas/FlowPayload"
+            },
+            "title": "Flows",
+            "type": "array"
+          },
           "index_level": {
             "$ref": "#/components/schemas/SeriesPayload",
             "description": "The tracked index, rebased to 100 on the same axis. Not the external benchmark, which is `benchmark`."
@@ -677,8 +1145,30 @@
             "$ref": "#/components/schemas/SeriesPayload",
             "description": "Portfolio value, rebased to 100."
           },
+          "market": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketPayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An ETF's exchange quotes. Null otherwise."
+          },
           "metrics": {
             "$ref": "#/components/schemas/BacktestMetrics"
+          },
+          "nav_per_unit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeriesPayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "NAV per unit on `level`'s dates. With flows `level` is this series rebased, so a flow is not drawn as a gain."
           },
           "price_gaps": {
             "description": "Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data: a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.",
@@ -696,6 +1186,14 @@
             "title": "Rebalance Pricing",
             "type": "array"
           },
+          "rebalance_steps": {
+            "description": "What the implementation's stages did at each rebalance.",
+            "items": {
+              "$ref": "#/components/schemas/RebalanceStepPayload"
+            },
+            "title": "Rebalance Steps",
+            "type": "array"
+          },
           "rebalances": {
             "description": "Composition at each rebalance. Everything the view endpoints say about weights, attribution and individual names is derived from these, so a run is readable without recalculating the index. Daily weights are deliberately absent: they are reconstructed from these and the prices, and storing one per name per day would multiply the payload by the number of trading days to save an inexpensive calculation.",
             "items": {
@@ -704,15 +1202,55 @@
             "title": "Rebalances",
             "type": "array"
           },
+          "replication": {
+            "description": "For index tracking, what the replication did at each rebalance. Empty otherwise.",
+            "items": {
+              "$ref": "#/components/schemas/ReplicationPayload"
+            },
+            "title": "Replication",
+            "type": "array"
+          },
           "returns": {
             "$ref": "#/components/schemas/SeriesPayload",
             "description": "Period returns of `level`."
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What ran, fully resolved: strategy, implementation, flows, vehicle (preset and every setting), modelling assumptions and dividend policy. Null on a run saved before it was recorded.",
+            "title": "Settings"
           },
           "total_costs": {
             "default": 0.0,
             "description": "Transaction costs paid across the run, for the cost drag.",
             "title": "Total Costs",
             "type": "number"
+          },
+          "unfilled": {
+            "description": "Orders not filled in full.",
+            "items": {
+              "$ref": "#/components/schemas/UnfilledOrderPayload"
+            },
+            "title": "Unfilled",
+            "type": "array"
+          },
+          "units": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeriesPayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Units outstanding on `level`'s dates."
           }
         },
         "required": [
@@ -724,6 +1262,42 @@
           "metrics"
         ],
         "title": "BacktestRunResult",
+        "type": "object"
+      },
+      "BacktestValidation": {
+        "description": "Response of `POST /beacon/{index_id}/backtest/validate`.",
+        "properties": {
+          "findings": {
+            "description": "Every problem, each at its field's dotted path, such as 'vehicle.settings.pricing.params.threshold'.",
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What would run, fully resolved, in the shape a run's `settings` takes. Null when the request is not valid.",
+            "title": "Settings"
+          },
+          "valid": {
+            "description": "False when any finding is an error.",
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid"
+        ],
+        "title": "BacktestValidation",
         "type": "object"
       },
       "BatchReferenceResponse": {
@@ -1737,8 +2311,19 @@
             "title": "Path",
             "type": "string"
           },
+          "problem": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoreProblem"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the store is not readable, when that is known: a store saved before py-beacon 0.7.0 has the code 'STORE_FORMAT_OUTDATED'. Null otherwise, including for a folder that was moved or deleted."
+          },
           "readable": {
-            "description": "Whether the store can be read now. A folder that has been moved or deleted stays registered but is not readable.",
+            "description": "Whether the store can be read now. A folder that has been moved or deleted stays registered but is not readable, and nor is one saved in a format this version no longer reads (see `problem`).",
             "title": "Readable",
             "type": "boolean"
           },
@@ -2797,6 +3382,63 @@
         "title": "Finding",
         "type": "object"
       },
+      "FlowPayload": {
+        "description": "One day's flow, as the run dealt it.",
+        "properties": {
+          "adjustment": {
+            "description": "What the dealing investors paid into the fund through the price or a levy, in the book's currency.",
+            "title": "Adjustment",
+            "type": "number"
+          },
+          "amount": {
+            "description": "Paid in (positive) or out (negative), in the book's currency.",
+            "title": "Amount",
+            "type": "number"
+          },
+          "creation_units": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an ETF, the creation units; null otherwise.",
+            "title": "Creation Units"
+          },
+          "date": {
+            "description": "YYYY-MM-DD.",
+            "title": "Date",
+            "type": "string"
+          },
+          "dealing_price": {
+            "description": "The price per unit dealt at, after the vehicle's pricing.",
+            "title": "Dealing Price",
+            "type": "number"
+          },
+          "nav_per_unit": {
+            "description": "The day's NAV per unit, before it.",
+            "title": "Nav Per Unit",
+            "type": "number"
+          },
+          "units": {
+            "description": "Units created (positive) or cancelled.",
+            "title": "Units",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "amount",
+          "nav_per_unit",
+          "units",
+          "dealing_price",
+          "adjustment"
+        ],
+        "title": "FlowPayload",
+        "type": "object"
+      },
       "FrontierPoint": {
         "description": "One portfolio on the efficient frontier.",
         "properties": {
@@ -3539,6 +4181,131 @@
         "title": "IdentifierSearchResponse",
         "type": "object"
       },
+      "ImplementationSpec": {
+        "additionalProperties": false,
+        "description": "How the strategy is carried out at the fund's size.",
+        "properties": {
+          "caps": {
+            "description": "How much of each may be held.",
+            "items": {
+              "$ref": "#/components/schemas/TypedSpec"
+            },
+            "title": "Caps",
+            "type": "array"
+          },
+          "cash_buffer": {
+            "default": 0.0,
+            "description": "The share of the book kept in cash, a fraction.",
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "Cash Buffer",
+            "type": "number"
+          },
+          "equitise": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps` and `dividend_yield` (null to estimate it). Null leaves the cash as cash.",
+            "title": "Equitise"
+          },
+          "execution": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Execution limits: `participation` (a fraction of the day's volume), `days` and `lookback_days`. Null to trade every order on the rebalance day.",
+            "title": "Execution"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Market impact: `coefficient` and `lookback_days`. Null for none.",
+            "title": "Impact"
+          },
+          "invest_flows": {
+            "default": "target",
+            "description": "What money arriving between rebalances buys: 'target' (the last rebalance's weights) or 'holdings'.",
+            "title": "Invest Flows",
+            "type": "string"
+          },
+          "minimum_position": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Positions too small to keep: `value` (money, in the book's currency) and `weight` (a fraction).",
+            "title": "Minimum Position"
+          },
+          "redistribution": {
+            "default": "pro_rata",
+            "description": "Where removed or capped weight goes: 'pro_rata' or 'cash'.",
+            "title": "Redistribution",
+            "type": "string"
+          },
+          "screens": {
+            "description": "Which names may be held.",
+            "items": {
+              "$ref": "#/components/schemas/TypedSpec"
+            },
+            "title": "Screens",
+            "type": "array"
+          }
+        },
+        "title": "ImplementationSpec",
+        "type": "object"
+      },
       "ImportRequest": {
         "description": "Body of `POST /data/import`: load CSV files or an Excel workbook.",
         "properties": {
@@ -4011,6 +4778,151 @@
         "title": "LoadResult",
         "type": "object"
       },
+      "MarketPayload": {
+        "description": "An ETF's quotes on the exchange, on `level`'s dates.",
+        "properties": {
+          "ask": {
+            "$ref": "#/components/schemas/SeriesPayload"
+          },
+          "bid": {
+            "$ref": "#/components/schemas/SeriesPayload"
+          },
+          "market_price": {
+            "$ref": "#/components/schemas/SeriesPayload"
+          },
+          "premium": {
+            "$ref": "#/components/schemas/SeriesPayload",
+            "description": "Over NAV, a fraction; negative for a discount."
+          },
+          "spread": {
+            "$ref": "#/components/schemas/SeriesPayload",
+            "description": "Full bid-ask, a fraction of the price."
+          }
+        },
+        "required": [
+          "market_price",
+          "premium",
+          "spread",
+          "bid",
+          "ask"
+        ],
+        "title": "MarketPayload",
+        "type": "object"
+      },
+      "ModellingAssumptionsSpec": {
+        "additionalProperties": false,
+        "description": "What the run takes as given about markets and data. Every field is\noptional; an unset one takes the engine's default, which\n`/backtest/options` lists.",
+        "properties": {
+          "cash_rate": {
+            "anyOf": [
+              {
+                "exclusiveMaximum": 1.0,
+                "exclusiveMinimum": -1.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The annual rate cash earns, a fraction, ACT/365.",
+            "title": "Cash Rate"
+          },
+          "free_float_backfill_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Calendar days a reported free float carries over blanks.",
+            "title": "Free Float Backfill Days"
+          },
+          "fx_policy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The FX rate on a day a pair printed none: CARRY_FORWARD or EXACT_DAY.",
+            "title": "Fx Policy"
+          },
+          "max_price_staleness_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Calendar days a name may go without trading before it is dropped as stale; 0 is no limit.",
+            "title": "Max Price Staleness Days"
+          },
+          "periods_per_year": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How many periods make a year.",
+            "title": "Periods Per Year"
+          },
+          "risk_free_rate": {
+            "anyOf": [
+              {
+                "exclusiveMaximum": 1.0,
+                "exclusiveMinimum": -1.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The annual rate the Sharpe ratio is measured against.",
+            "title": "Risk Free Rate"
+          },
+          "volume_backfill_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Calendar days a reported volume stands in for a blank one under an execution limit.",
+            "title": "Volume Backfill Days"
+          },
+          "withholding_tax_rate": {
+            "anyOf": [
+              {
+                "exclusiveMaximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The share of each dividend withheld, a fraction.",
+            "title": "Withholding Tax Rate"
+          }
+        },
+        "title": "ModellingAssumptionsSpec",
+        "type": "object"
+      },
       "NotNode": {
         "description": "The negation of an expression: `expressions.core.Not`.",
         "properties": {
@@ -4391,6 +5303,21 @@
       "ParameterSpec": {
         "description": "One parameter of a configurable type, described well enough to render.\n\nNames, types, defaults and whether a parameter is required are read from\nthe constructor, so they cannot drift from what the code accepts. Labels,\nordering and choices are declared on the class, because a signature cannot\ncarry them.",
         "properties": {
+          "applies_to": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a vehicle setting, the archetypes it belongs to, such as 'exchange_traded'. Null means every vehicle, and every type outside the vehicle settings.",
+            "title": "Applies To"
+          },
           "choices": {
             "anyOf": [
               {
@@ -4427,6 +5354,30 @@
             "title": "Label",
             "type": "string"
           },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The largest value accepted, when bounded.",
+            "title": "Maximum"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The smallest value accepted, when bounded.",
+            "title": "Minimum"
+          },
           "name": {
             "description": "Parameter name, as it must appear in `params`.",
             "title": "Name",
@@ -4458,6 +5409,18 @@
             "description": "Display type: number, integer, boolean, string or json. What control to render, not the Python annotation.",
             "title": "Type",
             "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the value is measured in: 'fraction' (show 0.02 as 2%), 'bps', 'days', 'money' (in the book's currency), 'count' or 'ratio'. Null for a value with no unit.",
+            "title": "Unit"
           }
         },
         "required": [
@@ -5232,6 +6195,43 @@
         "title": "RebalanceSnapshot",
         "type": "object"
       },
+      "RebalanceStepPayload": {
+        "description": "What the implementation's stages did at one rebalance.",
+        "properties": {
+          "capped": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Name -> the weight it was capped at.",
+            "title": "Capped",
+            "type": "object"
+          },
+          "cash_weight": {
+            "default": 0.0,
+            "description": "The share of the book the weights leave in cash.",
+            "title": "Cash Weight",
+            "type": "number"
+          },
+          "date": {
+            "description": "YYYY-MM-DD.",
+            "title": "Date",
+            "type": "string"
+          },
+          "removed": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Name -> the screen that removed it.",
+            "title": "Removed",
+            "type": "object"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "RebalanceStepPayload",
+        "type": "object"
+      },
       "ReferenceEntry": {
         "description": "One identifier's row in a batch reference response.",
         "properties": {
@@ -5642,6 +6642,56 @@
           "rendered_at"
         ],
         "title": "RenderResult",
+        "type": "object"
+      },
+      "ReplicationPayload": {
+        "description": "What a replication did at one rebalance.",
+        "properties": {
+          "date": {
+            "description": "YYYY-MM-DD.",
+            "title": "Date",
+            "type": "string"
+          },
+          "holdings": {
+            "description": "How many names the weights hold.",
+            "title": "Holdings",
+            "type": "integer"
+          },
+          "tracking_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ex-ante, annualised; null when not estimated.",
+            "title": "Tracking Error"
+          },
+          "unmeasured": {
+            "description": "Names held at their index weight for want of history.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmeasured",
+            "type": "array"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "The weights traded to.",
+            "title": "Weights",
+            "type": "object"
+          }
+        },
+        "required": [
+          "date",
+          "holdings",
+          "weights"
+        ],
+        "title": "ReplicationPayload",
         "type": "object"
       },
       "ReportTemplateCollection": {
@@ -6484,6 +7534,144 @@
         "title": "SkippedCauses",
         "type": "object"
       },
+      "StoreProblem": {
+        "description": "Why a store cannot be read, when the engine can tell without loading it.",
+        "properties": {
+          "code": {
+            "description": "Stable machine-readable code: 'STORE_FORMAT_OUTDATED' for a store saved in a format this version no longer reads, which regenerating or re-importing fixes.",
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "description": "What is wrong and what to do, in a sentence.",
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "StoreProblem",
+        "type": "object"
+      },
+      "StrategySpec": {
+        "additionalProperties": false,
+        "description": "What the backtest holds.\n\nThe path's index is the strategy's index: the one tracked, or the\nbenchmark an active strategy is measured against.",
+        "properties": {
+          "constraints": {
+            "description": "For an active strategy: what its portfolio must satisfy.",
+            "items": {
+              "$ref": "#/components/schemas/TypedSpec"
+            },
+            "title": "Constraints",
+            "type": "array"
+          },
+          "construction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TypedSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy: how it builds its portfolio. MaxAlpha with its default budget when null."
+          },
+          "lookback_days": {
+            "anyOf": [
+              {
+                "minimum": 2.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy: trading days its covariance is estimated over; a year when null.",
+            "title": "Lookback Days"
+          },
+          "minimum_observations": {
+            "anyOf": [
+              {
+                "minimum": 2.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy: the fewest returns a name needs to be measured; 126 when null.",
+            "title": "Minimum Observations"
+          },
+          "rebalancing": {
+            "default": "MONTHLY",
+            "description": "For an active strategy: WEEKLY, MONTHLY, QUARTERLY or ANNUALLY.",
+            "title": "Rebalancing",
+            "type": "string"
+          },
+          "replication": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TypedSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For index tracking: how the index is held."
+          },
+          "screen": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy: a condition every holding must pass, as an expression tree.",
+            "title": "Screen"
+          },
+          "signal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TypedSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy: what it believes."
+          },
+          "type": {
+            "default": "index",
+            "description": "'index' (the index in full, the default), 'index_tracking' (through a `replication`) or 'active'.",
+            "title": "Type",
+            "type": "string"
+          },
+          "universe": {
+            "anyOf": [
+              {
+                "items": {
+                  "description": "Letters, digits, dash and underscore; up to 64.",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an active strategy: the names it may hold. Null means the benchmark's constituents.",
+            "title": "Universe"
+          }
+        },
+        "title": "StrategySpec",
+        "type": "object"
+      },
       "SyncRequest": {
         "description": "Body of `POST /data/coverage/{dataset}/sync`.\n\nDeprecated with the endpoint. Its fields are accepted and ignored: a sync\nrefreshes the whole active store from its own source, as\n`POST /data/stores/{id}/refresh` does.",
         "properties": {
@@ -6739,8 +7927,15 @@
           },
           "dividend_yield": {
             "default": 0.0,
-            "description": "Continuous dividend yield on the underlying, used **only** for the breakeven table, alongside `futures_prices` and `time_to_expiry`. `present_value`, both legs and `fair_spread_bps` ignore it: the total-return leg is `spot` against `initial_price`, and that ratio already carries whatever the underlying paid. Sending it without `futures_prices` changes nothing in the response.",
+            "description": "Continuous dividend yield on the underlying, used **only** for the breakeven table, alongside `futures_prices` and `time_to_expiry`, because a futures price embeds expected dividends. `present_value`, both legs and `fair_spread_bps` count the dividends actually paid, through `dividends`, not an expected yield. Sending it without `futures_prices` changes nothing in the response.",
             "title": "Dividend Yield",
+            "type": "number"
+          },
+          "dividends": {
+            "default": 0.0,
+            "description": "What the underlying paid per unit since `initial_price`, in its own points. They join the total-return leg: notional x ((spot + dividends) / initial_price - 1). Leave at 0 when `spot` is a total return level, which already counts them.",
+            "minimum": 0.0,
+            "title": "Dividends",
             "type": "number"
           },
           "end_date": {
@@ -7004,6 +8199,28 @@
           "label"
         ],
         "title": "TypeSpec",
+        "type": "object"
+      },
+      "TypedSpec": {
+        "additionalProperties": false,
+        "description": "One configurable object: its type and its parameters.\n\nThe types and what each accepts are listed by `GET /backtest/options`.",
+        "properties": {
+          "params": {
+            "additionalProperties": true,
+            "description": "Its parameters, by name.",
+            "title": "Params",
+            "type": "object"
+          },
+          "type": {
+            "description": "The type's name, as `/backtest/options` lists it.",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "TypedSpec",
         "type": "object"
       },
       "UnfilledOrderPayload": {
@@ -7359,6 +8576,66 @@
         "title": "ValidationReport",
         "type": "object"
       },
+      "VehiclePreset": {
+        "description": "One vehicle preset, with every setting resolved.",
+        "properties": {
+          "archetype": {
+            "description": "'open_ended', 'exchange_traded' or 'generic'. A setting whose `applies_to` names an archetype belongs only to it.",
+            "title": "Archetype",
+            "type": "string"
+          },
+          "key": {
+            "description": "What `vehicle.preset` takes.",
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "description": "What the structure is called.",
+            "title": "Name",
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "description": "Every setting as the preset fills it in, in the shape `vehicle.settings` takes.",
+            "title": "Settings",
+            "type": "object"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "archetype",
+          "settings"
+        ],
+        "title": "VehiclePreset",
+        "type": "object"
+      },
+      "VehicleSpec": {
+        "additionalProperties": false,
+        "description": "How the money is held: a preset, with any settings laid over it.\n\nSettings merge over the preset's: a typed object (`pricing`) or a list\n(`limits`) replaces the preset's whole, a plain object (`market`) merges\nkey by key, an omitted key keeps the preset's value, and null means none\n(refused on a setting that cannot be none). Money settings are in the\nbook's currency.",
+        "properties": {
+          "preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A preset's key from `/backtest/options`, or null for the generic vehicle.",
+            "title": "Preset"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "description": "The settings to change, by name. Only what differs from the preset need be sent.",
+            "title": "Settings",
+            "type": "object"
+          }
+        },
+        "title": "VehicleSpec",
+        "type": "object"
+      },
       "Watchlist": {
         "description": "A named set of instrument identifiers.",
         "properties": {
@@ -7633,10 +8910,112 @@
   },
   "info": {
     "title": "Beacon API",
-    "version": "0.4.0"
+    "version": "0.8.1"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/backtest/options": {
+      "get": {
+        "description": "Everything a backtest request may carry, from the engine.\n\nEach family's types with their fields (the shape\n`/indices/rule-types` uses), the vehicle presets with their resolved\nsettings, the vehicle, market and implementation settings described\nfield by field, the modelling assumptions with the engine's defaults,\nand the closed choices. Reads no data, so it answers on a server with\nnone loaded.",
+        "operationId": "options_backtest_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacktestOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Options",
+        "tags": [
+          "backtest"
+        ]
+      }
+    },
     "/beacon/backtests": {
       "get": {
         "description": "Every stored backtest record, newest first.\n\nThe enumeration Beacon View's search bar needs: which indices have a\nrecord, and when each was captured. One row per index (the record\nstore keeps the latest run only), and the row is deliberately thin;\n`/beacon/{index_id}/record` serves the books.\n\nA record that cannot be read is skipped with a warning rather than\nfailing the listing: one bad file must not hide every good one.\n\"Cannot be read\" means the same thing here as at `/record`, and the\ncount of what was skipped is published beside the rows, because a\nlisting silently short is indistinguishable from a complete one.",
@@ -8258,6 +9637,138 @@
           }
         },
         "summary": "Submit Backtest",
+        "tags": [
+          "beacon"
+        ]
+      }
+    },
+    "/beacon/{index_id}/backtest/validate": {
+      "post": {
+        "description": "What a backtest request would run, without running it.\n\nThe same body `POST /beacon/{index_id}/backtest` takes. Answers the\nfully resolved settings (the preset filled in, the modelling\nassumptions resolved against the loaded data) or every finding, each\nat its field's path.",
+        "operationId": "validate_backtest_beacon__index_id__backtest_validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "index_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Index Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/BacktestRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacktestValidation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Validate Backtest",
         "tags": [
           "beacon"
         ]

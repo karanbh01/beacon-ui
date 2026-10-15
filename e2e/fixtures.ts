@@ -100,6 +100,7 @@ export const test = base.extend<BeaconFixtures>({
         skipUniverses: () => undefined,
         unloadData: () => undefined,
         previewWithoutCaps: () => undefined,
+        outdatedStore: () => undefined,
         close: () => Promise.resolve()
       })
       return

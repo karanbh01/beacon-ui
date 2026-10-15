@@ -115,8 +115,9 @@ test('reads every dataset the engine serves', async ({ window }) => {
     await expect(window.locator('.tbl-row').first()).toBeVisible()
   }
 
-  // RATE belongs to FX, not to market bars (BU-139), and the index column is
-  // a row counter the endpoint resets before paging (BU-149).
+  // No RATE: py-beacon 0.7.0 dropped it, pairs carry CLOSE like every series
+  // (BU-232). And no index column, a row counter the endpoint resets before
+  // paging (BU-149).
   await chooseLabel(window, 'Dataset', 'Market')
   await expect(window.getByRole('columnheader', { name: 'RATE' })).toHaveCount(0)
   await expect(window.getByRole('columnheader', { name: 'Index' })).toHaveCount(0)

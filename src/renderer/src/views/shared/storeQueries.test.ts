@@ -68,6 +68,14 @@ describe('why a store cannot be read', () => {
     expect(unreadableReason(store({ readable: false }))).toContain('moved or deleted')
   })
 
+  it('says what the engine says when it knows (BN-309)', () => {
+    // A store saved before py-beacon 0.7.0 is right where it was; "moved or
+    // deleted?" would send the reader to look for a folder that is there.
+    const message = 'It was saved before py-beacon 0.7.0. Regenerate or re-import it.'
+    const outdated = store({ readable: false, problem: { code: 'STORE_FORMAT_OUTDATED', message } })
+    expect(unreadableReason(outdated)).toBe(message)
+  })
+
   it('names the missing password variable for a database', () => {
     /*
      * The only way a database store is unreadable in the listing, which never
