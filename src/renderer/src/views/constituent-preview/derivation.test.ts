@@ -20,9 +20,23 @@ import {
 } from './derivation'
 
 const STEPS: PreviewStep[] = [
-  { position: 0, remaining: 512 },
-  { position: 1, rule_id: 'r1', rule_type: 'FilterRule', remaining: 87 },
-  { position: 2, rule_id: 'r2', rule_type: 'SelectionRule', remaining: 10 }
+  { position: 0, remaining: 512, type: 'Universe', description: '' },
+  {
+    position: 1,
+    rule_id: 'r1',
+    rule_type: 'FilterRule',
+    remaining: 87,
+    type: 'FilterRule',
+    description: ''
+  },
+  {
+    position: 2,
+    rule_id: 'r2',
+    rule_type: 'SelectionRule',
+    remaining: 10,
+    type: 'SelectionRule',
+    description: ''
+  }
 ]
 
 const KEPT: PreviewAsset = {
@@ -50,7 +64,9 @@ describe('waterfallColumns', () => {
   })
 
   it('still produces a column for a step with no rule id', () => {
-    expect(waterfallColumns([{ position: 1, remaining: 5 }])[0]?.key).toBe('step-1')
+    expect(
+      waterfallColumns([{ position: 1, remaining: 5, type: 'FilterRule', description: '' }])[0]?.key
+    ).toBe('step-1')
   })
 })
 

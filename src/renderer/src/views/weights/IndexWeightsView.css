@@ -46,3 +46,29 @@
   max-width: 640px;
   color: var(--text-muted);
 }
+
+/*
+ * What a name did at each stage of the workflow (Holdings Detail, BN-326),
+ * in the constituent preview's own colours: passed, dropped here, or gone
+ * at an earlier stage and never seen by this one.
+ */
+.holdings-pass {
+  color: var(--success);
+}
+
+.holdings-cut {
+  color: var(--danger);
+}
+
+.holdings-gone {
+  color: var(--text-muted);
+}
+
+/* The index's and the benchmark's weights, beside the fund's. */
+.weights-alongside {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  align-self: flex-end;
+  min-height: 28px;
+}

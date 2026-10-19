@@ -160,7 +160,8 @@ export function capColumns(
       minWidth: 84,
       wrapHeader: true,
       align: 'right',
-      render: (asset) => <Money value={number(rows, asset.identifier, LOCAL.full)} />
+      render: (asset) => <Money value={number(rows, asset.identifier, LOCAL.full)} />,
+      value: (asset) => number(rows, asset.identifier, LOCAL.full)
     },
     {
       key: 'free_float_market_cap_local',
@@ -169,7 +170,8 @@ export function capColumns(
       minWidth: 84,
       wrapHeader: true,
       align: 'right',
-      render: (asset) => <Money value={number(rows, asset.identifier, LOCAL.float)} />
+      render: (asset) => <Money value={number(rows, asset.identifier, LOCAL.float)} />,
+      value: (asset) => number(rows, asset.identifier, LOCAL.float)
     },
     {
       key: 'local_currency',
@@ -177,7 +179,8 @@ export function capColumns(
       width: 60,
       minWidth: 44,
       wrapHeader: true,
-      render: (asset) => text(rows, asset.identifier, 'local_currency') ?? '—'
+      render: (asset) => text(rows, asset.identifier, 'local_currency') ?? '—',
+      value: (asset) => text(rows, asset.identifier, 'local_currency')
     }
   ]
 

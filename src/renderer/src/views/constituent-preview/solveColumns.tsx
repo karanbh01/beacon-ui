@@ -31,24 +31,27 @@ export function solveColumns(reference: readonly ReferenceColumn[]): Column<Prev
     ),
     {
       key: 'before',
-      header: 'Parent w',
+      header: 'Parent Weight',
       width: 110,
       align: 'right',
-      render: (asset) => percent(asset.source_weight)
+      render: (asset) => percent(asset.source_weight),
+      value: (asset) => (asset.source_weight == null ? undefined : asset.source_weight * 100)
     },
     {
       key: 'after',
-      header: 'Solved w',
+      header: 'Solved Weight',
       width: 110,
       align: 'right',
-      render: (asset) => percent(asset.solved_weight)
+      render: (asset) => percent(asset.solved_weight),
+      value: (asset) => (asset.solved_weight == null ? undefined : asset.solved_weight * 100)
     },
     {
       key: 'delta',
       header: 'Δ',
       width: 100,
       align: 'right',
-      render: (asset) => delta(asset.weight_delta)
+      render: (asset) => delta(asset.weight_delta),
+      value: (asset) => (asset.weight_delta == null ? undefined : asset.weight_delta * 100)
     }
   ]
 }

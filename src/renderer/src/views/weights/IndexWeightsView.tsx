@@ -42,6 +42,8 @@ export function IndexWeightsView({ tab, subject, pane }: ViewProps): ReactElemen
   const [groupBy, setGroupBy] = useState('')
   const [benchmark, setBenchmark] = useState('')
   const [asof, setAsof] = useState('')
+  // Holdings Detail opens empty and runs on request (Karan, 2026-10-19).
+  const [ran, setRan] = useState(false)
 
   /** Other strategies with a run: weights are a run's, and none is its own benchmark. */
   const others = useMemo(
@@ -62,7 +64,7 @@ export function IndexWeightsView({ tab, subject, pane }: ViewProps): ReactElemen
       </PaneHeader>
 
       {strategyId === '' && (
-        <ViewEmpty>Name a strategy in Overview — this pane follows it.</ViewEmpty>
+        <ViewEmpty figure="ticker">Choose a strategy in Overview. This tab follows it.</ViewEmpty>
       )}
 
       {strategyId !== '' && face === 'detail' && (
@@ -72,9 +74,10 @@ export function IndexWeightsView({ tab, subject, pane }: ViewProps): ReactElemen
           pane={pane}
           asof={asof}
           onAsof={setAsof}
-          benchmark={benchmark}
-          onBenchmark={setBenchmark}
-          others={others}
+          ran={ran}
+          onRun={() => {
+            setRan(true)
+          }}
         />
       )}
 

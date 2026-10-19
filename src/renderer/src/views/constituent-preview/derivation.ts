@@ -9,6 +9,8 @@ export interface WaterfallColumn {
   /** "01 · Filter rule" — the position and what the rule was. */
   header: string
   position: number
+  /** The step itself, for the popup on the column's name. */
+  step: PreviewStep
 }
 
 /**
@@ -38,7 +40,8 @@ export function waterfallColumns(steps: readonly PreviewStep[]): WaterfallColumn
         step.position > 0
           ? `${String(step.position).padStart(2, '0')} · ${step.rule_type ?? 'rule'}`
           : (step.rule_type ?? 'rule'),
-      position: step.position
+      position: step.position,
+      step
     }))
 }
 

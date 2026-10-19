@@ -20,6 +20,7 @@ import {
 import { useReferenceRows } from '../shared/queries'
 import { holdingColumns, useReferenceColumns, type ReferenceColumn } from '../shared/holdingColumns'
 import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
+import { StageTip, type StageDetail } from '../shared/StageTip'
 import { pipelineOf } from '../index-definition/pipeline'
 import {
   CELL_GLYPH,
@@ -35,6 +36,7 @@ import {
   summariseSolve,
   waterfallColumns,
   type PreviewAsset,
+  type PreviewStep,
   type PreviewResponse
 } from './derivation'
 import { capColumns, capsFromPreview, staleCount, type CapRows } from './capColumns'
@@ -59,6 +61,45 @@ const PREVIEW_CAP_FIELDS = ['market_cap', 'free_float_market_cap'] as const
  */
 const PREVIEW_TABLE = 'constituent-preview'
 
+/**
+ * A preview step as the popup describes it: the engine's own type, sentence
+ * and settings (py-beacon 0.9.3, BN-328). The stale-price step sits before
+ * the rules, at position -1, and is no rule of the definition's.
+ */
+function stageOf(step: PreviewStep, steps: readonly PreviewStep[]): StageDetail {
+  // The order names pass through: the universe, the stale-price check
+  // (position -1), then the rules.
+  const order = [...steps].sort((one, other) => rank(one.position) - rank(other.position))
+  const before = order[order.indexOf(step) - 1]?.remaining ?? null
+  return {
+    before,
+    label: step.rule_type ?? step.type,
+    kind: step.position < 0 ? 'implementation_screen' : 'index_rule',
+    type: step.type,
+    description: step.description,
+    params: step.params ?? null,
+    remaining: step.remaining
+  }
+}
+
+/** What a rule column filters on: the state in words. */
+const STATE_WORDS: Record<'pass' | 'cut' | 'gone', string> = {
+  pass: 'Passed',
+  cut: 'Dropped here',
+  gone: 'Dropped earlier'
+}
+
+/** A fraction in the percent a reader types into a range. */
+function percentOf(value: number | null | undefined): number | undefined {
+  return value == null ? undefined : value * 100
+}
+
+/** The universe first, the stale-price check next, then the rules in order. */
+function rank(position: number): number {
+  if (position === 0) return -2
+  return position
+}
+
 function buildColumns(
   preview: PreviewResponse,
   caps: CapRows,
@@ -81,19 +122,35 @@ function buildColumns(
     { minWidth: 64 }
   )
 
+  // Each name's share of the universe's market cap (py-beacon 0.9.3, BN-329).
+  if (preview.assets.some((asset) => asset.universe_weight != null)) {
+    columns.push({
+      key: 'universe-weight',
+      header: 'Universe Weight',
+      width: 96,
+      minWidth: 64,
+      wrapHeader: true,
+      align: 'right',
+      render: (asset) => (asset.universe_weight == null ? '—' : percent(asset.universe_weight)),
+      value: (asset) => percentOf(asset.universe_weight)
+    })
+  }
+
   // Null on a derived index, which has no rules to walk (BN-170). The
   // waterfall is then empty rather than absent; the solve face is BU-173.
   for (const column of waterfallColumns(preview.steps ?? [])) {
     columns.push({
       key: column.key,
       header: column.header,
-      width: 120,
-      minWidth: 72,
+      tip: <StageTip stage={stageOf(column.step, preview.steps ?? [])} />,
+      width: 96,
+      minWidth: 52,
       wrapHeader: true,
       render: (asset) => {
         const state = cellState(asset, column.position)
         return <span className={`derivation-${state}`}>{CELL_GLYPH[state]}</span>
-      }
+      },
+      value: (asset) => STATE_WORDS[cellState(asset, column.position)]
     })
   }
 
@@ -116,7 +173,7 @@ function buildColumns(
    */
   columns.push({
     key: 'weight',
-    header: 'Weights',
+    header: 'Index Weight',
     width: 100,
     minWidth: 64,
     align: 'right',
@@ -124,7 +181,8 @@ function buildColumns(
       <span className={asset.capped ? 'derivation-capped' : undefined}>
         {percent(asset.weight)}
       </span>
-    )
+    ),
+    value: (asset) => percentOf(asset.weight)
   })
 
   return columns
@@ -493,6 +551,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
             getRowId={(asset) => asset.identifier}
             maxBodyHeight={560}
             fillWidth
+            queryable
             headerAction={<HoldingColumnsButton table={PREVIEW_TABLE} />}
           />
           {solve === undefined ? (
