@@ -24,35 +24,6 @@
   margin-bottom: 12px;
 }
 
-.strategy-spec,
-.strategy-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.strategy-list-row {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.strategy-list-row > .strategy-spec {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-.strategy-section-label {
-  margin: 12px 0 8px;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.strategy-section-label:first-child {
-  margin-top: 0;
-}
-
 .strategy-note {
   margin: 0;
   max-width: 640px;
@@ -70,4 +41,16 @@
 .strategy-removed {
   margin: 0;
   color: var(--text-muted);
+}
+
+/*
+ * A strategy's rows, sized as Index Definition's methodology is across
+ * (800px at most) but taking only the height its rows need: the
+ * methodology's own flex basis is a width in its row layout and would be a
+ * height in this column.
+ */
+.strategy-rows {
+  width: 100%;
+  max-width: 800px;
+  min-width: 0;
 }

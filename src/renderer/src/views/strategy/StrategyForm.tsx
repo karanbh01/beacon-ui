@@ -2,11 +2,15 @@ import type { ReactElement } from 'react'
 import { Section } from '../../components/Section/Section'
 import { Field } from '../../components/Field/Field'
 import { Select } from '../../components/Select/Select'
-import type { ParameterSpec } from '../index-definition/ruleCatalogue'
+import type { ParameterSpec, TypeSpec } from '../index-definition/ruleCatalogue'
 import type { BacktestOptions, StrategyDocument } from '../shared/strategyDocuments'
 import { useIndices } from '../shared/strategyQueries'
-import { BoundField, SpecEditor, SpecList } from './SpecFields'
-import { KINDS, withStrategy } from './strategyDraft'
+import { SettingsEditor, TypedEditor } from './SpecEditors'
+import { BoundField } from './SpecFields'
+import { addTo, listRows } from './specRowBuilders'
+import { SpecRows, type SpecGroup, type SpecRow } from './SpecRows'
+import { labelOf, summariseSpec, summariseValues } from './specSummary'
+import { KINDS, withStrategy, type StrategySpec, type TypedSpec } from './strategyDraft'
 
 type Edit = (change: (current: StrategyDocument) => StrategyDocument) => void
 
@@ -42,137 +46,241 @@ const OBSERVATIONS: ParameterSpec = {
 }
 
 /**
- * What the strategy is: its name, the index it holds, and how it holds it.
- *
- * The kind decides the rest of the card. The index as defined needs nothing
- * more; tracking it needs a replication; active needs what it believes (a
- * signal), how it builds a portfolio from that (a construction) and what
- * that portfolio must satisfy (constraints), all measured against the index.
+ * What the strategy is: its name, the index it holds and how it holds it
+ * (Karan, 2026-10-19). The details are one row of fields; how it holds the
+ * index is rows, as Index Definition draws its methodology.
  */
 export function StrategyForm({ document, onChange, options }: StrategyFormProps): ReactElement {
   const indices = useIndices()
   const kind = document.strategy?.type ?? 'index'
 
   return (
-    <Section title="Strategy" className="strategy-card">
-      <div className="strategy-form-row">
-        <Field label="Name *" width={260}>
-          <input
-            className="param-field-input"
-            aria-label="Strategy name"
-            value={document.name}
-            onChange={(event) => {
-              const name = event.target.value
-              onChange((current) => ({ ...current, name }))
-            }}
-          />
-        </Field>
-        <Field label="Index *" width={200}>
-          <Select
-            label="Index"
-            options={(indices.data?.indices ?? []).map((index) => ({
-              value: index.id,
-              label: `${index.id} · ${index.name}`
-            }))}
-            value={document.index_id}
-            placeholder="Choose…"
-            onChange={(index_id) => {
-              onChange((current) => ({ ...current, index_id }))
-            }}
-          />
-        </Field>
-        <Field label="Kind" width={220}>
-          <Select
-            label="Kind"
-            options={KINDS}
-            value={kind}
-            onChange={(type) => {
-              // What one kind needs means nothing to another, so a change of
-              // kind starts it clean rather than carrying stale specs.
-              onChange((current) => withKind(current, type))
-            }}
-          />
-        </Field>
-      </div>
-
-      <div className="strategy-form-row">
-        <Field label="Description" width={540}>
-          <input
-            className="param-field-input"
-            aria-label="Strategy description"
-            value={document.description ?? ''}
-            onChange={(event) => {
-              const description = event.target.value
-              onChange((current) => ({
-                ...current,
-                description: description === '' ? null : description
-              }))
-            }}
-          />
-        </Field>
-      </div>
+    <>
+      <Section title="Strategy" className="strategy-card">
+        <div className="strategy-form-row">
+          <Field label="Name *" width={240}>
+            <input
+              className="param-field-input"
+              aria-label="Strategy name"
+              value={document.name}
+              onChange={(event) => {
+                const name = event.target.value
+                onChange((current) => ({ ...current, name }))
+              }}
+            />
+          </Field>
+          <Field label="Index *" width={200}>
+            <Select
+              label="Index"
+              options={(indices.data?.indices ?? []).map((index) => ({
+                value: index.id,
+                label: `${index.id} · ${index.name}`
+              }))}
+              value={document.index_id}
+              placeholder="Choose…"
+              onChange={(index_id) => {
+                onChange((current) => ({ ...current, index_id }))
+              }}
+            />
+          </Field>
+          <Field label="Kind" width={200}>
+            <Select
+              label="Kind"
+              options={KINDS}
+              value={kind}
+              onChange={(type) => {
+                // What one kind needs means nothing to another, so a change of
+                // kind starts it clean rather than carrying stale specs.
+                onChange((current) => withKind(current, type))
+              }}
+            />
+          </Field>
+          <Field label="Description" width={320}>
+            <input
+              className="param-field-input"
+              aria-label="Strategy description"
+              value={document.description ?? ''}
+              onChange={(event) => {
+                const description = event.target.value
+                onChange((current) => ({
+                  ...current,
+                  description: description === '' ? null : description
+                }))
+              }}
+            />
+          </Field>
+        </div>
+        <p className="strategy-note type-11">{describeKind(kind, document.index_id)}</p>
+      </Section>
 
       {kind === 'index_tracking' && (
-        <SpecEditor
-          label="Replication"
-          catalogue={options?.replications ?? []}
-          spec={document.strategy?.replication}
-          onChange={(replication) => {
-            onChange((current) => withStrategy(current, { replication }))
-          }}
+        <SpecRows
+          title="Replication"
+          groups={[replicationGroup(document.strategy, options, onChange)]}
         />
       )}
-
       {kind === 'active' && (
-        <ActiveFields document={document} onChange={onChange} options={options} />
+        <SpecRows title="Portfolio" groups={activeGroups(document.strategy, options, onChange)} />
       )}
-
-      <p className="strategy-note type-11">{describeKind(kind, document.index_id)}</p>
-    </Section>
+    </>
   )
 }
 
-function ActiveFields({ document, onChange, options }: StrategyFormProps): ReactElement {
-  const spec = document.strategy
+/** How a tracking strategy holds the index: one replication, with its own settings. */
+function replicationGroup(
+  spec: StrategySpec | null | undefined,
+  options: BacktestOptions | undefined,
+  onChange: Edit
+): SpecGroup {
+  const catalogue = options?.replications ?? []
+  const set = (replication: TypedSpec | null): void => {
+    onChange((current) => withStrategy(current, { replication }))
+  }
+  return single(
+    'replication',
+    'How the index is held',
+    'Replication',
+    catalogue,
+    spec?.replication,
+    set
+  )
+}
+
+/**
+ * What an active strategy believes and how it turns that into a portfolio:
+ * a signal, an optimiser (the construction), the constraints the optimiser
+ * works within, and how often and over what history it runs.
+ */
+function activeGroups(
+  spec: StrategySpec | null | undefined,
+  options: BacktestOptions | undefined,
+  onChange: Edit
+): SpecGroup[] {
+  const set = (change: Partial<StrategySpec>): void => {
+    onChange((current) => withStrategy(current, change))
+  }
+  const constraints = spec?.constraints ?? []
+  const constraintCatalogue = options?.active_constraints ?? []
   const rebalancing = options?.choices.rebalancing ?? ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY']
 
-  return (
-    <>
-      <SpecEditor
-        label="Signal"
-        catalogue={options?.signals ?? []}
-        spec={spec?.signal}
-        noneLabel="None"
-        onChange={(signal) => {
-          onChange((current) => withStrategy(current, { signal }))
-        }}
-      />
-      <SpecEditor
-        label="Construction"
-        catalogue={options?.constructions ?? []}
-        spec={spec?.construction}
-        noneLabel="MaxAlpha, default budget"
-        onChange={(construction) => {
-          onChange((current) => withStrategy(current, { construction }))
-        }}
-      />
-      <SpecList
-        label="Constraint"
-        addLabel="Add constraint"
-        catalogue={options?.active_constraints ?? []}
-        specs={spec?.constraints ?? []}
-        onChange={(constraints) => {
-          onChange((current) => withStrategy(current, { constraints }))
-        }}
-      />
-      <div className="strategy-form-row">
+  return [
+    single(
+      'signal',
+      'Signal · what it believes',
+      'Signal',
+      options?.signals ?? [],
+      spec?.signal,
+      (signal) => {
+        set({ signal })
+      }
+    ),
+    single(
+      'construction',
+      'Optimiser · how it builds the portfolio',
+      'Optimiser',
+      options?.constructions ?? [],
+      spec?.construction,
+      (construction) => {
+        set({ construction })
+      }
+    ),
+    {
+      key: 'constraints',
+      label: 'Constraints · what the portfolio must satisfy',
+      rows: listRows('constraint', 'Constraint', constraintCatalogue, constraints, (next) => {
+        set({ constraints: next })
+      }),
+      add: addTo('Add constraint', 'constraint', constraintCatalogue, constraints, (next) => {
+        set({ constraints: next })
+      })
+    },
+    {
+      key: 'running',
+      label: 'Rebalancing and estimation',
+      rows: [runningRow(spec, rebalancing, set)]
+    }
+  ]
+}
+
+/** A group holding at most one typed spec: a row when chosen, an add slot when not. */
+function single(
+  key: string,
+  heading: string,
+  label: string,
+  catalogue: readonly TypeSpec[],
+  spec: TypedSpec | null | undefined,
+  onChange: (next: TypedSpec | null) => void
+): SpecGroup {
+  const editor = (close: () => void) => (
+    <TypedEditor
+      label={label}
+      catalogue={catalogue}
+      spec={spec}
+      onApply={(next) => {
+        onChange(next)
+        close()
+      }}
+      onCancel={close}
+    />
+  )
+  if (spec == null) {
+    const first = catalogue[0]
+    return {
+      key,
+      label: heading,
+      rows: [],
+      add: {
+        label: `Choose ${label.toLowerCase()}`,
+        ...(first === undefined ? { blocked: 'This engine lists none.' } : {}),
+        onAdd: () => {
+          if (first === undefined) return undefined
+          onChange({ type: first.name, params: {} })
+          return key
+        }
+      }
+    }
+  }
+  return {
+    key,
+    label: heading,
+    rows: [
+      {
+        id: key,
+        badge: labelOf(catalogue, spec.type),
+        summary: summariseSpec(catalogue, spec),
+        editor,
+        onRemove: () => {
+          onChange(null)
+        }
+      }
+    ]
+  }
+}
+
+/** How often an active strategy rebalances, and the history it estimates over. */
+function runningRow(
+  spec: StrategySpec | null | undefined,
+  rebalancing: readonly string[],
+  set: (change: Partial<StrategySpec>) => void
+): SpecRow {
+  const every = (spec?.rebalancing ?? 'MONTHLY').toLowerCase()
+  const windows = summariseValues([LOOKBACK, OBSERVATIONS], {
+    lookback_days: spec?.lookback_days,
+    minimum_observations: spec?.minimum_observations
+  })
+  return {
+    id: 'running',
+    badge: 'Rebalancing',
+    summary: `${every.charAt(0).toUpperCase()}${every.slice(1)} · ${windows}`,
+    editor: (close) => (
+      <SettingsEditor onDone={close}>
         <Field label="Rebalancing" width={160}>
           <Select
             label="Rebalancing"
             options={rebalancing.map((value) => ({ value, label: value.toLowerCase() }))}
             value={spec?.rebalancing ?? 'MONTHLY'}
             onChange={(next) => {
-              onChange((current) => withStrategy(current, { rebalancing: next }))
+              set({ rebalancing: next })
             }}
           />
         </Field>
@@ -180,25 +288,19 @@ function ActiveFields({ document, onChange, options }: StrategyFormProps): React
           param={LOOKBACK}
           value={spec?.lookback_days ?? undefined}
           onChange={(value) => {
-            onChange((current) =>
-              withStrategy(current, { lookback_days: typeof value === 'number' ? value : null })
-            )
+            set({ lookback_days: typeof value === 'number' ? value : null })
           }}
         />
         <BoundField
           param={OBSERVATIONS}
           value={spec?.minimum_observations ?? undefined}
           onChange={(value) => {
-            onChange((current) =>
-              withStrategy(current, {
-                minimum_observations: typeof value === 'number' ? value : null
-              })
-            )
+            set({ minimum_observations: typeof value === 'number' ? value : null })
           }}
         />
-      </div>
-    </>
-  )
+      </SettingsEditor>
+    )
+  }
 }
 
 function withKind(document: StrategyDocument, type: string): StrategyDocument {
@@ -211,8 +313,8 @@ function withKind(document: StrategyDocument, type: string): StrategyDocument {
 function describeKind(kind: string, indexId: string): string {
   const index = indexId === '' ? 'the index' : indexId
   if (kind === 'index_tracking')
-    return `Holds ${index} through the replication above: a sample, an optimised subset, futures or a swap.`
+    return `Holds ${index} through a replication: a sample, an optimised subset, futures or a swap.`
   if (kind === 'active')
-    return `Builds its own portfolio, measured against ${index}. Its universe is ${index}'s constituents.`
+    return `Builds its own portfolio from ${index}'s constituents with an optimiser, measured against ${index}.`
   return `Holds ${index} exactly as defined, at its own weights.`
 }

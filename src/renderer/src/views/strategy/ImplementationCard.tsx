@@ -1,24 +1,30 @@
 import type { ReactElement } from 'react'
-import { Section } from '../../components/Section/Section'
+import type { ParameterSpec } from '../index-definition/ruleCatalogue'
 import type { BacktestOptions, StrategyDocument } from '../shared/strategyDocuments'
-import { BoundField, GroupFields, SpecList } from './SpecFields'
+import { SettingsEditor } from './SpecEditors'
+import { BoundField, GroupFields } from './SpecFields'
+import { SpecRows, type SpecGroup, type SpecRow } from './SpecRows'
+import { addTo, listRows } from './specRowBuilders'
+import { summariseValues } from './specSummary'
 import { withImplementation, type ImplementationSpec } from './strategyDraft'
 
 type Edit = (change: (current: StrategyDocument) => StrategyDocument) => void
 
-/** Settings that travel as one object each, in the order a trader meets them. */
-const GROUPS = [
+/** Settings that travel as one object each, under the group a trader meets them in. */
+const TRADING = [
   { key: 'minimum_position', title: 'Minimum position' },
   { key: 'execution', title: 'Execution limits' },
-  { key: 'impact', title: 'Market impact' },
-  { key: 'equitise', title: 'Equitise cash with futures' }
+  { key: 'impact', title: 'Market impact' }
 ] as const
 
+const FUTURES = [{ key: 'equitise', title: 'Equitise cash with futures' }] as const
+
 /**
- * How the strategy is carried out at the fund's size (BN-312): which names
- * may be held, how much of each, and what trading costs and allows. None of
- * it is the index's; all of it is why a fund's return differs from it, which
- * the Overview's Implementation face then reads back off the run.
+ * How the strategy is carried out at the fund's size (BN-312), drawn as
+ * Index Definition draws its methodology (Karan, 2026-10-19): which names
+ * may be held (screens), how much of each (caps), the fund's cash and
+ * flows, how it trades, and futures for its cash. Each is a row that opens
+ * its settings; screens and caps can be added, moved and removed.
  */
 export function ImplementationCard({
   document,
@@ -31,79 +37,119 @@ export function ImplementationCard({
 }): ReactElement {
   const implementation = document.implementation
   const settings = options?.implementation_settings ?? []
-  const scalars = settings.filter((param) => !param.name.includes('.'))
-
   const patch = (change: Partial<ImplementationSpec>): void => {
     onChange((current) => withImplementation(current, change))
   }
 
-  return (
-    <Section title="Implementation" className="strategy-card">
-      <h4 className="strategy-section-label type-11">Screens · which names may be held</h4>
-      <SpecList
-        label="Screen"
-        addLabel="Add screen"
-        catalogue={options?.screens ?? []}
-        specs={implementation?.screens ?? []}
-        onChange={(screens) => {
-          patch({ screens })
-        }}
-      />
+  const screens = implementation?.screens ?? []
+  const caps = implementation?.caps ?? []
+  const screenCatalogue = options?.screens ?? []
+  const capCatalogue = options?.caps ?? []
 
-      <h4 className="strategy-section-label type-11">Caps · how much of each</h4>
-      <SpecList
-        label="Cap"
-        addLabel="Add cap"
-        catalogue={options?.caps ?? []}
-        specs={implementation?.caps ?? []}
-        onChange={(caps) => {
-          patch({ caps })
-        }}
-      />
+  const groups: SpecGroup[] = [
+    {
+      key: 'screens',
+      label: 'Screens · which names may be held',
+      rows: listRows('screen', 'Screen', screenCatalogue, screens, (next) => {
+        patch({ screens: next })
+      }),
+      add: addTo('Add screen', 'screen', screenCatalogue, screens, (next) => {
+        patch({ screens: next })
+      })
+    },
+    {
+      key: 'caps',
+      label: 'Caps · how much of each',
+      rows: listRows('cap', 'Cap', capCatalogue, caps, (next) => {
+        patch({ caps: next })
+      }),
+      add: addTo('Add cap', 'cap', capCatalogue, caps, (next) => {
+        patch({ caps: next })
+      })
+    },
+    {
+      key: 'cash',
+      label: 'Cash and flows',
+      rows: [cashRow(settings, implementation, patch)]
+    },
+    {
+      key: 'trading',
+      label: 'Trading',
+      rows: TRADING.map((group) => groupRow(group, settings, implementation, patch))
+    },
+    {
+      key: 'futures',
+      label: 'Futures',
+      rows: FUTURES.map((group) => groupRow(group, settings, implementation, patch))
+    }
+  ]
 
-      <h4 className="strategy-section-label type-11">The book</h4>
-      <div className="strategy-form-row">
+  return <SpecRows title="Implementation" groups={groups} />
+}
+
+/** The fund's cash buffer, where removed weight goes, and what inflows buy. */
+function cashRow(
+  settings: readonly ParameterSpec[],
+  implementation: ImplementationSpec | null | undefined,
+  patch: (change: Partial<ImplementationSpec>) => void
+): SpecRow {
+  const scalars = settings.filter((param) => !param.name.includes('.'))
+  const values = (implementation ?? {}) as Record<string, unknown>
+  return {
+    id: 'cash',
+    badge: 'Cash and flows',
+    summary: summariseValues(scalars, values),
+    editor: (close) => (
+      <SettingsEditor onDone={close}>
         {scalars.map((param) => (
           <BoundField
             key={param.name}
             param={param}
-            value={scalarOf(implementation, param.name)}
+            value={values[param.name]}
             onChange={(value) => {
-              // Keyed by the catalogue's name, which is the spec's field.
               patch({ [param.name]: value ?? param.default })
             }}
           />
         ))}
-      </div>
-
-      {GROUPS.map((group) => (
-        <div key={group.key}>
-          <h4 className="strategy-section-label type-11">{group.title}</h4>
-          <div className="strategy-form-row">
-            <GroupFields
-              params={settings}
-              group={group.key}
-              value={groupOf(implementation, group.key)}
-              onChange={(value) => {
-                patch({ [group.key]: value })
-              }}
-            />
-          </div>
-        </div>
-      ))}
-    </Section>
-  )
+      </SettingsEditor>
+    )
+  }
 }
 
-function scalarOf(implementation: ImplementationSpec | null | undefined, name: string): unknown {
-  if (implementation == null) return undefined
-  return (implementation as Record<string, unknown>)[name]
+/** A group of settings that travel as one object, such as the execution limits. */
+function groupRow(
+  group: { key: string; title: string },
+  settings: readonly ParameterSpec[],
+  implementation: ImplementationSpec | null | undefined,
+  patch: (change: Partial<ImplementationSpec>) => void
+): SpecRow {
+  const value = groupOf(implementation, group.key)
+  const members = settings
+    .filter((param) => param.name.startsWith(`${group.key}.`))
+    .map((param) => ({ ...param, name: param.name.slice(group.key.length + 1) }))
+  return {
+    id: group.key,
+    badge: group.title,
+    summary: value === null ? 'Off' : summariseValues(members, value),
+    editor: (close) => (
+      <SettingsEditor onDone={close}>
+        <GroupFields
+          params={settings}
+          group={group.key}
+          value={value}
+          onChange={(next) => {
+            patch({ [group.key]: next })
+          }}
+        />
+      </SettingsEditor>
+    )
+  }
 }
 
 function groupOf(
   implementation: ImplementationSpec | null | undefined,
   key: string
 ): Record<string, unknown> | null {
-  const value = scalarOf(implementation, key)
+  const value = (implementation as Record<string, unknown> | null | undefined)?.[key]
   return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
 }

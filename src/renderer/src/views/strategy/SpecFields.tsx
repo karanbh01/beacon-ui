@@ -1,16 +1,6 @@
 import { useState, type ReactElement } from 'react'
-import { AddSlot } from '../../components/AddSlot/AddSlot'
-import { Button } from '../../components/Button/Button'
-import { Field } from '../../components/Field/Field'
-import { Select } from '../../components/Select/Select'
 import { ParamField } from '../index-definition/ParamField'
-import {
-  orderedParameters,
-  parseValue,
-  type ParameterSpec,
-  type TypeSpec
-} from '../index-definition/ruleCatalogue'
-import type { TypedSpec } from './strategyDraft'
+import { parseValue, type ParameterSpec } from '../index-definition/ruleCatalogue'
 
 /** A value as a field shows it; unset shows the catalogue's default. */
 function display(param: ParameterSpec, value: unknown): string {
@@ -61,116 +51,6 @@ function withParam(
 ): Record<string, unknown> {
   const rest = Object.fromEntries(Object.entries(params ?? {}).filter(([key]) => key !== name))
   return value === null ? rest : { ...rest, [name]: value }
-}
-
-/**
- * One typed spec — a replication, a signal, a construction — chosen from its
- * catalogue in `/backtest/options`, with its parameters as that catalogue
- * describes them. The same grammar as a rule in Index Definition.
- */
-export function SpecEditor({
-  label,
-  catalogue,
-  spec,
-  onChange,
-  noneLabel
-}: {
-  label: string
-  catalogue: readonly TypeSpec[]
-  spec: TypedSpec | null | undefined
-  onChange: (next: TypedSpec | null) => void
-  /** Offer no spec at all, named for what that means here. */
-  noneLabel?: string
-}): ReactElement {
-  const type = catalogue.find((entry) => entry.name === spec?.type)
-  return (
-    <div className="strategy-spec">
-      <div className="strategy-form-row">
-        <Field label={label} width={220}>
-          <Select
-            label={label}
-            options={[
-              ...(noneLabel === undefined ? [] : [{ value: '', label: noneLabel }]),
-              ...catalogue.map((entry) => ({ value: entry.name, label: entry.label }))
-            ]}
-            value={spec?.type ?? ''}
-            placeholder="Choose…"
-            onChange={(next) => {
-              // A new type starts from its own defaults: one type's
-              // parameters mean nothing to another.
-              onChange(next === '' ? null : { type: next, params: {} })
-            }}
-          />
-        </Field>
-        {spec != null &&
-          orderedParameters(type).map((param) => (
-            <BoundField
-              key={`${spec.type}.${param.name}`}
-              param={param}
-              value={spec.params?.[param.name]}
-              onChange={(value) => {
-                onChange({ ...spec, params: withParam(spec.params, param.name, value) })
-              }}
-            />
-          ))}
-      </div>
-      {type !== undefined && type.summary !== '' && (
-        <p className="strategy-note type-11">{type.summary}</p>
-      )}
-    </div>
-  )
-}
-
-/** Several typed specs of one catalogue: screens, caps, constraints. */
-export function SpecList({
-  label,
-  addLabel,
-  catalogue,
-  specs,
-  onChange
-}: {
-  label: string
-  addLabel: string
-  catalogue: readonly TypeSpec[]
-  specs: readonly TypedSpec[]
-  onChange: (next: TypedSpec[]) => void
-}): ReactElement {
-  return (
-    <div className="strategy-list">
-      {specs.map((spec, at) => (
-        // Keyed by place: a spec has no id of its own, and its type is editable.
-        <div key={at} className="strategy-list-row">
-          <SpecEditor
-            label={label}
-            catalogue={catalogue}
-            spec={spec}
-            onChange={(next) => {
-              onChange(
-                next === null
-                  ? specs.filter((_, index) => index !== at)
-                  : specs.map((entry, index) => (index === at ? next : entry))
-              )
-            }}
-          />
-          <Button
-            onClick={() => {
-              onChange(specs.filter((_, index) => index !== at))
-            }}
-          >
-            Remove
-          </Button>
-        </div>
-      ))}
-      <AddSlot
-        label={addLabel}
-        {...(catalogue.length === 0 ? { blocked: 'This engine lists none.' } : {})}
-        onClick={() => {
-          const first = catalogue[0]
-          if (first !== undefined) onChange([...specs, { type: first.name, params: {} }])
-        }}
-      />
-    </div>
-  )
 }
 
 /**
