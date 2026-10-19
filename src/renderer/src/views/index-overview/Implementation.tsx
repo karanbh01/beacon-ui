@@ -56,7 +56,9 @@ export function Implementation({ strategyId }: { strategyId: string }): ReactEle
   if (result.isPending) return <ViewLoading what="the run" />
   if (result.isError) {
     return isAbsent(result.error) ? (
-      <ViewEmpty>This strategy has no run to read the implementation of yet.</ViewEmpty>
+      <ViewEmpty figure="drawer">
+        This strategy has no run yet. Backtest it to see how it was implemented.
+      </ViewEmpty>
     ) : (
       <ViewError error={result.error} />
     )
@@ -111,6 +113,7 @@ export function Implementation({ strategyId }: { strategyId: string }): ReactEle
               ...UNFILLED_COLUMNS
             ]}
             headerAction={<HoldingColumnsButton table={TABLE} />}
+            queryable
             rows={unfilled}
             getRowId={(order) => `${order.date}:${order.asset_id}`}
             maxBodyHeight={320}
@@ -136,6 +139,7 @@ export function Implementation({ strategyId }: { strategyId: string }): ReactEle
               ...GAP_COLUMNS
             ]}
             headerAction={<HoldingColumnsButton table={TABLE} />}
+            queryable
             rows={gaps}
             getRowId={(gap) => `${gap.date}:${gap.asset_id}`}
             maxBodyHeight={240}
@@ -297,7 +301,8 @@ const UNFILLED_DATE: Column<Unfilled> = {
   key: 'date',
   header: 'Rebalance',
   width: 110,
-  render: (order) => order.date
+  render: (order) => order.date,
+  value: (order) => order.date
 }
 
 const UNFILLED_COLUMNS: readonly Column<Unfilled>[] = [
@@ -306,41 +311,58 @@ const UNFILLED_COLUMNS: readonly Column<Unfilled>[] = [
     header: 'Requested',
     width: 110,
     align: 'right',
-    render: (order) => quantity(order.requested_quantity)
+    render: (order) => quantity(order.requested_quantity),
+    value: (order) => order.requested_quantity
   },
   {
     key: 'filled',
     header: 'Filled',
     width: 110,
     align: 'right',
-    render: (order) => quantity(order.filled_quantity)
+    render: (order) => quantity(order.filled_quantity),
+    value: (order) => order.filled_quantity
   },
   {
     key: 'ratio',
     header: 'Filled %',
     width: 80,
     align: 'right',
-    render: (order) => percent(fromFraction(fillRatio(order)), 1)
+    render: (order) => percent(fromFraction(fillRatio(order)), 1),
+    value: (order) => fromFraction(fillRatio(order))
   },
   {
     key: 'shortfall',
     header: 'Short by',
     width: 110,
     align: 'right',
-    render: (order) => <CompactMoney value={order.shortfall_value} />
+    render: (order) => <CompactMoney value={order.shortfall_value} />,
+    value: (order) => order.shortfall_value
   },
-  { key: 'reason', header: 'Why', width: 120, render: (order) => order.reason }
+  {
+    key: 'reason',
+    header: 'Why',
+    width: 120,
+    render: (order) => order.reason,
+    value: (order) => order.reason
+  }
 ]
 
 const GAP_DATE: Column<PriceGap> = {
   key: 'date',
   header: 'Day',
   width: 110,
-  render: (gap) => gap.date
+  render: (gap) => gap.date,
+  value: (gap) => gap.date
 }
 
 const GAP_COLUMNS: readonly Column<PriceGap>[] = [
-  { key: 'from', header: 'Priced from', width: 110, render: (gap) => gap.priced_from }
+  {
+    key: 'from',
+    header: 'Priced from',
+    width: 110,
+    render: (gap) => gap.priced_from,
+    value: (gap) => gap.priced_from
+  }
 ]
 
 const REPLICATION_COLUMNS: readonly Column<Replication>[] = [

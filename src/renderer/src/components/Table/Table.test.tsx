@@ -31,7 +31,7 @@ describe('Weights table (BU-12 acceptance)', () => {
 
     expect(headers[0]).not.toHaveClass('tbl-right') // Ticker
     expect(headers[3]).toHaveClass('tbl-right') // Weight
-    expect(headers[6]).toHaveClass('tbl-right') // Δ since rebal
+    expect(headers[6]).toHaveClass('tbl-right') // Weight Drift
   })
 
   it('colours signed drift, leaving zero neutral', () => {
@@ -239,5 +239,96 @@ describe('column groups, as py-beacon heads them (Karan, 2026-10-19)', () => {
     const { container } = renderWeights()
 
     expect(container.querySelector('.tbl-groups')).toBeNull()
+  })
+})
+
+describe('a queryable table (Karan, 2026-10-19)', () => {
+  interface Name {
+    ticker: string
+    weight: number
+  }
+  const columns = [
+    {
+      key: 'ticker',
+      header: 'Ticker',
+      width: 80,
+      render: (row: Name) => row.ticker,
+      value: (row: Name) => row.ticker
+    },
+    {
+      key: 'weight',
+      header: 'Weight',
+      width: 80,
+      align: 'right' as const,
+      render: (row: Name) => `${String(row.weight)}%`,
+      value: (row: Name) => row.weight
+    }
+  ]
+  const rows: Name[] = [
+    { ticker: 'AAA', weight: 4 },
+    { ticker: 'BBB', weight: 12 },
+    { ticker: 'CCC', weight: 8 }
+  ]
+  const shown = (container: HTMLElement): string[] =>
+    [...container.querySelectorAll('.tbl-body .tbl-row')].map(
+      (row) => row.querySelector('[role="cell"]')?.textContent ?? ''
+    )
+
+  it('sorts from the column name, and says it is sorting', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <Table columns={columns} rows={rows} getRowId={(row) => row.ticker} queryable />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Sort and filter Weight' }))
+    await user.click(screen.getByRole('button', { name: 'Sort descending' }))
+
+    expect(shown(container)).toEqual(['BBB', 'CCC', 'AAA'])
+    expect(screen.getByRole('button', { name: 'Sort and filter Weight' }).textContent).toContain(
+      '▼'
+    )
+  })
+
+  it('filters a number column by range, and says how many rows it shows', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <Table columns={columns} rows={rows} getRowId={(row) => row.ticker} queryable />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Sort and filter Weight' }))
+    await user.type(screen.getByRole('textbox', { name: 'At least' }), '5')
+
+    expect(shown(container)).toEqual(['BBB', 'CCC'])
+    expect(screen.getByText(/2 of 3 rows/)).toBeInTheDocument()
+    // A filtered column's name is in italics, with no mark beside it.
+    const name = screen.getByRole('button', { name: 'Sort and filter Weight' })
+    expect(name).toHaveClass('tbl-head-filtered')
+    expect(name.textContent).toBe('Weight')
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(shown(container)).toHaveLength(3)
+  })
+
+  it("clears a column's filter and its sort together from the menu", async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <Table columns={columns} rows={rows} getRowId={(row) => row.ticker} queryable />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Sort and filter Weight' }))
+    await user.click(screen.getByRole('button', { name: 'Sort descending' }))
+    await user.type(screen.getByRole('textbox', { name: 'At least' }), '5')
+    expect(shown(container)).toEqual(['BBB', 'CCC'])
+
+    await user.click(screen.getByRole('button', { name: 'Clear' }))
+
+    expect(shown(container)).toEqual(['AAA', 'BBB', 'CCC'])
+    expect(screen.getByRole('textbox', { name: 'At least' })).toHaveValue('')
+    expect(screen.queryByText(/of 3 rows/)).toBeNull()
+  })
+
+  it('offers no menu on a table that is not queryable', () => {
+    render(<Table columns={columns} rows={rows} getRowId={(row) => row.ticker} />)
+    expect(screen.queryByRole('button', { name: 'Sort and filter Weight' })).toBeNull()
   })
 })

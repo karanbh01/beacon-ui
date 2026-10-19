@@ -172,6 +172,7 @@ export function WatchlistView({ tab, pane }: ViewProps): ReactElement {
                 ...COLUMNS
               ]}
               headerAction={<HoldingColumnsButton table={TABLE} />}
+              queryable
               rows={rows}
               getRowId={(row) => row.ticker}
               onSelectRow={(row) => {

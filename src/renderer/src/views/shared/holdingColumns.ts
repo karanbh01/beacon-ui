@@ -66,13 +66,27 @@ export function holdingColumns<T>(
   ticker: Partial<Column<T>> = {}
 ): Column<T>[] {
   return [
-    { key: 'ticker', header: 'Ticker', width: 80, emphasis: true, render: tickerOf, ...ticker },
+    {
+      key: 'ticker',
+      header: 'Ticker',
+      width: 80,
+      emphasis: true,
+      render: tickerOf,
+      value: tickerOf,
+      ...ticker
+    },
     ...columns.map((column): Column<T> => ({
       key: `reference-${column.key}`,
       header: column.label,
       width: widthOf(column.key),
+      // How far a table that fits its pane may narrow it (BU-226).
+      minWidth: column.key === 'name' ? 120 : 64,
       wrapHeader: true,
-      render: (row) => formatReference(referenceOf(row)?.[column.key])
+      render: (row) => formatReference(referenceOf(row)?.[column.key]),
+      value: (row) => {
+        const raw = referenceOf(row)?.[column.key]
+        return typeof raw === 'number' ? raw : formatReference(raw)
+      }
     }))
   ]
 }

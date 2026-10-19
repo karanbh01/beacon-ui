@@ -26,16 +26,18 @@ const TABLE = 'attribution'
 const COLUMNS: readonly Column<AttributionRow>[] = [
   {
     key: 'weight',
-    header: 'Avg weight',
+    header: 'Average Weight',
     width: 100,
     align: 'right',
-    render: (row) => percent(row.averageWeight * 100)
+    render: (row) => percent(row.averageWeight * 100),
+    value: (row) => row.averageWeight * 100
   },
   {
     key: 'return',
     header: 'Asset return',
     width: 110,
     align: 'right',
+    value: (row) => row.assetReturn * 100,
     render: (row) => (
       <span className={`tone-${tone(row.assetReturn)}`}>
         {signedPercent(row.assetReturn * 100)}
@@ -47,6 +49,7 @@ const COLUMNS: readonly Column<AttributionRow>[] = [
     header: 'Contribution',
     width: 110,
     align: 'right',
+    value: (row) => row.contribution * 100,
     render: (row) => (
       <span className={`tone-${tone(row.contribution)}`}>
         {signedPercent(row.contribution * 100, 2)}
@@ -58,7 +61,8 @@ const COLUMNS: readonly Column<AttributionRow>[] = [
     header: '% of total',
     width: 90,
     align: 'right',
-    render: (row) => percent(row.shareOfTotal)
+    render: (row) => percent(row.shareOfTotal),
+    value: (row) => row.shareOfTotal
   },
   {
     key: 'bar',
@@ -134,7 +138,7 @@ export function AttributionView({ tab, subject }: ViewProps): ReactElement {
       </PaneHeader>
 
       {strategyId === '' && (
-        <ViewEmpty>Name a strategy in Overview — this pane follows it.</ViewEmpty>
+        <ViewEmpty figure="ticker">Choose a strategy in Overview. This tab follows it.</ViewEmpty>
       )}
       {attribution.isPending && strategyId !== '' && <ViewLoading what={strategyId} />}
       {attribution.isError && <ViewError error={attribution.error} />}
@@ -187,6 +191,7 @@ export function AttributionView({ tab, subject }: ViewProps): ReactElement {
               ...COLUMNS
             ]}
             headerAction={<HoldingColumnsButton table={TABLE} />}
+            queryable
             rows={rows}
             getRowId={(row) => row.ticker}
             maxBodyHeight={560}
@@ -208,7 +213,7 @@ export function AttributionView({ tab, subject }: ViewProps): ReactElement {
       )}
 
       {view?.reconciles === true && rows.length === 0 && (
-        <ViewEmpty>No contributions in this period.</ViewEmpty>
+        <ViewEmpty figure="plot">No contributions in this period.</ViewEmpty>
       )}
     </div>
   )

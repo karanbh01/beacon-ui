@@ -1,0 +1,65 @@
+/* A column name with more to say: a dotted underline says so. */
+.header-tip-anchor {
+  cursor: help;
+  text-decoration: underline dotted var(--text-muted);
+  text-underline-offset: 3px;
+}
+
+.header-tip-anchor:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/*
+ * The popover glass, as the chart's hover popup and py-beacon's draw it:
+ * a translucent fill blurring what is behind, a half-pixel edge, a 2px
+ * radius and a soft shadow.
+ */
+.header-tip {
+  position: fixed;
+  z-index: 60;
+  max-width: 290px;
+  padding: 7px 9px;
+  pointer-events: none;
+  background: var(--glass);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 2px;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+  backdrop-filter: blur(3px);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 300;
+  line-height: 1.4;
+  color: var(--text-primary);
+  white-space: normal;
+  text-align: left;
+}
+
+.header-tip-title {
+  margin-bottom: 2px;
+  font-weight: 400;
+}
+
+.header-tip-kind {
+  color: var(--text-secondary);
+}
+
+.header-tip-text {
+  margin: 4px 0 0;
+}
+
+.header-tip-params {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 10px;
+  margin: 5px 0 0;
+}
+
+.header-tip-params dt {
+  color: var(--text-secondary);
+}
+
+.header-tip-params dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

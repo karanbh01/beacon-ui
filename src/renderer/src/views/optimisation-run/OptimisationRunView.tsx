@@ -36,7 +36,14 @@ function columnsFor(
   reference: readonly ReferenceColumn[]
 ): Column<WeightRow>[] {
   return [
-    { key: 'rank', header: '#', width: 36, align: 'right', render: (row) => String(row.rank) },
+    {
+      key: 'rank',
+      header: '#',
+      width: 36,
+      align: 'right',
+      render: (row) => String(row.rank),
+      value: (row) => row.rank
+    },
     ...holdingColumns<WeightRow>((row) => row.ticker, referenceOf, reference),
     ...WEIGHT_COLUMNS
   ]
@@ -45,10 +52,11 @@ function columnsFor(
 const WEIGHT_COLUMNS: readonly Column<WeightRow>[] = [
   {
     key: 'weight',
-    header: 'Optimal w',
+    header: 'Optimal Weight',
     width: 100,
     align: 'right',
-    render: (row) => `${(row.weight * 100).toFixed(2)}%`
+    render: (row) => `${(row.weight * 100).toFixed(2)}%`,
+    value: (row) => row.weight * 100
   },
   {
     key: 'bar',
@@ -175,7 +183,7 @@ export function OptimisationRunView({ tab, subject, pane }: ViewProps): ReactEle
       )}
 
       {runId === '' && running === undefined && (
-        <ViewEmpty>No optimisation run yet in this session.</ViewEmpty>
+        <ViewEmpty figure="drawer">No optimisation run yet in this session.</ViewEmpty>
       )}
 
       {frontier.isSuccess && tangency !== undefined && (
@@ -214,6 +222,7 @@ export function OptimisationRunView({ tab, subject, pane }: ViewProps): ReactEle
             <Table
               columns={columnsFor(referenceOf, reference.columns)}
               headerAction={<HoldingColumnsButton table={TABLE} />}
+              queryable
               rows={rows}
               getRowId={(row) => row.ticker}
               maxBodyHeight={480}

@@ -1,6 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactElement, ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { HeaderTip } from './HeaderTip'
+import { TableMenu } from './TableMenu'
+import {
+  applyQuery,
+  isFiltered,
+  narrows,
+  NO_QUERY,
+  withFilter,
+  withSort,
+  type CellValue,
+  type TableQuery
+} from './tableQuery'
 import './Table.css'
 
 /*
@@ -42,6 +54,16 @@ export interface Column<T> {
    * second group.
    */
   group?: string
+  /**
+   * More about the column, shown on hover over its name in a frosted popup:
+   * what a rule or screen is and what it does (Karan, 2026-10-19).
+   */
+  tip?: ReactNode
+  /**
+   * The value this column sorts and filters on, in the units it shows, in a
+   * table that is `queryable`. A column without one can be neither.
+   */
+  value?: (row: T) => CellValue
   /** Regular weight in primary: identity and headline columns. Aligns as text. */
   emphasis?: boolean
   /**
@@ -109,6 +131,12 @@ export interface TableProps<T> {
    * table, so every table puts it in the same place.
    */
   headerAction?: ReactNode
+  /**
+   * Sorting and filtering from each column's name (Karan, 2026-10-19), for a
+   * results table. Applied to the rows already here; nothing is asked of the
+   * engine.
+   */
+  queryable?: boolean
   caption?: string
   className?: string
 }
@@ -212,7 +240,7 @@ function cellClasses<T>(column: Column<T>, header = false): string {
  */
 export function Table<T>({
   columns,
-  rows,
+  rows: allRows,
   getRowId,
   selectedId,
   onSelectRow,
@@ -224,6 +252,7 @@ export function Table<T>({
   minColumns,
   renderHeader,
   headerAction,
+  queryable = false,
   caption,
   className
 }: TableProps<T>): ReactElement {
@@ -231,6 +260,12 @@ export function Table<T>({
   const headRef = useRef<HTMLDivElement>(null)
   const groupRef = useRef<HTMLDivElement>(null)
   const totalRef = useRef<HTMLDivElement>(null)
+  const [query, setQuery] = useState<TableQuery>(NO_QUERY)
+  const [menu, setMenu] = useState<{ key: string; anchor: HTMLElement } | undefined>(undefined)
+  const rows = useMemo(() => {
+    if (!queryable) return allRows
+    return applyQuery(allRows, (key) => columns.find((column) => column.key === key)?.value, query)
+  }, [allRows, columns, query, queryable])
   const virtualize = rows.length > VIRTUALIZE_ABOVE
 
   /*
@@ -300,6 +335,40 @@ export function Table<T>({
       ? 0
       : Math.min(widthOf(columns, minColumns), floorOf(columns))
     : floor
+
+  /*
+   * A column's name: its own, or the caller's render of it; with its hover
+   * detail where it has one; and, in a queryable table, a button that opens
+   * its sort-and-filter menu, marked when it is sorting or filtering.
+   */
+  const headLabel = (column: Column<T>): ReactNode => {
+    const own = renderHeader === undefined ? column.header : renderHeader(column)
+    const named = column.tip === undefined ? own : <HeaderTip tip={column.tip}>{own}</HeaderTip>
+    if (!queryable || column.value === undefined) return named
+
+    const sorted = query.sort?.key === column.key ? query.sort.direction : undefined
+    const filtered = narrows(query.filters[column.key])
+    return (
+      <button
+        type="button"
+        // A filtered column's name is italic, in the accent (Karan, 2026-10-19).
+        className={filtered ? 'tbl-head-button tbl-head-filtered' : 'tbl-head-button'}
+        aria-label={`Sort and filter ${typeof column.header === 'string' ? column.header : column.key}`}
+        onClick={(event) => {
+          const anchor = event.currentTarget.closest<HTMLElement>('[role="columnheader"]')
+          if (anchor === null) return
+          setMenu(menu?.key === column.key ? undefined : { key: column.key, anchor })
+        }}
+      >
+        {named}
+        {sorted !== undefined && (
+          <span className="tbl-head-mark" aria-hidden="true">
+            {sorted === 'asc' ? '▲' : '▼'}
+          </span>
+        )}
+      </button>
+    )
+  }
 
   const renderRow = (row: T, offset?: number): ReactElement => {
     const id = getRowId(row)
@@ -397,11 +466,35 @@ export function Table<T>({
             style={cellStyle(column, fillWidth)}
             role="columnheader"
           >
-            {renderHeader === undefined ? column.header : renderHeader(column)}
+            {headLabel(column)}
           </div>
         ))}
         {headerAction !== undefined && <div className="tbl-head-action">{headerAction}</div>}
       </div>
+
+      {menu !== undefined && (
+        <TableMenu
+          anchor={menu.anchor}
+          values={allRows.map((row) => columns.find((each) => each.key === menu.key)?.value?.(row))}
+          filter={query.filters[menu.key]}
+          sort={query.sort?.key === menu.key ? query.sort.direction : undefined}
+          // From the latest query, so two changes in one click both hold.
+          onFilter={(filter) => {
+            setQuery((latest) => withFilter(latest, menu.key, filter))
+          }}
+          onSort={(direction) => {
+            setQuery((latest) => withSort(latest, menu.key, direction))
+          }}
+          onClear={() => {
+            setQuery((latest) =>
+              withSort(withFilter(latest, menu.key, undefined), menu.key, undefined)
+            )
+          }}
+          onClose={() => {
+            setMenu(undefined)
+          }}
+        />
+      )}
 
       <div
         className="tbl-body"
@@ -439,6 +532,21 @@ export function Table<T>({
               {totalRow[column.key]}
             </div>
           ))}
+        </div>
+      )}
+
+      {queryable && isFiltered(query) && (
+        <div className="tbl-filtered">
+          {rows.length.toLocaleString('en-US')} of {allRows.length.toLocaleString('en-US')} rows
+          <button
+            type="button"
+            className="table-menu-option"
+            onClick={() => {
+              setQuery(query.sort === undefined ? NO_QUERY : { ...NO_QUERY, sort: query.sort })
+            }}
+          >
+            Clear filters
+          </button>
         </div>
       )}
     </div>

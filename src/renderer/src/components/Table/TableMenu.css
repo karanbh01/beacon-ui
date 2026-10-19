@@ -1,0 +1,120 @@
+/* A results table's sort-and-filter menu, in the app's popover glass. */
+.table-menu {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 220px;
+  padding: 8px;
+  background: var(--glass);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 2px;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+  backdrop-filter: blur(3px);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.table-menu-sort,
+.table-menu-footer {
+  display: flex;
+  gap: 4px;
+}
+
+.table-menu-footer {
+  justify-content: flex-end;
+}
+
+.table-menu-option {
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  font: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.table-menu-option:hover {
+  background: var(--divider);
+  color: var(--text-primary);
+}
+
+.table-menu-on {
+  color: var(--accent);
+}
+
+.table-menu-range {
+  display: flex;
+  gap: 6px;
+}
+
+.table-menu-input {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  font: inherit;
+  color: var(--text-primary);
+}
+
+.table-menu-input:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.table-menu-ticks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* A column name that opens the menu, and what it is doing to the table. */
+.tbl-head-button {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.tbl-head-button:hover {
+  color: var(--text-primary);
+}
+
+/* A filtered column's name: italic, in the accent (Karan, 2026-10-19). */
+.tbl-head-filtered,
+.tbl-head-filtered:hover {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.tbl-head-mark {
+  flex: none;
+  color: var(--accent);
+}
+
+/* Under a filtered table: how many rows it shows of how many. */
+.tbl-filtered {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 4px 0;
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--text-secondary);
+}

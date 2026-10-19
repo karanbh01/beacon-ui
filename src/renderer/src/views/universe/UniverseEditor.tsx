@@ -86,14 +86,16 @@ const SIZE_COLUMNS: readonly Column<UniverseRow>[] = [
     header: <MoneyHeader label="FF Mkt Cap" currency="USD" />,
     width: 120,
     align: 'right',
-    render: (row) => <Money value={row.marketCap} />
+    render: (row) => <Money value={row.marketCap} />,
+    value: (row) => row.marketCap
   },
   {
     key: 'adv',
     header: 'ADV 3M',
     width: 100,
     align: 'right',
-    render: (row) => <Count value={row.adv} />
+    render: (row) => <Count value={row.adv} />,
+    value: (row) => row.adv
   }
 ]
 
@@ -273,6 +275,7 @@ export function UniverseEditor({
           <Table
             columns={columnsFor(referenceOf, reference.columns)}
             headerAction={<HoldingColumnsButton table={TABLE} />}
+            queryable
             rows={tableRows}
             getRowId={(row) => row.ticker}
             maxBodyHeight={320}

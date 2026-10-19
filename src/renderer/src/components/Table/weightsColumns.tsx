@@ -36,7 +36,7 @@ export const WEIGHTS_COLUMNS: readonly Column<Constituent>[] = [
   },
   {
     key: 'delta',
-    header: 'Δ since rebal',
+    header: 'Weight Drift',
     width: 105,
     align: 'right',
     render: (r) => <DeltaCell value={r.delta} />
