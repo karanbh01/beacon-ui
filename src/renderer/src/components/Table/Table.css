@@ -1,28 +1,30 @@
-/* Taxonomy 9; measured against the Weights table 355:2331. */
+/*
+ * py-beacon's "lines" table style (Karan, 2026-10-18; beacon/plot/tables).
+ * No box, no stripes, no column rules: a rule under the column names and
+ * under the last row in text-secondary, and divider rules between rows.
+ */
 
 .tbl {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
   overflow: hidden;
+  font-family: var(--font-data);
 }
 
 .tbl-caption {
   display: block;
   padding: 10px 16px 0;
-  font-family: var(--font-ui);
+  font-family: var(--font-data);
   font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.4px;
-  color: var(--text-muted);
+  font-weight: 300;
+  color: var(--text-secondary);
 }
 
+.tbl-groups,
 .tbl-head,
 .tbl-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 16px;
+  padding: 0 var(--tbl-end, 4px) 0 4px;
   /*
    * As wide as the cells inside it, not as wide as the card (BU-153).
    *
@@ -31,6 +33,46 @@
    * reaches, and everything past that would sit on bare surface.
    */
   min-width: max-content;
+}
+
+/* A control at the right end of the column names, over the last column's padding. */
+.tbl-head-action {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+}
+
+/*
+ * Column group headings over the column names, as py-beacon sets them:
+ * Regular, centred, at the values' size, with a divider rule under each
+ * named group. The rule stops short at the left, so two groups side by side
+ * read as two.
+ */
+.tbl-groups {
+  position: relative;
+  z-index: 2;
+  min-height: 20px;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.tbl-group {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tbl-group-named {
+  background: linear-gradient(var(--divider), var(--divider)) no-repeat right bottom /
+    calc(100% - 12px) 1px;
 }
 
 /* A header cell may hang a menu off itself (BU-148), which needs somewhere
@@ -48,10 +90,10 @@
    * rather than as a first row that lost its numbers (BU-140). Our rows are
    * the taxonomy's 28, so the head takes the same proportion above them.
    */
-  /* At least 32, and taller only when a wrapping label needs a second line. */
-  min-height: 32px;
-  border-bottom: 1px solid var(--divider);
-  font-family: var(--font-ui);
+  /* At least a row's height, and taller only when a label wraps. */
+  min-height: 24px;
+  border-bottom: 1px solid var(--text-secondary);
+  font-family: var(--font-data);
   /*
    * The values' size, not a size below it (BU-150).
    *
@@ -59,24 +101,29 @@
    * under it; at 10px against 11px values the difference read as an
    * afterthought rather than as a hierarchy.
    */
-  font-size: 11px;
-  font-weight: 500;
-  line-height: normal;
-  color: var(--text-muted);
-}
-
-.tbl-row {
-  height: 28px;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 400;
+  font-size: 10px;
+  font-weight: 300;
   line-height: normal;
   color: var(--text-secondary);
 }
 
-/* Zebra is a canvas fill over the surface card, not a separate grey. */
-.tbl-zebra {
-  background: var(--canvas);
+.tbl-row {
+  height: 22px;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 300;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+/* A divider rule above every row but the first. */
+.tbl-row + .tbl-row {
+  box-shadow: inset 0 1px 0 var(--divider);
+}
+
+/* And a text-secondary rule under the last, closing the table. */
+.tbl-body {
+  border-bottom: 1px solid var(--text-secondary);
 }
 
 .tbl-cell {
@@ -97,28 +144,41 @@
   -webkit-box-orient: vertical;
 }
 
-/* Numerics right-align so decimal points stack. */
+/* Numbers centred under their column name, as py-beacon sets them. */
 .tbl-right {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-.tbl-emphasis {
-  font-weight: 500;
+/*
+ * Identity and headline columns: Regular, aligned as the text they are.
+ * Values only: their column name is a heading like any other.
+ */
+.tbl-row .tbl-emphasis {
+  font-weight: 400;
   color: var(--text-primary);
+}
+
+/* A table of figures' row names: right-aligned against the figures they name. */
+.tbl-row-name {
+  text-align: right;
 }
 
 .tbl-clickable {
   cursor: pointer;
 }
 
-/*
- * Selection is a full-row wash — never a chip, never a border highlight
- * (taxonomy 5). It sits after .tbl-zebra so it wins on alternating rows.
- */
-.tbl-selected,
-.tbl-selected.tbl-zebra {
+/* Selection is a full-row wash — never a chip, never a border highlight (taxonomy 5). */
+.tbl-selected {
   background: var(--sidebar-active-bg);
+}
+
+/*
+ * The row under the pointer, filled in py-beacon's stripe colour, so a row
+ * can be read across without losing it. A selected row keeps its own wash.
+ */
+.tbl-body .tbl-row:hover:not(.tbl-selected) {
+  background: var(--divider);
 }
 
 /* Totals are divided from the body above and carry Medium weight. */
@@ -180,11 +240,13 @@
   border-radius: 1.5px;
 }
 
-/* Signed numerics in tables (taxonomy 9). */
-.num-pos {
+/* Signed numerics in tables (taxonomy 9), by either name the cells use. */
+.num-pos,
+.tbl .tone-positive {
   color: var(--success);
 }
 
-.num-neg {
+.num-neg,
+.tbl .tone-negative {
   color: var(--danger);
 }

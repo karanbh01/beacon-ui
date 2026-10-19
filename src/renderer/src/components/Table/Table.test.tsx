@@ -43,12 +43,11 @@ describe('Weights table (BU-12 acceptance)', () => {
     expect(screen.getAllByText('0.00').length).toBeGreaterThan(0)
   })
 
-  it('zebras alternate rows via canvas', () => {
+  it('draws no stripes: rows are ruled, in the py-beacon lines style', () => {
     const { container } = renderWeights()
     const rows = container.querySelectorAll('.tbl-row')
 
-    expect(rows[0]).not.toHaveClass('tbl-zebra')
-    expect(rows[1]).toHaveClass('tbl-zebra')
+    expect(rows[1]).not.toHaveClass('tbl-zebra')
   })
 
   it('renders a top-divided total row', () => {
@@ -63,13 +62,11 @@ describe('Weights table (BU-12 acceptance)', () => {
 })
 
 describe('selection', () => {
-  it('washes the whole row, and beats the zebra fill', () => {
+  it('washes the whole row', () => {
     const { container } = renderWeights({ selectedId: 'MSFT', onSelectRow: vi.fn() })
     const rows = container.querySelectorAll('.tbl-row')
 
-    // MSFT is index 1, which is also a zebra row.
     expect(rows[1]).toHaveClass('tbl-selected')
-    expect(rows[1]).toHaveClass('tbl-zebra')
   })
 
   it('reports the clicked row', async () => {
@@ -169,7 +166,7 @@ describe('a table that fills its pane (BU-153)', () => {
     // Three columns, the two gaps between them and the card's own padding.
     const three = WEIGHTS_COLUMNS.slice(0, 3).reduce((sum, column) => sum + column.width, 0)
     expect(card.style.width).toBe('100%')
-    expect(card.style.minWidth).toBe(`${String(three + 32 + 20)}px`)
+    expect(card.style.minWidth).toBe(`${String(three + 8 + 20)}px`)
   })
 
   it('asks for room for every column when no floor is named', () => {
@@ -177,7 +174,7 @@ describe('a table that fills its pane (BU-153)', () => {
     const card = container.querySelector<HTMLElement>('.tbl')!
     const all = WEIGHTS_COLUMNS.reduce((sum, column) => sum + column.width, 0)
 
-    expect(card.style.minWidth).toBe(`${String(all + 32 + (WEIGHTS_COLUMNS.length - 1) * 10)}px`)
+    expect(card.style.minWidth).toBe(`${String(all + 8 + (WEIGHTS_COLUMNS.length - 1) * 10)}px`)
   })
 
   it('carries the head sideways with the body, or the labels lie', () => {
@@ -190,5 +187,57 @@ describe('a table that fills its pane (BU-153)', () => {
     fireEvent.scroll(body)
 
     expect(head.style.transform).toBe('translateX(-120px)')
+  })
+})
+
+describe('column groups, as py-beacon heads them (Karan, 2026-10-19)', () => {
+  interface Stat {
+    name: string
+    own: string
+    rel: string
+  }
+  const figure = (key: keyof Stat, header: string, group?: string) => ({
+    key,
+    header,
+    width: 100,
+    align: 'right' as const,
+    ...(group === undefined ? {} : { group }),
+    render: (row: Stat) => row[key]
+  })
+  const columns = [
+    figure('name', 'Statistic'),
+    figure('own', 'Performance', 'Index'),
+    figure('rel', 'Rel. Performance', 'Index'),
+    figure('own', 'Performance', 'Benchmark'),
+    figure('rel', 'Rel. Performance', 'Benchmark')
+  ].map((column, index) => ({ ...column, key: `${column.key}-${String(index)}` }))
+  const rows = [{ name: 'Total return', own: '+45.57%', rel: '+3.10%' }]
+
+  it('puts one heading over each run of neighbouring columns in a group', () => {
+    const { container } = render(
+      <Table columns={columns} rows={rows} getRowId={(row) => row.name} />
+    )
+    const named = [...container.querySelectorAll('.tbl-group-named')].map(
+      (cell) => cell.textContent
+    )
+
+    expect(named).toEqual(['Index', 'Benchmark'])
+    // The ungrouped first column still has its place, so the headings line up.
+    expect(container.querySelectorAll('.tbl-group')).toHaveLength(3)
+  })
+
+  it('spans a heading across its columns and the gap between them', () => {
+    const { container } = render(
+      <Table columns={columns} rows={rows} getRowId={(row) => row.name} />
+    )
+    const index = container.querySelector<HTMLElement>('.tbl-group-named')!
+
+    expect(index.style.width).toBe('210px')
+  })
+
+  it('adds no heading row to a table without groups', () => {
+    const { container } = renderWeights()
+
+    expect(container.querySelector('.tbl-groups')).toBeNull()
   })
 })

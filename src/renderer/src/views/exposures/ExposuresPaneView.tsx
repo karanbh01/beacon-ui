@@ -35,7 +35,14 @@ export function ExposuresPaneView({ subject }: ViewProps): ReactElement {
 
   const columns = useMemo<Column<ExposureRow>[]>(
     () => [
-      { key: 'factor', header: 'Factor', width: 160, emphasis: true, render: (row) => row.factor },
+      {
+        key: 'factor',
+        header: 'Factor',
+        width: 160,
+        emphasis: true,
+        rowName: true,
+        render: (row) => row.factor
+      },
       {
         key: 'portfolio',
         header: 'Portfolio',
