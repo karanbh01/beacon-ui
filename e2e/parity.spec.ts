@@ -91,36 +91,39 @@ const TAB_STRIP: Anchor[] = [
 
 const HOME: Anchor[] = [
   {
-    what: 'title left (40:242)',
-    measure: `document.querySelector('.home-title').getBoundingClientRect().left`,
+    // The header card starts where the frame's title did (Karan, 2026-10-19).
+    what: 'header card left (40:242)',
+    measure: `document.querySelector('.home-banner').getBoundingClientRect().left`,
     expected: 114
   },
   {
-    what: 'title top (40:242)',
-    measure: `document.querySelector('.home-title').getBoundingClientRect().top`,
-    expected: 118,
+    what: 'header card top (40:242)',
+    measure: `document.querySelector('.home-banner').getBoundingClientRect().top`,
+    expected: 86,
     tolerance: 14
   },
   {
-    what: 'changelog left (40:295)',
-    measure: `document.querySelector('.home-changelog').getBoundingClientRect().left`,
-    expected: 841.6,
-    tolerance: 2
+    // The content starts where Home does (Karan, 2026-10-19).
+    what: 'content left = Home left',
+    measure: `document.querySelector('.home-section').getBoundingClientRect().left -
+      document.querySelector('.home-banner-title').getBoundingClientRect().left`,
+    expected: 0
   },
   {
     // Not the frame's 238 since BU-223, and on the right edge since BU-224,
     // by Karan's call: release summaries are sentences, and beside the main
-    // column it floated mid-page. Its right edge is the date's — measured
-    // against the date itself, so the anchor holds whatever the window.
+    // column it floated mid-page. It ends where the header card's date does,
+    // measured against the date, so the anchor holds whatever the window.
     what: 'changelog right edge = date right edge (BU-224)',
     measure: `document.querySelector('.home-changelog').getBoundingClientRect().right -
-      document.querySelector('.home-date').getBoundingClientRect().right`,
+      document.querySelector('.home-banner-date').getBoundingClientRect().right`,
     expected: 0
   },
   {
-    what: 'guide card width (71:188)',
+    // Three across the content, which lost the frame's wider right inset.
+    what: 'guide card width',
     measure: `document.querySelector('.home-guide-card').getBoundingClientRect().width`,
-    expected: 388,
+    expected: 393.8,
     tolerance: 2
   }
 ]

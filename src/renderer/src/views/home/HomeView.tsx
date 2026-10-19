@@ -8,6 +8,7 @@ import {
   type IconProps
 } from '../../icons/generated'
 import { GUIDES, QUICKSTART, formatHomeDate } from './homeContent'
+import { HomeBanner } from './HomeBanner'
 import { ReleaseList, type ReleaseListProps } from './ReleaseList'
 import { RecentActivity, type Activity } from './RecentActivity'
 import './HomeView.css'
@@ -51,10 +52,7 @@ export function HomeView({
 }: HomeViewProps): ReactElement {
   return (
     <div className="home">
-      <header className="home-header">
-        <h1 className="home-title type-page-title">Home</h1>
-        <p className="home-date">{formatHomeDate(today)}</p>
-      </header>
+      <HomeBanner date={formatHomeDate(today)} />
 
       <div className="home-band">
         <div className="home-main">

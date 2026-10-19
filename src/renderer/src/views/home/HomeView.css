@@ -23,31 +23,78 @@
 .home {
   display: flex;
   flex-direction: column;
+  /* The header card's own padding: the content below starts where Home does
+     and ends where the date does (Karan, 2026-10-19). */
+  --home-inset: 27px;
+
   height: 100%;
-  padding: 56px 127.6px 0 56px;
+  /* Even sides (Karan, 2026-10-19); the frame's right inset was 127.6. */
+  padding: 24px 56px 0;
   overflow-y: auto;
 }
 
-.home-header {
+/*
+ * The header is the website's landing card (Karan, 2026-10-19), as wide as
+ * the content below it: the site's paper palette, its 1.5x padding and
+ * corners, Home and the date at the foot in its card face, and Greek glyphs
+ * drifting above them (glyphField.ts). --glyph-strong and --glyph-soft are
+ * read by the canvas; blue and a deeper blue, as on the site.
+ */
+.home-banner {
+  --glyph-strong: color-mix(in srgb, var(--accent) 55%, var(--text-primary));
+  --glyph-soft: var(--accent);
+
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* Taller into the top inset (Karan, 2026-10-19): the frame's 56px above
+     the title became 24px, the rest given to the card. */
+  height: 252px;
+  padding: 24px var(--home-inset);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text-primary) 4%, var(--canvas));
+  border-radius: 9px;
+}
+
+:root[data-theme='dark'] .home-banner {
+  --glyph-strong: var(--accent);
+  --glyph-soft: color-mix(in srgb, var(--accent) 42%, var(--canvas));
+}
+
+/* Behind the words, taking no pointer and no room. */
+.home-banner-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.home-banner-words {
+  position: relative;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 24px;
-  flex: none;
 }
 
-.home-title {
+.home-banner-title,
+.home-banner-date {
   margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.25;
   color: var(--text-primary);
 }
 
-/* Inter ITALIC 12px (40:243), which is why the italic face is now bundled. */
-.home-date {
-  margin: 0;
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-style: italic;
-  color: var(--text-muted);
+.home-banner-title {
+  font-size: 32px;
+}
+
+.home-banner-date {
+  font-size: 18px;
   white-space: nowrap;
 }
 
@@ -64,9 +111,11 @@
   display: flex;
   align-items: flex-start;
   gap: 64.6px;
-  margin-top: 51.4px;
-  flex: 1 1 auto;
-  min-height: 0;
+  margin-top: 40px;
+  padding: 0 var(--home-inset);
+  /* Never shorter than what it holds: on a short window the taller guide
+     cards ran over Recent Activity. The page scrolls instead. */
+  flex: 1 0 auto;
 }
 
 .home-main {
@@ -312,7 +361,7 @@
  */
 .home-guides {
   margin-top: auto;
-  padding: 40px 0 79px;
+  padding: 40px var(--home-inset) 79px;
   flex: none;
 }
 
@@ -324,6 +373,8 @@
 }
 
 .home-guide-card {
+  /* Twice the frame's 83px (Karan, 2026-10-19). */
+  min-height: 166px;
   padding: 19px 21px 21px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -332,9 +383,10 @@
 
 .home-guide-title {
   margin: 0;
-  font-family: var(--font-ui);
-  font-size: 12px;
-  line-height: 19px;
+  /* The header card's face (Karan, 2026-10-19). */
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
   color: var(--text-primary);
 }
 

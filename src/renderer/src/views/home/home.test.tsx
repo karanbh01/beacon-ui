@@ -103,12 +103,18 @@ describe('HomeView', () => {
     expect(screen.getByText('Thursday 16 July 2026')).toBeInTheDocument()
   })
 
-  it('sets its headers in the type scale rather than styling them locally', () => {
-    // They were Source Serif Pro italic until BU-98. The face is gone from
-    // the bundle now, so nothing here should reach for a family of its own.
+  it('sets its section headers in the type scale rather than styling them locally', () => {
+    // They were Source Serif Pro italic until BU-98. Only the header card's
+    // words have a face of their own, the website's card face.
     const { container } = render(<HomeView {...props} onQuickstart={vi.fn()} />)
     expect(container.querySelectorAll('.type-section-label')).toHaveLength(4)
-    expect(container.querySelector('.type-page-title')).not.toBeNull()
+  })
+
+  it('heads the page with a card holding Home and the date', () => {
+    const { container } = render(<HomeView {...props} onQuickstart={vi.fn()} />)
+    const banner = container.querySelector('.home-banner')
+    expect(banner?.querySelector('h1')).toHaveTextContent('Home')
+    expect(banner).toHaveTextContent('Thursday 16 July 2026')
   })
 
   it('opens the page and tab a quickstart item names', async () => {

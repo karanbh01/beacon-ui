@@ -106,6 +106,18 @@
 }
 
 /*
+ * Home's header card only (Karan, 2026-10-19): the website's card-title
+ * face, so the app's front page reads as the site's landing cards do.
+ */
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/playfair-display-latin-400-normal.woff2') format('woff2');
+}
+
+/*
  * The fallbacks stay, shortened to one entry each. They are unreachable in a
  * working build — but a font that failed to load should degrade to a sans
  * face rather than to whatever the platform calls default, which on Windows
@@ -117,6 +129,8 @@
   --font-chrome: 'Roboto', 'Inter', sans-serif;
   /* Charts and tables: py-beacon's plotting face. */
   --font-data: 'Inter Tight', 'Inter', sans-serif;
+  /* Home's header card only. */
+  --font-display: 'Playfair Display', Georgia, serif;
 }
 
 /* 16px Medium — stat values, page headings. */

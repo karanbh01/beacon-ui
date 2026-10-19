@@ -91,7 +91,7 @@ describe('type scale', () => {
         'Inter 400 normal',
         'Inter 500 normal',
         // Real italics rather than a synthesised slant — the footer's version
-        // line and Home's date and title all need them (BU-54).
+        // line needs them (BU-54).
         'Inter 400 italic',
         // Window chrome only, and bundled for the reason BU-52 found: it was
         // resolving off the local machine and falling back to Inter — 5%
@@ -103,7 +103,10 @@ describe('type scale', () => {
         'Inter Tight 300 italic',
         // The Light file again, under a name a canvas can ask for: a canvas
         // font string takes no weight it can be trusted with.
-        'Inter Tight Light 400 normal'
+        'Inter Tight Light 400 normal',
+        // Home's header card and guide titles, the website's card face
+        // (Karan, 2026-10-19).
+        'Playfair Display 400 normal'
       ])
     )
   })
