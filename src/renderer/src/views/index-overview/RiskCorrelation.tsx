@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import { LevelChart } from '../../charts/LevelChart'
 import { drawdown, maxDrawdown, type Point } from '../../charts/transform'
-import { Card } from '../../components/Card/Card'
+import { Section } from '../../components/Section/Section'
 import { CheckSelect } from '../../components/CheckSelect/CheckSelect'
 import { Field } from '../../components/Field/Field'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
@@ -43,10 +43,10 @@ const CHART_SERIES: readonly { value: ChartSeries; label: string }[] = [
 ]
 
 export interface RiskCorrelationProps {
-  indexId: string
+  strategyId: string
   period: Period
   onPeriod: (period: Period) => void
-  /** Indices to correlate against, from the catalogue. */
+  /** Strategies to correlate against: others with a run. */
   benchmarks: readonly string[]
   onBenchmarks: (benchmarks: string[]) => void
   others: readonly string[]
@@ -59,7 +59,7 @@ interface RiskRow {
 }
 
 interface CorrelationRow {
-  indexId: string
+  strategyId: string
   correlation: number | undefined
   volatility: number | undefined
 }
@@ -72,7 +72,7 @@ interface CorrelationRow {
  * the one that was wanted.
  */
 export function RiskCorrelation({
-  indexId,
+  strategyId,
   period,
   onPeriod,
   benchmarks,
@@ -83,8 +83,8 @@ export function RiskCorrelation({
   const [confidence, setConfidence] = useState<Confidence>(0.95)
   const [shown, setShown] = useState<ChartSeries>('drawdown')
 
-  const overview = useOverview(indexId)
-  const comparison = useComparisonSeries(indexId, benchmarks)
+  const overview = useOverview(strategyId)
+  const comparison = useComparisonSeries(strategyId, benchmarks)
 
   const level = useMemo(() => toPoints(overview.data?.level), [overview.data])
   const first = benchmarks[0]
@@ -97,16 +97,16 @@ export function RiskCorrelation({
   const correlations = useMemo(
     () =>
       benchmarks.map((id) => ({
-        indexId: id,
-        correlation: correlation(comparison.index, comparison.byId[id] ?? []),
+        strategyId: id,
+        correlation: correlation(comparison.subject, comparison.byId[id] ?? []),
         volatility: annualisedVolatility(comparison.byId[id] ?? [])
       })),
     [benchmarks, comparison]
   )
 
   const series = useMemo(
-    () => chartPoints(shown, level, comparison.index, against),
-    [shown, level, comparison.index, against]
+    () => chartPoints(shown, level, comparison.subject, against),
+    [shown, level, comparison.subject, against]
   )
   const worst = useMemo(() => maxDrawdown(drawdown(level)), [level])
   const metrics = overview.data?.metrics
@@ -180,7 +180,7 @@ export function RiskCorrelation({
       {series.length === 0 && (
         <p className="overview-note type-11">
           {shown === 'correlation' && benchmarks.length === 0
-            ? 'Choose an index to correlate against.'
+            ? 'Choose a strategy to correlate against.'
             : `Not enough history for a ${String(WINDOW)}-day window.`}
         </p>
       )}
@@ -198,7 +198,7 @@ export function RiskCorrelation({
         />
       )}
 
-      <Card title={`${periodLabel(period)} risk`} flush className="overview-stats-card">
+      <Section title={`${periodLabel(period)} risk`} className="overview-stats">
         {rows.length === 0 && <p className="overview-note type-11">Not enough history yet.</p>}
         {rows.length > 0 && (
           <Table
@@ -208,9 +208,9 @@ export function RiskCorrelation({
             maxBodyHeight={420}
           />
         )}
-      </Card>
+      </Section>
 
-      <Card title="Correlation" flush className="overview-stats-card">
+      <Section title="Correlation" className="overview-stats">
         {correlations.length === 0 && (
           <p className="overview-note type-11">
             Nothing chosen. Correlation needs something to correlate against.
@@ -220,11 +220,11 @@ export function RiskCorrelation({
           <Table
             columns={CORRELATION_COLUMNS}
             rows={correlations}
-            getRowId={(row) => row.indexId}
+            getRowId={(row) => row.strategyId}
             maxBodyHeight={320}
           />
         )}
-      </Card>
+      </Section>
 
       <p className="overview-footnote type-11">
         VaR is one day at {String(confidence * 100)}%, as a loss · historical is the empirical
@@ -236,7 +236,14 @@ export function RiskCorrelation({
 }
 
 const RISK_COLUMNS: readonly Column<RiskRow>[] = [
-  { key: 'bucket', header: 'Period', width: 110, emphasis: true, render: (row) => row.bucket },
+  {
+    key: 'bucket',
+    header: 'Period',
+    width: 110,
+    emphasis: true,
+    rowName: true,
+    render: (row) => row.bucket
+  },
   {
     key: 'volatility',
     header: 'Volatility p.a.',
@@ -254,7 +261,13 @@ const RISK_COLUMNS: readonly Column<RiskRow>[] = [
 ]
 
 const CORRELATION_COLUMNS: readonly Column<CorrelationRow>[] = [
-  { key: 'index', header: 'Index', width: 140, emphasis: true, render: (row) => row.indexId },
+  {
+    key: 'strategy',
+    header: 'Strategy',
+    width: 140,
+    emphasis: true,
+    render: (row) => row.strategyId
+  },
   {
     key: 'correlation',
     header: 'Correlation',
