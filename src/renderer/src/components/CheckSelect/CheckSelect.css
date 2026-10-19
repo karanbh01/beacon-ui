@@ -93,3 +93,32 @@
   flex: none;
   accent-color: var(--accent);
 }
+
+/*
+ * Inside a Field, the field box IS the rectangle — the rule Select follows.
+ *
+ * Without it the control drew its own bordered box inside the field's, which
+ * Karan read as a card behind the Correlate against field (2026-10-17).
+ */
+.field-box:has(.check-select) {
+  position: relative;
+  overflow: visible;
+}
+
+.field-box > .check-select {
+  position: static;
+  width: 100%;
+}
+
+.field-box .check-select-box {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.field-box .check-select-panel {
+  top: calc(100% + 1px);
+  left: -1px;
+  right: -1px;
+  min-width: 0;
+}

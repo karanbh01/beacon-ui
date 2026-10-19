@@ -1,0 +1,47 @@
+/* The family of Data Preferences, Data sources and the preset dialog. */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 28%);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 96px);
+  padding: 16px 18px;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 22%);
+}
+
+.dialog-title {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+}
+
+.dialog-note {
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+}
+
+/* The form scrolls inside the panel; the title and Done stay put. */
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}

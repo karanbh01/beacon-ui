@@ -46,11 +46,53 @@ const FRESH: IndexDocument = {
   }
 }
 
+/** The stored strategy the Backtest tab runs: NEWIDX, as defined. */
+const STRATEGY = {
+  id: 'newidx-plain',
+  name: 'NEWIDX as defined',
+  description: null,
+  index_id: 'NEWIDX',
+  strategy: { type: 'index', rebalancing: 'MONTHLY', constraints: [] },
+  implementation: null,
+  problem: null
+}
+
+const FEE: Record<string, unknown> = {
+  name: 'management_fee_bps',
+  type: 'number',
+  required: false,
+  default: 0,
+  label: 'Management fee',
+  order: 0,
+  choices: null,
+  help: null,
+  unit: 'bps',
+  applies_to: null
+}
+
+/** Just enough of `/backtest/options` for the form: one preset, one setting. */
+const OPTIONS = {
+  presets: [
+    {
+      key: 'uk_oeic',
+      name: 'UK OEIC',
+      archetype: 'open_ended',
+      settings: { name: 'UK OEIC', management_fee_bps: 0, pricing: { type: 'SwingPricing' } }
+    }
+  ],
+  vehicle_settings: [FEE],
+  share_class_settings: [],
+  flows: [],
+  modelling_assumptions: [],
+  screens: [],
+  caps: [],
+  choices: { dividends: ['reinvest', 'cash', 'distribute'] }
+}
+
 interface Calls {
   saved: IndexDocument[]
   previewed: { id: string; asOf?: string }[]
   backtested: { id: string; body: unknown }[]
-  optimised: { id: string; body: unknown }[]
   overviews: string[]
 }
 
@@ -58,6 +100,8 @@ let calls: Calls
 let queries: QueryClient
 /** The index document the client serves; a test can make it another currency. */
 let served: IndexDocument
+/** What `/strategies/runs` lists. */
+let runs: unknown[]
 
 function makeClient(): BeaconClient {
   return {
@@ -120,26 +164,16 @@ function makeClient(): BeaconClient {
       path: string,
       options: { params: Record<string, string>; body: unknown }
     ) => {
-      const id = options.params.index_id ?? ''
+      const id = options.params.strategy_id ?? options.params.index_id ?? ''
 
-      /*
-       * Optimising is a different call from running (BU-174), and the pane
-       * makes both in sequence when the box is ticked. Recorded apart, or a
-       * test could not tell "back-tested the child" from "back-tested twice".
-       */
-      if (path.includes('optimise')) {
-        calls.optimised.push({ id, body: options.body })
-        const body = options.body as { id: string; name: string }
-        return Promise.resolve({
-          index: { ...FRESH, id: body.id, name: body.name },
-          findings: []
-        })
+      if (path.endsWith('/backtest/validate')) {
+        return Promise.resolve({ valid: true, settings: {}, findings: [] })
       }
 
       calls.backtested.push({ id, body: options.body })
       return Promise.resolve({
         job_id: 'job-1',
-        kind: 'backtest',
+        kind: `backtest:${id}`,
         status: 'pending',
         progress: 0,
         message: ''
@@ -177,15 +211,21 @@ function makeClient(): BeaconClient {
         )
       }
 
-      // Nobody has back-tested anything here, which is what the header says.
       // An envelope since BN-174, not the bare array: the rows could not
       // carry the skip count.
-      if (path === '/beacon/backtests') return Promise.resolve({ backtests: [], skipped: 0 })
-
-      if (path === '/optimise/constraint-types') {
-        return Promise.resolve({
-          types: { MaxWeight: { name: 'MaxWeight', label: 'Maximum weight', parameters: [] } }
-        })
+      if (path === '/strategies/runs') return Promise.resolve({ backtests: runs, skipped: 0 })
+      if (path === '/strategies') return Promise.resolve({ strategies: [STRATEGY], skipped: 0 })
+      if (path === '/backtest/options') return Promise.resolve(OPTIONS)
+      // Nobody has run this strategy, so the form opens on the defaults.
+      if (path === '/strategies/{strategy_id}/result') {
+        return Promise.reject(new ApiError(404, { code: 'DATA_NOT_FOUND', message: 'no run' }))
+      }
+      if (path === '/strategies/{strategy_id}') {
+        return options.params?.strategy_id === STRATEGY.id
+          ? Promise.resolve(STRATEGY)
+          : Promise.reject(
+              new ApiError(404, { code: 'DATA_NOT_FOUND', message: 'no such strategy' })
+            )
       }
 
       calls.overviews.push(options.params?.index_id ?? path)
@@ -234,8 +274,9 @@ function tabFor(id: string): Tab {
 }
 
 beforeEach(() => {
-  calls = { saved: [], previewed: [], backtested: [], optimised: [], overviews: [] }
+  calls = { saved: [], previewed: [], backtested: [], overviews: [] }
   served = FRESH
+  runs = []
   queries = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   })
@@ -262,9 +303,9 @@ beforeEach(() => {
     id: 'bt',
     page: 'beacon-view',
     viewKind: 'backtest',
-    archetype: 'pinned',
+    archetype: 'query',
     title: 'Backtest',
-    pinnedDoc: 'NEWIDX'
+    subject: STRATEGY.id
   })
 })
 
@@ -335,21 +376,23 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
   })
 
   it('back-tests: submits a job, follows the feed, and leaves the result to the Overview', async () => {
-    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+    mount(<BacktestView tab={tabFor('bt')} subject={STRATEGY.id} />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Run backtest' }))
 
     await waitFor(() => {
       expect(calls.backtested).toHaveLength(1)
     })
-    expect(calls.backtested[0]?.id).toBe('NEWIDX')
+    // The stored strategy is what runs (0.9.0): its id is the URL's.
+    expect(calls.backtested[0]?.id).toBe(STRATEGY.id)
 
-    // The socket, not a poll, is what reports progress (BU-21).
+    // The socket, not a poll, is what reports progress (BU-21). The kind
+    // names the strategy, so another strategy's run would not show here.
     act(() => {
       useJobs.getState().apply({
         type: 'job',
         job_id: 'job-1',
-        kind: 'backtest',
+        kind: `backtest:${STRATEGY.id}`,
         status: 'running',
         progress: 0.4,
         message: 'rebalancing 2023'
@@ -365,7 +408,7 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
       useJobs.getState().apply({
         type: 'job',
         job_id: 'job-1',
-        kind: 'backtest',
+        kind: `backtest:${STRATEGY.id}`,
         status: 'succeeded',
         progress: 1,
         message: 'done'
@@ -383,23 +426,44 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     expect(calls.overviews).toHaveLength(0)
   })
 
-  it('says when the index was last run, which is what to know before running it', async () => {
+  it('lists the runs when no strategy is named, and a row opens its setup', async () => {
+    runs = [
+      {
+        strategy_id: STRATEGY.id,
+        strategy_name: STRATEGY.name,
+        index_id: 'NEWIDX',
+        run_at: null,
+        strategy: 'index',
+        vehicle: null,
+        vehicle_preset: null,
+        currency: 'USD'
+      }
+    ]
     mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
 
-    // True of the INDEX, not of the session (BU-169): nobody has run this,
-    // and the catalogue of records is what says so.
-    expect(await screen.findByText(/never back-tested/)).toBeInTheDocument()
-    expect(calls.overviews).toHaveLength(0)
+    expect(await screen.findByText('Runs · 1')).toBeInTheDocument()
+    await userEvent.click(screen.getByText(STRATEGY.name))
+
+    expect(tabFor('bt').subject).toBe(STRATEGY.id)
+  })
+
+  it('says so when nothing has been run yet', async () => {
+    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+
+    expect(await screen.findByText(/No backtests have been run yet/)).toBeInTheDocument()
   })
 
   it('sends every setting the form collects, not just the ones it used to', async () => {
-    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+    mount(<BacktestView tab={tabFor('bt')} subject={STRATEGY.id} />)
     await screen.findByLabelText('Transaction cost (bps)')
 
     await userEvent.clear(screen.getByLabelText('Transaction cost (bps)'))
     await userEvent.type(screen.getByLabelText('Transaction cost (bps)'), '25')
+    // Capital is set in its pop-up (Karan, 2026-10-17).
+    await userEvent.click(screen.getByRole('button', { name: 'Capital and flows…' }))
     await userEvent.clear(screen.getByLabelText('Initial capital'))
     await userEvent.type(screen.getByLabelText('Initial capital'), '250000')
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }))
     await userEvent.type(screen.getByLabelText('Start'), '2021-01-04')
     await userEvent.type(screen.getByLabelText('End'), '2024-12-31')
 
@@ -408,18 +472,21 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     await waitFor(() => {
       expect(calls.backtested).toHaveLength(1)
     })
-    // Capital was hard-coded at 1,000,000 in the mutation before this, and
-    // the period was whatever py-beacon defaulted to.
     expect(calls.backtested[0]?.body).toMatchObject({
       transaction_cost_bps: 25,
       initial_capital: 250_000,
       start: '2021-01-04',
-      end: '2024-12-31'
+      end: '2024-12-31',
+      dividends: 'reinvest'
     })
+    // The strategy is the stored one's, and a body carrying it is refused;
+    // no preset chosen is a plain run, with no vehicle at all.
+    expect(calls.backtested[0]?.body).not.toHaveProperty('strategy')
+    expect(calls.backtested[0]?.body).not.toHaveProperty('vehicle')
   })
 
   it('leaves a blank date out of the body rather than inventing one', async () => {
-    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+    mount(<BacktestView tab={tabFor('bt')} subject={STRATEGY.id} />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Run backtest' }))
 
@@ -432,58 +499,42 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     expect(calls.backtested[0]?.body).not.toHaveProperty('end')
   })
 
-  it('asks for capital in the currency the engine keeps the book in', async () => {
-    /*
-     * The index's own since py-beacon 0.4.0 (#241). Through 0.3.x it was USD
-     * whatever the index's currency, and the label said so; a GBP index now
-     * keeps a sterling book, so the capital is asked for in pounds.
-     */
-    served = { ...FRESH, currency: 'GBP' }
-    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
+  it('runs as a preset vehicle, sending only what was changed on it', async () => {
+    mount(<BacktestView tab={tabFor('bt')} subject={STRATEGY.id} />)
+    await screen.findByLabelText('Transaction cost (bps)')
 
-    expect(await screen.findByText('Initial capital (GBP)')).toBeInTheDocument()
-    expect(screen.queryByText('Initial capital (USD)')).toBeNull()
-  })
-
-  it('will not submit a body the engine would refuse', async () => {
-    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
-    await screen.findByLabelText('Initial capital')
-
-    await userEvent.clear(screen.getByLabelText('Initial capital'))
-
-    // Said here rather than fetched as a 422: the form knows this one.
-    expect(screen.getByText(/Initial capital has to be more than zero/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
-  })
-
-  it('optimises first when asked, and back-tests the index that came out', async () => {
-    mount(<BacktestView tab={tabFor('bt')} subject={undefined} />)
-
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Optimise first' }))
-
-    // The child's identity is suggested, not imposed — both boxes are live.
-    expect(screen.getByLabelText('Optimised index id')).toHaveValue('NEWIDX-OPT')
-    await userEvent.clear(screen.getByLabelText('Optimised index id'))
-    await userEvent.type(screen.getByLabelText('Optimised index id'), 'NEWIDX-MINTE')
+    await choose('Preset', 'uk_oeic')
+    // The preset's own fee shows, and is not sent until it is changed.
+    expect(screen.getByLabelText('Management fee')).toHaveValue('0')
+    await userEvent.clear(screen.getByLabelText('Management fee'))
+    await userEvent.type(screen.getByLabelText('Management fee'), '35')
 
     await userEvent.click(screen.getByRole('button', { name: 'Run backtest' }))
 
     await waitFor(() => {
-      expect(calls.optimised).toHaveLength(1)
-    })
-    // The parent is the URL's, because provenance is the engine's to assert.
-    expect(calls.optimised[0]?.id).toBe('NEWIDX')
-    expect(calls.optimised[0]?.body).toMatchObject({
-      id: 'NEWIDX-MINTE',
-      objective: 'min_tracking_error'
-    })
-
-    // And the run goes against the CHILD: the parent's numbers would answer
-    // a question nobody asked.
-    await waitFor(() => {
       expect(calls.backtested).toHaveLength(1)
     })
-    expect(calls.backtested[0]?.id).toBe('NEWIDX-MINTE')
+    expect(calls.backtested[0]?.body).toMatchObject({
+      vehicle: { preset: 'uk_oeic', settings: { management_fee_bps: 35 } }
+    })
+  })
+
+  it('will not submit a body the engine would refuse', async () => {
+    mount(<BacktestView tab={tabFor('bt')} subject={STRATEGY.id} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Capital and flows…' }))
+    await userEvent.clear(screen.getByLabelText('Initial capital'))
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    // Said here rather than fetched as a 422: the form knows this one.
+    expect(screen.getByText(/The initial capital must be more than zero/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
+  })
+
+  it('says when no stored strategy has the name typed', async () => {
+    mount(<BacktestView tab={tabFor('bt')} subject="NOT-A-STRATEGY" />)
+
+    expect(await screen.findByText(/no saved strategy called NOT-A-STRATEGY/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Run backtest' })).toBeNull()
   })
 })
 

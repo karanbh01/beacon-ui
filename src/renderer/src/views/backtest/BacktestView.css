@@ -1,34 +1,80 @@
 /*
  * Figma pane-content – backtest, 354:11580.
  *
- * A form since BU-174, so it borrows the index-definition grammar rather
- * than the report grammar it had: rows of label-above-box fields, 12px
- * apart, inside cards that hug a readable width.
+ * A form since BU-174, so it borrows the index-definition grammar: rows of
+ * label-above-box fields under bare section labels, straight on the pane
+ * with no card behind them (Karan, 2026-10-17).
  */
 
 .backtest-view {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   align-items: flex-start;
   width: 100%;
 }
 
-.backtest-card {
-  width: 800px;
+.backtest-section,
+.backtest-runs {
+  width: 880px;
   max-width: 100%;
 }
 
+/* 16px between rows and 20 across: tighter read as one crowd of boxes. */
 .backtest-form-row {
   display: flex;
-  gap: 12px;
+  gap: 16px 20px;
   align-items: flex-end;
   flex-wrap: wrap;
-  margin-bottom: 12px;
 }
 
-.backtest-form-row:last-child {
-  margin-bottom: 0;
+/* The preset's own terms, beside the choice of it rather than under it. */
+.backtest-preset-note {
+  align-self: center;
+  margin-top: 14px;
+}
+
+/* A class's fields open under its row, indented to the row's summary. */
+.backtest-class {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+  padding: 12px 16px 16px 44px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.backtest-classes {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+}
+
+/* The pop-up's flows: each model a block, its fields then its summary. */
+.backtest-flows-form,
+.backtest-flow,
+.backtest-dated {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.backtest-flows-form {
+  gap: 20px;
+}
+
+.backtest-flows-form > .section-title {
+  margin: 4px 0 -8px;
+}
+
+/* A rule between one flow and the next, so each reads as its own block. */
+.backtest-flow + .backtest-flow {
+  padding-top: 20px;
+  border-top: 1px solid var(--divider);
+}
+
+.backtest-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /*
@@ -111,4 +157,65 @@
 .backtest-done-actions {
   display: flex;
   gap: 8px;
+}
+
+/* The form opened on the latest run, and the way back to the defaults. */
+.backtest-origin {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/*
+ * A figure edited where it is read, in a table cell (the pop-up's capital
+ * and dated flows). No box of its own: the row is the box, and focus
+ * draws only an underline so the table keeps its rhythm.
+ */
+.backtest-cell-input {
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.backtest-cell-money {
+  text-align: right;
+}
+
+.backtest-cell-input:hover {
+  border-bottom-color: var(--divider);
+}
+
+.backtest-cell-input:focus {
+  border-bottom-color: var(--accent);
+}
+
+/* The assumptions pop-up: a group per concern, its label, note and fields. */
+.backtest-assumptions {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.backtest-assumption-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backtest-assumption-group .section-title {
+  margin: 0;
+}
+
+/* The seed and the button that fills it, as one unit on the row. */
+.backtest-seed {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
 }

@@ -16,6 +16,19 @@ export function Money({ value }: { value: number | null | undefined }): ReactEle
   return <>{formatMoney(value, preferences)}</>
 }
 
+/**
+ * A fund's money, each amount with its own suffix: 898,979,030 → "899.0M".
+ *
+ * A run's flows, fees and assets span hundreds to billions in one table,
+ * so no single unit serves them — the default (billions, no decimals) reads
+ * a 250,000 subscription as 0. The chosen decimals still apply, with one at
+ * least so a suffixed amount is not rounded to a whole million.
+ */
+export function CompactMoney({ value }: { value: number | null | undefined }): ReactElement {
+  const { decimals } = useNumberPreferences()
+  return <>{formatMoney(value, { unit: 'auto', decimals: Math.max(decimals, 1) })}</>
+}
+
 /** A large count — a volume, an ADV — at the chosen precision. */
 export function Count({ value }: { value: number | null | undefined }): ReactElement {
   const { decimals } = useNumberPreferences()

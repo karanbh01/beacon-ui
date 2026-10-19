@@ -1,43 +1,37 @@
 import { useState, type ReactElement } from 'react'
-import { activeJobs, useJobs } from '../../api/jobs'
+import { activeJobs, useJobs, type TrackedJob } from '../../api/jobs'
 import { Button } from '../../components/Button/Button'
-import { Card } from '../../components/Card/Card'
-import { Checkbox } from '../../components/Checkbox/Checkbox'
-import { Field } from '../../components/Field/Field'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
-import { Select } from '../../components/Select/Select'
+import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { FaultNotice, ViewError, type Fault } from '../shared/ViewState'
-import { relativeTime } from '../home/activityRows'
-import { useBacktestRecords } from '../shared/beaconQueries'
-import type { BacktestRecordRow } from '../shared/indexSuggestions'
-import { useConstraintTypes } from '../shared/optimiseQueries'
+import { FaultNotice, ViewEmpty, ViewError, ViewLoading, type Fault } from '../shared/ViewState'
+import { isAbsent } from '../shared/beaconQueries'
+import { describeSkipped } from '../shared/pickers'
 import {
-  useBacktestRun,
-  useIndex,
-  useIndexCatalogue,
-  useIndices,
-  useOptimiseIndex,
-  useRunBacktest
-} from '../shared/strategyQueries'
-import { Optimiser } from './Optimiser'
-import {
-  DEFAULT_SETTINGS,
-  settingsFindings,
-  suggestDerived,
-  type BacktestSettings
-} from './settings'
+  useBacktestOptions,
+  useRunStrategyBacktest,
+  useStrategy,
+  useStrategyCatalogue,
+  useValidateStrategyBacktest,
+  type StoredStrategy
+} from '../shared/strategyDocuments'
+import { useBacktestRun } from '../shared/strategyQueries'
+import { MoneySection } from './MoneySection'
+import { PeriodSection } from './PeriodSection'
+import { RunsList } from './RunsList'
+import { VehicleSection } from './VehicleSection'
+import { setupFindings, toRequest } from './setup'
+import { useBacktestSetup } from './useBacktestSetup'
 import './BacktestView.css'
 
 /**
- * Beacon View → Backtest (BU-174).
+ * Beacon View → Backtest (BU-174; a stored strategy's since py-beacon 0.9.0).
  *
- * The form that says what to run, the way Index Definition is the form that
- * says what an index is. Everything `BacktestRequest` accepts is a field —
- * start, end, costs and initial capital were not on screen before, so the
- * capital was hard-coded in the mutation and the period was whatever the
- * engine defaulted to.
+ * The strategy is written in Strategy Builder; this is where it is RUN
+ * (Karan): the vehicle it runs as, the money, the period and the costs. With
+ * no strategy named it is the list of runs the engine kept, since "what has
+ * been run" is the first question a reader of this tab has.
  *
  * What the run DID is read in the Overview (BU-175). A second chart of the
  * same series in a second tab is two places to keep in step, and only one of
@@ -46,277 +40,140 @@ import './BacktestView.css'
 export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
   // `pinnedDoc` is still read: a tab saved in a preset while this view was
   // pinned keeps working (BU-164).
-  const indexId = subject ?? tab.pinnedDoc ?? ''
+  const strategyId = subject ?? tab.pinnedDoc ?? ''
   const setSubject = useWorkspace((state) => state.setSubject)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
-  const [settings, setSettings] = useState<BacktestSettings>(DEFAULT_SETTINGS)
-  const [ranAt, setRanAt] = useState<string | undefined>(undefined)
-  /** The index this run went against — the child, when one was made. */
-  const [ranFor, setRanFor] = useState<string | undefined>(undefined)
-  const [derived, setDerived] = useState<string | undefined>(undefined)
+  const catalogue = useStrategyCatalogue()
+  const strategy = useStrategy(strategyId)
 
-  const catalogue = useIndexCatalogue()
-  const indices = useIndices()
-  const document = useIndex(indexId)
-  const records = useBacktestRecords()
-  const constraintTypes = useConstraintTypes()
-
-  const optimise = useOptimiseIndex()
-  const run = useRunBacktest()
-  const jobs = useJobs((state) => state.jobs)
-
-  const running = activeJobs(jobs).find((job) => job.kind.toLowerCase().includes('backtest'))
-  const status = useBacktestRun(ranAt, ranAt !== undefined && running === undefined)
-
-  /*
-   * Already optimised, so not optimised again (BU-174).
-   *
-   * A solve on top of a solved index would be a third document nobody asked
-   * for. The section shows this index's own terms instead, and the run goes
-   * straight to the backtest.
-   */
-  const derivation = document.data?.derivation ?? undefined
-  const willOptimise = settings.optimise && derivation === undefined
-  const findings = settingsFindings({ ...settings, optimise: willOptimise }, indexId)
-
-  /*
-   * Why this run did not happen (BU-162).
-   *
-   * py-beacon fails a backtest whose universe resolves to nothing (BN-161).
-   * Read from the job endpoint as well as the event feed, which is a socket
-   * a dropped frame can leave silent.
-   */
-  const submitted = ranAt === undefined ? undefined : jobs[ranAt]
-  /*
-   * The envelope, not a string (BN-199).
-   *
-   * A failed job used to carry bare prose, which is why this pane headed a
-   * deliberate refusal and a genuine crash identically while the HTTP path
-   * told them apart carefully. It carries `{code, message, detail}` now —
-   * the same type an ApiError does — so `FaultNotice` renders both.
-   */
-  const failure: Fault | undefined =
-    submitted?.status === 'failed'
-      ? (submitted.error ?? { code: 'UNCLASSIFIED_FAILURE', message: submitted.message })
-      : status.data?.status === 'failed'
-        ? (status.data.error ?? {
-            code: 'UNCLASSIFIED_FAILURE',
-            message: 'The engine gave no reason.'
-          })
-        : undefined
-
-  const finished = failure === undefined && running === undefined && status.data !== undefined
-
-  const submit = (target: string): void => {
-    run.mutate(
-      {
-        indexId: target,
-        ...(settings.start === '' ? {} : { start: settings.start }),
-        ...(settings.end === '' ? {} : { end: settings.end }),
-        transactionCostBps: Number(settings.costBps),
-        initialCapital: Number(settings.initialCapital),
-        ...(settings.benchmark === '' ? {} : { benchmarkIndexId: settings.benchmark })
-      },
-      {
-        onSuccess: (job) => {
-          setRanAt(job.job_id)
-          setRanFor(target)
-        }
-      }
-    )
+  const open = (viewKind: string, page: string): void => {
+    openOrRetarget({ page, pane, viewKind, title: strategyId, subject: strategyId })
   }
-
-  /*
-   * Optimise, then back-test what came out.
-   *
-   * Two calls because they are two things: the first SAVES an index, and it
-   * is that index — not the parent — whose run is being asked for. A failed
-   * optimise therefore stops here rather than quietly back-testing the
-   * parent, which would answer a question nobody asked.
-   */
-  const start = (): void => {
-    setDerived(undefined)
-    if (!willOptimise) {
-      submit(indexId)
-      return
-    }
-
-    optimise.mutate(
-      {
-        indexId,
-        derivedId: settings.derivedId,
-        derivedName: settings.derivedName,
-        objective: settings.objective,
-        constraints: settings.constraints
-      },
-      {
-        onSuccess: (saved) => {
-          setDerived(saved.index.id)
-          submit(saved.index.id)
-        }
-      }
-    )
-  }
-
-  const busy = optimise.isPending || run.isPending || running !== undefined
-  const others = (indices.data?.indices ?? []).filter((index) => index.id !== indexId)
 
   return (
     <div className="backtest-view">
       <PaneHeader
         kind="query"
-        subject={indexId}
+        subject={strategyId}
         index={catalogue.rows}
-        meta={describeIndex(document.data?.name, lastRun(records.data?.backtests, indexId))}
+        {...metaOf(strategy.data, catalogue.skipped)}
         onQuery={(next) => {
-          setSubject(tab.id, next.toUpperCase())
+          // As typed: a strategy's id is the user's, and case is part of it.
+          setSubject(tab.id, next)
         }}
         controls={
-          <>
-            <Button
-              disabled={indexId === ''}
-              onClick={() => {
-                openOrRetarget({
-                  page: 'strategy-builder',
-                  pane,
-                  viewKind: 'index-definition',
-                  title: indexId,
-                  subject: indexId
-                })
-              }}
-            >
-              Open definition
-            </Button>
-            <Button variant="accent" disabled={busy || findings.length > 0} onClick={start}>
-              {busy ? 'Running…' : 'Run backtest'}
-            </Button>
-          </>
+          strategyId === '' ? undefined : (
+            <>
+              <Button
+                onClick={() => {
+                  setSubject(tab.id, '')
+                }}
+              >
+                All runs
+              </Button>
+              <Button
+                onClick={() => {
+                  open('strategy', 'strategy-builder')
+                }}
+              >
+                Open strategy
+              </Button>
+            </>
+          )
         }
       />
 
-      <Card title="Period and costs" className="backtest-card">
-        <div className="backtest-form-row">
-          <Field label="Start" width={140}>
-            <input
-              className="backtest-input"
-              type="date"
-              aria-label="Start"
-              value={settings.start}
-              onChange={(event) => {
-                const start = event.target.value
-                setSettings((current) => ({ ...current, start }))
-              }}
-            />
-          </Field>
+      {strategyId === '' && (
+        <RunsList
+          onOpen={(id) => {
+            setSubject(tab.id, id)
+          }}
+        />
+      )}
 
-          <Field label="End" width={140}>
-            <input
-              className="backtest-input"
-              type="date"
-              aria-label="End"
-              value={settings.end}
-              onChange={(event) => {
-                const end = event.target.value
-                setSettings((current) => ({ ...current, end }))
-              }}
-            />
-          </Field>
+      {strategyId !== '' && strategy.isPending && <ViewLoading what={strategyId} />}
+      {strategy.isError &&
+        (isAbsent(strategy.error) ? (
+          <ViewEmpty figure="binders">
+            There’s no saved strategy called {strategyId}. Create it in Strategy Builder first.
+          </ViewEmpty>
+        ) : (
+          <ViewError error={strategy.error} />
+        ))}
 
-          <Field label="Benchmark" width={160}>
-            <Select
-              options={[
-                { value: '', label: 'None' },
-                ...others.map((index) => ({ value: index.id, label: index.id }))
-              ]}
-              value={settings.benchmark}
-              onChange={(benchmark) => {
-                setSettings((current) => ({ ...current, benchmark }))
-              }}
-              label="Benchmark"
-            />
-          </Field>
-        </div>
+      {strategy.isSuccess && (
+        <Setup
+          // A fresh form per strategy: one's flows are not another's.
+          key={strategyId}
+          strategy={strategy.data}
+          onOpenOverview={() => {
+            open('overview', 'beacon-view')
+          }}
+        />
+      )}
+    </div>
+  )
+}
 
-        <div className="backtest-form-row">
-          <Field label="Transaction cost (bps)" width={180}>
-            <input
-              className="backtest-input"
-              type="number"
-              min={0}
-              aria-label="Transaction cost (bps)"
-              value={settings.costBps}
-              onChange={(event) => {
-                const costBps = event.target.value
-                setSettings((current) => ({ ...current, costBps }))
-              }}
-            />
-          </Field>
+function Setup({
+  strategy,
+  onOpenOverview
+}: {
+  strategy: StoredStrategy
+  onOpenOverview: () => void
+}): ReactElement {
+  const [jobId, setJobId] = useState<string | undefined>(undefined)
 
-          <Field label={capitalLabel(document.data?.currency)} width={180}>
-            <input
-              className="backtest-input"
-              type="number"
-              min={0}
-              aria-label="Initial capital"
-              value={settings.initialCapital}
-              onChange={(event) => {
-                const initialCapital = event.target.value
-                setSettings((current) => ({ ...current, initialCapital }))
-              }}
-            />
-          </Field>
-        </div>
+  const options = useBacktestOptions()
+  const { setup, edit: setSetup, origin, startAfresh } = useBacktestSetup(strategy.id, options.data)
+  const validate = useValidateStrategyBacktest()
+  const run = useRunStrategyBacktest()
+  const jobs = useJobs((state) => state.jobs)
 
-        {/*
-          Blank is not missing: py-beacon starts at the index base date and
-          ends at the last observation it has, which beats a date this form
-          could invent. Costs are bps per side, as the engine reads them.
-        */}
-        <p className="backtest-note type-11">
-          Cost is per side. Leave a date empty to take the index’s own range — base date to last
-          observation.
-        </p>
-      </Card>
+  // The job kind names the strategy since 0.9.0, so another strategy's run
+  // in flight does not hold this form.
+  const running = activeJobs(jobs).find((job) => job.kind === `backtest:${strategy.id}`)
+  const status = useBacktestRun(jobId, jobId !== undefined && running === undefined)
+  const failure = failureOf(jobId === undefined ? undefined : jobs[jobId], status.data)
+  const finished =
+    jobId !== undefined &&
+    failure === undefined &&
+    running === undefined &&
+    status.data !== undefined
 
-      <Card
-        title="Optimiser"
-        aside={
-          <Checkbox
-            label={derivation === undefined ? 'Optimise first' : 'Already optimised'}
-            checked={settings.optimise || derivation !== undefined}
-            disabled={indexId === '' || derivation !== undefined}
-            onChange={(optimise) => {
-              setSettings((current) => ({
-                ...current,
-                optimise,
-                // Filled once, while the box is untouched: overwriting what
-                // was typed would be worse than leaving it blank.
-                ...(optimise && current.derivedId === ''
-                  ? suggested(indexId, document.data?.name ?? '')
-                  : {})
-              }))
-            }}
-          />
+  const findings = setupFindings(setup, strategy.id)
+  const busy = run.isPending || running !== undefined
+  const body = (): ReturnType<typeof toRequest> => toRequest(setup, options.data)
+
+  const submit = (): void => {
+    validate.reset()
+    run.mutate(
+      { strategyId: strategy.id, body: body() },
+      {
+        onSuccess: (job) => {
+          setJobId(job.job_id)
         }
-        className="backtest-card"
-      >
-        {!settings.optimise && derivation === undefined && (
-          <p className="backtest-note type-11">
-            Off: the index is back-tested as it is defined. On, it is solved into a new optimised
-            index first, and that index is what runs.
-          </p>
-        )}
+      }
+    )
+  }
 
-        {(settings.optimise || derivation !== undefined) && (
-          <Optimiser
-            settings={settings}
-            onChange={setSettings}
-            types={constraintTypes.data?.types ?? {}}
-            derivation={derivation}
-          />
-        )}
-      </Card>
+  return (
+    <>
+      <StrategyLine strategy={strategy} />
+      {origin === 'run' && (
+        <div className="backtest-origin">
+          <p className="backtest-note type-11">
+            These settings come from the last backtest of {strategy.id}. Change anything you want
+            before running it again.
+          </p>
+          <Button onClick={startAfresh}>Start afresh</Button>
+        </div>
+      )}
+
+      <VehicleSection setup={setup} onChange={setSetup} options={options.data} />
+      <MoneySection setup={setup} onChange={setSetup} options={options.data} />
+      <PeriodSection setup={setup} onChange={setSetup} options={options.data} />
 
       {findings.length > 0 && (
         <ul className="backtest-findings type-11">
@@ -326,125 +183,131 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
         </ul>
       )}
 
-      {optimise.isError && <ViewError error={optimise.error} />}
+      <div className="backtest-actions">
+        <Button
+          disabled={findings.length > 0 || validate.isPending}
+          onClick={() => {
+            validate.mutate({ strategyId: strategy.id, body: body() })
+          }}
+        >
+          {validate.isPending ? 'Checking…' : 'Validate'}
+        </Button>
+        <Button variant="accent" disabled={busy || findings.length > 0} onClick={submit}>
+          {busy ? 'Running…' : 'Run backtest'}
+        </Button>
+      </div>
+
+      {validate.isError && <ViewError error={validate.error} />}
+      {validate.data !== undefined && <Validation result={validate.data} />}
       {run.isError && <ViewError error={run.error} />}
-
-      {optimise.isPending && (
-        <p className="backtest-note type-11">
-          Solving {indexId} into {settings.derivedId}…
-        </p>
-      )}
-
-      {running !== undefined && (
-        <div className="backtest-progress">
-          <div
-            className="backtest-track"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(running.progress * 100)}
-            aria-label="Backtest progress"
-          >
-            <div
-              className="backtest-fill"
-              style={{ width: `${String(running.progress * 100)}%` }}
-            />
-          </div>
-          <p className="type-11">{running.message === '' ? 'Running…' : running.message}</p>
-        </div>
-      )}
+      {running !== undefined && <Progress job={running} />}
 
       {/*
         Headed by what KIND of failure it was, not by the pane it happened
-        in (BU-207). "The backtest did not run" was true of a refusal and a
-        crash alike and told the reader nothing about which; `FaultNotice`
-        reads the code, and the engine's own words follow either way.
+        in (BU-207): `FaultNotice` reads the code, and the engine's own words
+        follow either way.
       */}
       {failure !== undefined && <FaultNotice fault={failure} />}
 
-      {finished && ranFor !== undefined && (
+      {finished && (
         <div className="backtest-done">
-          <p className="type-13">
-            Back-tested {ranFor}
-            {derived === undefined ? '' : `, solved from ${indexId}`}.
-          </p>
+          <p className="type-13">The backtest for {strategy.id} has finished.</p>
           <div className="backtest-done-actions">
-            <Button
-              variant="accent"
-              onClick={() => {
-                openOrRetarget({
-                  page: 'beacon-view',
-                  pane,
-                  viewKind: 'overview',
-                  title: ranFor,
-                  subject: ranFor
-                })
-              }}
-            >
+            <Button variant="accent" onClick={onOpenOverview}>
               Open overview
             </Button>
-            {derived !== undefined && (
-              <Button
-                onClick={() => {
-                  openOrRetarget({
-                    page: 'strategy-builder',
-                    pane,
-                    viewKind: 'index-definition',
-                    title: derived,
-                    subject: derived
-                  })
-                }}
-              >
-                Open {derived}
-              </Button>
-            )}
           </div>
         </div>
       )}
+    </>
+  )
+}
+
+/** What is being run: the strategy as stored, which this form cannot change. */
+function StrategyLine({ strategy }: { strategy: StoredStrategy }): ReactElement {
+  const implementation = strategy.implementation
+  const stages = [
+    ...(implementation?.screens ?? []).map((spec) => spec.type),
+    ...(implementation?.caps ?? []).map((spec) => spec.type)
+  ]
+  return (
+    <SummaryLine
+      className="backtest-strategy"
+      items={[
+        { label: 'strategy', value: strategy.name },
+        { label: 'index', value: strategy.index_id },
+        { label: 'kind', value: strategy.strategy?.type ?? 'index' },
+        { label: 'implementation', value: stages.length === 0 ? 'none' : stages.join(', ') }
+      ]}
+    />
+  )
+}
+
+/** The engine's reading of the request: what would run, or what stops it. */
+function Validation({
+  result
+}: {
+  result: { valid: boolean; findings?: readonly { path: string; message: string }[] }
+}): ReactElement {
+  if (result.valid) {
+    return <p className="backtest-note type-11">No problems found. The backtest is ready to run.</p>
+  }
+  return (
+    <FaultNotice
+      fault={{
+        code: 'INVALID_RULE',
+        message: 'This backtest can’t run with these settings.',
+        detail: { findings: result.findings ?? [] }
+      }}
+    />
+  )
+}
+
+function Progress({ job }: { job: TrackedJob }): ReactElement {
+  return (
+    <div className="backtest-progress">
+      <div
+        className="backtest-track"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(job.progress * 100)}
+        aria-label="Backtest progress"
+      >
+        <div className="backtest-fill" style={{ width: `${String(job.progress * 100)}%` }} />
+      </div>
+      <p className="type-11">{job.message === '' ? 'Running…' : job.message}</p>
     </div>
   )
 }
 
 /**
- * The capital, in the currency the engine keeps the book in: the index's own
- * since py-beacon 0.4.0 (#241), which also records it on the run.
+ * Why this run did not happen (BU-162), as the envelope (BN-199).
  *
- * It said USD through 0.3.x, when the engine built the book in dollars
- * whatever the index's currency and a GBP index ran with that many dollars.
- * Before the document arrives there is nothing to name, and naming a guess
- * would be the same mistake the other way round.
+ * Read from the job endpoint as well as the event feed, which is a socket a
+ * dropped frame can leave silent.
  */
-function capitalLabel(currency: string | undefined): string {
-  return currency === undefined ? 'Initial capital' : `Initial capital (${currency})`
+function failureOf(
+  submitted: TrackedJob | undefined,
+  status: { status: string; error?: Fault } | undefined
+): Fault | undefined {
+  if (submitted?.status === 'failed') {
+    return submitted.error ?? { code: 'UNCLASSIFIED_FAILURE', message: submitted.message }
+  }
+  if (status?.status === 'failed') {
+    return status.error ?? { code: 'UNCLASSIFIED_FAILURE', message: 'The engine gave no reason.' }
+  }
+  return undefined
 }
 
-function suggested(indexId: string, name: string): { derivedId: string; derivedName: string } {
-  const derived = suggestDerived(indexId, name)
-  return { derivedId: derived.id, derivedName: derived.name }
-}
-
-/** The index's name, and when anyone last ran this — worth knowing first. */
-function describeIndex(name: string | undefined, ran: string | undefined): string | undefined {
-  const parts = [name, ran].filter((part) => part !== undefined && part !== '')
-  return parts.length === 0 ? undefined : parts.join(' · ')
-}
-
-/**
- * When this index was last back-tested, from the catalogue of records.
- *
- * `run_at` is null on records written before py-beacon stamped them (BN-162),
- * so "back-tested" without a date is the honest reading — inventing a time
- * from the file would be a guess dressed as data.
- */
-function lastRun(
-  records: readonly BacktestRecordRow[] | undefined,
-  indexId: string
-): string | undefined {
-  if (indexId === '' || records === undefined) return undefined
-
-  const row = records.find((record) => record.index_id === indexId)
-  if (row === undefined) return 'never back-tested'
-
-  const at = row.run_at == null ? Number.NaN : Date.parse(row.run_at)
-  return Number.isNaN(at) ? 'back-tested' : `last run ${relativeTime(at, Date.now())}`
+/** The header's line: the strategy's name and index, and what the catalogue skipped. */
+function metaOf(
+  strategy: StoredStrategy | undefined,
+  skipped: Parameters<typeof describeSkipped>[0]
+): { meta?: string } {
+  const parts = [
+    strategy === undefined ? undefined : `${strategy.name} · ${strategy.index_id}`,
+    describeSkipped(skipped)
+  ].filter((part) => part !== undefined)
+  return parts.length === 0 ? {} : { meta: parts.join(' · ') }
 }
