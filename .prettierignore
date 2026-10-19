@@ -36,3 +36,7 @@ py-beacon.CHANGELOG.md
 # its hairline-create skill writes and checks. Reformatting them would make
 # every redraw a diff against Prettier rather than against the figure.
 src/renderer/src/components/EmptyFigure/kit/*.js
+
+# Responses captured off a running py-beacon, kept as the engine wrote them
+# (BU-233). Formatting would swell the run fixture to ten times its size.
+e2e/data/

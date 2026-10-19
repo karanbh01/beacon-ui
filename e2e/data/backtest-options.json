@@ -1,0 +1,2649 @@
+{
+ "screens": [
+  {
+   "name": "ExclusionScreen",
+   "label": "Exclusions",
+   "summary": "Names, sectors or regions a backtest may not hold.",
+   "parameters": [
+    {
+     "name": "identifiers",
+     "type": "json",
+     "required": false,
+     "default": null,
+     "label": "Identifiers",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "sectors",
+     "type": "json",
+     "required": false,
+     "default": null,
+     "label": "Sectors",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "regions",
+     "type": "json",
+     "required": false,
+     "default": null,
+     "label": "Regions",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "ExpressionScreen",
+   "label": "Expression",
+   "summary": "Names that pass an expression, resolved at each rebalance.",
+   "parameters": [
+    {
+     "name": "expression",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Expression",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "on_missing",
+     "type": "boolean",
+     "required": false,
+     "default": false,
+     "label": "On missing",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "LiquidityScreen",
+   "label": "Liquidity",
+   "summary": "A minimum average traded value (book currency) or volume (shares).",
+   "parameters": [
+    {
+     "name": "min_traded_value",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Minimum average traded value",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "money",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "min_volume",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Minimum average volume",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "count",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "exit",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Exit",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "lookback_days",
+     "type": "integer",
+     "required": false,
+     "default": 63,
+     "label": "Lookback days",
+     "order": 3,
+     "choices": null,
+     "help": null,
+     "unit": "days",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "on_missing",
+     "type": "boolean",
+     "required": false,
+     "default": false,
+     "label": "On missing",
+     "order": 4,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "ListingAgeScreen",
+   "label": "Listing age",
+   "summary": "A minimum time since a name's first price in the data.",
+   "parameters": [
+    {
+     "name": "min_days",
+     "type": "integer",
+     "required": true,
+     "default": null,
+     "label": "Minimum days listed",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "days",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "MarketCapScreen",
+   "label": "Market cap",
+   "summary": "A minimum market cap, in the book's currency.",
+   "parameters": [
+    {
+     "name": "min_cap",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Minimum market cap",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "money",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "exit",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Exit level for a held name",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "money",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "float_adjusted",
+     "type": "boolean",
+     "required": false,
+     "default": false,
+     "label": "Float adjusted",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "on_missing",
+     "type": "boolean",
+     "required": false,
+     "default": false,
+     "label": "On missing",
+     "order": 3,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "MinimumPriceScreen",
+   "label": "Minimum price",
+   "summary": "A minimum price, in the book's currency.",
+   "parameters": [
+    {
+     "name": "min_price",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Minimum price",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "money",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "exit",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Exit level for a held name",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "money",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "on_missing",
+     "type": "boolean",
+     "required": false,
+     "default": false,
+     "label": "On missing",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "caps": [
+  {
+   "name": "LiquidityCap",
+   "label": "Days to liquidate",
+   "summary": "At most what could be sold over a number of days.",
+   "parameters": [
+    {
+     "name": "days",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Days",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "days",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "participation",
+     "type": "number",
+     "required": false,
+     "default": 0.2,
+     "label": "Share of daily trading",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "lookback_days",
+     "type": "integer",
+     "required": false,
+     "default": 63,
+     "label": "Lookback days",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": "days",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "OwnershipCap",
+   "label": "Ownership",
+   "summary": "At most a share of a name's free-float market cap, or of its whole",
+   "parameters": [
+    {
+     "name": "max_share",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Largest share owned",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "free_float",
+     "type": "boolean",
+     "required": false,
+     "default": true,
+     "label": "Free float",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "WeightCap",
+   "label": "Weight",
+   "summary": "At most a share of the book, whatever the name.",
+   "parameters": [
+    {
+     "name": "max_weight",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Largest weight",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "flows": [
+  {
+   "name": "DatedFlows",
+   "label": "Dated amounts",
+   "summary": "Amounts on given dates. One dated on a day the run does not simulate",
+   "parameters": [
+    {
+     "name": "amounts",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Amounts",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "PerformanceChasingFlows",
+   "label": "Performance chasing",
+   "summary": "Flows that follow the fund's trailing return, as investors chase",
+   "parameters": [
+    {
+     "name": "sensitivity",
+     "type": "number",
+     "required": false,
+     "default": 0.1,
+     "label": "Flow per unit of trailing return",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "ratio",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "base",
+     "type": "number",
+     "required": false,
+     "default": 0.0,
+     "label": "Flow whatever the return",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "lookback_days",
+     "type": "integer",
+     "required": false,
+     "default": 63,
+     "label": "Lookback days",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": "days",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "frequency",
+     "type": "string",
+     "required": false,
+     "default": "MONTHLY",
+     "label": "Frequency",
+     "order": 3,
+     "choices": [
+      "DAILY",
+      "WEEKLY",
+      "MONTHLY",
+      "QUARTERLY",
+      "ANNUALLY"
+     ],
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "PeriodicFlows",
+   "label": "Periodic",
+   "summary": "A fixed amount, or a fixed share of the fund's assets, each period.",
+   "parameters": [
+    {
+     "name": "amount",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Amount",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "money",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "fraction",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Share of the assets",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "frequency",
+     "type": "string",
+     "required": false,
+     "default": "MONTHLY",
+     "label": "Frequency",
+     "order": 2,
+     "choices": [
+      "DAILY",
+      "WEEKLY",
+      "MONTHLY",
+      "QUARTERLY",
+      "ANNUALLY"
+     ],
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "RandomFlows",
+   "label": "Random",
+   "summary": "Flows drawn at random as a share of the fund's assets, seeded so a run",
+   "parameters": [
+    {
+     "name": "drift",
+     "type": "number",
+     "required": false,
+     "default": 0.0,
+     "label": "Expected net flow a year",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "volatility",
+     "type": "number",
+     "required": false,
+     "default": 0.1,
+     "label": "Volatility a year",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "frequency",
+     "type": "string",
+     "required": false,
+     "default": "DAILY",
+     "label": "Frequency",
+     "order": 2,
+     "choices": [
+      "DAILY",
+      "WEEKLY",
+      "MONTHLY",
+      "QUARTERLY",
+      "ANNUALLY"
+     ],
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "seed",
+     "type": "integer",
+     "required": false,
+     "default": 0,
+     "label": "Seed",
+     "order": 3,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "pricing": [
+  {
+   "name": "DilutionLevy",
+   "label": "Dilution levy",
+   "summary": "A charge into the fund on deals larger than a threshold.",
+   "parameters": [
+    {
+     "name": "rate_bps",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Levy",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "bps",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "threshold",
+     "type": "number",
+     "required": false,
+     "default": 0.0,
+     "label": "Charge above this deal",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "on",
+     "type": "string",
+     "required": false,
+     "default": "both",
+     "label": "Applies to",
+     "order": 2,
+     "choices": [
+      "both",
+      "subscriptions",
+      "redemptions"
+     ],
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "DualPricing",
+   "label": "Dual pricing",
+   "summary": "Buyers pay an offer price above NAV, sellers receive a bid price",
+   "parameters": [
+    {
+     "name": "offer_bps",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Offer adjustment",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "bps",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "bid_bps",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Bid adjustment",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "bps",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "SinglePricing",
+   "label": "Single pricing",
+   "summary": "Everyone deals at NAV per unit.",
+   "parameters": [],
+   "slack_unit": null
+  },
+  {
+   "name": "SwingPricing",
+   "label": "Swing pricing",
+   "summary": "A single price that swings with the day's net flow.",
+   "parameters": [
+    {
+     "name": "factor_bps",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Swing factor",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "bps",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "threshold",
+     "type": "number",
+     "required": false,
+     "default": 0.0,
+     "label": "Swing above this flow",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "limits": [
+  {
+   "name": "Act1940Limits",
+   "label": "1940 Act diversified",
+   "summary": "The US Investment Company Act's test for a diversified fund.",
+   "parameters": [],
+   "slack_unit": null
+  },
+  {
+   "name": "UcitsLimits",
+   "label": "UCITS",
+   "summary": "The UCITS diversification rules.",
+   "parameters": [
+    {
+     "name": "index_tracking",
+     "type": "boolean",
+     "required": false,
+     "default": true,
+     "label": "Index tracking",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "replications": [
+  {
+   "name": "FullReplication",
+   "label": "Full",
+   "summary": "Every constituent at its index weight.",
+   "parameters": [],
+   "slack_unit": null
+  },
+  {
+   "name": "FuturesReplication",
+   "label": "Futures",
+   "summary": "Cash, with the index held through rolled futures.",
+   "parameters": [
+    {
+     "name": "roll_days",
+     "type": "integer",
+     "required": false,
+     "default": 5,
+     "label": "Days before expiry to roll",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "count",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "roll_cost_bps",
+     "type": "number",
+     "required": false,
+     "default": 0.0,
+     "label": "Cost of each roll",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "bps",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "dividend_yield",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Dividend yield",
+     "order": 2,
+     "choices": null,
+     "help": "Leave blank to estimate it from the constituents.",
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "OptimisedReplication",
+   "label": "Optimised",
+   "summary": "A subset weighted to minimise tracking error to the index.",
+   "parameters": [
+    {
+     "name": "holdings",
+     "type": "integer",
+     "required": false,
+     "default": null,
+     "label": "Most names held",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "count",
+     "minimum": 1.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "constraints",
+     "type": "json",
+     "required": false,
+     "default": null,
+     "label": "Constraints",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "lookback_days",
+     "type": "integer",
+     "required": false,
+     "default": 252,
+     "label": "Lookback days",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": "days",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "minimum_observations",
+     "type": "integer",
+     "required": false,
+     "default": 126,
+     "label": "Minimum observations",
+     "order": 3,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "SampledReplication",
+   "label": "Sampled",
+   "summary": "The largest names in each sector and size cell, each cell at its",
+   "parameters": [
+    {
+     "name": "holdings",
+     "type": "integer",
+     "required": true,
+     "default": null,
+     "label": "Names held",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "count",
+     "minimum": 1.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "size_buckets",
+     "type": "integer",
+     "required": false,
+     "default": 3,
+     "label": "Size groups",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "count",
+     "minimum": 1.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "scheme",
+     "type": "string",
+     "required": false,
+     "default": "SECTOR",
+     "label": "Scheme",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "SyntheticReplication",
+   "label": "Synthetic",
+   "summary": "A substitute basket held, its return swapped for the index's.",
+   "parameters": [
+    {
+     "name": "basket",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Substitute basket",
+     "order": 0,
+     "choices": null,
+     "help": "The basket the fund holds, as weights by identifier; the swap pays the index's return for its return.",
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "spread_bps",
+     "type": "number",
+     "required": false,
+     "default": 0.0,
+     "label": "Swap spread",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "bps",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "exposure_limit",
+     "type": "number",
+     "required": false,
+     "default": 0.1,
+     "label": "Counterparty exposure limit",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "signals": [
+  {
+   "name": "FieldSignal",
+   "label": "Field",
+   "summary": "A field's value: a market column, a reference value or a feature.",
+   "parameters": [
+    {
+     "name": "field",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Field",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "higher_is_better",
+     "type": "boolean",
+     "required": false,
+     "default": true,
+     "label": "Higher is better",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "Momentum",
+   "label": "Momentum",
+   "summary": "Price momentum: the return over a lookback, leaving out the most",
+   "parameters": [
+    {
+     "name": "lookback_days",
+     "type": "integer",
+     "required": false,
+     "default": 252,
+     "label": "Lookback days",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "days",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "skip_days",
+     "type": "integer",
+     "required": false,
+     "default": 21,
+     "label": "Skip days",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "days",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "constructions": [
+  {
+   "name": "BlackLitterman",
+   "label": "Black-Litterman",
+   "summary": "The benchmark's implied returns, moved by the scores as views.",
+   "parameters": [
+    {
+     "name": "risk_aversion",
+     "type": "number",
+     "required": false,
+     "default": 2.5,
+     "label": "Risk aversion",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "ratio",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "tau",
+     "type": "number",
+     "required": false,
+     "default": 0.05,
+     "label": "Uncertainty of the prior",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "ratio",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "alpha_per_score",
+     "type": "number",
+     "required": false,
+     "default": 0.02,
+     "label": "View per score",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "confidence",
+     "type": "number",
+     "required": false,
+     "default": 1.0,
+     "label": "Confidence in the views",
+     "order": 3,
+     "choices": null,
+     "help": null,
+     "unit": "ratio",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "FactorTilts",
+   "label": "Factor tilts",
+   "summary": "Target active exposures to factors, as close to the benchmark as they",
+   "parameters": [
+    {
+     "name": "factors",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Factors",
+     "order": 0,
+     "choices": null,
+     "help": "Each factor by name, as a signal whose scores are the names' exposures.",
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "targets",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Target active exposures",
+     "order": 1,
+     "choices": null,
+     "help": "Each factor's target active exposure, in scores, such as {\"value\": 0.3}.",
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "strength",
+     "type": "number",
+     "required": false,
+     "default": 1.0,
+     "label": "How hard the targets pull",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": "ratio",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "MaxAlpha",
+   "label": "Maximum alpha within a tracking-error budget",
+   "summary": "The most exposure to the scores within a tracking-error budget.",
+   "parameters": [
+    {
+     "name": "tracking_error",
+     "type": "number",
+     "required": false,
+     "default": 0.03,
+     "label": "Tracking-error budget",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "MaximumDiversification",
+   "label": "Maximum diversification",
+   "summary": "The highest diversification ratio: the holdings' weighted average",
+   "parameters": [],
+   "slack_unit": null
+  },
+  {
+   "name": "MaximumSharpe",
+   "label": "Maximum Sharpe ratio",
+   "summary": "The highest expected excess return per unit of risk.",
+   "parameters": [
+    {
+     "name": "base_return",
+     "type": "number",
+     "required": false,
+     "default": 0.05,
+     "label": "Expected excess return of an average name",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "alpha_per_score",
+     "type": "number",
+     "required": false,
+     "default": 0.02,
+     "label": "Expected return per score",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "MeanVariance",
+   "label": "Mean-variance",
+   "summary": "The best trade-off of expected active return against active variance.",
+   "parameters": [
+    {
+     "name": "risk_aversion",
+     "type": "number",
+     "required": false,
+     "default": 10.0,
+     "label": "Risk aversion",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "ratio",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "alpha_per_score",
+     "type": "number",
+     "required": false,
+     "default": 0.02,
+     "label": "Expected return per score",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "MinimumVariance",
+   "label": "Minimum variance",
+   "summary": "The least risky portfolio: the lowest variance the constraints allow.",
+   "parameters": [],
+   "slack_unit": null
+  },
+  {
+   "name": "RiskParity",
+   "label": "Risk parity",
+   "summary": "Each name contributing a set share of the portfolio's risk: equal",
+   "parameters": [
+    {
+     "name": "budgets",
+     "type": "json",
+     "required": false,
+     "default": null,
+     "label": "Risk budgets",
+     "order": 0,
+     "choices": null,
+     "help": "Each name's share of the risk, such as {\"AAA\": 0.2}; equal when left blank.",
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "TopN",
+   "label": "Top names by score",
+   "summary": "The top *n* names by score, equal weighted or weighted by score: a",
+   "parameters": [
+    {
+     "name": "n",
+     "type": "integer",
+     "required": false,
+     "default": 20,
+     "label": "Names held",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "count",
+     "minimum": 1.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "weighting",
+     "type": "string",
+     "required": false,
+     "default": "equal",
+     "label": "Weighting",
+     "order": 1,
+     "choices": [
+      "equal",
+      "signal"
+     ],
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "active_constraints": [
+  {
+   "name": "ActiveShare",
+   "label": "Active share",
+   "summary": "An active share in a range.",
+   "parameters": [
+    {
+     "name": "minimum",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Least active share",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "maximum",
+     "type": "number",
+     "required": false,
+     "default": null,
+     "label": "Most active share",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "HoldingsLimit",
+   "label": "Holdings limit",
+   "summary": "No more than *maximum* names held.",
+   "parameters": [
+    {
+     "name": "maximum",
+     "type": "integer",
+     "required": true,
+     "default": null,
+     "label": "Most names held",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "count",
+     "minimum": 1.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "RelativePositionBounds",
+   "label": "Positions against the benchmark",
+   "summary": "Each name within *within* of its benchmark weight.",
+   "parameters": [
+    {
+     "name": "within",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Largest difference",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "RelativeSectorBounds",
+   "label": "Sector weights against the benchmark",
+   "summary": "Each sector's weight within *within* of the benchmark's.",
+   "parameters": [
+    {
+     "name": "within",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Largest difference",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    },
+    {
+     "name": "scheme",
+     "type": "string",
+     "required": false,
+     "default": "SECTOR",
+     "label": "Scheme",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "TrackingErrorBudget",
+   "label": "Tracking-error budget",
+   "summary": "An ex-ante tracking error to the benchmark of at most *maximum*.",
+   "parameters": [
+    {
+     "name": "maximum",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Most tracking error",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  },
+  {
+   "name": "TurnoverLimit",
+   "label": "Turnover limit",
+   "summary": "At most *maximum* traded one way from the last rebalance's weights.",
+   "parameters": [
+    {
+     "name": "maximum",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Most one-way turnover",
+     "order": 0,
+     "choices": null,
+     "help": null,
+     "unit": "fraction",
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "applies_to": null,
+     "ref": null
+    }
+   ],
+   "slack_unit": null
+  }
+ ],
+ "presets": [
+  {
+   "key": "generic",
+   "name": "Generic vehicle",
+   "archetype": "generic",
+   "settings": {
+    "name": "Generic vehicle",
+    "management_fee_bps": 0.0,
+    "launch_price": 1.0,
+    "pricing": {
+     "type": "SinglePricing",
+     "params": {}
+    },
+    "limits": [],
+    "domicile": null,
+    "withholding_rates": null
+   }
+  },
+  {
+   "key": "uk_oeic",
+   "name": "UK OEIC",
+   "archetype": "open_ended",
+   "settings": {
+    "name": "UK OEIC",
+    "management_fee_bps": 0.0,
+    "launch_price": 1.0,
+    "pricing": {
+     "type": "SwingPricing",
+     "params": {
+      "factor_bps": null,
+      "threshold": 0.0
+     }
+    },
+    "limits": [
+     {
+      "type": "UcitsLimits",
+      "params": {
+       "index_tracking": true
+      }
+     }
+    ],
+    "domicile": "GB",
+    "withholding_rates": null
+   }
+  },
+  {
+   "key": "luxembourg_sicav",
+   "name": "Luxembourg SICAV",
+   "archetype": "open_ended",
+   "settings": {
+    "name": "Luxembourg SICAV",
+    "management_fee_bps": 0.0,
+    "launch_price": 1.0,
+    "pricing": {
+     "type": "SwingPricing",
+     "params": {
+      "factor_bps": null,
+      "threshold": 0.02
+     }
+    },
+    "limits": [
+     {
+      "type": "UcitsLimits",
+      "params": {
+       "index_tracking": true
+      }
+     }
+    ],
+    "domicile": "LU",
+    "withholding_rates": null
+   }
+  },
+  {
+   "key": "irish_icav",
+   "name": "Irish ICAV",
+   "archetype": "open_ended",
+   "settings": {
+    "name": "Irish ICAV",
+    "management_fee_bps": 0.0,
+    "launch_price": 1.0,
+    "pricing": {
+     "type": "DilutionLevy",
+     "params": {
+      "rate_bps": null,
+      "threshold": 0.02,
+      "on": "both"
+     }
+    },
+    "limits": [
+     {
+      "type": "UcitsLimits",
+      "params": {
+       "index_tracking": true
+      }
+     }
+    ],
+    "domicile": "IE",
+    "withholding_rates": null
+   }
+  },
+  {
+   "key": "us_mutual_fund",
+   "name": "US mutual fund",
+   "archetype": "open_ended",
+   "settings": {
+    "name": "US mutual fund",
+    "management_fee_bps": 0.0,
+    "launch_price": 1.0,
+    "pricing": {
+     "type": "SinglePricing",
+     "params": {}
+    },
+    "limits": [
+     {
+      "type": "Act1940Limits",
+      "params": {}
+     }
+    ],
+    "domicile": "US",
+    "withholding_rates": null
+   }
+  },
+  {
+   "key": "ucits_etf",
+   "name": "UCITS ETF",
+   "archetype": "exchange_traded",
+   "settings": {
+    "name": "UCITS ETF",
+    "management_fee_bps": 0.0,
+    "launch_price": 100.0,
+    "pricing": {
+     "type": "DilutionLevy",
+     "params": {
+      "rate_bps": null,
+      "threshold": 0.0,
+      "on": "both"
+     }
+    },
+    "limits": [
+     {
+      "type": "UcitsLimits",
+      "params": {
+       "index_tracking": true
+      }
+     }
+    ],
+    "domicile": "IE",
+    "withholding_rates": null,
+    "creation_unit": 50000,
+    "in_kind": false,
+    "ap_fee": 500.0,
+    "creation_fee_bps": null,
+    "market": {
+     "spread_floor_bps": 2.0,
+     "basket_sensitivity": 1.0,
+     "volatility_sensitivity": 0.05,
+     "tick": 0.01,
+     "persistence": 0.5,
+     "flow_sensitivity": 0.1,
+     "return_sensitivity": 0.05,
+     "noise_bps": 2.0,
+     "volatility_days": 21,
+     "seed": 0
+    }
+   }
+  },
+  {
+   "key": "us_etf",
+   "name": "US ETF",
+   "archetype": "exchange_traded",
+   "settings": {
+    "name": "US ETF",
+    "management_fee_bps": 0.0,
+    "launch_price": 100.0,
+    "pricing": {
+     "type": "SinglePricing",
+     "params": {}
+    },
+    "limits": [
+     {
+      "type": "Act1940Limits",
+      "params": {}
+     }
+    ],
+    "domicile": "US",
+    "withholding_rates": null,
+    "creation_unit": 50000,
+    "in_kind": true,
+    "ap_fee": 500.0,
+    "creation_fee_bps": null,
+    "market": {
+     "spread_floor_bps": 2.0,
+     "basket_sensitivity": 1.0,
+     "volatility_sensitivity": 0.05,
+     "tick": 0.01,
+     "persistence": 0.5,
+     "flow_sensitivity": 0.1,
+     "return_sensitivity": 0.05,
+     "noise_bps": 2.0,
+     "volatility_days": 21,
+     "seed": 0
+    }
+   }
+  }
+ ],
+ "vehicle_settings": [
+  {
+   "name": "management_fee_bps",
+   "type": "number",
+   "required": false,
+   "default": 0.0,
+   "label": "Management fee",
+   "order": 0,
+   "choices": null,
+   "help": null,
+   "unit": "bps",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "launch_price",
+   "type": "number",
+   "required": false,
+   "default": 1.0,
+   "label": "Launch price per unit",
+   "order": 1,
+   "choices": null,
+   "help": null,
+   "unit": "money",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "pricing",
+   "type": "json",
+   "required": false,
+   "default": null,
+   "label": "Pricing method",
+   "order": 2,
+   "choices": null,
+   "help": "One of `pricing`, as {type, params}.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "limits",
+   "type": "json",
+   "required": false,
+   "default": null,
+   "label": "Diversification limits",
+   "order": 3,
+   "choices": null,
+   "help": "Any of `limits`, as {type, params}.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "name",
+   "type": "string",
+   "required": false,
+   "default": "Vehicle",
+   "label": "Name",
+   "order": 4,
+   "choices": null,
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "domicile",
+   "type": "string",
+   "required": false,
+   "default": null,
+   "label": "Domicile",
+   "order": 5,
+   "choices": null,
+   "help": "A two-letter country code, such as 'IE'. It sets the withholding tax on the fund's dividends.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "withholding_rates",
+   "type": "json",
+   "required": false,
+   "default": null,
+   "label": "Withholding rates",
+   "order": 6,
+   "choices": null,
+   "help": "The fund's own rates by the dividend's source country, such as {\"US\": 0.15}.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "creation_unit",
+   "type": "integer",
+   "required": false,
+   "default": 50000,
+   "label": "Shares per creation unit",
+   "order": 0,
+   "choices": null,
+   "help": null,
+   "unit": "count",
+   "minimum": 1.0,
+   "maximum": null,
+   "applies_to": [
+    "exchange_traded"
+   ],
+   "ref": null
+  },
+  {
+   "name": "in_kind",
+   "type": "boolean",
+   "required": false,
+   "default": false,
+   "label": "Create in kind",
+   "order": 1,
+   "choices": null,
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": [
+    "exchange_traded"
+   ],
+   "ref": null
+  },
+  {
+   "name": "ap_fee",
+   "type": "number",
+   "required": false,
+   "default": 500.0,
+   "label": "AP fee per creation",
+   "order": 2,
+   "choices": null,
+   "help": null,
+   "unit": "money",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": [
+    "exchange_traded"
+   ],
+   "ref": null
+  },
+  {
+   "name": "creation_fee_bps",
+   "type": "number",
+   "required": false,
+   "default": null,
+   "label": "Creation fee",
+   "order": 3,
+   "choices": null,
+   "help": "Null estimates it from the basket's trading cost.",
+   "unit": "bps",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": [
+    "exchange_traded"
+   ],
+   "ref": null
+  },
+  {
+   "name": "market",
+   "type": "json",
+   "required": false,
+   "default": null,
+   "label": "Exchange quotes",
+   "order": 4,
+   "choices": null,
+   "help": "See `market_settings`.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": [
+    "exchange_traded"
+   ],
+   "ref": null
+  }
+ ],
+ "market_settings": [
+  {
+   "name": "spread_floor_bps",
+   "type": "number",
+   "required": false,
+   "default": 2.0,
+   "label": "Narrowest spread",
+   "order": 0,
+   "choices": null,
+   "help": null,
+   "unit": "bps",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "basket_sensitivity",
+   "type": "number",
+   "required": false,
+   "default": 1.0,
+   "label": "Basket cost passed on",
+   "order": 1,
+   "choices": null,
+   "help": null,
+   "unit": "ratio",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "volatility_sensitivity",
+   "type": "number",
+   "required": false,
+   "default": 0.05,
+   "label": "Spread per unit of volatility",
+   "order": 2,
+   "choices": null,
+   "help": null,
+   "unit": "ratio",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "tick",
+   "type": "number",
+   "required": false,
+   "default": 0.01,
+   "label": "Price tick",
+   "order": 3,
+   "choices": null,
+   "help": null,
+   "unit": "money",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "persistence",
+   "type": "number",
+   "required": false,
+   "default": 0.5,
+   "label": "Premium persistence",
+   "order": 4,
+   "choices": null,
+   "help": null,
+   "unit": "fraction",
+   "minimum": 0.0,
+   "maximum": 1.0,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "flow_sensitivity",
+   "type": "number",
+   "required": false,
+   "default": 0.1,
+   "label": "Premium per unit of creations",
+   "order": 5,
+   "choices": null,
+   "help": null,
+   "unit": "ratio",
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "return_sensitivity",
+   "type": "number",
+   "required": false,
+   "default": 0.05,
+   "label": "Premium per unit of NAV return",
+   "order": 6,
+   "choices": null,
+   "help": null,
+   "unit": "ratio",
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "noise_bps",
+   "type": "number",
+   "required": false,
+   "default": 2.0,
+   "label": "Premium noise",
+   "order": 7,
+   "choices": null,
+   "help": null,
+   "unit": "bps",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "volatility_days",
+   "type": "integer",
+   "required": false,
+   "default": 21,
+   "label": "Volatility window",
+   "order": 8,
+   "choices": null,
+   "help": null,
+   "unit": "days",
+   "minimum": 2.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "seed",
+   "type": "integer",
+   "required": false,
+   "default": 0,
+   "label": "Random seed",
+   "order": 9,
+   "choices": null,
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  }
+ ],
+ "implementation_settings": [
+  {
+   "name": "minimum_position.value",
+   "type": "number",
+   "required": false,
+   "default": null,
+   "label": "Smallest position",
+   "order": 0,
+   "choices": null,
+   "help": null,
+   "unit": "money",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "minimum_position.weight",
+   "type": "number",
+   "required": false,
+   "default": null,
+   "label": "Smallest weight",
+   "order": 1,
+   "choices": null,
+   "help": null,
+   "unit": "fraction",
+   "minimum": 0.0,
+   "maximum": 1.0,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "impact.coefficient",
+   "type": "number",
+   "required": false,
+   "default": 1.0,
+   "label": "Impact coefficient",
+   "order": 0,
+   "choices": null,
+   "help": null,
+   "unit": "ratio",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "impact.lookback_days",
+   "type": "integer",
+   "required": false,
+   "default": 63,
+   "label": "Impact window",
+   "order": 1,
+   "choices": null,
+   "help": null,
+   "unit": "days",
+   "minimum": 1.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "execution.participation",
+   "type": "number",
+   "required": false,
+   "default": null,
+   "label": "Share of daily volume",
+   "order": 0,
+   "choices": null,
+   "help": null,
+   "unit": "fraction",
+   "minimum": 0.0,
+   "maximum": 1.0,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "execution.days",
+   "type": "integer",
+   "required": false,
+   "default": null,
+   "label": "Days per order",
+   "order": 1,
+   "choices": null,
+   "help": null,
+   "unit": "days",
+   "minimum": 1.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "execution.lookback_days",
+   "type": "integer",
+   "required": false,
+   "default": 63,
+   "label": "Average volume window",
+   "order": 2,
+   "choices": null,
+   "help": null,
+   "unit": "days",
+   "minimum": 1.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "equitise.roll_days",
+   "type": "integer",
+   "required": false,
+   "default": 5,
+   "label": "Futures roll, days before expiry",
+   "order": 0,
+   "choices": null,
+   "help": null,
+   "unit": "count",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "equitise.roll_cost_bps",
+   "type": "number",
+   "required": false,
+   "default": 0.0,
+   "label": "Cost of each futures roll",
+   "order": 1,
+   "choices": null,
+   "help": null,
+   "unit": "bps",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "equitise.dividend_yield",
+   "type": "number",
+   "required": false,
+   "default": null,
+   "label": "Index dividend yield",
+   "order": 2,
+   "choices": null,
+   "help": "Leave blank to estimate it.",
+   "unit": "fraction",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "redistribution",
+   "type": "string",
+   "required": false,
+   "default": "pro_rata",
+   "label": "Removed weight goes",
+   "order": 10,
+   "choices": [
+    "pro_rata",
+    "cash"
+   ],
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "cash_buffer",
+   "type": "number",
+   "required": false,
+   "default": 0.0,
+   "label": "Cash buffer",
+   "order": 11,
+   "choices": null,
+   "help": null,
+   "unit": "fraction",
+   "minimum": 0.0,
+   "maximum": 1.0,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "invest_flows",
+   "type": "string",
+   "required": false,
+   "default": "target",
+   "label": "Inflows buy",
+   "order": 12,
+   "choices": [
+    "target",
+    "holdings"
+   ],
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  }
+ ],
+ "share_class_settings": [
+  {
+   "name": "name",
+   "type": "string",
+   "required": true,
+   "default": null,
+   "label": "Name",
+   "order": 0,
+   "choices": null,
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "management_fee_bps",
+   "type": "number",
+   "required": false,
+   "default": null,
+   "label": "Management fee",
+   "order": 1,
+   "choices": null,
+   "help": "Leave blank for the vehicle's.",
+   "unit": "bps",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "distribution",
+   "type": "string",
+   "required": false,
+   "default": "accumulating",
+   "label": "Income",
+   "order": 2,
+   "choices": [
+    "accumulating",
+    "distributing"
+   ],
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "currency",
+   "type": "string",
+   "required": false,
+   "default": null,
+   "label": "Currency",
+   "order": 3,
+   "choices": null,
+   "help": "A three-letter code, such as 'EUR'. Leave blank for the book's.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "hedged",
+   "type": "boolean",
+   "required": false,
+   "default": false,
+   "label": "Hedged into its currency",
+   "order": 4,
+   "choices": null,
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "hedge_ratio",
+   "type": "number",
+   "required": false,
+   "default": 1.0,
+   "label": "Share hedged",
+   "order": 5,
+   "choices": null,
+   "help": null,
+   "unit": "fraction",
+   "minimum": 0.0,
+   "maximum": 2.0,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "hedge_band",
+   "type": "number",
+   "required": false,
+   "default": 0.03,
+   "label": "Hedge drift allowed",
+   "order": 6,
+   "choices": null,
+   "help": "How far the hedge ratio may move before the forward is resized. Leave blank to resize only at the rolls.",
+   "unit": "fraction",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  }
+ ],
+ "modelling_assumptions": [
+  {
+   "name": "fx_policy",
+   "type": "string",
+   "required": false,
+   "default": "CARRY_FORWARD",
+   "label": "FX on a day with no rate",
+   "order": 0,
+   "choices": [
+    "CARRY_FORWARD",
+    "EXACT_DAY"
+   ],
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "max_price_staleness_days",
+   "type": "integer",
+   "required": false,
+   "default": 0,
+   "label": "Days before a price is stale",
+   "order": 1,
+   "choices": null,
+   "help": "0 is no limit.",
+   "unit": "days",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "free_float_backfill_days",
+   "type": "integer",
+   "required": false,
+   "default": 90,
+   "label": "Free float carried for",
+   "order": 2,
+   "choices": null,
+   "help": null,
+   "unit": "days",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "cash_rate",
+   "type": "number",
+   "required": false,
+   "default": 0.0,
+   "label": "Rate cash earns",
+   "order": 3,
+   "choices": null,
+   "help": null,
+   "unit": "fraction",
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "risk_free_rate",
+   "type": "number",
+   "required": false,
+   "default": 0.0,
+   "label": "Risk-free rate",
+   "order": 4,
+   "choices": null,
+   "help": null,
+   "unit": "fraction",
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "periods_per_year",
+   "type": "integer",
+   "required": false,
+   "default": 252,
+   "label": "Periods a year",
+   "order": 5,
+   "choices": null,
+   "help": null,
+   "unit": "count",
+   "minimum": 1.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "withholding_tax_rate",
+   "type": "number",
+   "required": false,
+   "default": 0.0,
+   "label": "Dividend withholding",
+   "order": 6,
+   "choices": null,
+   "help": null,
+   "unit": "fraction",
+   "minimum": 0.0,
+   "maximum": 1.0,
+   "applies_to": null,
+   "ref": null
+  },
+  {
+   "name": "volume_backfill_days",
+   "type": "integer",
+   "required": false,
+   "default": 5,
+   "label": "Volume carried for",
+   "order": 7,
+   "choices": null,
+   "help": null,
+   "unit": "days",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null
+  }
+ ],
+ "choices": {
+  "dividends": [
+   "reinvest",
+   "cash",
+   "distribute"
+  ],
+  "strategy": [
+   "index",
+   "index_tracking",
+   "active"
+  ],
+  "rebalancing": [
+   "WEEKLY",
+   "MONTHLY",
+   "QUARTERLY",
+   "ANNUALLY"
+  ],
+  "redistribution": [
+   "pro_rata",
+   "cash"
+  ],
+  "invest_flows": [
+   "target",
+   "holdings"
+  ],
+  "fx_policy": [
+   "CARRY_FORWARD",
+   "EXACT_DAY"
+  ],
+  "distribution": [
+   "accumulating",
+   "distributing"
+  ]
+ }
+}

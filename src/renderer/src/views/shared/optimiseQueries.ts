@@ -137,16 +137,21 @@ export function useRunOptimisation() {
   })
 }
 
-export function useFrontier(runId: string, riskFreeRate: number) {
+export function useFrontier(
+  runId: string,
+  riskFreeRate: number,
+  /** Reference columns for the frontier's names (py-beacon 0.9.2, BN-325); none when empty. */
+  referenceFields: readonly string[] = []
+) {
   const client = useBeacon()
 
   return useQuery({
-    queryKey: keys.frontier(runId, riskFreeRate),
+    queryKey: [...keys.frontier(runId, riskFreeRate), referenceFields.join(',')],
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
       return client.get('/optimise/runs/{run_id}/frontier', {
         params: { run_id: runId },
-        query: { risk_free_rate: riskFreeRate },
+        query: { risk_free_rate: riskFreeRate, reference_fields: referenceFields.join(',') },
         signal
       })
     },

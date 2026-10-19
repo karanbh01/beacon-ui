@@ -8,6 +8,44 @@ Before 1.0, a breaking change raises the middle number, as in 0.1 to 0.2.
 
 ## [Unreleased]
 
+### Added
+
+- A run's `comparisons` compare it with its index and its benchmark: each comparator's level and own figures over the days both have (total and annualised return, volatility, Sharpe ratio, maximum drawdown and monthly hit rate) and the run's figures against it (relative and annualised relative return, tracking error, information ratio, correlation, beta and the share of months it beat it), for every kind of strategy. The run's metrics add `hit_rate_monthly`. `beacon.analysis.comparison` computes them in Python.
+- `GET /strategies/{id}/periods?frequency=annual|quarterly|monthly` gives a run's figures in each calendar year, quarter or month, and against its index and its benchmark, each period from the previous period's close so they compound to the whole run.
+- Reference columns on every row that names a holding, as they stood on the row's date: the weights view, each rebalance of a run with its unfilled orders and price gaps, attribution, an optimisation run's rows and frontier, and a constituent preview. `reference_fields` chooses the columns; without it a row carries the name, asset class, sector and country. A missing `ASSET_CLASS` answers `Equity`, as the engine reads it. `GET /optimise/runs/{id}` serves a run's rows, and `GET /data/fields` gives each field a `label`. `beacon.data.reference_as_of.ReferenceAsOf` answers many names on many dates from one read.
+
+## [0.9.1] - 2026-10-18
+
+For a backtest form and its runs: a strategy's latest run result by strategy, every setting a backtest request takes described in the options, and a run's settings complete enough to start a new backtest from.
+
+### Added
+
+- `GET /strategies/{id}/result` gives a strategy's latest run payload, every series and record in it, without the job's id, and answers 404 until the strategy has a run.
+- `GET /backtest/options` describes the run's own settings in `run_settings`: `start` and `end` (a new `date` field type), `initial_capital`, `transaction_cost_bps`, `currency`, `dividends` and `benchmark`, with their defaults, units and choices. A request always took them, but the options never said so, so a form built from them could not set the dates, capital or cost.
+- A run's resolved `settings` carry its `start` and `end` (the dates it ran over, defaults filled in), `initial_capital`, `transaction_cost_bps` and `benchmark`, so a new backtest can start from a run's settings.
+
+## [0.9.0] - 2026-10-16
+
+Strategies you save and backtest: a stored strategy holds what a backtest holds and how it trades, and every backtest runs one, keeping its runs apart from any other strategy's on the same index. An index can be calculated on its own, with no backtest. Share classes, synthetic replication and futures reach the API, and a hedged share class is measured against the index hedged the same way. **Breaking** for API clients: backtests and their results moved from `/beacon/{index_id}/...` to `/strategies/{id}/...`, and runs saved before this release are no longer served.
+
+### Added
+
+- `GET /indices/{id}/level` calculates a stored index on its own, with no backtest: its level, its total and annualised return, volatility, Sharpe ratio and maximum drawdown, and its weights at each rebalance, over `start` and `end` or the whole of the loaded data. `Backtest.calculate(definition, start, end)` does the same in Python, through the cache a run uses.
+- Stored strategies: `/strategies` keeps what a backtest holds and how it trades, beside the index definitions, so a strategy can be saved, listed, read, checked and deleted, and travels with the indices. A strategy is `{id, name, description, index_id, strategy, implementation}`, the last two in the shapes a backtest request gives them. A save is checked as a backtest checks its settings, with a finding for each problem at its path, and `POST /strategies/validate` checks one without saving it. A strategy whose index has gone lists with a `problem`, and deleting an index a strategy holds is refused with 409 `IN_USE`, naming the strategies in `detail.used_by`.
+- An optimisation run can aim at a stored strategy rather than an index: `POST /optimise/runs` takes `strategy_id` to solve for the weights the strategy's latest run chose at a rebalance, so an active strategy's answers how close a portfolio can get to it under the constraints. A risk model can take its names from a `strategy_id` too.
+- Share classes on the API: a backtest request takes `share_classes`, each with its currency, hedge, fee and distribution policy, and `initial_capital` and `flows` by class name. `GET /backtest/options` describes the class fields, and a problem is a finding at its path, such as `share_classes.1.hedge_band`. The result carries each class's record in its own currency on `level`'s dates: net assets, units, NAV per unit, fees, distributions, flows and, for a hedged class, its hedge's value and trades, with the fund's `hedge_value`. Each class's total return, tracking difference and tracking error are measured against the index in its currency.
+- A share class's benchmark: `index_in_class_currency` in `beacon.backtest.class_benchmark` gives the index converted into a class's currency, or hedged into it the way the class hedges, at the first session of each month and at covered interest parity, so a hedged class's tracking difference leaves out the interest rate differential. `class_tracking` measures a class against it.
+- A synthetic fund's swap and a fund's index futures in the API's backtest result: `swap_value`, `counterparty_exposure` and `swap_resets`, and `futures_notional`, `futures_exposure` and `futures_rolls`, on `level`'s dates, and null or empty for a fund without them. Each futures roll now records the `contracts` held and their `price`, in `FuturesRoll` and on the API.
+
+### Changed
+
+- **Breaking:** every backtest runs a stored strategy. `POST /strategies/{id}/backtest` and `POST /strategies/{id}/backtest/validate` take what the strategy does not hold (the period, capital, costs, currency, dividends, benchmark, modelling assumptions, flows and vehicle), and refuse a body carrying `strategy` or `implementation`. `POST /beacon/{index_id}/backtest` and its validate route are gone.
+- **Breaking:** runs are kept per strategy, so two strategies on one index each keep their own. The views of a run moved from `/beacon/{index_id}/...` to `/strategies/{id}/overview`, `/record`, `/weights`, `/attribution` and `/assets/{identifier}`, each naming its `strategy_id` and the `index_id` it holds; `/beacon/compare` is `/strategies/compare`, comparing strategies (`strategy_ids`), and `/beacon/backtests` is `/strategies/runs`, whose rows give `strategy_id`, `strategy_name` and `index_id`. A run's `settings` and its job kind, `backtest:{strategy_id}`, name the strategy. Runs saved before this release, filed under an index, are no longer served: backtest each strategy again.
+- **Breaking:** an optimisation run takes exactly one of `index_id` and `strategy_id`. An index's weights are now calculated, so optimising against an index no longer needs a backtest of it. Each row's `index_weight` is `target_weight`, and the result adds `strategy_id` and `target_date`. A risk model's `index_id` takes the names from the index's calculation rather than a run.
+- **Breaking:** a built-in report template is generated from a `strategy_id`'s latest run, not an `index_id`'s, and named after the strategy; the render result gives `strategy_id`.
+- Deleting a strategy removes its runs, and its response says how many went. Deleting an index no longer touches runs, since none belong to it, so `DELETE /indices/{id}` no longer reports `backtest_record_deleted` or `backtest_results_deleted`.
+- `compare` and `runs` are reserved and cannot be used as a document's id.
+
 ## [0.8.1] - 2026-10-14
 
 Documentation only: the library is unchanged from 0.8.0.
@@ -309,7 +347,9 @@ The first release.
 - An index or backtest never uses a price, rate or free float dated after the day it is working on.
 - Requires Python 3.11 or later.
 
-[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/karanbh01/py-beacon/compare/v0.9.0...v0.9.1
+[0.9.0]: https://github.com/karanbh01/py-beacon/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/karanbh01/py-beacon/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/karanbh01/py-beacon/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/karanbh01/py-beacon/compare/v0.6.0...v0.7.0

@@ -11,19 +11,25 @@ export type AssetView = components['schemas']['AssetView']
 export type CompareView = components['schemas']['CompareView']
 
 /**
- * Reads of a published index.
+ * Reads of a stored strategy's latest run (py-beacon 0.9.0, BU-233).
  *
- * Distinct from `strategyQueries`, which edits definitions: nothing here is
- * a draft, and everything is invalidated by a market sync rather than by a
+ * Every Beacon View answer is a run's: the overview's level is the run's
+ * portfolio, the weights its rebalance snapshots. They were keyed by index
+ * until 0.9.0, which kept one run per index, so two strategies on an index
+ * overwrote each other. Now a run belongs to its strategy, and each of these
+ * is asked of one.
+ *
+ * Distinct from `strategyQueries`, which edits documents: nothing here is a
+ * draft, and everything is invalidated by a market sync rather than by a
  * save. The split keeps a freshness event from dropping an editor's state.
  */
 
 /**
- * Which indices carry a stored backtest, and when it was captured (BN-162).
+ * Every strategy's latest run, newest first (BN-313).
  *
- * Thin rows on purpose — the books stay behind `/beacon/{index_id}/record`.
+ * Thin rows on purpose — the books stay behind `/strategies/{id}/record`.
  * Invalidated with the rest of the beacon branch, which is what a new run or
- * a deleted index already touches.
+ * a deleted strategy already touches.
  */
 export function useBacktestRecords() {
   const client = useBeacon()
@@ -32,7 +38,7 @@ export function useBacktestRecords() {
     queryKey: keys.beacon.backtests(),
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.get('/beacon/backtests', { signal })
+      return client.get('/strategies/runs', { signal })
     },
     enabled: client !== null
   })
@@ -60,98 +66,185 @@ export function isAbsent(error: unknown): boolean {
   return error instanceof ApiError && error.isNotFound
 }
 
-export function useBacktestRecord(indexId: string, enabled = true) {
+/**
+ * `reference_fields` as the engine takes it (py-beacon 0.9.2, BN-325): the
+ * reference columns a holding row should carry, comma-separated. Empty asks
+ * for none, which is what a view that shows no holdings wants: on a long
+ * history the columns are most of the payload.
+ */
+function referenceQuery(fields: readonly string[]): { reference_fields: string } {
+  return { reference_fields: fields.join(',') }
+}
+
+export function useBacktestRecord(
+  strategyId: string,
+  enabled = true,
+  referenceFields: readonly string[] = []
+) {
   const client = useBeacon()
 
   return useQuery({
-    queryKey: keys.beacon.record(indexId),
+    queryKey: [...keys.beacon.record(strategyId), referenceFields.join(',')],
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.get('/beacon/{index_id}/record', { params: { index_id: indexId }, signal })
+      return client.get('/strategies/{strategy_id}/record', {
+        params: { strategy_id: strategyId },
+        query: referenceQuery(referenceFields),
+        signal
+      })
     },
-    enabled: client !== null && indexId !== '' && enabled,
+    enabled: client !== null && strategyId !== '' && enabled,
     retry: false
   })
 }
 
-export function useOverview(indexId: string) {
+export function useOverview(strategyId: string) {
   const client = useBeacon()
 
   return useQuery({
-    queryKey: keys.beacon.overview(indexId),
+    queryKey: keys.beacon.overview(strategyId),
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.get('/beacon/{index_id}/overview', { params: { index_id: indexId }, signal })
-    },
-    enabled: client !== null && indexId !== ''
-  })
-}
-
-export function useWeights(indexId: string, asof?: string) {
-  const client = useBeacon()
-
-  return useQuery({
-    queryKey: keys.beacon.weights(indexId, asof),
-    queryFn: ({ signal }) => {
-      if (client === null) throw new Error('No engine')
-      return client.get('/beacon/{index_id}/weights', {
-        params: { index_id: indexId },
-        query: asof === undefined || asof === '' ? {} : { asof },
+      return client.get('/strategies/{strategy_id}/overview', {
+        params: { strategy_id: strategyId },
         signal
       })
     },
-    enabled: client !== null && indexId !== ''
+    enabled: client !== null && strategyId !== ''
   })
 }
 
-export function useAttribution(indexId: string, start?: string, end?: string) {
+export function useWeights(
+  strategyId: string,
+  asof?: string,
+  referenceFields: readonly string[] = []
+) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: [...keys.beacon.weights(strategyId, asof), referenceFields.join(',')],
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/strategies/{strategy_id}/weights', {
+        params: { strategy_id: strategyId },
+        query: {
+          ...(asof === undefined || asof === '' ? {} : { asof }),
+          ...referenceQuery(referenceFields)
+        },
+        signal
+      })
+    },
+    enabled: client !== null && strategyId !== ''
+  })
+}
+
+export function useAttribution(
+  strategyId: string,
+  start?: string,
+  end?: string,
+  referenceFields: readonly string[] = []
+) {
   const client = useBeacon()
   const query = {
     ...(start === undefined || start === '' ? {} : { start }),
-    ...(end === undefined || end === '' ? {} : { end })
+    ...(end === undefined || end === '' ? {} : { end }),
+    ...referenceQuery(referenceFields)
   }
 
   return useQuery({
-    queryKey: [...keys.beacon.attribution(indexId), query],
+    queryKey: [...keys.beacon.attribution(strategyId), query],
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.get('/beacon/{index_id}/attribution', {
-        params: { index_id: indexId },
+      return client.get('/strategies/{strategy_id}/attribution', {
+        params: { strategy_id: strategyId },
         query,
         signal
       })
     },
-    enabled: client !== null && indexId !== ''
+    enabled: client !== null && strategyId !== ''
   })
 }
 
-export function useAsset(indexId: string, identifier: string) {
+export function useAsset(strategyId: string, identifier: string) {
   const client = useBeacon()
 
   return useQuery({
-    queryKey: ['beacon', 'asset', indexId, identifier],
+    queryKey: ['beacon', 'asset', strategyId, identifier],
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.get('/beacon/{index_id}/assets/{identifier}', {
-        params: { index_id: indexId, identifier },
+      return client.get('/strategies/{strategy_id}/assets/{identifier}', {
+        params: { strategy_id: strategyId, identifier },
         signal
       })
     },
-    enabled: client !== null && indexId !== '' && identifier !== ''
+    enabled: client !== null && strategyId !== '' && identifier !== ''
   })
 }
 
-/** Two or more stored indices on one rebased scale. */
-export function useCompare(indexIds: readonly string[]) {
+/** Two or more strategies' latest runs on one rebased scale. */
+export function useCompare(strategyIds: readonly string[]) {
   const client = useBeacon()
-  const ids = [...indexIds].filter((id) => id !== '')
+  const ids = [...strategyIds].filter((id) => id !== '')
 
   return useQuery({
     queryKey: ['beacon', 'compare', ids.join(',')],
     queryFn: ({ signal }) => {
       if (client === null) throw new Error('No engine')
-      return client.get('/beacon/compare', { query: { ids }, signal })
+      return client.get('/strategies/compare', { query: { ids }, signal })
     },
     enabled: client !== null && ids.length >= 2
+  })
+}
+
+export type RunResult = components['schemas']['BacktestRunResult']
+
+/**
+ * The latest run's whole payload (py-beacon 0.9.1, BN-320): NAV per unit,
+ * units, flows, share classes, the implementation's stages, and the swap
+ * and futures records — what the overview and record leave out. Kept with
+ * the run, so it answers after an engine restart; 404 until there is one.
+ */
+export function useRunResult(strategyId: string, referenceFields: readonly string[] = []) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: [...keys.beacon.result(strategyId), referenceFields.join(',')],
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/strategies/{strategy_id}/result', {
+        params: { strategy_id: strategyId },
+        query: referenceQuery(referenceFields),
+        signal
+      })
+    },
+    enabled: client !== null && strategyId !== '',
+    retry: false
+  })
+}
+
+export type PeriodsView = components['schemas']['PeriodsView']
+export type ComparisonPayload = components['schemas']['ComparisonPayload']
+
+/**
+ * A run's figures by period (py-beacon 0.9.2, BN-324): the strategy's, and
+ * its own and relative figures against each comparator, for each year,
+ * quarter or month. Each period runs from the previous period's close, so
+ * they compound to the since-inception figures; 404 until there is a run.
+ */
+export function usePeriods(strategyId: string, frequency: 'annual' | 'quarterly' | 'monthly') {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.beacon.periods(strategyId, frequency),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/strategies/{strategy_id}/periods', {
+        params: { strategy_id: strategyId },
+        query: { frequency },
+        signal
+      })
+    },
+    enabled: client !== null && strategyId !== '',
+    retry: false
   })
 }

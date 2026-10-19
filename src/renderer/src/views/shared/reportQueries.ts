@@ -59,7 +59,8 @@ export function useSaveTemplate() {
 
 export interface RenderOptions {
   templateId: string
-  indexId?: string
+  /** The stored strategy whose latest run a built-in template draws (0.9.0). */
+  strategyId?: string
 }
 
 /**
@@ -77,9 +78,9 @@ export function useRenderReport() {
       if (client === null) throw new Error('No engine')
       return client.reports.render({
         template_id: options.templateId,
-        ...(options.indexId === undefined || options.indexId === ''
+        ...(options.strategyId === undefined || options.strategyId === ''
           ? {}
-          : { index_id: options.indexId })
+          : { strategy_id: options.strategyId })
       })
     }
   })

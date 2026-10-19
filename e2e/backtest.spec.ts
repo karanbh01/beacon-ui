@@ -1,58 +1,110 @@
 import type { Page } from '@playwright/test'
-import { expect, openPage, test, openSelect } from './fixtures'
+import { choose, expect, openPage, test } from './fixtures'
 
 /**
- * Setting up a backtest (BU-174).
+ * Backtesting a stored strategy (BU-174; py-beacon 0.9.0).
  *
- * The pane is a form: it says what to run, and the Overview says what
- * happened. So these cover the settings reaching the engine and the run
- * being handed over — not a chart, which this pane no longer draws.
+ * The strategy is written in Strategy Builder; this pane runs it — the
+ * vehicle, the money, the period — and with no strategy named, lists the
+ * runs the engine kept. What a run DID is read in the Overview, so these
+ * cover the settings reaching the engine and the run being handed over.
  *
  * The stub answers a submission with a job that is already done, since it
- * carries no event socket to push progress over.
+ * carries no event socket to push progress over. Its strategies are plain
+ * ones named for the fixture indices they hold.
  */
 
-/** Open Backtest on an empty Beacon View page and point it at an index. */
-async function openBacktest(window: Page, indexId: string): Promise<void> {
+/** Open Backtest on an empty Beacon View page, pointed at a strategy if named. */
+async function openBacktest(window: Page, strategyId: string): Promise<void> {
   await openPage(window, 'Beacon View')
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
   await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
 
-  if (indexId === '') return
-  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill(indexId)
+  if (strategyId === '') return
+  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill(strategyId)
   await window.keyboard.press('Enter')
 }
+
+test('with no strategy named it lists the runs, newest first (Karan)', async ({ window }) => {
+  await openBacktest(window, '')
+
+  const runs = window.locator('.backtest-runs')
+  await expect(runs).toContainText('Runs · 3')
+  // Stamped runs date themselves; one py-beacon never stamped (BN-162)
+  // says only that it happened.
+  await expect(runs.locator('.tbl-row').first()).toContainText('TECH10')
+  await expect(runs.locator('.tbl-row').first()).toContainText('3d ago')
+  await expect(runs).toContainText('back-tested')
+
+  // A row opens that strategy's setup, ready to run again.
+  await runs.getByText('EU-VALUE', { exact: true }).first().click()
+  await expect(window.getByRole('button', { name: 'Run backtest' })).toBeEnabled()
+  await expect(window.locator('.backtest-strategy')).toContainText('EU-VALUE')
+})
 
 test('every setting the engine accepts is on the pane', async ({ window }) => {
   await openBacktest(window, 'TECH10')
 
-  // Start, end and initial capital were not on screen at all before this:
-  // the capital was hard-coded in the mutation and the period was whatever
-  // py-beacon defaulted to.
   await expect(window.getByLabel('Start')).toBeVisible()
   await expect(window.getByLabel('End')).toBeVisible()
   await expect(window.getByLabel('Transaction cost (bps)')).toBeVisible()
   await expect(window.getByLabel('Initial capital')).toHaveValue('1000000')
-  await expect(window.getByLabel('Benchmark')).toBeVisible()
+  await expect(window.getByLabel('Benchmark', { exact: true })).toBeVisible()
+  await expect(window.getByRole('combobox', { name: 'Preset' })).toBeVisible()
+  await expect(window.getByRole('button', { name: /Add share class/ })).toBeVisible()
+  await expect(window.getByRole('button', { name: /Add flows/ })).toBeVisible()
 
   // And nothing is drawn: performance is read in the Overview (BU-175).
   await expect(window.locator('.level-chart')).toHaveCount(0)
-  await expect(window.getByText('CAGR')).toHaveCount(0)
 })
 
 test('a finished run hands over to the Overview rather than drawing it', async ({ window }) => {
   await openBacktest(window, 'TECH10')
 
-  // What to know before running it again, from the catalogue of records.
-  await expect(window.locator('.backtest-view')).toContainText('last run 3d ago')
-
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
   await expect(window.getByText('Back-tested TECH10.')).toBeVisible()
   await window.getByRole('button', { name: 'Open overview' }).click()
-
-  // The index's own pane, showing the level it always showed.
   await expect(window.locator('.index-overview-view')).toBeVisible()
+})
+
+test('a preset vehicle, a hedged class and a flow reach the engine as set', async ({ window }) => {
+  let body: Record<string, unknown> | undefined
+  await window.route(/\/strategies\/TECH10\/backtest$/, async (route) => {
+    body = route.request().postDataJSON() as Record<string, unknown>
+    await route.continue()
+  })
+
+  await openBacktest(window, 'TECH10')
+  await choose(window, 'Preset', 'uk_oeic')
+
+  await window.getByRole('button', { name: /Add share class/ }).click()
+  // Scoped: the vehicle has a Name of its own.
+  const shareClass = window.locator('.backtest-class')
+  await shareClass.getByLabel('Name', { exact: true }).fill('B')
+  await shareClass.getByLabel('Currency', { exact: true }).fill('EUR')
+  await choose(window, 'Hedged into its currency', 'true')
+
+  await window.getByRole('button', { name: /Add flows/ }).click()
+  await window.getByLabel('Flow date 1').fill('2024-03-01')
+  await window.getByLabel('Flow amount 1').fill('250000')
+
+  await window.getByRole('button', { name: 'Run backtest' }).click()
+  await expect(window.getByText('Back-tested TECH10.')).toBeVisible()
+
+  expect(body).toMatchObject({
+    vehicle: { preset: 'uk_oeic', settings: {} },
+    share_classes: [{ name: 'B', currency: 'EUR', hedged: true }],
+    initial_capital: { B: 1_000_000 },
+    flows: { B: [{ type: 'DatedFlows', params: { amounts: { '2024-03-01': 250_000 } } }] }
+  })
+})
+
+test('validate asks the engine what it would run', async ({ window }) => {
+  await openBacktest(window, 'TECH10')
+
+  await window.getByRole('button', { name: 'Validate' }).click()
+  await expect(window.getByText('The engine would run this as set.')).toBeVisible()
 })
 
 test('a run the form knows the engine would refuse is not sent', async ({ window }) => {
@@ -60,163 +112,43 @@ test('a run the form knows the engine would refuse is not sent', async ({ window
 
   await window.getByLabel('Initial capital').fill('0')
 
-  // `initial_capital` is exclusiveMinimum 0 in the schema, so this is the
-  // 422 arriving early rather than a rule of this app's own.
   await expect(window.getByText(/Initial capital has to be more than zero/)).toBeVisible()
   await expect(window.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
+})
+
+test('a name no strategy has says so, and offers nothing to run', async ({ window }) => {
+  await openBacktest(window, 'NOT-A-STRATEGY')
+
+  await expect(window.getByText(/No stored strategy is called NOT-A-STRATEGY/)).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Run backtest' })).toHaveCount(0)
 })
 
 test('a run that cannot happen says why, in py-beacon’s own words', async ({ window }) => {
   /*
    * BN-161 made an unresolvable universe a FAILURE rather than a dead level
-   * of zero, and this app had nowhere to put one: the pane fell through to
-   * "no backtest run yet", and the tray clipped four hundred characters of
-   * explanation at the width of a card (BU-162).
+   * of zero (BU-162), headed by what KIND of failure it was (BU-207).
    */
   await openBacktest(window, 'NO-UNIVERSE')
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
-  /*
-   * Headed by what KIND of failure it was, not by the pane (BU-207).
-   * "The backtest did not run" was true of a refusal and a crash alike;
-   * since BN-199 a job carries the same `{code, message}` an HTTP error
-   * does, so this is the same heading the preview pane shows for the same
-   * kind of refusal.
-   */
   await expect(window.getByText('The engine refused to answer.')).toBeVisible()
   await expect(window.getByText(/universe_identifiers/).first()).toBeVisible()
-
-  // And no success state behind it: a run that failed was not handed over.
   await expect(window.getByRole('button', { name: 'Open overview' })).toHaveCount(0)
-
-  // The tray's half of this is a unit test: it is fed by the event socket,
-  // and the stub has none — every job here is finished on arrival.
-})
-
-test('opens on an empty page and picks its own index', async ({ window }) => {
-  /*
-   * BU-164. Backtest was a `pinned` view, so the tab menu offered it only
-   * beside an open document — and the only document view in the app is on
-   * another page, which left every entry on Beacon View greyed out for good
-   * (BU-163). It holds its own subject now.
-   */
-  await openPage(window, 'Beacon View')
-  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
-
-  const entry = window.getByRole('menuitem', { name: 'Backtest', exact: true })
-  await expect(entry).toBeEnabled()
-  await entry.click()
-
-  await expect(window.getByText('Choose an index to back-test.')).toBeVisible()
-  await expect(window.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
-
-  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill('TECH10')
-  await window.keyboard.press('Enter')
-  await expect(window.getByRole('button', { name: 'Run backtest' })).toBeEnabled()
-})
-
-test('says what is known about the last run, and no more', async ({ window }) => {
-  await openBacktest(window, 'TECH10-OPT')
-  await expect(window.locator('.backtest-view')).toContainText('never back-tested')
-
-  // A record py-beacon never stamped (BN-162) is "back-tested" without a
-  // date: inventing one from the file would be a guess dressed as data.
-  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill('EU-VALUE')
-  await window.keyboard.press('Enter')
-  await expect(window.locator('.backtest-view')).toContainText('· back-tested')
-})
-
-test('optimising first makes a real index, and runs that one', async ({ window }) => {
-  /*
-   * BU-174. There is no `optimised` flag in `BacktestRequest`, and there
-   * should not be: optimising produces an INDEX. So the box composes two
-   * calls the engine already has — derive a child, then back-test the child.
-   */
-  await openBacktest(window, 'TECH10')
-
-  await window.getByRole('checkbox', { name: 'Optimise first' }).check()
-
-  // The child's identity is suggested from the parent, and both boxes stay
-  // editable: a suggestion that could not be changed would be a rule.
-  await expect(window.getByLabel('Optimised index id')).toHaveValue('TECH10-OPT')
-  await window.getByLabel('Optimised index id').fill('TECH10-MINTE')
-
-  // The same constraint list the derivation editor uses, since py-beacon
-  // stores one row shape for both (BU-170).
-  await window.getByRole('button', { name: /Add constraint/ }).click()
-  await expect(window.locator('.constraint-row')).toHaveCount(1)
-
-  await window.getByRole('button', { name: 'Run backtest' }).click()
-
-  await expect(window.getByText(/Back-tested TECH10-MINTE, solved from TECH10/)).toBeVisible()
-
-  // Saved, not notional: the child is a document like any other. It opens
-  // on Strategy Builder, where index definitions live — pages are separate
-  // workspaces, so the tab lands there and the page has to be turned to.
-  await window.getByRole('button', { name: 'Open TECH10-MINTE' }).click()
-  await openPage(window, 'Strategy Builder')
-  await expect(window.getByText('Derived from')).toBeVisible()
-  await expect(window.getByRole('button', { name: /TECH10 →/ })).toBeVisible()
-})
-
-test('an index that is already optimised is not optimised again', async ({ window }) => {
-  await openBacktest(window, 'TECH10-OPT')
-
-  // A solve on top of a solved index would be a third document nobody asked
-  // for, so the terms shown are this index's own.
-  const box = window.getByRole('checkbox', { name: 'Already optimised' })
-  await expect(box).toBeChecked()
-  await expect(box).toBeDisabled()
-  await expect(window.getByLabel('Optimised index id')).toHaveCount(0)
-  await expect(window.locator('.backtest-view')).toContainText('min_tracking_error')
-})
-
-test('an optimised index can be the benchmark, which is the point of one', async ({ window }) => {
-  /*
-   * BU-172. py-beacon refused a derived index as a benchmark until its #182
-   * — an accident of resolution rather than a rule, since a benchmark needs
-   * nothing but a level series. The comparison it blocked is the one the
-   * whole feature is for: a parent against its own optimised child answers
-   * "what did the constraints cost?".
-   */
-  await openBacktest(window, 'TECH10')
-
-  const benchmark = await openSelect(window, 'Benchmark')
-  await expect(benchmark.locator('[data-value="TECH10-OPT"]')).toHaveCount(1)
-  await benchmark.locator('[data-value="TECH10-OPT"]').click()
-  await window.getByRole('button', { name: 'Run backtest' }).click()
-
-  await expect(window.getByText('Back-tested TECH10.')).toBeVisible()
 })
 
 test('a run that cannot value a constituent fails, and names the pair', async ({ window }) => {
-  /*
-   * py-beacon #204 (BN-191). The valuation guard lives in the daily
-   * calculation loop, which a preview never enters — so an index can
-   * preview cleanly and then fail here. That combination is the reason
-   * this is a separate fixture from the weighting refusal.
-   */
+  // py-beacon #204 (BN-191): an index can preview cleanly and fail here.
   await openBacktest(window, 'FX-NOVALUE')
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
   await expect(window.getByText('The engine refused to answer.')).toBeVisible()
   await expect(window.getByText(/no JPY\/USD rate/).first()).toBeVisible()
-  // The engine's reasoning, not a summary of it: both wrong answers it
-  // declines to give are what tells a reader why it stopped.
   await expect(window.getByText(/silently restates the index/).first()).toBeVisible()
-
   await expect(window.getByRole('button', { name: 'Open overview' })).toHaveCount(0)
 })
 
 test('a job that crashed is headed as a fault, not as a decision', async ({ window }) => {
-  /*
-   * BN-199 / BU-207. The job path was the one place a deliberate refusal
-   * and a genuine crash reached the reader identically, because `job.error`
-   * was prose with no code — while the HTTP path had spent two py-beacon
-   * issues learning to tell them apart. One envelope now, one renderer.
-   */
-  // The POLL, not the submission: the pane learns a job's fate from
-  // `GET /jobs/{id}` here, because the stub carries no event socket.
+  // BN-199 / BU-207: one envelope for a refusal and a crash, one renderer.
   await window.route(/\/jobs\/[^/]+$/, async (route) => {
     const response = await route.fetch()
     const job = (await response.json()) as Record<string, unknown>
@@ -238,7 +170,5 @@ test('a job that crashed is headed as a fault, not as a decision', async ({ wind
 
   await expect(window.getByText('The engine broke on this calculation.')).toBeVisible()
   await expect(window.getByText(/Raised a KeyError/)).toBeVisible()
-  // And not the refusal heading, which would send a reader looking for
-  // something in the request to change.
   await expect(window.getByText('The engine refused to answer.')).toHaveCount(0)
 })

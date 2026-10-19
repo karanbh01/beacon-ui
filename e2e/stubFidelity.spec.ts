@@ -15,7 +15,8 @@ import { expect, test } from './fixtures'
  * **Run this file against a live py-beacon** and every claim below is
  * checked against the thing it mirrors rather than against itself:
  *
- *     BEACON_LIVE_URL=http://127.0.0.1:8765  *     BEACON_API_TOKEN=...  *     BEACON_LIVE_INDEX=MYIDX BEACON_LIVE_IDENTIFIER=AAPL  *     pnpm run e2e:fidelity
+ *     BEACON_LIVE_URL=http://127.0.0.1:8765  *     BEACON_API_TOKEN=...  *     BEACON_LIVE_INDEX=MYIDX BEACON_LIVE_IDENTIFIER=AAPL
+ *     BEACON_LIVE_STRATEGY=mystrat BEACON_LIVE_UNRUN=neverrun  *     pnpm run e2e:fidelity
  *
  * Karan chose that over validating the stub against the published schemas,
  * because all four of our stub-fidelity failures were schema-VALID payloads
@@ -30,6 +31,9 @@ import { expect, test } from './fixtures'
 /** A name the store carries, and an index it holds a definition for. */
 const IDENTIFIER = process.env.BEACON_LIVE_IDENTIFIER ?? 'CMP000'
 const INDEX = process.env.BEACON_LIVE_INDEX ?? 'TECH10'
+/** A stored strategy with a run, and one never run (py-beacon 0.9.0). */
+const STRATEGY = process.env.BEACON_LIVE_STRATEGY ?? 'TECH10'
+const UNRUN = process.env.BEACON_LIVE_UNRUN ?? 'TECH10-OPT'
 
 interface Envelope {
   error?: { code?: string; message?: string }
@@ -141,7 +145,7 @@ test('the overview carries dates, while its level series carries moments', async
    * one and pass here, which is the shape of every fidelity bug BU-88
    * catalogued.
    */
-  const { body } = await get(engine, `/beacon/${INDEX}/overview`)
+  const { body } = await get(engine, `/strategies/${STRATEGY}/overview`)
   const overview = body as unknown as {
     start: string
     end: string
@@ -260,11 +264,32 @@ test('the fields catalogue no longer offers corporate-action fields', async ({ e
   expect(catalogue.fields.some((field) => field.namespace === 'actions')).toBe(false)
 })
 
-test('comparing fewer than two indices is refused by the schema', async ({ engine }) => {
+test('comparing fewer than two strategies is refused by the schema', async ({ engine }) => {
   // #263: `ids` declares minItems 2, so it never reaches the handler.
-  const { status, body } = await get(engine, `/beacon/compare?ids=${INDEX}`)
+  const { status, body } = await get(engine, `/strategies/compare?ids=${STRATEGY}`)
   expect(status).toBe(422)
   expect(body.error?.code).toBe('VALIDATION_ERROR')
+})
+
+test('a strategy never run has no views, rather than the index’s', async ({ engine }) => {
+  /*
+   * 0.9.0 reads every Beacon View answer from a run. The stub used to answer
+   * for any index, which is how the app came to treat these as index views
+   * and to draw a strategy's portfolio under the index's name.
+   */
+  const { status, body } = await get(engine, `/strategies/${UNRUN}/overview`)
+  expect(status).toBe(404)
+  expect(body.error?.code).toBe('DATA_NOT_FOUND')
+})
+
+test('an index calculated on its own needs no run', async ({ engine }) => {
+  // BN-316: what Summary draws beside the run, and Index History will.
+  const { status, body } = await get(engine, `/indices/${INDEX}/level`)
+  const level = body as unknown as { index_id: string; level: { index: string[] } }
+
+  expect(status).toBe(200)
+  expect(level.index_id).toBe(INDEX)
+  expect(level.level.index.length).toBeGreaterThan(0)
 })
 
 test('an unknown price interval is a bad argument, not missing data', async ({ engine }) => {

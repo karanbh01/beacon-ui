@@ -326,7 +326,9 @@ export interface BeaconClient {
     ) => Promise<WriteResponse<'post', '/indices/validate'>>
     preview: (
       id: string,
-      body?: BodyOf<'post', '/indices/{index_id}/preview'>
+      body?: BodyOf<'post', '/indices/{index_id}/preview'>,
+      /** Reference columns for each asset, as of the preview's date (BN-325). */
+      referenceFields?: readonly string[]
     ) => Promise<WriteResponse<'post', '/indices/{index_id}/preview'>>
     /**
      * Preview a DRAFT rather than what is saved.
@@ -336,7 +338,8 @@ export interface BeaconClient {
      * the document being edited.
      */
     previewDocument: (
-      body: BodyOf<'post', '/indices/preview'>
+      body: BodyOf<'post', '/indices/preview'>,
+      referenceFields?: readonly string[]
     ) => Promise<WriteResponse<'post', '/indices/preview'>>
     /**
      * When this index rebalances, computed by the engine (BN-195).
@@ -436,10 +439,14 @@ export function createClient(options: ClientOptions): BeaconClient {
     request: {
       params?: WritePathParams<M, P>
       body?: BodyOf<M, P>
+      /** Query parameters a write takes beside its body, e.g. a preview's `reference_fields`. */
+      query?: Record<string, string>
       signal?: AbortSignal
     } = {}
   ): Promise<WriteResponse<M, P>> {
-    const url = `${base}${expand(path, request.params as Record<string, unknown> | undefined)}`
+    const search =
+      request.query === undefined ? '' : `?${new URLSearchParams(request.query).toString()}`
+    const url = `${base}${expand(path, request.params as Record<string, unknown> | undefined)}${search}`
 
     let response: Response
     try {
@@ -592,12 +599,17 @@ export function createClient(options: ClientOptions): BeaconClient {
       save: (id, document) =>
         write('put', '/indices/{index_id}', { params: { index_id: id }, body: document }),
       validate: (document) => write('post', '/indices/validate', { body: document }),
-      preview: (id, body) =>
+      preview: (id, body, referenceFields = []) =>
         write('post', '/indices/{index_id}/preview', {
           params: { index_id: id },
-          body: body ?? {}
+          body: body ?? {},
+          query: { reference_fields: referenceFields.join(',') }
         }),
-      previewDocument: (body) => write('post', '/indices/preview', { body }),
+      previewDocument: (body, referenceFields = []) =>
+        write('post', '/indices/preview', {
+          body,
+          query: { reference_fields: referenceFields.join(',') }
+        }),
       ruleTypes: (signal) =>
         get('/indices/rule-types', { ...(signal === undefined ? {} : { signal }) })
     },

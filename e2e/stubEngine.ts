@@ -1,6 +1,26 @@
 import { createHash } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Duplex } from 'node:stream'
+import backtestOptions from './data/backtest-options.json'
+import runResult from './data/run-result.json'
+import { askedFields, labelOf, referenceFor, referenceMap } from './stubReference'
+import {
+  comparisonOf,
+  drawdownOf,
+  figuresOf,
+  periodsOf,
+  relativeOf,
+  type Line
+} from './stubFigures'
+import {
+  findings as strategyFindings,
+  activeStrategy,
+  normalise as normaliseStrategy,
+  plainStrategy,
+  storedRow,
+  usersOf,
+  type StubStrategy
+} from './stubStrategies'
 
 /**
  * A py-beacon-shaped server, with no py-beacon in it.
@@ -100,16 +120,27 @@ function badId(field: string, value: string): Refusal {
  * fabricated whatever was requested.
  */
 const REFERENCE_COLUMNS = [
+  'ASSET_CLASS',
   'COUNTRY_DOMICILE',
   'COUNTRY_LISTING',
   'CURRENCY',
   'DATE_FROM',
   'DATE_TO',
+  'EMPLOYEES',
   'EXCHANGE',
+  'GICS_INDUSTRY',
+  'GICS_INDUSTRY_GROUP',
+  'HEADQUARTERS',
+  'IPO_DATE',
+  'ISIN',
   'NAME',
+  'PRIMARY_LISTING',
   'REGION',
   'SECTOR',
-  'SUB_INDUSTRY'
+  'SECURITY_TYPE',
+  'SUB_INDUSTRY',
+  'TICKER',
+  'TRADING_STATUS'
 ]
 
 /**
@@ -656,6 +687,23 @@ function referenceEntry(
     fields: {
       date_from: listedFrom(index),
       name: `${identifier} Corporation`,
+      // py-beacon 0.9's reference column (BN-308): every name here is a stock.
+      asset_class: 'Equity',
+      security_type: 'Common Stock',
+      /*
+       * Some of the profile py-beacon's synthetic data writes (BN-148), so
+       * a column chooser built from /data/fields has more than the basics
+       * to offer, as it would against a real store.
+       */
+      ticker: identifier,
+      isin: `US${String(100000000 + index * 7919).padStart(9, '0')}${String(index % 10)}`,
+      gics_industry_group: ['Software & Services', 'Banks', 'Pharmaceuticals'][index % 3],
+      gics_industry: ['Software', 'Banks', 'Biotechnology'][index % 3],
+      trading_status: 'Active',
+      primary_listing: ['XNAS', 'XLON', 'XTKS'][index % 3],
+      headquarters: ['New York', 'Dublin', 'Tokyo'][index % 3],
+      ipo_date: listedFrom(index),
+      employees: 12_000 + index * 850,
       /*
        * Named as the columns this stub DECLARES (BU-182).
        *
@@ -712,6 +760,37 @@ function referenceEntry(
 }
 
 /**
+ * A name's reference row as a holding row reads it (BN-325): null for a date
+ * before it listed, which is the engine's "no reference row then".
+ */
+function holdingReference(identifier: string, date?: string): Record<string, unknown> | null {
+  const index = seedOf(identifier, seedFor(identifier))
+  if (date !== undefined && date.slice(0, 10) < listedFrom(index)) return null
+  return referenceEntry(identifier, index).fields as Record<string, unknown>
+}
+
+/** The columns a holdings request asks for, or the 422 for one no dataset holds. */
+function referenceAsked(url: URL): string[] | Refusal {
+  const asked = askedFields(url, REFERENCE_COLUMNS)
+  if ('fields' in asked) return asked.fields
+  return refuse(
+    422,
+    'INVALID_RULE',
+    `Invalid rule: reference_fields. Reason: unknown reference column(s): ${asked.unknown.join(', ')}. ` +
+      `Available: ${REFERENCE_COLUMNS.join(', ')}`
+  )
+}
+
+/** One holding row's reference, as of its date; null throughout when none were asked. */
+function rowReference(
+  fields: readonly string[],
+  identifier: string,
+  date?: string
+): Record<string, unknown> | null {
+  return fields.length === 0 ? null : referenceFor(fields, holdingReference(identifier, date))
+}
+
+/**
  * The document Figma 234:6070 draws, served for ANY index id.
  *
  * Without it every index 404s into a blank draft and the methodology renders
@@ -744,7 +823,7 @@ const UNREADABLE = 'LEGACY-RUN'
 /**
  * Indices the engine kept a backtest record for (BU-177).
  *
- * One source for both `/beacon/backtests` and `/beacon/{id}/record`, so the
+ * One source for both `/strategies/runs` and `/strategies/{id}/record`, so the
  * catalogue cannot promise a run the record endpoint then refuses — except
  * for the one index where it deliberately does, above.
  *
@@ -752,7 +831,10 @@ const UNREADABLE = 'LEGACY-RUN'
  * history of its own; and TECH10-OPT is in none of these lists, so "never
  * back-tested" stays a reachable state.
  */
-const RECORDED = ['TECH10', 'EU-VALUE', UNREADABLE]
+/** An active strategy with a run, measured against the index it is built on. */
+const ACTIVE = 'TECH10-MINVAR'
+
+const RECORDED = ['TECH10', 'EU-VALUE', UNREADABLE, ACTIVE]
 
 /** Records py-beacon stamped with a time; the rest predate that (BN-162). */
 const STAMPED = ['TECH10']
@@ -948,6 +1030,201 @@ function resetIndices(): void {
       { id: 'c2', type: 'FullInvestment', params: {} }
     ]
   })
+}
+
+/**
+ * Stored strategies (py-beacon 0.9.0, BN-312), and those run this session.
+ *
+ * The engine seeds none; these are fixtures, as the indices are. Each
+ * fixture index the suites read through Beacon View gets a plain strategy
+ * of the same id, as a user would likely name it. The two whose runs fail
+ * are here too, though their indices are not in the catalogue: the failure
+ * is the point, and it is keyed by the index the strategy holds.
+ */
+let strategies: StubStrategy[] = []
+const ranStrategies = new Set<string>()
+
+function resetStrategies(): void {
+  strategies = [
+    ...['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, EMPTY_UNIVERSE, FX_UNVALUED].map(
+      plainStrategy
+    ),
+    activeStrategy(ACTIVE, 'TECH10')
+  ]
+  ranStrategies.clear()
+}
+
+function strategyFor(id: string): StubStrategy | undefined {
+  return strategies.find((strategy) => strategy.id === id)
+}
+
+/** A run the engine kept: a fixture record, or a backtest this session. */
+function hasRun(id: string): boolean {
+  return strategyFor(id) !== undefined && (RECORDED.includes(id) || ranStrategies.has(id))
+}
+
+/** A row of `/strategies/runs`. */
+function runRow(strategy: StubStrategy): unknown {
+  const ranNow = ranStrategies.has(strategy.id)
+  return {
+    strategy_id: strategy.id,
+    strategy_name: strategy.name,
+    index_id: strategy.index_id,
+    run_at:
+      STAMPED.includes(strategy.id) || ranNow
+        ? new Date(Date.now() - (ranNow ? 0 : 3 * 86_400_000)).toISOString()
+        : null,
+    strategy: String(strategy.strategy.type),
+    vehicle: null,
+    vehicle_preset: null,
+    currency: 'USD'
+  }
+}
+
+/**
+ * The strategy a view under `/strategies/{id}/...` reads, and the index it
+ * holds. 404 for one not stored, and 404 for one with no run: every view is
+ * a run's, and the engine says so rather than drawing the index instead —
+ * which this stub did until 0.9.0, and the app wrongly took for an index view.
+ */
+function runOf(
+  path: string
+): { strategyId: string; indexId: string; name: string; kind: string } | Refusal {
+  const strategyId = decodeURIComponent(path.split('/')[2] ?? '')
+  const strategy = strategyFor(strategyId)
+  if (strategy === undefined) return notFound(`strategy '${strategyId}'`, 'DocumentStore')
+  if (!hasRun(strategyId)) {
+    return notFound(`backtest result for strategy '${strategyId}'`, 'JobStore')
+  }
+  return {
+    strategyId,
+    indexId: strategy.index_id,
+    name: strategy.name,
+    kind: String(strategy.strategy.type)
+  }
+}
+
+/** Why the engine would refuse to create or replace this strategy, if it would. */
+function refuseStrategy(
+  document: StubStrategy,
+  method: string,
+  urlId: string
+): Refusal | undefined {
+  if (!DOCUMENT_ID.test(document.id)) return badId('id', document.id)
+  if (method === 'POST' && strategyFor(document.id) !== undefined) {
+    return refuse(
+      409,
+      'CONFLICT',
+      `strategy '${document.id}' already exists. Replace it with PUT /strategies/${document.id}.`
+    )
+  }
+  if (method === 'PUT' && urlId !== document.id) {
+    return refuse(
+      422,
+      'INVALID_RULE',
+      `The body's id '${document.id}' is not the URL's '${urlId}'.`
+    )
+  }
+  const found = strategyFindings(document, indexIds)
+  if (found.length === 0) return undefined
+  return refuse(
+    422,
+    'INVALID_RULE',
+    `Invalid rule: strategy '${document.id}'. Reason: the strategy has errors`,
+    {
+      rule_description: `strategy '${document.id}'`,
+      reason: 'the strategy has errors',
+      findings: found
+    }
+  )
+}
+
+/** The lines a run is measured on: its own, its index's, and TECH10's benchmark. */
+function runLines(run: { strategyId: string; indexId: string; kind: string }): {
+  strategy: Line
+  index: Line
+  benchmark: Line | undefined
+} {
+  return {
+    strategy: runLevel(run),
+    index: levelSeries(seedFor(run.indexId)),
+    benchmark: run.strategyId === 'TECH10' ? levelSeries(seedFor('EU-VALUE')) : undefined
+  }
+}
+
+/**
+ * A run's figures as py-beacon 0.9.2 reports them: its own metrics, with the
+ * tracking figures equal to the index comparison's (BN-323), and the
+ * comparisons themselves.
+ */
+function runFigures(run: { strategyId: string; indexId: string; kind: string }): {
+  metrics: Record<string, number | null>
+  comparisons: unknown
+} {
+  const lines = runLines(run)
+  const againstIndex = relativeOf(lines.strategy, lines.index)
+  return {
+    metrics: {
+      ...figuresOf(lines.strategy),
+      tracking_error: againstIndex.tracking_error ?? null,
+      tracking_difference: againstIndex.relative_return ?? null
+    },
+    comparisons: {
+      index: comparisonOf(run.indexId, 'index', lines.strategy, lines.index),
+      benchmark:
+        lines.benchmark === undefined
+          ? null
+          : comparisonOf('EU-VALUE', 'index', lines.strategy, lines.benchmark)
+    }
+  }
+}
+
+/**
+ * A run's level: an active strategy builds its own portfolio, so its line is
+ * its own; any other kind holds its index, and its line is the index's.
+ */
+function runLevel(run: { strategyId: string; indexId: string; kind: string }): {
+  index: string[]
+  data: number[]
+} {
+  return levelSeries(seedFor(run.kind === 'active' ? run.strategyId : run.indexId))
+}
+
+/**
+ * An external benchmark as a run carries it: the series, and the figures
+ * against the run's line, worked out from the two so they cannot disagree.
+ */
+function benchmarkOf(indexId: string, run: { index: string[]; data: number[] }): unknown {
+  const level = levelSeries(seedFor(indexId))
+  const growth = (data: number[]): number => (data[data.length - 1] ?? 100) / (data[0] ?? 100) - 1
+  const returns = (data: number[]): number[] =>
+    data.slice(1).map((value, at) => value / (data[at] ?? value) - 1)
+  const mine = returns(run.data)
+  const theirs = returns(level.data)
+  const active = mine.map((value, at) => value - (theirs[at] ?? 0))
+  const mean = (values: number[]): number =>
+    values.reduce((total, value) => total + value, 0) / Math.max(1, values.length)
+  const deviation = (values: number[]): number => {
+    const centre = mean(values)
+    return Math.sqrt(mean(values.map((value) => (value - centre) ** 2)))
+  }
+  const [myMean, theirMean] = [mean(mine), mean(theirs)]
+  const covariance = mean(
+    mine.map((value, at) => (value - myMean) * ((theirs[at] ?? 0) - theirMean))
+  )
+  return {
+    reference: { kind: 'index', id: indexId, price_column: 'CLOSE' },
+    level: { name: indexId, ...level },
+    start: level.index[0],
+    end: level.index[level.index.length - 1],
+    observations: level.index.length,
+    total_return: Number(growth(level.data).toFixed(6)),
+    benchmark_return: Number(growth(level.data).toFixed(6)),
+    excess_return: Number((growth(run.data) - growth(level.data)).toFixed(6)),
+    tracking_error: Number((deviation(active) * Math.sqrt(252)).toFixed(6)),
+    correlation: Number((covariance / (deviation(mine) * deviation(theirs))).toFixed(6)),
+    beta: Number((covariance / deviation(theirs) ** 2).toFixed(6))
+  }
 }
 
 /** True when there was one to remove, which is the engine's 204 or 404. */
@@ -1211,17 +1488,24 @@ const ROUTES: Record<string, unknown> = {
     // those fields, so the engine stopped publishing them.
     namespaces: ['market', 'reference', 'features'],
     fields: [
-      ...REFERENCE_COLUMNS.filter((column) => column !== 'NAME').map((column) => ({
-        path: `reference.${column.toLowerCase()}`,
-        namespace: 'reference',
-        name: column.toLowerCase(),
-        dataset: null,
-        derived: false
-      })),
+      // Every stored column but the validity dates, which no expression
+      // reads (py-beacon's NOT_SCREENABLE), each with the label a column
+      // chooser shows (BN-325).
+      ...REFERENCE_COLUMNS.filter((column) => !['DATE_FROM', 'DATE_TO'].includes(column)).map(
+        (column) => ({
+          path: `reference.${column.toLowerCase()}`,
+          namespace: 'reference',
+          name: column.toLowerCase(),
+          label: labelOf(column.toLowerCase()),
+          dataset: null,
+          derived: false
+        })
+      ),
       {
         path: 'market.close',
         namespace: 'market',
         name: 'close',
+        label: 'Close',
         dataset: null,
         derived: false
       }
@@ -1249,22 +1533,6 @@ const ROUTES: Record<string, unknown> = {
       FullInvestment: [],
       SectorBand: ['sector', 'min', 'max']
     }
-  },
-  /*
-   * An envelope, not the bare array this used to be (BN-174).
-   *
-   * The rows could not carry the skip count, and a listing that leaves
-   * documents out without saying how many is making the same false
-   * statement as one that fails outright.
-   */
-  '/beacon/backtests': {
-    backtests: RECORDED.map((index_id) => ({
-      index_id,
-      run_at: STAMPED.includes(index_id)
-        ? new Date(Date.now() - 3 * 86_400_000).toISOString()
-        : null
-    })),
-    skipped: 0
   },
   '/data/coverage': {
     identifiers_union: 512,
@@ -1480,6 +1748,27 @@ function body(url: URL): unknown {
       recent_total: past.length,
       upcoming: projected.slice(0, limit),
       upcoming_total: projected.length
+    }
+  }
+
+  /*
+   * An index calculated on its own (BN-316): the level from its base value,
+   * the headline figures of it, and its rebalances. Needs no run.
+   */
+  if (/^\/indices\/[^/]+\/level$/.test(path)) {
+    const indexId = decodeURIComponent(path.split('/')[2] ?? '')
+    if (!indexIds.includes(indexId)) return notFound(`index '${indexId}'`, 'DocumentStore')
+    const level = levelSeries(seedFor(indexId))
+    const day = (value: string): string => value.slice(0, 10)
+    return {
+      index_id: indexId,
+      name: indexId === OPTIMISED ? 'TECH10 optimised' : 'Beacon US Technology Top 10',
+      currency: 'USD',
+      start: day(level.index[0] ?? ''),
+      end: day(level.index[level.index.length - 1] ?? ''),
+      level: { name: 'level', ...level },
+      metrics: metricsOf(level),
+      rebalances: []
     }
   }
 
@@ -1753,13 +2042,41 @@ function body(url: URL): unknown {
    * it: a fixture whose Sharpe disagrees with its own line teaches a client
    * to trust one of them arbitrarily.
    */
-  if (/^\/beacon\/[^/]+\/overview$/.test(path)) {
-    const indexId = decodeURIComponent(path.split('/')[2] ?? '')
-    if (!indexIds.includes(indexId)) {
-      return notFound(`index '${indexId}'`, 'DocumentStore')
+  if (path === '/strategies') {
+    return {
+      strategies: strategies.map((strategy) => storedRow(strategy, indexIds)),
+      skipped: 0,
+      skipped_causes: skipCauses(0, null)
     }
+  }
 
-    const level = levelSeries(seedFor(indexId))
+  // One row per strategy with a run (BN-313).
+  if (path === '/strategies/runs') {
+    return {
+      backtests: strategies.filter((strategy) => hasRun(strategy.id)).map(runRow),
+      skipped: 0,
+      skipped_causes: skipCauses(0, null)
+    }
+  }
+
+  // Read off a running 0.9.0 engine: every type, with units and bounds.
+  if (path === '/backtest/options') return backtestOptions
+
+  if (/^\/strategies\/[^/]+$/.test(path) && path !== '/strategies/compare') {
+    const id = decodeURIComponent(path.slice('/strategies/'.length))
+    if (!DOCUMENT_ID.test(id)) return badId('strategy_id', id)
+    const strategy = strategyFor(id)
+    return strategy === undefined
+      ? notFound(`strategy '${id}'`, 'DocumentStore')
+      : storedRow(strategy, indexIds)
+  }
+
+  if (/^\/strategies\/[^/]+\/overview$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const indexId = run.indexId
+
+    const level = runLevel(run)
     const last = level.index[level.index.length - 1] ?? ''
     /*
      * Dates, not moments (BN-187).
@@ -1771,8 +2088,9 @@ function body(url: URL): unknown {
      */
     const day = (value: string): string => value.slice(0, 10)
     return {
+      strategy_id: run.strategyId,
       index_id: indexId,
-      name: indexId === OPTIMISED ? 'TECH10 optimised' : 'Beacon US Technology Top 10',
+      name: run.name,
       start: day(level.index[0] ?? ''),
       end: day(last),
       observations: level.index.length,
@@ -1780,7 +2098,7 @@ function body(url: URL): unknown {
       // A snapshot's own date, which was never a timestamp.
       last_rebalance: day(last),
       level: { name: 'level', ...level },
-      metrics: { ...metricsOf(level), tracking_error: 0.018, tracking_difference: 0.0012 },
+      metrics: runFigures(run).metrics,
       concentration: {
         herfindahl: 0.128,
         effective_assets: 7.8,
@@ -1799,19 +2117,25 @@ function body(url: URL): unknown {
    * per-constituent detail BN-123 added; `weights` the bare map, because a
    * client that reads only the map is still a valid one.
    */
-  if (/^\/beacon\/[^/]+\/weights$/.test(path)) {
-    const indexId = decodeURIComponent(path.split('/')[2] ?? '')
-    if (!indexIds.includes(indexId)) {
-      return notFound(`index '${indexId}'`, 'DocumentStore')
-    }
+  if (/^\/strategies\/[^/]+\/weights$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const indexId = run.indexId
 
     const asof = url.searchParams.get('asof')
     const level = levelSeries(seedFor(indexId))
-    const held = holdings(indexId)
+    const fields = referenceAsked(url)
+    if (isRefusal(fields)) return fields
+    const asOf = asof ?? (level.index[level.index.length - 1] ?? '').slice(0, 10)
+    const held = holdings(indexId).map((row) => ({
+      ...row,
+      reference: rowReference(fields, row.identifier, asOf)
+    }))
 
     return {
+      strategy_id: run.strategyId,
       index_id: indexId,
-      as_of: asof ?? (level.index[level.index.length - 1] ?? '').slice(0, 10),
+      as_of: asOf,
       rebalance_date: '2025-06-20',
       announced_date: null,
       weights: Object.fromEntries(held.map((row) => [row.identifier, row.weight])),
@@ -1845,7 +2169,7 @@ function body(url: URL): unknown {
    * — which is what makes an excess return or a correlation computed from
    * these two series an answer about the same days.
    */
-  if (path === '/beacon/compare') {
+  if (path === '/strategies/compare') {
     const ids = url.searchParams.getAll('ids').flatMap((value) => value.split(','))
     // The schema's own refusal since py-beacon 0.3.0 (`ids` minItems 2).
     if (ids.length < 2) {
@@ -1860,19 +2184,22 @@ function body(url: URL): unknown {
         ]
       })
     }
-    const unknown = ids.filter((id) => !indexIds.includes(id))
+    const unknown = ids.filter((id) => !hasRun(id))
     if (unknown.length > 0) {
-      return notFound(`index '${unknown[0] ?? ''}'`, 'DocumentStore')
+      return notFound(`backtest result for strategy '${unknown[0] ?? ''}'`, 'JobStore')
     }
 
-    const series = ids.map((id) => ({ id, level: levelSeries(seedFor(id)) }))
+    const series = ids.map((id) => ({
+      id,
+      level: levelSeries(seedFor(strategyFor(id)?.index_id ?? id))
+    }))
     const shared = series
       .map((entry) => new Set(entry.level.index))
       .reduce((all, dates) => new Set([...all].filter((date) => dates.has(date))))
     const dates = [...shared].sort()
 
     return {
-      index_ids: ids,
+      strategy_ids: ids,
       start: dates[0] ?? '',
       end: dates[dates.length - 1] ?? '',
       observations: dates.length,
@@ -1885,7 +2212,7 @@ function body(url: URL): unknown {
           Number((((byDate.get(date) ?? base) / base) * 100).toFixed(4))
         )
         return {
-          index_id: entry.id,
+          strategy_id: entry.id,
           total_return: Number(((data[data.length - 1] ?? 100) / 100 - 1).toFixed(6)),
           level: { name: entry.id, index: dates, data }
         }
@@ -1893,11 +2220,150 @@ function body(url: URL): unknown {
     }
   }
 
-  if (/^\/beacon\/[^/]+\/record$/.test(path)) {
+  /*
+   * The latest run's whole payload (BN-320, py-beacon 0.9.1): NAV per unit,
+   * units, flows, share classes, the implementation's stages, and the swap
+   * and futures records. A real run, captured off a 0.9.0 engine — a UK
+   * OEIC with flows and two share classes, one hedged into EUR, and an ETF
+   * run's market quotes — thinned to every third day.
+   */
+  if (/^\/strategies\/[^/]+\/result$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const fields = referenceAsked(url)
+    if (isRefusal(fields)) return fields
+    return {
+      ...runResult,
+      // BN-325: each holding record carries the asked columns as of its date.
+      unfilled: runResult.unfilled.map((order) => ({
+        ...order,
+        reference: rowReference(fields, order.asset_id, order.date)
+      })),
+      price_gaps: (runResult.price_gaps as { date: string; asset_id: string }[]).map((gap) => ({
+        ...gap,
+        reference: rowReference(fields, gap.asset_id, gap.date)
+      })),
+      rebalances: runResult.rebalances.map((snapshot) => ({
+        ...snapshot,
+        reference: referenceMap(fields, Object.keys(snapshot.weights), (identifier) =>
+          holdingReference(identifier, snapshot.date)
+        )
+      })),
+      // The run's own line and its index's, as the overview and the index's
+      // own calculation draw them, so the Summary's comparators agree with
+      // its chart. TECH10's run names EU-VALUE as an external benchmark.
+      level: { name: 'level', ...runLevel(run) },
+      drawdown: { name: 'drawdown', ...drawdownOf(runLevel(run)) },
+      index_level: { name: run.indexId, ...levelSeries(seedFor(run.indexId)) },
+      benchmark: run.strategyId === 'TECH10' ? benchmarkOf('EU-VALUE', runLevel(run)) : null,
+      // BN-323: the run's own figures and each comparator's, worked out the
+      // engine's way from the same lines the chart draws.
+      metrics: { ...runResult.metrics, ...runFigures(run).metrics },
+      comparisons: runFigures(run).comparisons,
+      settings: {
+        ...runResult.settings,
+        strategy: strategyFor(run.strategyId)?.strategy ?? runResult.settings.strategy,
+        strategy_id: run.strategyId,
+        strategy_name: run.name,
+        index_id: run.indexId,
+        // What the capture's request sent, which settings carry since BN-322.
+        start: '2023-01-03',
+        end: '2025-12-26',
+        initial_capital: { A: 300_000_000, B: 100_000_000 },
+        transaction_cost_bps: 5,
+        benchmark: null
+      }
+    }
+  }
+
+  // BN-324: the run's figures by period, and each comparator's.
+  if (/^\/strategies\/[^/]+\/periods$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const frequency = url.searchParams.get('frequency') ?? 'annual'
+    if (!['annual', 'quarterly', 'monthly'].includes(frequency)) {
+      return refuse(
+        422,
+        'VALIDATION_ERROR',
+        `frequency must be annual, quarterly or monthly, not '${frequency}'.`
+      )
+    }
+    const lines = runLines(run)
+    return {
+      strategy_id: run.strategyId,
+      index_id: run.indexId,
+      frequency,
+      periods: periodsOf(lines.strategy, lines, frequency)
+    }
+  }
+
+  if (/^\/strategies\/[^/]+\/attribution$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const held = holdings(run.indexId)
+    const total = 0.4557
+    const raw = held.map((row, at) => row.weight * (0.6 - at * 0.06))
+    const scale = total / raw.reduce((sum, value) => sum + value, 0)
+    const fields = referenceAsked(url)
+    if (isRefusal(fields)) return fields
+    return {
+      strategy_id: run.strategyId,
+      index_id: run.indexId,
+      requested_start: null,
+      requested_end: null,
+      start: '2023-01-03T00:00:00',
+      end: '2025-12-26T00:00:00',
+      periods: 779,
+      total_return: total,
+      contributions: held.map((row, at) => ({
+        asset_id: row.identifier,
+        average_weight: row.weight,
+        total_return: Number((0.6 - at * 0.06).toFixed(4)),
+        contribution: Number(((raw[at] ?? 0) * scale).toFixed(6)),
+        // As of the window's end (BN-325).
+        reference: rowReference(fields, row.identifier, '2025-12-26')
+      })),
+      residual: 0,
+      reconciles: true,
+      cap_drag: -0.0012,
+      cost_drag: null
+    }
+  }
+
+  if (/^\/strategies\/[^/]+\/assets\/[^/]+$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const identifier = decodeURIComponent(path.split('/')[4] ?? '')
+    const level = levelSeries(seedFor(identifier))
+    const dates = ['2025-03-21', '2025-06-20', '2025-09-19']
+    return {
+      strategy_id: run.strategyId,
+      index_id: run.indexId,
+      identifier,
+      weight_history: Object.fromEntries(dates.map((date) => [date, 0.12])),
+      raw_weight_history: Object.fromEntries(dates.map((date) => [date, 0.131])),
+      rebalances_held: dates.length,
+      total_return: 0.612,
+      index_return: 0.4557,
+      excess_return: 0.1563,
+      tracking_error: 0.031,
+      correlation: 0.97,
+      beta: 1.04,
+      observations: level.index.length,
+      price: { name: identifier, ...level },
+      currency: 'USD',
+      price_currency: 'USD'
+    }
+  }
+
+  if (/^\/strategies\/[^/]+\/record$/.test(path)) {
     const identifier = decodeURIComponent(path.split('/')[2] ?? '')
+    if (strategyFor(identifier) === undefined) {
+      return notFound(`strategy '${identifier}'`, 'DocumentStore')
+    }
 
     /*
-     * Exactly the indices `/beacon/backtests` says have one.
+     * Exactly the strategies `/strategies/runs` says have one.
      *
      * The two disagreed: the catalogue listed EU-VALUE and this answered
      * 404 for it, so a pane could be told a run existed and then be refused
@@ -1909,7 +2375,7 @@ function body(url: URL): unknown {
       return refuse(500, 'INTERNAL_ERROR', `stored record for '${identifier}' failed to load`)
     }
 
-    if (!RECORDED.includes(identifier)) {
+    if (!hasRun(identifier)) {
       return notFound(`backtest record for '${identifier}'`, 'RecordStore')
     }
 
@@ -1921,6 +2387,8 @@ function body(url: URL): unknown {
      * to the line beside it draws two unrelated shapes on one chart and
      * teaches nothing about either (taxonomy 10).
      */
+    const fields = referenceAsked(url)
+    if (isRefusal(fields)) return fields
     const level = levelSeries(seedFor(identifier))
     const window = 120
     const dates = level.index.slice(-window)
@@ -1962,6 +2430,26 @@ function body(url: URL): unknown {
           weights_dates_total: dates.length,
           rebalances: decidedSnapshots(identifier, dates),
           rebalances_total: decidedSnapshots(identifier, dates).length,
+          /*
+           * Each name's columns over the panel (BN-325). One window each:
+           * the stub's names are never reclassified, so the classification
+           * of any day is the one they listed with.
+           */
+          reference_windows:
+            fields.length === 0
+              ? null
+              : Object.fromEntries(
+                  heldPanel(identifier, dates).columns.map((name) => [
+                    name,
+                    [
+                      {
+                        date_from: listedFrom(seedOf(name, seedFor(name))),
+                        date_to: null,
+                        reference: rowReference(fields, name) ?? {}
+                      }
+                    ]
+                  ])
+                ),
           /*
            * A window the calendar could not cover (BN-198).
            *
@@ -2256,17 +2744,24 @@ function publishedFields(): string[] {
   return catalogue.fields.map((field) => field.path)
 }
 
-function previewPayload(indexId: string, asOf: string): unknown {
-  return previewFace(indexId, asOf, derivations.has(indexId))
+function previewPayload(indexId: string, asOf: string, fields: readonly string[]): unknown {
+  return previewFace(indexId, asOf, derivations.has(indexId), fields)
 }
 
-function previewFace(indexId: string, asOf: string, derived: boolean): unknown {
+function previewFace(
+  indexId: string,
+  asOf: string,
+  derived: boolean,
+  /** BN-325: each asset's reference columns, as of the preview's date. */
+  fields: readonly string[]
+): unknown {
   const common = { index_id: indexId, as_of: `${asOf}T00:00:00`, total_weight: 1 }
   const face = derived ? solvedPreview() : walkedPreview(indexId)
   const currency = (indexDocument(indexId) as { currency: string }).currency
-  const assets = (face.assets as Record<string, unknown>[]).map((asset) =>
-    withCaps(asset, currency)
-  )
+  const assets = (face.assets as Record<string, unknown>[]).map((asset) => ({
+    ...withCaps(asset, currency),
+    reference: rowReference(fields, String(asset.identifier), asOf)
+  }))
 
   if (derived) {
     return { ...common, steps: null, cap: null, cap_redistributed: 0, ...face, assets }
@@ -2700,6 +3195,7 @@ function resetState(): void {
   generated = 0
   previewCarriesCaps = true
   resetStores()
+  resetStrategies()
 }
 
 export function startStubEngine(): Promise<StubEngine> {
@@ -2792,6 +3288,11 @@ export function startStubEngine(): Promise<StubEngine> {
      * does not.
      */
     if (method === 'POST' && /^\/indices\/([^/]+\/preview|preview)$/.test(url.pathname)) {
+      const fields = referenceAsked(url)
+      if (isRefusal(fields)) {
+        response.writeHead(fields.status).end(JSON.stringify(fields.payload))
+        return
+      }
       readBody(request, (parsed) => {
         const draft = isRecord(parsed.document) ? parsed.document : undefined
         const asOf = typeof parsed.as_of === 'string' ? parsed.as_of.slice(0, 10) : '2025-06-30'
@@ -2822,7 +3323,7 @@ export function startStubEngine(): Promise<StubEngine> {
           const id = typeof draft.id === 'string' ? draft.id : 'DRAFT'
           response
             .writeHead(200)
-            .end(JSON.stringify(previewFace(id, asOf, derivation !== undefined)))
+            .end(JSON.stringify(previewFace(id, asOf, derivation !== undefined, fields)))
           return
         }
 
@@ -2870,7 +3371,7 @@ export function startStubEngine(): Promise<StubEngine> {
           return
         }
 
-        response.writeHead(200).end(JSON.stringify(previewPayload(indexId, asOf)))
+        response.writeHead(200).end(JSON.stringify(previewPayload(indexId, asOf, fields)))
       })
       return
     }
@@ -2883,7 +3384,33 @@ export function startStubEngine(): Promise<StubEngine> {
      * over. Whether a benchmark was asked for decides whether the result
      * measures one, which is the distinction the client has to keep.
      */
-    if (method === 'POST' && /^\/beacon\/[^/]+\/backtest$/.test(url.pathname)) {
+    if (method === 'POST' && /^\/strategies\/[^/]+\/backtest\/validate$/.test(url.pathname)) {
+      readBody(request, (parsed) => {
+        const id = decodeURIComponent(url.pathname.split('/')[2] ?? '')
+        const strategy = strategyFor(id)
+        if (strategy === undefined) {
+          response
+            .writeHead(404)
+            .end(JSON.stringify(notFound(`strategy '${id}'`, 'DocumentStore').payload))
+          return
+        }
+        response.writeHead(200).end(
+          JSON.stringify({
+            valid: true,
+            settings: {
+              strategy_id: id,
+              strategy_name: strategy.name,
+              index_id: strategy.index_id,
+              ...parsed
+            },
+            findings: []
+          })
+        )
+      })
+      return
+    }
+
+    if (method === 'POST' && /^\/strategies\/[^/]+\/backtest$/.test(url.pathname)) {
       let raw = ''
       request.on('data', (chunk: Buffer) => {
         raw += chunk.toString('utf-8')
@@ -2896,7 +3423,16 @@ export function startStubEngine(): Promise<StubEngine> {
           parsed = {}
         }
 
-        const indexId = decodeURIComponent(url.pathname.split('/')[2] ?? '')
+        const strategyId = decodeURIComponent(url.pathname.split('/')[2] ?? '')
+        const strategy = strategyFor(strategyId)
+        if (strategy === undefined) {
+          response
+            .writeHead(404)
+            .end(JSON.stringify(notFound(`strategy '${strategyId}'`, 'DocumentStore').payload))
+          return
+        }
+        // The failures are the index's, so a run reads the index it holds.
+        const indexId = strategy.index_id
         const jobId = `job-${String(jobs.size + 1)}`
 
         /*
@@ -2925,7 +3461,7 @@ export function startStubEngine(): Promise<StubEngine> {
           error !== undefined
             ? {
                 job_id: jobId,
-                kind: 'backtest',
+                kind: `backtest:${strategyId}`,
                 status: 'failed',
                 progress: 0.05,
                 message: 'Calculating the index and simulating the tracking portfolio.',
@@ -2934,7 +3470,7 @@ export function startStubEngine(): Promise<StubEngine> {
               }
             : {
                 job_id: jobId,
-                kind: 'backtest',
+                kind: `backtest:${strategyId}`,
                 status: 'succeeded',
                 progress: 1,
                 message: 'done',
@@ -2943,8 +3479,61 @@ export function startStubEngine(): Promise<StubEngine> {
               }
 
         jobs.set(jobId, job)
+        if (error === undefined) ranStrategies.add(strategyId)
         response.writeHead(202).end(JSON.stringify({ ...job, result: undefined }))
       })
+      return
+    }
+
+    /*
+     * Stored strategies (BN-312): validate, create, replace and delete.
+     *
+     * The engine refuses an id already taken on create (409, pointing at
+     * PUT), a body id that disagrees with the URL's on replace (422), and an
+     * index that is not stored (422, a finding at `index_id`).
+     */
+    if (method === 'POST' && url.pathname === '/strategies/validate') {
+      readBody(request, (parsed) => {
+        const found = strategyFindings(normaliseStrategy(parsed), indexIds)
+        response.writeHead(200).end(JSON.stringify({ valid: found.length === 0, findings: found }))
+      })
+      return
+    }
+
+    const strategyPath = /^\/strategies(?:\/([^/]+))?$/.exec(url.pathname)
+    if (strategyPath !== null && (method === 'POST' || method === 'PUT')) {
+      readBody(request, (parsed) => {
+        const document = normaliseStrategy(parsed)
+        const urlId = decodeURIComponent(strategyPath[1] ?? '')
+        const refusal = refuseStrategy(document, method, urlId)
+        if (refusal !== undefined) {
+          response.writeHead(refusal.status).end(JSON.stringify(refusal.payload))
+          return
+        }
+        strategies = [...strategies.filter((strategy) => strategy.id !== document.id), document]
+        response.writeHead(200).end(JSON.stringify({ strategy: document, findings: [] }))
+      })
+      return
+    }
+
+    if (strategyPath?.[1] !== undefined && method === 'DELETE') {
+      const id = decodeURIComponent(strategyPath[1])
+      if (strategyFor(id) === undefined) {
+        response
+          .writeHead(404)
+          .end(JSON.stringify(notFound(`strategy '${id}'`, 'DocumentStore').payload))
+        return
+      }
+      const hadRun = hasRun(id)
+      strategies = strategies.filter((strategy) => strategy.id !== id)
+      ranStrategies.delete(id)
+      response.writeHead(200).end(
+        JSON.stringify({
+          strategy_id: id,
+          backtest_record_deleted: hadRun,
+          backtest_results_deleted: hadRun ? 1 : 0
+        })
+      )
       return
     }
 
@@ -2961,6 +3550,20 @@ export function startStubEngine(): Promise<StubEngine> {
     if (method === 'DELETE' && url.pathname.startsWith('/indices/')) {
       const id = decodeURIComponent(url.pathname.slice('/indices/'.length))
       const children = childrenOf(id)
+      // Refused while a strategy holds it, or a child it would take (0.9.0).
+      const usedBy = [id, ...children].flatMap((index) => usersOf(index, strategies))
+      if (usedBy.length > 0) {
+        response.writeHead(409).end(
+          JSON.stringify({
+            error: {
+              code: 'IN_USE',
+              message: `index '${id}' cannot be deleted while ${usedBy.join(', ')} use it. Delete them or point them at another document first.`,
+              detail: { subject: `index '${id}'`, used_by: usedBy }
+            }
+          })
+        )
+        return
+      }
 
       if (!deleteIndexDocument(id)) {
         response

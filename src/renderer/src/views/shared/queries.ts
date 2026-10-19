@@ -137,9 +137,17 @@ export interface ReferenceRows {
   error: unknown
 }
 
+/**
+ * Every column the reference data stores, with no derived field: what
+ * `/data/reference` answers when no field list is given. The safe way to ask
+ * for columns a dataset may not carry, such as ASSET_CLASS, since naming one
+ * it lacks is a 422 rather than a null.
+ */
+export const STORED_FIELDS = 'stored'
+
 export function useReferenceRows(
   identifiers: readonly string[],
-  fields: readonly string[] = TABLE_REFERENCE_FIELDS,
+  fields: readonly string[] | typeof STORED_FIELDS = TABLE_REFERENCE_FIELDS,
   date = '',
   /** What the money fields convert into (BN-189). USD when unsaid. */
   currency = ''
@@ -157,10 +165,16 @@ export function useReferenceRows(
 
   const results = useQueries({
     queries: chunks.map((ids) => ({
-      queryKey: keys.data.referenceBatch(ids, fields, date, currency),
+      queryKey: keys.data.referenceBatch(
+        ids,
+        fields === STORED_FIELDS ? [STORED_FIELDS] : fields,
+        date,
+        currency
+      ),
       queryFn: ({ signal }: { signal: AbortSignal }) => {
         if (client === null) throw new Error('No engine')
-        return client.data.referenceBatch(ids, fields, date, currency, signal)
+        const asked = fields === STORED_FIELDS ? undefined : fields
+        return client.data.referenceBatch(ids, asked, date, currency, signal)
       },
       enabled: client !== null
     }))

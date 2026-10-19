@@ -6,9 +6,7 @@ import { parseRun } from '@shared/backtestRun'
 import { ApiError } from '../../api/errors'
 import { isDocumentId } from '../../api/ids'
 import { keys } from '../../api/keys'
-import { useBacktestRecords } from './beaconQueries'
 import type { ConstraintRow } from './optimiseQueries'
-import { withBacktests } from './indexSuggestions'
 import { useBeacon } from '../../api/queryClient'
 import { workKey } from '../../api/work'
 import type { Skipped } from './pickers'
@@ -119,13 +117,10 @@ export function useCreateUniverse() {
 }
 
 /**
- * Delete an index definition, and the runs that belong to it (BU-151).
+ * Delete an index definition (BU-151).
  *
- * The cascade is the engine's (BN-157): results are keyed
- * `backtest:{index_id}`, and orphaning them would leave records addressable
- * by an id that no longer resolves. The caller's confirmation has to say so,
- * because a backtest quietly disappearing is not what "delete this index"
- * sounds like.
+ * Since py-beacon 0.9.0 runs belong to strategies, and an index a strategy
+ * holds is refused with 409 IN_USE naming them, so nothing but indices goes.
  */
 export function useDeleteIndex() {
   const client = useBeacon()
@@ -267,9 +262,18 @@ export function usePreviewIndex() {
 
   return useMutation({
     mutationKey: workKey('previewing'),
-    mutationFn: ({ indexId, asOf }: { indexId: string; asOf: string }) => {
+    mutationFn: ({
+      indexId,
+      asOf,
+      referenceFields = []
+    }: {
+      indexId: string
+      asOf: string
+      /** The reference columns its table shows, carried on each asset (BN-325). */
+      referenceFields?: readonly string[]
+    }) => {
       if (client === null) throw new Error('No engine')
-      return client.indices.preview(indexId, { as_of: asOf })
+      return client.indices.preview(indexId, { as_of: asOf }, referenceFields)
     },
     // Into the cache under its date, so the tab that ran it can show it again
     // after the reader has been elsewhere (BU-227).
@@ -291,14 +295,20 @@ export function usePreviewIndex() {
  * hour unseen, or invalidated by a data load — since showing nothing would
  * lose the run, and showing the old answer would show the old data.
  */
-export function useRanPreview(indexId: string, ran: string | undefined) {
+export function useRanPreview(
+  indexId: string,
+  ran: string | undefined,
+  referenceFields: readonly string[] = []
+) {
   const client = useBeacon()
 
   return useQuery({
+    // Not keyed by the columns: a changed column choice is not a request to
+    // run the preview again. The next run carries it.
     queryKey: keys.strategy.preview(indexId, ran ?? ''),
     queryFn: () => {
       if (client === null || ran === undefined) throw new Error('No engine')
-      return client.indices.preview(indexId, { as_of: ran })
+      return client.indices.preview(indexId, { as_of: ran }, referenceFields)
     },
     enabled: client !== null && indexId !== '' && ran !== undefined,
     staleTime: Infinity,
@@ -350,45 +360,11 @@ export function useSaveIndex() {
   })
 }
 
-export type OverviewView = components['schemas']['OverviewView']
-export type CompareView = components['schemas']['CompareView']
-
-/** Two or more stored indices on one rebased scale. */
-export function useCompare(indexIds: readonly string[]) {
-  const client = useBeacon()
-  const ids = [...indexIds].filter((id) => id !== '')
-
-  return useQuery({
-    queryKey: ['beacon', 'compare', ids.join(',')],
-    queryFn: ({ signal }) => {
-      if (client === null) throw new Error('No engine')
-      return client.get('/beacon/compare', { query: { ids }, signal })
-    },
-    enabled: client !== null && ids.length >= 2
-  })
-}
-
-export interface BacktestOptions {
-  indexId: string
-  start?: string
-  end?: string
-  transactionCostBps: number
-  /**
-   * Required, because the generated body makes it so: the field carries a
-   * default in the schema, which openapi-typescript reads as always present.
-   * The form holds py-beacon's own 1,000,000 as its starting value.
-   */
-  initialCapital: number
-  benchmarkIndexId?: string
-}
-
 /**
  * The result of a finished backtest job (BU-137).
  *
- * Read from the job rather than from `/beacon/{id}/overview`, because they
- * answer different questions: the overview is the INDEX, recalculated, while
- * this is what the simulated portfolio actually did — the NAV, the tracked
- * index beside it, and whether a benchmark was measured at all.
+ * Read from the job: it carries the run's whole payload, where the strategy's
+ * overview carries the level and headline figures drawn from it.
  *
  * Enabled only once the job has finished, and never retried: a result that
  * is not there yet arrives on the event feed, not by asking again.
@@ -446,24 +422,14 @@ export function useIndexCatalogue(): {
   skipped: Skipped
 } {
   const indices = useIndices()
-  const records = useBacktestRecords()
 
-  const named = useMemo(
+  const rows = useMemo(
     () =>
       (indices.data?.indices ?? []).map((index) => ({
         identifier: index.id,
         ...(index.name === '' ? {} : { name: index.name })
       })),
     [indices.data]
-  )
-
-  /*
-   * Stamped once per render rather than per row, so every age in one list is
-   * measured from the same instant (BU-168).
-   */
-  const rows = useMemo(
-    () => withBacktests(named, records.data?.backtests ?? [], Date.now()),
-    [named, records.data]
   )
 
   return {
@@ -474,39 +440,6 @@ export function useIndexCatalogue(): {
       skipped_causes: indices.data?.skipped_causes ?? null
     }
   }
-}
-
-export function useRunBacktest() {
-  const client = useBeacon()
-
-  return useMutation({
-    mutationKey: workKey('backtest'),
-    mutationFn: (options: BacktestOptions) => {
-      if (client === null) throw new Error('No engine')
-      return client.write('post', '/beacon/{index_id}/backtest', {
-        params: { index_id: options.indexId },
-        body: {
-          ...(options.start === undefined ? {} : { start: options.start }),
-          ...(options.end === undefined ? {} : { end: options.end }),
-          initial_capital: options.initialCapital,
-          transaction_cost_bps: options.transactionCostBps,
-          // The engine's own default since 0.5.0, said outright: the generated
-          // type requires every field that has a default. A choice once the
-          // backtest views are redesigned for strategies and vehicles.
-          dividends: 'reinvest',
-          ...(options.benchmarkIndexId === undefined
-            ? {}
-            : {
-                benchmark: {
-                  id: options.benchmarkIndexId,
-                  kind: 'index' as const,
-                  price_column: 'CLOSE'
-                }
-              })
-        }
-      })
-    }
-  })
 }
 
 /**

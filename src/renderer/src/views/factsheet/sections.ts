@@ -35,8 +35,8 @@ export function orderedSelection(selected: readonly string[]): Section[] {
 }
 
 /** A filename the OS will accept and a person can recognise. */
-export function renderFilename(templateId: string, indexId: string, now: Date): string {
+export function renderFilename(templateId: string, strategyId: string, now: Date): string {
   const stamp = now.toISOString().slice(0, 10)
-  const parts = [indexId, templateId, stamp].filter((part) => part !== '')
+  const parts = [strategyId, templateId, stamp].filter((part) => part !== '')
   return `${parts.join('-')}.pdf`
 }

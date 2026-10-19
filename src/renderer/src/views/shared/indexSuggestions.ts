@@ -5,13 +5,11 @@ import { relativeTime } from '../home/activityRows'
 export type BacktestRecordRow = components['schemas']['BacktestRecordRow']
 
 /**
- * The index catalogue, saying which of it has been back-tested (BU-168).
+ * The strategy catalogue, saying which of it has been back-tested (BU-168,
+ * by strategy since py-beacon 0.9.0).
  *
- * One row per index rather than a second row per record: `/beacon/backtests`
- * answers "which indices HAVE a record, and when" (BN-162), and a separate
- * "backtest" row in the bar would promise a payload the pane does not draw —
- * the run itself lives behind `/beacon/{index_id}/record`, which nothing
- * reads yet.
+ * One row per strategy rather than a second row per run: `/strategies/runs`
+ * answers "which strategies HAVE a run, and when", one row each.
  *
  * The date is what makes the row worth having. "Backtested" alone says only
  * that someone once did; "3d ago" is the difference between a result worth
@@ -24,7 +22,7 @@ export function withBacktests(
 ): Suggestion[] {
   if (records.length === 0) return [...rows]
 
-  const when = new Map(records.map((record) => [record.index_id, record.run_at]))
+  const when = new Map(records.map((record) => [record.strategy_id, record.run_at]))
 
   return rows.map((row) => {
     if (!when.has(row.identifier)) return row

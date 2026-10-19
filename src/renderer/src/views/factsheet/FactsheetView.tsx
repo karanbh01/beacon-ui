@@ -15,7 +15,8 @@ import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useOverview } from '../shared/beaconQueries'
 import { fromFraction, percent, signedPercent, sinceStart, toPoints } from '../shared/indexMetrics'
 import { useOpenRender, useRenderReport, useTemplates } from '../shared/reportQueries'
-import { useIndex, useIndexCatalogue } from '../shared/strategyQueries'
+import { useStrategyCatalogue } from '../shared/strategyDocuments'
+import { useIndex } from '../shared/strategyQueries'
 import { FACTSHEET_SECTIONS, orderedSelection, renderFilename, toggle } from './sections'
 import './FactsheetView.css'
 
@@ -31,16 +32,17 @@ const ALL = FACTSHEET_SECTIONS.map((section) => section.id)
  * bearer token.
  */
 export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
-  const indexId = subject ?? tab.pinnedDoc ?? ''
+  const strategyId = subject ?? tab.pinnedDoc ?? ''
   const [templateId, setTemplateId] = useState('FACTSHEET-A4')
   const [selected, setSelected] = useState<readonly string[]>(ALL)
   const [message, setMessage] = useState<string | undefined>(undefined)
 
   const templates = useTemplates()
-  const catalogue = useIndexCatalogue()
+  const catalogue = useStrategyCatalogue()
   const setSubject = useWorkspace((state) => state.setSubject)
-  const overview = useOverview(indexId)
-  const document = useIndex(indexId)
+  const overview = useOverview(strategyId)
+  // The index the strategy holds, for its base date and rules.
+  const document = useIndex(overview.data?.index_id ?? '')
   const render = useRenderReport()
   const open = useOpenRender()
   const jobs = useJobs((state) => state.jobs)
@@ -64,13 +66,13 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
   const exportPdf = (): void => {
     setMessage(undefined)
     render.mutate(
-      { templateId, indexId },
+      { templateId, strategyId },
       {
         onSuccess: (job) => {
           open.mutate(
             {
               renderId: job.job_id,
-              filename: renderFilename(templateId, indexId, new Date())
+              filename: renderFilename(templateId, strategyId, new Date())
             },
             {
               onSuccess: (result) => {
@@ -113,7 +115,7 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
             </Button>
             <Button
               variant="accent"
-              disabled={indexId === '' || running !== undefined || render.isPending}
+              disabled={strategyId === '' || running !== undefined || render.isPending}
               onClick={exportPdf}
             >
               {running === undefined ? 'Export PDF' : 'Rendering…'}
@@ -136,17 +138,17 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
           <TickerField
             className="ticker-field-inline"
             label="Index"
-            subject={indexId}
+            subject={strategyId}
             index={catalogue.rows}
             onQuery={(next) => {
-              setSubject(tab.id, next.toUpperCase())
+              setSubject(tab.id, next)
             }}
           />
         </Field>
         <Field label="As of" width={140} value={overview.data?.end.slice(0, 10) ?? '—'} />
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Name an index to draw its factsheet.</ViewEmpty>}
+      {strategyId === '' && <ViewEmpty>Name a strategy to draw its factsheet.</ViewEmpty>}
       {render.isError && <ViewError error={render.error} />}
       {open.isError && <ViewError error={open.error} />}
       {message !== undefined && <p className="factsheet-message type-11">{message}</p>}
@@ -174,7 +176,7 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
         </Card>
 
         <PaperPreview
-          header={`${indexId || '—'} · Factsheet`}
+          header={`${strategyId || '—'} · Factsheet`}
           footer={`py-beacon ${overview.data === undefined ? '' : 'live'} · ${templateId}`}
           page={1}
           pageCount={1}

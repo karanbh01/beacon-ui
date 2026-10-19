@@ -2,51 +2,99 @@ import type { Page } from '@playwright/test'
 import { expect, openPage, openView, test, choose } from './fixtures'
 
 /**
- * The Overview's three faces (BU-176).
+ * The Overview's faces (BU-176): a stored strategy's latest run since
+ * py-beacon 0.9.0, in Karan's order — Summary, Implementation, Statistics
+ * Detail, Risk & Correlation, Flows & AUM.
  *
- * Also the first E2E coverage this pane has ever had: the stub served no
- * `/beacon/{id}/overview`, no `/beacon/compare` and no `/beacon/{id}/weights`
- * until BU-165, so every view reading them fell to its error state and the
- * payloads were described rather than exercised.
+ * The stub's strategies are plain ones named for the fixture indices they
+ * hold, so the ids typed here read as they did when the subject was the
+ * index.
  */
 
-async function openOverview(window: Page, indexId: string): Promise<void> {
+async function openOverview(window: Page, strategyId: string): Promise<void> {
   await openPage(window, 'Beacon View')
   await openView(window, 'Overview')
   await window
     .locator('.index-overview-view')
     .getByRole('combobox', { name: 'Subject' })
-    .fill(indexId)
+    .fill(strategyId)
   await window.keyboard.press('Enter')
 }
 
-test('summary draws the index, its weights and the run beside it', async ({ window }) => {
+test('the faces are in Karan’s order', async ({ window }) => {
   await openOverview(window, 'TECH10')
 
-  await expect(window.getByText('INDEX LEVEL')).toBeVisible()
+  await expect(window.locator('.overview-faces [role="radio"]')).toHaveText([
+    'Summary',
+    'Implementation',
+    'Statistics Detail',
+    'Risk & Correlation',
+    'Flows & AUM'
+  ])
+})
+
+test('summary draws the run, its weights and the index beside it', async ({ window }) => {
+  await openOverview(window, 'TECH10')
+
+  await expect(window.getByText('LEVEL', { exact: true })).toBeVisible()
   await expect(window.locator('.level-chart')).toBeVisible()
 
-  // The stored run lands here now, not on the Backtest tab (BU-174/175).
-  await expect(window.getByText('TECH10 portfolio')).toBeVisible()
-  await expect(window.locator('.index-overview-view')).toContainText('stored run, captured 3d ago')
+  // The run is the strategy's; the index line is the index calculated on
+  // its own over the same dates (`/indices/{id}/level`), not a second run.
+  await expect(window.locator('.level-chart-key')).toContainText('TECH10')
+  await expect(window.locator('.index-overview-view')).toContainText('latest run, captured 3d ago')
+  await expect(window.locator('.index-overview-view')).toContainText(
+    'TECH10 calculated alone over the same dates'
+  )
 
-  // The index column is py-beacon's own metrics; the portfolio column is the
-  // run's. Both present means the table is telling two stories, not one.
+  // Both columns are py-beacon's own metrics: the run's, and the index's.
   const stats = window.locator('.overview-stats-card')
   await expect(stats.getByText('Sharpe ratio')).toBeVisible()
-  await expect(stats.getByText('Portfolio')).toBeVisible()
+  await expect(stats.getByText('Strategy', { exact: true })).toBeVisible()
+  await expect(stats.getByText('Index', { exact: true })).toBeVisible()
 
   await expect(window.locator('.overview-weight').first()).toContainText('CMP000')
 })
 
-test('an index nobody has run shows no portfolio column', async ({ window }) => {
-  // TECH10-OPT has no stored record. An empty column would read as a
-  // measurement that came out blank rather than one nobody made.
+test('a strategy never run says so, and offers to back-test it', async ({ window }) => {
+  // TECH10-OPT is stored and has no run, and every view is a run's (0.9.0).
   await openOverview(window, 'TECH10-OPT')
 
-  await expect(window.locator('.overview-stats-card')).toBeVisible()
-  await expect(window.locator('.overview-stats-card').getByText('Portfolio')).toHaveCount(0)
-  await expect(window.getByText('TECH10-OPT portfolio')).toHaveCount(0)
+  await expect(
+    window.getByText('TECH10-OPT has no run yet. Backtest it to see one here.')
+  ).toBeVisible()
+  await expect(window.locator('.overview-stats-card')).toHaveCount(0)
+
+  await window.getByRole('button', { name: 'Backtest…' }).click()
+  await expect(window.locator('.backtest-strategy')).toContainText('TECH10-OPT')
+})
+
+test('implementation reads what the fund did that the index did not', async ({ window }) => {
+  await openOverview(window, 'TECH10')
+  await window.getByRole('radio', { name: 'Implementation' }).click()
+
+  // A captured run with screens, a cap, an execution limit and futures on
+  // its cash buffer: each record is a table of its own.
+  const view = window.locator('.index-overview-view')
+  await expect(view.getByText('NAMES REMOVED')).toBeVisible()
+  await expect(view).toContainText('Rebalances')
+  await expect(view).toContainText('Minimum price')
+  await expect(view).toContainText(/Unfilled orders · \d+/)
+  await expect(view).toContainText('execution limit')
+  await expect(view).toContainText('Index futures')
+  // A run with complete data has no stale marks, and says nothing of them.
+  await expect(view).not.toContainText('Priced from an earlier session')
+})
+
+test('flows and AUM reads the money in, out, and each class', async ({ window }) => {
+  await openOverview(window, 'TECH10')
+  await window.getByRole('radio', { name: 'Flows & AUM' }).click()
+
+  const view = window.locator('.index-overview-view')
+  await expect(view.getByText('NAV PER UNIT')).toBeVisible()
+  await expect(view).toContainText('Flows')
+  await expect(view).toContainText('Share classes')
+  await expect(view).toContainText('EUR · hedged')
 })
 
 test('statistics detail buckets returns, and the period control changes them', async ({
@@ -111,10 +159,10 @@ test('risk shows one chart with three series behind a selector', async ({ window
   // Rolling correlation has nothing to correlate against until one is picked,
   // and says so rather than drawing an empty chart.
   await choose(window, 'Series', 'correlation')
-  await expect(window.getByText('Choose an index to correlate against.')).toBeVisible()
+  await expect(window.getByText('Choose a strategy to correlate against.')).toBeVisible()
 })
 
-test('correlations are against the indices the reader picks', async ({ window }) => {
+test('correlations are against the strategies the reader picks', async ({ window }) => {
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Risk & Correlation' }).click()
 

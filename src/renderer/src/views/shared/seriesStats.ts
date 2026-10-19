@@ -11,8 +11,10 @@ export type BacktestMetrics = components['schemas']['BacktestMetrics']
  * Nulls are dropped rather than plotted as zero — py-beacon documents NaN
  * arriving as null, and a zero would draw the index falling to nothing.
  */
-export function toPoints(series: SeriesPayload | RunSeries | undefined): Point[] {
-  if (series === undefined) return []
+export function toPoints(series: SeriesPayload | RunSeries | null | undefined): Point[] {
+  // Null as well: the run's optional series (a fund's units, a swap's value)
+  // arrive as null when the run had no such thing.
+  if (series == null) return []
 
   const points: Point[] = []
   series.index.forEach((label, position) => {

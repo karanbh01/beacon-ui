@@ -78,19 +78,38 @@ export const keys = {
      * tab switched away from and back shows what it ran; a data load
      * invalidates it, since it was resolved from the old data.
      */
-    preview: (indexId: string, asOf: string) => ['strategy', 'preview', indexId, asOf] as const
+    preview: (indexId: string, asOf: string) => ['strategy', 'preview', indexId, asOf] as const,
+    /** Stored strategies (BN-312): documents, like index definitions. */
+    strategies: () => ['strategy', 'strategies'] as const,
+    document: (strategyId: string) => ['strategy', 'document', strategyId] as const,
+    /** What a strategy and a backtest can be made of; changes only with the engine. */
+    backtestOptions: () => ['strategy', 'backtest-options'] as const
   },
 
   beacon: {
     all: () => ['beacon'] as const,
-    overview: (indexId: string, asof?: string) => ['beacon', 'overview', indexId, asof] as const,
-    weights: (indexId: string, asof?: string) => ['beacon', 'weights', indexId, asof] as const,
-    attribution: (indexId: string, asof?: string) =>
-      ['beacon', 'attribution', indexId, asof] as const,
-    /** Every stored backtest record, thin rows (BN-162). */
+    overview: (strategyId: string, asof?: string) =>
+      ['beacon', 'overview', strategyId, asof] as const,
+    weights: (strategyId: string, asof?: string) =>
+      ['beacon', 'weights', strategyId, asof] as const,
+    attribution: (strategyId: string, asof?: string) =>
+      ['beacon', 'attribution', strategyId, asof] as const,
+    /** Every strategy's latest run, thin rows (BN-313). */
     backtests: () => ['beacon', 'backtests'] as const,
     /** One stored record, books and all (BN-158). */
-    record: (indexId: string) => ['beacon', 'record', indexId] as const
+    record: (strategyId: string) => ['beacon', 'record', strategyId] as const,
+    /** The latest run's whole payload (BN-320). */
+    result: (strategyId: string) => ['beacon', 'result', strategyId] as const,
+    /** A run's figures by period (BN-324): annual, quarterly or monthly. */
+    periods: (strategyId: string, frequency: string) =>
+      ['beacon', 'periods', strategyId, frequency] as const,
+    /**
+     * An index calculated alone (BN-316). Here rather than under `strategy`:
+     * it is computed from market data, so a freshness event drops it with
+     * the runs.
+     */
+    indexLevel: (indexId: string, start: string, end: string) =>
+      ['beacon', 'index-level', indexId, start, end] as const
   },
 
   jobs: {

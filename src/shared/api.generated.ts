@@ -31,199 +31,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/beacon/backtests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Backtest Records
-         * @description Every stored backtest record, newest first.
-         *
-         *     The enumeration Beacon View's search bar needs: which indices have a
-         *     record, and when each was captured. One row per index (the record
-         *     store keeps the latest run only), and the row is deliberately thin;
-         *     `/beacon/{index_id}/record` serves the books.
-         *
-         *     A record that cannot be read is skipped with a warning rather than
-         *     failing the listing: one bad file must not hide every good one.
-         *     "Cannot be read" means the same thing here as at `/record`, and the
-         *     count of what was skipped is published beside the rows, because a
-         *     listing silently short is indistinguishable from a complete one.
-         */
-        get: operations["backtest_records_beacon_backtests_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/compare": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Compare */
-        get: operations["compare_beacon_compare_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/assets/{identifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Asset */
-        get: operations["asset_beacon__index_id__assets__identifier__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/attribution": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Attribution */
-        get: operations["attribution_beacon__index_id__attribution_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/backtest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit Backtest */
-        post: operations["submit_backtest_beacon__index_id__backtest_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/backtest/validate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Validate Backtest
-         * @description What a backtest request would run, without running it.
-         *
-         *     The same body `POST /beacon/{index_id}/backtest` takes. Answers the
-         *     fully resolved settings (the preset filled in, the modelling
-         *     assumptions resolved against the loaded data) or every finding, each
-         *     at its field's path.
-         */
-        post: operations["validate_backtest_beacon__index_id__backtest_validate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/overview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Overview */
-        get: operations["overview_beacon__index_id__overview_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/record": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Backtest Record
-         * @description The latest run's books, nested: the record, not the derived view.
-         *
-         *     `BacktestJobStatus.result` carries the run payload (rebased level,
-         *     returns, drawdown), which is what a chart wants. This is the other
-         *     half: the portfolio book with its day-zero NAV, bounded positions and
-         *     weights with true totals, and the comparator books, null when the run
-         *     had none.
-         *
-         *     Raises:
-         *         DataNotFoundError: If the index has never been backtested
-         *             successfully (the same answer, and the same pointer, as the
-         *             overview). A record that cannot be parsed or validated answers
-         *             the same way rather than with a 500: it is the document the
-         *             listing skips, and a stored artefact the server cannot
-         *             interpret is indistinguishable, from here, from one that was
-         *             never written. The fault is logged at WARNING.
-         */
-        get: operations["backtest_record_beacon__index_id__record_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/beacon/{index_id}/weights": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Weights */
-        get: operations["weights_beacon__index_id__weights_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/changelog": {
         parameters: {
             query?: never;
@@ -861,27 +668,49 @@ export interface paths {
         post?: never;
         /**
          * Delete Index
-         * @description Remove a stored index definition, its optimised children, and the
-         *     backtest results of every one of them.
+         * @description Remove a stored index definition and its optimised children.
          *
-         *     The first cascade is deliberate: results are keyed
-         *     `backtest:{index_id}`, and orphaning them would leave records
-         *     addressable by an id that no longer resolves (the overview route
-         *     404s on the definition load before it ever reaches them).
-         *
-         *     The second follows from how an optimised index is stored: it
+         *     The cascade follows from how an optimised index is stored: it
          *     *references* its source rather than copying it, so a child left behind
          *     would be a methodology with no methodology, and could never be
-         *     calculated again. Each child goes through the identical cascade, and
-         *     the chain is followed recursively. The confirmation warning stays
-         *     client-side: documents carry `source_index_id`, so the UI computes the
-         *     blast radius from the catalogue before sending. This response then
-         *     says what actually went, which is what the client reports.
+         *     calculated again. The chain is followed recursively. The confirmation
+         *     warning stays client-side: documents carry `source_index_id`, so the
+         *     UI computes the blast radius from the catalogue before sending. This
+         *     response then says what actually went, which is what the client
+         *     reports.
          *
-         *     No refusal case: unlike universes, no index is seeded -- every stored
-         *     definition was created by somebody, so every one may be deleted.
+         *     One refusal: a stored strategy that holds the index, or any child
+         *     the cascade would take, answers 409 `IN_USE` with the strategies in
+         *     `detail.used_by`. A strategy is somebody's work rather than something
+         *     derived from the index, so it is never deleted with it, and since runs
+         *     belong to strategies, no run goes with an index either. Otherwise,
+         *     unlike universes, no index is seeded: every stored definition was
+         *     created by somebody, so every one may be deleted.
          */
         delete: operations["delete_index_indices__index_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/indices/{index_id}/level": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Level
+         * @description The index calculated on its own, with no backtest: its level,
+         *     the headline figures of that level, and its weights at each
+         *     rebalance. Through the cache a backtest uses, so either reuses the
+         *     other's calculation over the same dates.
+         */
+        get: operations["level_indices__index_id__level_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1073,6 +902,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/optimise/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run
+         * @description A completed optimisation run: the payload its job answered with,
+         *     each weight row carrying its name's reference columns as of the date
+         *     the target's weights were taken.
+         */
+        get: operations["run_optimise_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/optimise/runs/{run_id}/exposures": {
         parameters: {
             query?: never;
@@ -1222,6 +1073,323 @@ export interface paths {
         put?: never;
         /** Estimate */
         post: operations["estimate_risk_models__model_id__estimate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Strategies
+         * @description Every stored strategy, each with any problem it has, such as an
+         *     index that has gone. A strategy the server cannot read is left out and
+         *     counted, as the index list does.
+         */
+        get: operations["list_strategies_strategies_get"];
+        put?: never;
+        /**
+         * Create Strategy
+         * @description Save a new strategy. An id already taken is refused with a 409:
+         *     replacing a strategy is `PUT /strategies/{strategy_id}`.
+         */
+        post: operations["create_strategy_strategies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare
+         * @description Several strategies' latest runs on one axis, over the dates they
+         *     all cover.
+         */
+        get: operations["compare_strategies_compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Runs
+         * @description Every strategy's latest saved run, newest first.
+         *
+         *     One row per strategy: the record store keeps the latest run only,
+         *     and `/strategies/{strategy_id}/record` serves its books. A record
+         *     that cannot be read is skipped and counted rather than failing the
+         *     listing.
+         */
+        get: operations["runs_strategies_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate
+         * @description Check a strategy without saving it: the findings a save would
+         *     refuse it with, each at its field's path.
+         */
+        post: operations["validate_strategies_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Strategy */
+        get: operations["get_strategy_strategies__strategy_id__get"];
+        /**
+         * Put Strategy
+         * @description Save a strategy under its id, replacing any stored there.
+         */
+        put: operations["put_strategy_strategies__strategy_id__put"];
+        post?: never;
+        /**
+         * Delete Strategy
+         * @description Remove a stored strategy, with its saved run and every result of
+         *     its backtests. One the server cannot read can still be deleted.
+         */
+        delete: operations["delete_strategy_strategies__strategy_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/assets/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Asset */
+        get: operations["asset_strategies__strategy_id__assets__identifier__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attribution */
+        get: operations["attribution_strategies__strategy_id__attribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/backtest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Backtest
+         * @description Backtest a stored strategy, as a job.
+         *
+         *     The body is everything the strategy does not hold: the period,
+         *     capital, costs, currency, dividends, benchmark, modelling
+         *     assumptions, flows and vehicle. The strategy, its index and its
+         *     implementation are the stored strategy's.
+         */
+        post: operations["submit_backtest_strategies__strategy_id__backtest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/backtest/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Backtest
+         * @description What a backtest of the strategy would run, without running it.
+         *
+         *     The same body `POST /strategies/{strategy_id}/backtest` takes.
+         *     Answers the fully resolved settings or every finding, each at its
+         *     field's path.
+         */
+        post: operations["validate_backtest_strategies__strategy_id__backtest_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_strategies__strategy_id__overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Periods
+         * @description The latest run's figures in each calendar year, quarter or month,
+         *     against its index and its benchmark: each period from the previous
+         *     period's close, the first from the run's start, so the periods
+         *     compound to the whole run.
+         */
+        get: operations["periods_strategies__strategy_id__periods_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Backtest Record
+         * @description The latest run's books, nested: the record, not the derived view.
+         *
+         *     `BacktestJobStatus.result` carries the run payload (rebased level,
+         *     returns, drawdown), which is what a chart wants. This is the other
+         *     half: the portfolio book with its day-zero NAV, bounded positions and
+         *     weights with true totals, and the comparator books, null when the run
+         *     had none.
+         *
+         *     Raises:
+         *         DataNotFoundError: If the strategy has never been backtested
+         *             successfully. A record that cannot be read answers the same,
+         *             as the listing skips it.
+         */
+        get: operations["backtest_record_strategies__strategy_id__record_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Result
+         * @description The strategy's latest successful run: the payload its job answered
+         *     with, every series and record in it, kept across a restart. Each
+         *     rebalance, unfilled order and price gap carries the reference columns
+         *     of its names as they stood on its date.
+         *
+         *     Raises:
+         *         DataNotFoundError: Until the strategy has been backtested.
+         */
+        get: operations["result_strategies__strategy_id__result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/weights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Weights */
+        get: operations["weights_strategies__strategy_id__weights_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1440,7 +1608,7 @@ export interface components {
         };
         /**
          * AssetView
-         * @description Response of `GET /beacon/{index_id}/assets/{identifier}`.
+         * @description Response of `GET /strategies/{strategy_id}/assets/{identifier}`.
          */
         AssetView: {
             /** Beta */
@@ -1459,7 +1627,10 @@ export interface components {
             excess_return: number;
             /** Identifier */
             identifier: string;
-            /** Index Id */
+            /**
+             * Index Id
+             * @description The index the strategy holds.
+             */
             index_id: string;
             /** Index Return */
             index_return: number;
@@ -1482,6 +1653,11 @@ export interface components {
             /** Rebalances Held */
             rebalances_held: number;
             /**
+             * Strategy Id
+             * @description The strategy whose latest run this reads.
+             */
+            strategy_id: string;
+            /**
              * Total Return
              * @description The name's return over the run, in the index's currency.
              */
@@ -1498,7 +1674,7 @@ export interface components {
         };
         /**
          * AttributionView
-         * @description Response of `GET /beacon/{index_id}/attribution`.
+         * @description Response of `GET /strategies/{strategy_id}/attribution`.
          *
          *     Contributions are Carino-linked, so they sum to the compounded total return
          *     rather than approximately to it. `residual` is reported regardless and
@@ -1523,7 +1699,10 @@ export interface components {
              * @description Last date a contribution was computed for, in the same full ISO-8601 form as `start`. Resolved: the latest date the run covers at or before the requested `end`, which `requested_end` echoes. `start` is the other end.
              */
             end: string;
-            /** Index Id */
+            /**
+             * Index Id
+             * @description The index the strategy holds.
+             */
             index_id: string;
             /** Periods */
             periods: number;
@@ -1546,12 +1725,17 @@ export interface components {
              * @description First date a contribution was computed for, as a full ISO-8601 timestamp. Resolved, and **one trading day later than the window's own first date**: a period's return is earned by the weight held at its start, so the first date in the window has no complete period behind it and is dropped. `requested_start` carries the window that was asked for, in YYYY-MM-DD; this is not that date. `end` is the other end.
              */
             start: string;
+            /**
+             * Strategy Id
+             * @description The strategy whose latest run this reads.
+             */
+            strategy_id: string;
             /** Total Return */
             total_return: number;
         };
         /**
          * BacktestJobStatus
-         * @description A `backtest:{index_id}` job. `result` is the run payload.
+         * @description A `backtest:{strategy_id}` job. `result` is the run payload.
          */
         BacktestJobStatus: {
             /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
@@ -1622,6 +1806,11 @@ export interface components {
              * @description For an ETF, the share of days its price was above NAV.
              */
             days_at_premium?: number | null;
+            /**
+             * Hit Rate Monthly
+             * @description The share of calendar months with a positive return.
+             */
+            hit_rate_monthly?: number | null;
             /**
              * Information Ratio
              * @description For an active strategy, annualised active return over tracking error against its benchmark.
@@ -1732,10 +1921,20 @@ export interface components {
              */
             replications: components["schemas"]["TypeSpec"][];
             /**
+             * Run Settings
+             * @description The run's own settings: `start`, `end`, `initial_capital`, `transaction_cost_bps`, `currency`, `dividends` and `benchmark`.
+             */
+            run_settings: components["schemas"]["ParameterSpec"][];
+            /**
              * Screens
              * @description For `implementation.screens`.
              */
             screens: components["schemas"]["TypeSpec"][];
+            /**
+             * Share Class Settings
+             * @description What each of `share_classes` takes.
+             */
+            share_class_settings: components["schemas"]["ParameterSpec"][];
             /**
              * Signals
              * @description For `strategy.signal`.
@@ -1749,7 +1948,7 @@ export interface components {
         };
         /**
          * BacktestRecordCollection
-         * @description Response of `GET /beacon/backtests`.
+         * @description Response of `GET /strategies/runs`.
          *
          *     An envelope rather than a bare array, so the listing can say how many
          *     stored records it left out.
@@ -1770,9 +1969,9 @@ export interface components {
          * BacktestRecordRow
          * @description One stored backtest record, as a listing knows it.
          *
-         *     The row is deliberately thin: the id to fetch the record by, and when it
-         *     was captured. Names come from the index catalogue the client already
-         *     holds, and everything else from `/beacon/{index_id}/record`.
+         *     The row is deliberately thin: the strategy to fetch the record by, what
+         *     it holds, and when it was captured. Everything else comes from
+         *     `/strategies/{strategy_id}/record`.
          */
         BacktestRecordRow: {
             /**
@@ -1780,7 +1979,10 @@ export interface components {
              * @description The book's currency.
              */
             currency?: string | null;
-            /** Index Id */
+            /**
+             * Index Id
+             * @description The index it held when it ran.
+             */
             index_id: string;
             /**
              * Run At
@@ -1789,9 +1991,19 @@ export interface components {
             run_at?: string | null;
             /**
              * Strategy
-             * @description The strategy's type: 'index', 'index_tracking' or 'active'. Null on a record from before it was kept.
+             * @description The strategy's type: 'index', 'index_tracking' or 'active'.
              */
             strategy?: string | null;
+            /**
+             * Strategy Id
+             * @description The strategy the run was of.
+             */
+            strategy_id: string;
+            /**
+             * Strategy Name
+             * @description Its name when it ran.
+             */
+            strategy_name: string;
             /**
              * Vehicle
              * @description The vehicle's name; null for a plain backtest.
@@ -1802,62 +2014,6 @@ export interface components {
              * @description The preset's key, stable across renames; null for a plain backtest or a generic vehicle.
              */
             vehicle_preset?: string | null;
-        };
-        /**
-         * BacktestRequest
-         * @description Body of `POST /beacon/{index_id}/backtest`.
-         *
-         *     Every field past the first five is optional, and a request without them
-         *     runs exactly as one with only the dates, capital and cost does.
-         */
-        BacktestRequest: {
-            /** @description Optional external benchmark. The tracked index is always reported separately; this adds a second comparison. */
-            benchmark?: components["schemas"]["BenchmarkRef"] | null;
-            /**
-             * Currency
-             * @description The book's currency. Null keeps it in the index's.
-             */
-            currency?: string | null;
-            /**
-             * Dividends
-             * @description What happens to cash distributions: 'reinvest', 'cash' or 'distribute'.
-             * @default reinvest
-             */
-            dividends: string;
-            /**
-             * End
-             * @description End date, YYYY-MM-DD.
-             */
-            end?: string | null;
-            /**
-             * Flows
-             * @description Money arriving and leaving, added together. Amounts are in the book's currency.
-             */
-            flows?: components["schemas"]["TypedSpec"][];
-            /** @description Screens, caps, costs and execution; none beyond stale prices when null. */
-            implementation?: components["schemas"]["ImplementationSpec"] | null;
-            /**
-             * Initial Capital
-             * @default 1000000
-             */
-            initial_capital: number;
-            /** @description What the run takes as given; each unset field takes the engine's default. */
-            modelling_assumptions?: components["schemas"]["ModellingAssumptionsSpec"] | null;
-            /**
-             * Start
-             * @description Start date, YYYY-MM-DD. Defaults to the index base date.
-             */
-            start?: string | null;
-            /** @description What is held; the index in full when null. */
-            strategy?: components["schemas"]["StrategySpec"] | null;
-            /**
-             * Transaction Cost Bps
-             * @description Cost per trade in basis points of notional.
-             * @default 0
-             */
-            transaction_cost_bps: number;
-            /** @description Null for a plain backtest, with no fee. */
-            vehicle?: components["schemas"]["VehicleSpec"] | null;
         };
         /**
          * BacktestResultSummary
@@ -1891,7 +2047,7 @@ export interface components {
             rebalance_pricing?: components["schemas"]["RebalancePricingPayload"][];
             /**
              * Run At
-             * @description When this record was captured, ISO-8601 UTC with an offset: wall-clock at the moment the finished run was serialised, within a second of the backtest completing. **Not a market date, and not the period the backtest covered**: that span is the index of `portfolio.nav`. `BacktestRecordRow.run_at` on `GET /beacon/backtests` is the same stamp. Null only on records written by an older engine that did not stamp them.
+             * @description When this record was captured, ISO-8601 UTC with an offset: wall-clock at the moment the finished run was serialised, within a second of the backtest completing. **Not a market date, and not the period the backtest covered**: that span is the index of `portfolio.nav`. `BacktestRecordRow.run_at` on `GET /strategies/runs` is the same stamp. Null only on records written by an older engine that did not stamp them.
              */
             run_at?: string | null;
             /**
@@ -1928,6 +2084,10 @@ export interface components {
             };
             /** @description Comparison against the requested external benchmark, if one was given. Null otherwise; `metrics.tracking_error` still reports replication accuracy against the tracked index either way. */
             benchmark?: components["schemas"]["RelativeMetricsPayload"] | null;
+            /** @description The run against its index and its benchmark, each with the comparator's own figures over the run's window. */
+            comparisons?: components["schemas"]["ComparisonsPayload"];
+            /** @description What a synthetic fund would lose if its swap counterparty failed, as a fraction of NAV each day. Null for any other fund. */
+            counterparty_exposure?: components["schemas"]["SeriesPayload"] | null;
             /**
              * Currency
              * @description The book's currency, which `total_costs` and `initial_capital` are in: the index's. Null on a run saved before this was recorded, whose book was in USD.
@@ -1946,6 +2106,17 @@ export interface components {
              * @description Each flow as dealt. Empty without flows.
              */
             flows?: components["schemas"]["FlowPayload"][];
+            /** @description The same as a fraction of NAV. Null for any other fund. */
+            futures_exposure?: components["schemas"]["SeriesPayload"] | null;
+            /** @description The exposure a fund's index futures carried each day, in the book's currency, 0 before they open: a futures-based fund's, or one equitising its cash buffer. Null for any other fund. */
+            futures_notional?: components["schemas"]["SeriesPayload"] | null;
+            /**
+             * Futures Rolls
+             * @description Each roll of the futures to the next contract.
+             */
+            futures_rolls?: components["schemas"]["FuturesRollPayload"][];
+            /** @description The hedged classes' forwards together, in the book's currency; null without a hedged class. */
+            hedge_value?: components["schemas"]["SeriesPayload"] | null;
             /** @description The tracked index, rebased to 100 on the same axis. Not the external benchmark, which is `benchmark`. */
             index_level: components["schemas"]["SeriesPayload"];
             /**
@@ -1990,11 +2161,23 @@ export interface components {
             returns: components["schemas"]["SeriesPayload"];
             /**
              * Settings
-             * @description What ran, fully resolved: strategy, implementation, flows, vehicle (preset and every setting), modelling assumptions and dividend policy. Null on a run saved before it was recorded.
+             * @description What ran, fully resolved: the strategy and index, the dates it ran over, capital, trading cost and benchmark, the strategy's settings and implementation, flows, vehicle (preset and every setting), share classes, modelling assumptions, currency and dividend policy. Null on a run saved before it was recorded.
              */
             settings?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Share Classes
+             * @description Each share class's record, in the request's order. Empty without share classes.
+             */
+            share_classes?: components["schemas"]["ShareClassPayload"][];
+            /**
+             * Swap Resets
+             * @description Each reset of a synthetic fund's swap.
+             */
+            swap_resets?: components["schemas"]["SwapResetPayload"][];
+            /** @description A synthetic fund's swap's value each day, in the book's currency: owed to the fund when positive. The NAV includes it. Null for any other fund. */
+            swap_value?: components["schemas"]["SeriesPayload"] | null;
             /**
              * Total Costs
              * @description Transaction costs paid across the run, for the cost drag.
@@ -2011,7 +2194,7 @@ export interface components {
         };
         /**
          * BacktestValidation
-         * @description Response of `POST /beacon/{index_id}/backtest/validate`.
+         * @description Response of `POST /strategies/{strategy_id}/backtest/validate`.
          */
         BacktestValidation: {
             /**
@@ -2103,6 +2286,13 @@ export interface components {
              * @default 0
              */
             rebalances_total: number;
+            /**
+             * Reference Windows
+             * @description By identifier, the reference columns asked for with `reference_fields` over the weights panel's span, as windows with the dates they held, so any day of the panel reads the classification of its time. Null when none were asked for.
+             */
+            reference_windows?: {
+                [key: string]: components["schemas"]["ReferenceWindow"][];
+            } | null;
             /** @description Daily weights, dates by identifier; most recent MAX_WEIGHT_DATES dates at most. Empty for a comparator supplied as a bare level series. */
             weights: components["schemas"]["TableFrame"];
             /**
@@ -2298,20 +2488,59 @@ export interface components {
             items: string[];
         };
         /**
+         * ComparatorFigures
+         * @description A comparator's own figures over a run's window, defined as a run's are.
+         */
+        ComparatorFigures: {
+            /**
+             * Annualised Return
+             * @description The total return a year.
+             */
+            annualised_return: number;
+            /**
+             * Hit Rate Monthly
+             * @description The share of calendar months with a positive return.
+             */
+            hit_rate_monthly?: number | null;
+            /**
+             * Max Drawdown
+             * @description Its largest fall from a peak.
+             */
+            max_drawdown: number;
+            /**
+             * Sharpe Ratio
+             * @description The annualised return in excess of the risk-free rate, over the volatility.
+             */
+            sharpe_ratio: number;
+            /**
+             * Total Return
+             * @description Over the window, from its first day's level.
+             */
+            total_return: number;
+            /**
+             * Volatility
+             * @description Of its daily returns, annualised.
+             */
+            volatility: number;
+        };
+        /**
          * CompareEntry
-         * @description One index within a comparison, on the shared window.
+         * @description One strategy's latest run within a comparison, on the shared window.
          */
         CompareEntry: {
-            /** Index Id */
-            index_id: string;
             /** @description Rebased to 100 on the first shared date, so lines start together and the comparison is of shape, not scale. */
             level: components["schemas"]["SeriesPayload"];
+            /**
+             * Strategy Id
+             * @description The strategy.
+             */
+            strategy_id: string;
             /** Total Return */
             total_return: number;
         };
         /**
          * CompareView
-         * @description Response of `GET /beacon/compare`.
+         * @description Response of `GET /strategies/compare`.
          */
         CompareView: {
             /**
@@ -2321,8 +2550,6 @@ export interface components {
             end: string;
             /** Entries */
             entries: components["schemas"]["CompareEntry"][];
-            /** Index Ids */
-            index_ids: string[];
             /**
              * Observations
              * @description Dates every index covers. Fewer than any one of them carries alone whenever their spans differ.
@@ -2330,9 +2557,14 @@ export interface components {
             observations: number;
             /**
              * Start
-             * @description First date **every** index in `index_ids` covers, YYYY-MM-DD: the intersection of their level series, not the earliest start among them. Resolved: one index whose history begins later moves this forward for all of them, which is why each entry's level is rebased from here. Nothing was requested (`GET /beacon/compare` takes only `ids`), so there is no window to echo. `end` is the other end of the same shared span.
+             * @description First date **every** run in `strategy_ids` covers, YYYY-MM-DD: the intersection of their level series, not the earliest start among them. Resolved: one index whose history begins later moves this forward for all of them, which is why each entry's level is rebased from here. Nothing was requested (`GET /strategies/compare` takes only `ids`), so there is no window to echo. `end` is the other end of the same shared span.
              */
             start: string;
+            /**
+             * Strategy Ids
+             * @description The strategies compared, as asked.
+             */
+            strategy_ids: string[];
         };
         /**
          * ComparisonNode
@@ -2354,6 +2586,54 @@ export interface components {
             node: "comparison";
             /** Value */
             value: unknown;
+        };
+        /**
+         * ComparisonPayload
+         * @description A run against one comparator: the comparator's own figures and the
+         *     run's relative to it, over the days both have.
+         */
+        ComparisonPayload: {
+            /**
+             * End
+             * @description Its last day, YYYY-MM-DD.
+             */
+            end: string;
+            /**
+             * Id
+             * @description The index id, or the market-data identifier.
+             */
+            id: string;
+            /**
+             * Kind
+             * @description 'index' or 'identifier'.
+             */
+            kind: string;
+            /** @description The comparator rebased to 100 on the window's first day. */
+            level: components["schemas"]["SeriesPayload"];
+            /**
+             * Observations
+             * @description Its days.
+             */
+            observations: number;
+            /** @description The comparator's own figures. */
+            own: components["schemas"]["ComparatorFigures"];
+            /** @description The run against it. */
+            relative: components["schemas"]["RelativeFigures"];
+            /**
+             * Start
+             * @description The window's first day, YYYY-MM-DD.
+             */
+            start: string;
+        };
+        /**
+         * ComparisonsPayload
+         * @description A run against each of its comparators; null where it has none.
+         */
+        ComparisonsPayload: {
+            /** @description The request's external benchmark. */
+            benchmark?: components["schemas"]["ComparisonPayload"] | null;
+            /** @description The index the run tracked, or an active strategy's benchmark index. Its relative figures agree with the run's tracking error and tracking difference. */
+            index?: components["schemas"]["ComparisonPayload"] | null;
         };
         /**
          * ConcentrationPayload
@@ -2423,6 +2703,13 @@ export interface components {
              * @description Weight before capping. Equal to `weight` on an uncapped index, and the only way to see what the cap cost.
              */
             raw_weight: number;
+            /**
+             * Reference
+             * @description The reference columns asked for with `reference_fields`, keyed in lower case, as they stood on this row's date. Null when the name had no reference row then.
+             */
+            reference?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Risk Contribution
              * @description This name's share of the index's annualised volatility, in the same units. Populated only when `risk=true` was requested; null also when the risk model has no estimate for this constituent, which `risk.uncovered` lists.
@@ -2534,6 +2821,13 @@ export interface components {
             average_weight: number;
             /** Contribution */
             contribution: number;
+            /**
+             * Reference
+             * @description The reference columns asked for with `reference_fields`, keyed in lower case, as they stood on this row's date. Null when the name had no reference row then.
+             */
+            reference?: {
+                [key: string]: unknown;
+            } | null;
             /** Total Return */
             total_return: number;
         };
@@ -2893,16 +3187,6 @@ export interface components {
          */
         DeletedIndex: {
             /**
-             * Backtest Record Deleted
-             * @description Whether a stored backtest record went with it.
-             */
-            backtest_record_deleted: boolean;
-            /**
-             * Backtest Results Deleted
-             * @description How many job records and persisted run results were forgotten with it.
-             */
-            backtest_results_deleted: number;
-            /**
              * Derived From
              * @description The index this one was derived from, when it went as an optimised child. Null for the index the request named.
              */
@@ -3240,6 +3524,12 @@ export interface components {
              * @default false
              */
             derived: boolean;
+            /**
+             * Label
+             * @description What a column chooser shows for it.
+             * @default
+             */
+            label: string;
             /** Name */
             name: string;
             /**
@@ -3398,6 +3688,15 @@ export interface components {
             monotonic: boolean;
             /** Points */
             points: components["schemas"]["FrontierPoint"][];
+            /**
+             * Reference
+             * @description By identifier, the reference columns asked for with `reference_fields`, keyed in lower case, as they stood on this date; null for a name with no reference row then. Null when the response carries none.
+             */
+            reference?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                } | null;
+            } | null;
             /** Risk Free Rate */
             risk_free_rate: number;
             /** Run Id */
@@ -3530,6 +3829,47 @@ export interface components {
              * @description Years the contract was priced over, ACT/365: what the calculation used, which is not always what the request sent. Computed from `valuation_date` to `expiry` when both were given, dates being the less ambiguous statement; the request's own `time_to_expiry` is echoed back only when the dates were omitted. Nothing is resolved against market data; this endpoint reads none.
              */
             time_to_expiry: number;
+        };
+        /**
+         * FuturesRollPayload
+         * @description One roll of a fund's index futures to the next contract.
+         */
+        FuturesRollPayload: {
+            /**
+             * Contracts
+             * @description Contracts held of it, each on one unit of the index, so the contracts times the price is the notional.
+             */
+            contracts: number;
+            /**
+             * Cost
+             * @description What the roll cost, paid from cash.
+             */
+            cost: number;
+            /**
+             * Date
+             * @description YYYY-MM-DD.
+             */
+            date: string;
+            /**
+             * Dividend Yield
+             * @description The dividend yield it was priced with.
+             */
+            dividend_yield: number;
+            /**
+             * Expiry
+             * @description The new contract's expiry, YYYY-MM-DD.
+             */
+            expiry: string;
+            /**
+             * Notional
+             * @description The exposure carried into it, in the book's currency.
+             */
+            notional: number;
+            /**
+             * Price
+             * @description The new contract's price, at fair value.
+             */
+            price: number;
         };
         /**
          * GenerateJobStatus
@@ -3704,6 +4044,37 @@ export interface components {
              * @description Installed py-beacon version.
              */
             version: string;
+        };
+        /**
+         * HedgePayload
+         * @description One trade of a hedged class's forward.
+         */
+        HedgePayload: {
+            /**
+             * Date
+             * @description YYYY-MM-DD.
+             */
+            date: string;
+            /**
+             * Notional
+             * @description The new forward's notional, in the book's currency.
+             */
+            notional: number;
+            /**
+             * Rate
+             * @description Its contracted rate, class currency per unit of the book's.
+             */
+            rate: number;
+            /**
+             * Reason
+             * @description 'open', 'roll' (a new month) or 'band' (the hedge ratio left its band).
+             */
+            reason: string;
+            /**
+             * Settled
+             * @description What the old forward settled for, in the class's currency; 0 when one was opened.
+             */
+            settled: number;
         };
         /**
          * IdentifierMatch
@@ -3995,6 +4366,46 @@ export interface components {
             withholding_tax_rate: number;
         };
         /**
+         * IndexLevelView
+         * @description Response of `GET /indices/{index_id}/level`.
+         */
+        IndexLevelView: {
+            /**
+             * Currency
+             * @description The currency its level is in.
+             */
+            currency: string;
+            /**
+             * End
+             * @description Last date calculated, YYYY-MM-DD.
+             */
+            end: string;
+            /**
+             * Index Id
+             * @description The index calculated.
+             */
+            index_id: string;
+            /** @description The index level as calculated, from its base value. */
+            level: components["schemas"]["SeriesPayload"];
+            /** @description The level's total and annualised return, volatility, Sharpe ratio and maximum drawdown, defined as a backtest's are; the tracking and fund figures are null. */
+            metrics: components["schemas"]["BacktestMetrics"];
+            /**
+             * Name
+             * @description Its display name.
+             */
+            name: string;
+            /**
+             * Rebalances
+             * @description The weights at each rebalance in the window, in date order.
+             */
+            rebalances: components["schemas"]["RebalanceSnapshot"][];
+            /**
+             * Start
+             * @description First date calculated, YYYY-MM-DD.
+             */
+            start: string;
+        };
+        /**
          * JobCollection
          * @description Response of `GET /jobs`.
          *
@@ -4234,7 +4645,13 @@ export interface components {
         };
         /**
          * OptimisationRunRequest
-         * @description Body of `POST /optimise/runs`.
+         * @description Body of `POST /optimise/runs`: the weights a target held on a date,
+         *     solved for under a constraint set.
+         *
+         *     The target is an index or a stored strategy, exactly one of the two. An
+         *     index's weights are calculated, so no backtest is needed; a strategy's are
+         *     what its latest run chose at that rebalance, so an active strategy's
+         *     answers how close a portfolio can get to it under the constraints.
          */
         OptimisationRunRequest: {
             /**
@@ -4254,9 +4671,9 @@ export interface components {
             end?: string | null;
             /**
              * Index Id
-             * @description Index whose weights are the target.
+             * @description An index whose weights are the target.
              */
-            index_id: string;
+            index_id?: string | null;
             /**
              * Risk Free Rate
              * @description Used for the frontier's tangency point.
@@ -4268,6 +4685,11 @@ export interface components {
              * @description Start of the window the risk model is estimated over.
              */
             start?: string | null;
+            /**
+             * Strategy Id
+             * @description A stored strategy whose own weights, from its latest run, are the target.
+             */
+            strategy_id?: string | null;
         };
         /**
          * OptimisationRunResult
@@ -4307,7 +4729,10 @@ export interface components {
             heuristic: boolean;
             /** Holdings */
             holdings: number;
-            /** Index Id */
+            /**
+             * Index Id
+             * @description The index targeted, or the index the targeted strategy holds.
+             */
             index_id: string;
             /** Iterations */
             iterations: number;
@@ -4322,6 +4747,16 @@ export interface components {
              * @description First date the constituent price frame actually carries, YYYY-MM-DD: the window the risk model behind this solve was estimated over. Resolved rather than echoed: the request's `start` is a bound on the fetch, and this is later than it whenever the store does not reach back that far. `end` is the other end.
              */
             start: string;
+            /**
+             * Strategy Id
+             * @description The strategy targeted; null for an index target.
+             */
+            strategy_id?: string | null;
+            /**
+             * Target Date
+             * @description The rebalance whose weights were the target, YYYY-MM-DD; for a strategy, from its latest run when the solve was asked for.
+             */
+            target_date?: string | null;
             /** Tracking Error */
             tracking_error: number;
             /**
@@ -4373,7 +4808,7 @@ export interface components {
         };
         /**
          * OverviewView
-         * @description Response of `GET /beacon/{index_id}/overview`.
+         * @description Response of `GET /strategies/{strategy_id}/overview`.
          */
         OverviewView: {
             concentration: components["schemas"]["ConcentrationPayload"];
@@ -4382,7 +4817,10 @@ export interface components {
              * @description Last date the stored run's level series covers, YYYY-MM-DD, in the same form as `start`. Resolved from the data: earlier than the end the backtest requested whenever the price store stops short of it. `start` is the other end.
              */
             end: string;
-            /** Index Id */
+            /**
+             * Index Id
+             * @description The index the strategy holds.
+             */
             index_id: string;
             /** Last Rebalance */
             last_rebalance: string;
@@ -4399,6 +4837,11 @@ export interface components {
              * @description First date the stored run's level series covers, YYYY-MM-DD, the same form `CompareView.start` uses. Resolved from the data rather than requested: it is **later than the index's `base_date`** whenever the price store does not reach back that far, so labelling it as the base date shows a different figure from the one the definition carries. `end` is the other end of the same series; the window the backtest was asked for is not published here.
              */
             start: string;
+            /**
+             * Strategy Id
+             * @description The strategy whose latest run this reads.
+             */
+            strategy_id: string;
         };
         /**
          * ParameterSpec
@@ -4477,6 +4920,100 @@ export interface components {
             unit?: string | null;
         };
         /**
+         * PeriodComparison
+         * @description A comparator over one period: its own figures and the run's against it.
+         */
+        PeriodComparison: {
+            /** @description The comparator's own figures. */
+            own: components["schemas"]["ComparatorFigures"];
+            /** @description The run against it. */
+            relative: components["schemas"]["RelativeFigures"];
+        };
+        /**
+         * PeriodFigures
+         * @description A run's figures over one calendar period.
+         */
+        PeriodFigures: {
+            /**
+             * Max Drawdown
+             * @description Its largest fall from a peak within the period.
+             */
+            max_drawdown: number;
+            /**
+             * Positive Days
+             * @description The share of its days with a positive return.
+             */
+            positive_days: number;
+            /**
+             * Sharpe Ratio
+             * @description Its annualised return in excess of the risk-free rate, over the volatility.
+             */
+            sharpe_ratio: number;
+            /**
+             * Total Return
+             * @description From the previous period's close.
+             */
+            total_return: number;
+            /**
+             * Volatility
+             * @description Of its daily returns, annualised.
+             */
+            volatility: number;
+        };
+        /**
+         * PeriodRow
+         * @description One calendar period of a run.
+         */
+        PeriodRow: {
+            /** @description Against its benchmark; null when the run has none. */
+            benchmark?: components["schemas"]["PeriodComparison"] | null;
+            /**
+             * End
+             * @description Its last day in the run, YYYY-MM-DD.
+             */
+            end: string;
+            /** @description Against its index; null when the run has none. */
+            index?: components["schemas"]["PeriodComparison"] | null;
+            /**
+             * Period
+             * @description '2025', '2025 Q3' or '2025-07'.
+             */
+            period: string;
+            /**
+             * Start
+             * @description Its first day in the run, YYYY-MM-DD.
+             */
+            start: string;
+            /** @description The run's figures. */
+            strategy: components["schemas"]["PeriodFigures"];
+        };
+        /**
+         * PeriodsView
+         * @description Response of `GET /strategies/{strategy_id}/periods`.
+         */
+        PeriodsView: {
+            /**
+             * Frequency
+             * @description 'annual', 'quarterly' or 'monthly'.
+             */
+            frequency: string;
+            /**
+             * Index Id
+             * @description The index the strategy holds.
+             */
+            index_id: string;
+            /**
+             * Periods
+             * @description Each calendar period in order, the first from the run's start and each later one from the previous period's close, so they compound to the whole run.
+             */
+            periods: components["schemas"]["PeriodRow"][];
+            /**
+             * Strategy Id
+             * @description The strategy whose latest run this reads.
+             */
+            strategy_id: string;
+        };
+        /**
          * PipelineSpec
          * @description The grouped rule pipeline: Selection, Weighting, Treatment.
          */
@@ -4509,6 +5046,13 @@ export interface components {
              * @description Rows in the whole positions panel.
              */
             positions_total: number;
+            /**
+             * Reference Windows
+             * @description By identifier, the reference columns asked for with `reference_fields` over the weights panel's span, as windows with the dates they held, so any day of the panel reads the classification of its time. Null when none were asked for.
+             */
+            reference_windows?: {
+                [key: string]: components["schemas"]["ReferenceWindow"][];
+            } | null;
             transactions: components["schemas"]["TableFrame"];
             /** @description Stored daily weights, dates by asset; most recent MAX_WEIGHT_DATES dates at most. */
             weights: components["schemas"]["TableFrame"];
@@ -4633,6 +5177,13 @@ export interface components {
              * @description The date of the close and share count behind the caps, YYYY-MM-DD: the last print on or before `resolved_date`. Null when the name has no price at all.
              */
             priced_from?: string | null;
+            /**
+             * Reference
+             * @description The reference columns asked for with `reference_fields`, keyed in lower case, as they stood on this row's date. Null when the name had no reference row then.
+             */
+            reference?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Solved Weight
              * @description Derived preview only: what the optimiser allocated it, the 'after'. Equal to `weight`, and carried separately so the before/after/delta triple reads as one row without a client having to know which face it is on.
@@ -4873,6 +5424,13 @@ export interface components {
              * @description The session the carried-forward price actually came from, YYYY-MM-DD; always earlier than `date`.
              */
             priced_from: string;
+            /**
+             * Reference
+             * @description The reference columns asked for with `reference_fields`, keyed in lower case, as they stood on this row's date. Null when the name had no reference row then.
+             */
+            reference?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * PricesResponse
@@ -4945,6 +5503,15 @@ export interface components {
              * @default 0
              */
             redistributed: number;
+            /**
+             * Reference
+             * @description By identifier, the reference columns asked for with `reference_fields`, keyed in lower case, as they stood on this date; null for a name with no reference row then. Null when the response carries none.
+             */
+            reference?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                } | null;
+            } | null;
             /**
              * Uncapped Weights
              * @description Weights before capping. Equal to `weights` when no cap was applied.
@@ -5036,6 +5603,29 @@ export interface components {
             universes?: components["schemas"]["UniverseMembership"][];
         };
         /**
+         * ReferenceWindow
+         * @description A span over which a name's reference columns held.
+         */
+        ReferenceWindow: {
+            /**
+             * Date From
+             * @description Its first day, YYYY-MM-DD.
+             */
+            date_from: string;
+            /**
+             * Date To
+             * @description Its last day; null while open.
+             */
+            date_to?: string | null;
+            /**
+             * Reference
+             * @description The columns that held over it.
+             */
+            reference: {
+                [key: string]: unknown;
+            };
+        };
+        /**
          * RefreshJobStatus
          * @description A `refresh:{store_id}` job. `result` says what changed.
          */
@@ -5118,6 +5708,47 @@ export interface components {
              * @description The store refreshed.
              */
             store_id: string;
+        };
+        /**
+         * RelativeFigures
+         * @description A run against a comparator over the same window.
+         */
+        RelativeFigures: {
+            /**
+             * Annualised Relative Return
+             * @description The run's annualised return less the comparator's.
+             */
+            annualised_relative_return: number;
+            /**
+             * Beta
+             * @description Of the run's daily returns on the comparator's.
+             */
+            beta?: number | null;
+            /**
+             * Correlation
+             * @description Of the daily returns.
+             */
+            correlation?: number | null;
+            /**
+             * Hit Rate Monthly
+             * @description The share of calendar months the run beat the comparator.
+             */
+            hit_rate_monthly?: number | null;
+            /**
+             * Information Ratio
+             * @description The annualised relative return over the tracking error.
+             */
+            information_ratio?: number | null;
+            /**
+             * Relative Return
+             * @description The run's total return less the comparator's.
+             */
+            relative_return: number;
+            /**
+             * Tracking Error
+             * @description Of the daily return differences, annualised.
+             */
+            tracking_error?: number | null;
         };
         /**
          * RelativeMetricsPayload
@@ -5209,10 +5840,10 @@ export interface components {
          */
         RenderRequest: {
             /**
-             * Index Id
-             * @description Required for a built-in template, which is generated from that index's latest completed backtest. Ignored for a stored template, which is rendered exactly as saved.
+             * Strategy Id
+             * @description Required for a built-in template, which is generated from that stored strategy's latest completed backtest and named after it. Ignored for a stored template, which is rendered exactly as saved.
              */
-            index_id?: string | null;
+            strategy_id?: string | null;
             /**
              * Template Id
              * @description A stored template, or a built-in such as FACTSHEET-A4.
@@ -5231,8 +5862,6 @@ export interface components {
              * @description Size of the rendered document.
              */
             bytes: number;
-            /** Index Id */
-            index_id?: string | null;
             /** Name */
             name: string;
             /**
@@ -5245,6 +5874,11 @@ export interface components {
              * @description When the PDF was written, ISO-8601 UTC with an offset: wall-clock at render time. **Not the as-of date of anything printed inside it**: the figures come from the index's latest completed backtest, whose own dates this does not carry, so rendering the same template twice gives two `rendered_at` values over identical content.
              */
             rendered_at: string;
+            /**
+             * Strategy Id
+             * @description The strategy a built-in template was generated from; null for a stored template.
+             */
+            strategy_id?: string | null;
             /** Template Id */
             template_id: string;
         };
@@ -5475,12 +6109,12 @@ export interface components {
             end?: string | null;
             /**
              * Identifiers
-             * @description Names to estimate over. Empty uses the index named by `index_id`.
+             * @description Names to estimate over. Empty takes them from `index_id` or `strategy_id`.
              */
             identifiers?: string[];
             /**
              * Index Id
-             * @description Take the universe from this index's latest run instead of listing names.
+             * @description Take the names from this index's latest rebalance, calculated, instead of listing them.
              */
             index_id?: string | null;
             /**
@@ -5499,6 +6133,11 @@ export interface components {
              * @description Start of the estimation window.
              */
             start?: string | null;
+            /**
+             * Strategy Id
+             * @description Take the names from what this stored strategy held at its latest run's last rebalance instead of listing them.
+             */
+            strategy_id?: string | null;
             /**
              * Target
              * @description Structured target to shrink toward: 'constant_correlation' or 'scaled_identity'.
@@ -5699,6 +6338,19 @@ export interface components {
             index: components["schemas"]["IndexDocument"];
         };
         /**
+         * SavedStrategy
+         * @description Response of a strategy save: the document as stored, and any warnings.
+         */
+        SavedStrategy: {
+            /**
+             * Findings
+             * @description Warnings the save carried; a save with errors is refused instead.
+             */
+            findings: components["schemas"]["Finding"][];
+            /** @description The strategy as stored. */
+            strategy: components["schemas"]["StrategyDocument"];
+        };
+        /**
          * ScheduleView
          * @description Response of `GET /indices/{index_id}/schedule`.
          *
@@ -5777,6 +6429,141 @@ export interface components {
             name?: string | null;
         };
         /**
+         * ShareClassMetrics
+         * @description A class's figures against the index in its currency: converted for an
+         *     unhedged class, hedged the same way for a hedged one.
+         */
+        ShareClassMetrics: {
+            /**
+             * Total Return
+             * @description Per unit, with what it paid out added back.
+             */
+            total_return: number;
+            /**
+             * Tracking Difference
+             * @description Its total return less its benchmark's.
+             */
+            tracking_difference?: number | null;
+            /**
+             * Tracking Error
+             * @description Of its daily returns against its benchmark's, annualised.
+             */
+            tracking_error?: number | null;
+        };
+        /**
+         * ShareClassPayload
+         * @description One share class's record of a run. Its money is in its own currency, and
+         *     its series share `level`'s dates.
+         */
+        ShareClassPayload: {
+            /** @description The same in the book's currency, which add up to the fund's across the classes. */
+            book_net_assets: components["schemas"]["SeriesPayload"];
+            /**
+             * Currency
+             * @description The currency its figures are in.
+             */
+            currency: string;
+            /**
+             * Distribution
+             * @description 'accumulating' or 'distributing'.
+             */
+            distribution: string;
+            /** @description What it paid out each day. */
+            distributions: components["schemas"]["SeriesPayload"];
+            /**
+             * Distributions Paid
+             * @description What it paid out over the run.
+             */
+            distributions_paid: number;
+            /** @description The fee it accrued each day. */
+            fees: components["schemas"]["SeriesPayload"];
+            /**
+             * Fees Paid
+             * @description Its fees over the run.
+             */
+            fees_paid: number;
+            /**
+             * Flows
+             * @description Its own flows as dealt.
+             */
+            flows: components["schemas"]["FlowPayload"][];
+            /** @description Its forward's value each day, in its currency; null for an unhedged class. */
+            hedge_value?: components["schemas"]["SeriesPayload"] | null;
+            /**
+             * Hedged
+             * @description Whether it hedged into that currency.
+             */
+            hedged: boolean;
+            /**
+             * Hedges
+             * @description Each trade of its hedge.
+             */
+            hedges?: components["schemas"]["HedgePayload"][];
+            /**
+             * Management Fee Bps
+             * @description Its fee, in basis points a year.
+             */
+            management_fee_bps: number;
+            metrics: components["schemas"]["ShareClassMetrics"];
+            /**
+             * Name
+             * @description The class's name.
+             */
+            name: string;
+            /** @description Its NAV per unit. */
+            nav_per_unit: components["schemas"]["SeriesPayload"];
+            /** @description Its net assets at each day's end. */
+            net_assets: components["schemas"]["SeriesPayload"];
+            /** @description Its units outstanding. */
+            units: components["schemas"]["SeriesPayload"];
+        };
+        /**
+         * ShareClassSpec
+         * @description One share class of a backtest's fund: its own currency, fee and
+         *     distribution policy, sharing the book with the other classes.
+         */
+        ShareClassSpec: {
+            /**
+             * Currency
+             * @description The class's currency. Null is the book's.
+             */
+            currency?: string | null;
+            /**
+             * Distribution
+             * @description 'accumulating' keeps its income in the fund; 'distributing' pays it out.
+             * @default accumulating
+             */
+            distribution: string;
+            /**
+             * Hedge Band
+             * @description How far the hedge ratio may drift between monthly rolls before the forward is resized, as a fraction. Null resizes only at rolls.
+             * @default 0.03
+             */
+            hedge_band: number | null;
+            /**
+             * Hedge Ratio
+             * @description The share of its net assets it hedges, as a fraction: 1 for all.
+             * @default 1
+             */
+            hedge_ratio: number;
+            /**
+             * Hedged
+             * @description Whether it hedges its share of the assets into its currency with a monthly forward. Needs a currency other than the book's.
+             * @default false
+             */
+            hedged: boolean;
+            /**
+             * Management Fee Bps
+             * @description The class's annual management fee in basis points. Null is the vehicle's.
+             */
+            management_fee_bps?: number | null;
+            /**
+             * Name
+             * @description What the class is called, such as 'EUR H'.
+             */
+            name: string;
+        };
+        /**
          * SkippedCauses
          * @description Why a listing left documents out, one count per cause.
          *
@@ -5816,6 +6603,193 @@ export interface components {
             /**
              * Message
              * @description What is wrong and what to do, in a sentence.
+             */
+            message: string;
+        };
+        /**
+         * StoredStrategy
+         * @description A stored strategy as listed and read, with any problem it has.
+         */
+        StoredStrategy: {
+            /**
+             * Description
+             * @description Optional description.
+             */
+            description?: string | null;
+            /**
+             * Id
+             * @description The strategy's id.
+             */
+            id: string;
+            /** @description How the strategy trades: screens, caps, minimum positions, market impact, execution limits, the cash buffer and equitising it. Null trades without them. */
+            implementation?: components["schemas"]["ImplementationSpec"] | null;
+            /**
+             * Index Id
+             * @description The stored index the strategy holds: the one tracked, or the benchmark an active strategy is measured against.
+             */
+            index_id: string;
+            /**
+             * Name
+             * @description Display name.
+             */
+            name: string;
+            /** @description Why it cannot be run as it stands, such as an index that has gone; null when it can. */
+            problem?: components["schemas"]["StrategyProblem"] | null;
+            /** @description What the backtest holds: the index in full (the default), the index through a replication, or an active strategy. */
+            strategy?: components["schemas"]["StrategySpec"];
+        };
+        /**
+         * StrategyBacktestRequest
+         * @description Body of `POST /strategies/{strategy_id}/backtest`: everything a backtest
+         *     needs that the stored strategy does not hold.
+         *
+         *     Every field past the first five is optional, and a request without them
+         *     runs exactly as one with only the dates, capital and cost does. The
+         *     strategy and its implementation come from the stored strategy, so a body
+         *     carrying either is refused.
+         */
+        StrategyBacktestRequest: {
+            /** @description Optional external benchmark. The tracked index is always reported separately; this adds a second comparison. */
+            benchmark?: components["schemas"]["BenchmarkRef"] | null;
+            /**
+             * Currency
+             * @description The book's currency. Null keeps it in the index's.
+             */
+            currency?: string | null;
+            /**
+             * Dividends
+             * @description What happens to cash distributions: 'reinvest', 'cash' or 'distribute'.
+             * @default reinvest
+             */
+            dividends: string;
+            /**
+             * End
+             * @description End date, YYYY-MM-DD.
+             */
+            end?: string | null;
+            /**
+             * Flows
+             * @description Money arriving and leaving, added together. Amounts are in the book's currency. With share classes, by class name, each in its class's currency.
+             */
+            flows?: components["schemas"]["TypedSpec"][] | {
+                [key: string]: components["schemas"]["TypedSpec"][];
+            };
+            /**
+             * Initial Capital
+             * @description The capital the fund starts with, in the book's currency. With share classes, by class name, each in its class's currency.
+             * @default 1000000
+             */
+            initial_capital: number | {
+                [key: string]: number;
+            };
+            /** @description What the run takes as given; each unset field takes the engine's default. */
+            modelling_assumptions?: components["schemas"]["ModellingAssumptionsSpec"] | null;
+            /**
+             * Share Classes
+             * @description The fund's share classes, sharing one book. Empty runs one class with the request's capital and flows, as without classes.
+             */
+            share_classes?: components["schemas"]["ShareClassSpec"][];
+            /**
+             * Start
+             * @description Start date, YYYY-MM-DD. Defaults to the index base date.
+             */
+            start?: string | null;
+            /**
+             * Transaction Cost Bps
+             * @description Cost per trade in basis points of notional.
+             * @default 0
+             */
+            transaction_cost_bps: number;
+            /** @description Null for a plain backtest, with no fee. */
+            vehicle?: components["schemas"]["VehicleSpec"] | null;
+        };
+        /**
+         * StrategyCollection
+         * @description Response of `GET /strategies`.
+         */
+        StrategyCollection: {
+            /**
+             * Skipped
+             * @description Stored documents the server could not read, and so left out of this listing. Non-zero means the collection is incomplete: the fault is logged server-side, and each skipped document answers 404 on its own route.
+             * @default 0
+             */
+            skipped: number;
+            /** @description The same documents as `skipped`, by cause, so the listing can say what to do about them. Its three counts sum to `skipped`. */
+            skipped_causes?: components["schemas"]["SkippedCauses"];
+            /**
+             * Strategies
+             * @description Every strategy the server could read, each with any problem it has.
+             */
+            strategies: components["schemas"]["StoredStrategy"][];
+        };
+        /**
+         * StrategyDeletion
+         * @description Response of `DELETE /strategies/{strategy_id}`.
+         */
+        StrategyDeletion: {
+            /**
+             * Backtest Record Deleted
+             * @description Whether its saved backtest record went with it.
+             */
+            backtest_record_deleted: boolean;
+            /**
+             * Backtest Results Deleted
+             * @description How many job records and persisted run results of its backtests were forgotten with it.
+             */
+            backtest_results_deleted: number;
+            /**
+             * Strategy Id
+             * @description The strategy that was removed.
+             */
+            strategy_id: string;
+        };
+        /**
+         * StrategyDocument
+         * @description A stored strategy: what a backtest holds and how it trades.
+         *
+         *     Everything else a backtest needs (the period, capital, currency,
+         *     dividends, costs, flows, vehicle, share classes and modelling assumptions)
+         *     belongs to the backtest, not the strategy.
+         */
+        StrategyDocument: {
+            /**
+             * Description
+             * @description Optional description.
+             */
+            description?: string | null;
+            /**
+             * Id
+             * @description The strategy's id.
+             */
+            id: string;
+            /** @description How the strategy trades: screens, caps, minimum positions, market impact, execution limits, the cash buffer and equitising it. Null trades without them. */
+            implementation?: components["schemas"]["ImplementationSpec"] | null;
+            /**
+             * Index Id
+             * @description The stored index the strategy holds: the one tracked, or the benchmark an active strategy is measured against.
+             */
+            index_id: string;
+            /**
+             * Name
+             * @description Display name.
+             */
+            name: string;
+            /** @description What the backtest holds: the index in full (the default), the index through a replication, or an active strategy. */
+            strategy?: components["schemas"]["StrategySpec"];
+        };
+        /**
+         * StrategyProblem
+         * @description Why a stored strategy cannot be run as it stands.
+         */
+        StrategyProblem: {
+            /**
+             * Code
+             * @description 'INDEX_NOT_FOUND' when its index is not stored, 'INDEX_UNREADABLE' when it is stored but cannot be read.
+             */
+            code: string;
+            /**
+             * Message
+             * @description What is wrong and how to fix it.
              */
             message: string;
         };
@@ -5872,6 +6846,32 @@ export interface components {
              * @description For an active strategy: the names it may hold. Null means the benchmark's constituents.
              */
             universe?: string[] | null;
+        };
+        /**
+         * SwapResetPayload
+         * @description One reset of a synthetic fund's swap.
+         */
+        SwapResetPayload: {
+            /**
+             * Date
+             * @description YYYY-MM-DD.
+             */
+            date: string;
+            /**
+             * Notional
+             * @description The notional it was reset to, the fund's net assets, in the book's currency.
+             */
+            notional: number;
+            /**
+             * Reason
+             * @description 'limit' (its value owed to the fund reached the exposure limit), 'rebalance' or 'flows'.
+             */
+            reason: string;
+            /**
+             * Settled
+             * @description The swap's value paid in cash, in the book's currency: received by the fund when positive, paid by it when negative; 0 when it opened.
+             */
+            settled: number;
         };
         /**
          * SyncRequest
@@ -6262,6 +7262,13 @@ export interface components {
              * @default cash
              */
             reason: string;
+            /**
+             * Reference
+             * @description The reference columns asked for with `reference_fields`, keyed in lower case, as they stood on this row's date. Null when the name had no reference row then.
+             */
+            reference?: {
+                [key: string]: unknown;
+            } | null;
             /** Requested Quantity */
             requested_quantity: number;
             /**
@@ -6546,20 +7553,30 @@ export interface components {
         };
         /**
          * WeightRow
-         * @description One name's index, optimal and active weight.
+         * @description One name's target, optimal and active weight.
          */
         WeightRow: {
             /**
              * Active Weight
-             * @description Optimal minus index. Sums to zero across the portfolio whenever both sides are fully invested.
+             * @description Optimal minus target. Sums to zero across the portfolio whenever both sides are fully invested.
              */
             active_weight: number;
             /** Asset Id */
             asset_id: string;
-            /** Index Weight */
-            index_weight: number;
             /** Optimal Weight */
             optimal_weight: number;
+            /**
+             * Reference
+             * @description The reference columns asked for with `reference_fields`, keyed in lower case, as they stood on this row's date. Null when the name had no reference row then.
+             */
+            reference?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Target Weight
+             * @description The target's weight.
+             */
+            target_weight: number;
         };
         /**
          * WeightingSpec
@@ -6592,7 +7609,7 @@ export interface components {
         };
         /**
          * WeightsView
-         * @description Response of `GET /beacon/{index_id}/weights`.
+         * @description Response of `GET /strategies/{strategy_id}/weights`.
          */
         WeightsView: {
             /** @description The tracking-error decomposition, when a `benchmark` index was named alongside `risk=true`. */
@@ -6619,7 +7636,10 @@ export interface components {
             concentration: components["schemas"]["ConcentrationPayload"];
             /** @description Movement since the previous rebalance. Null at the first, where there is nothing to have drifted from. */
             drift?: components["schemas"]["DriftPayload"] | null;
-            /** Index Id */
+            /**
+             * Index Id
+             * @description The index the strategy holds.
+             */
             index_id: string;
             /**
              * Rebalance Date
@@ -6633,6 +7653,11 @@ export interface components {
              * @description Per-constituent detail, heaviest first. Carries the same applied weights as `weights`, which is kept because charts and concentration maths want a mapping while a table wants ordered rows.
              */
             rows?: components["schemas"]["ConstituentRow"][];
+            /**
+             * Strategy Id
+             * @description The strategy whose latest run this reads.
+             */
+            strategy_id: string;
             /** Weights */
             weights: {
                 [key: string]: number;
@@ -6663,872 +7688,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BacktestOptions"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    backtest_records_beacon_backtests_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BacktestRecordCollection"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    compare_beacon_compare_get: {
-        parameters: {
-            query: {
-                /** @description Index ids to compare, two or more. */
-                ids: string[];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompareView"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    asset_beacon__index_id__assets__identifier__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-                identifier: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AssetView"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    attribution_beacon__index_id__attribution_get: {
-        parameters: {
-            query?: {
-                /** @description Inclusive start date, YYYY-MM-DD. */
-                start?: string | null;
-                /** @description Inclusive end date, YYYY-MM-DD. */
-                end?: string | null;
-            };
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributionView"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    submit_backtest_beacon__index_id__backtest_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["BacktestRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BacktestJobStatus"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    validate_backtest_beacon__index_id__backtest_validate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["BacktestRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BacktestValidation"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    overview_beacon__index_id__overview_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OverviewView"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    backtest_record_beacon__index_id__record_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BacktestResultSummary"];
-                };
-            };
-            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Missing or invalid bearer token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Requested data does not exist. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The path exists but does not accept this method. */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Request or rule failed validation. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Library error during processing. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Endpoint exists but is not implemented. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description A required optional dependency is absent. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    weights_beacon__index_id__weights_get: {
-        parameters: {
-            query?: {
-                /** @description Date to report at, YYYY-MM-DD. Defaults to the latest rebalance. */
-                asof?: string | null;
-                /** @description Decompose the index's volatility across its constituents. Off by default: estimating a covariance over every name is the pane's whole cost. */
-                risk?: boolean;
-                /** @description Index id to measure tracking error against. Requires risk=true. */
-                benchmark?: string | null;
-            };
-            header?: never;
-            path: {
-                index_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeightsView"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
@@ -11120,7 +11279,10 @@ export interface operations {
     };
     preview_document_indices_preview_post: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -11688,6 +11850,105 @@ export interface operations {
             };
         };
     };
+    level_indices__index_id__level_get: {
+        parameters: {
+            query?: {
+                /** @description First date to calculate, YYYY-MM-DD. Defaults to the index's base date. */
+                start?: string | null;
+                /** @description Last date to calculate, YYYY-MM-DD. Defaults to the last date the loaded data covers. */
+                end?: string | null;
+            };
+            header?: never;
+            path: {
+                index_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndexLevelView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     optimise_index_indices__index_id__optimise_post: {
         parameters: {
             query?: never;
@@ -11797,7 +12058,10 @@ export interface operations {
     };
     preview_indices__index_id__preview_post: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
+            };
             header?: never;
             path: {
                 index_id: string;
@@ -12932,6 +13196,103 @@ export interface operations {
             };
         };
     };
+    run_optimise_runs__run_id__get: {
+        parameters: {
+            query?: {
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptimisationRunResult"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     exposures_optimise_runs__run_id__exposures_get: {
         parameters: {
             query?: never;
@@ -13031,6 +13392,8 @@ export interface operations {
             query?: {
                 /** @description Rate the tangency point is measured against. */
                 risk_free_rate?: number;
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
             };
             header?: never;
             path: {
@@ -13906,6 +14269,1650 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RiskModelJobStatus"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_strategies_strategies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StrategyCollection"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_strategy_strategies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StrategyDocument"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedStrategy"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A strategy with this id already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    compare_strategies_compare_get: {
+        parameters: {
+            query: {
+                /** @description Strategy ids to compare, two or more. */
+                ids: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompareView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    runs_strategies_runs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestRecordCollection"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    validate_strategies_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StrategyDocument"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationReport"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_strategy_strategies__strategy_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredStrategy"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    put_strategy_strategies__strategy_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StrategyDocument"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedStrategy"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_strategy_strategies__strategy_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StrategyDeletion"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    asset_strategies__strategy_id__assets__identifier__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    attribution_strategies__strategy_id__attribution_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive start date, YYYY-MM-DD. */
+                start?: string | null;
+                /** @description Inclusive end date, YYYY-MM-DD. */
+                end?: string | null;
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
+            };
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributionView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit_backtest_strategies__strategy_id__backtest_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StrategyBacktestRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestJobStatus"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    validate_backtest_strategies__strategy_id__backtest_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StrategyBacktestRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestValidation"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    overview_strategies__strategy_id__overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    periods_strategies__strategy_id__periods_get: {
+        parameters: {
+            query?: {
+                /** @description The calendar periods: years, quarters or months. */
+                frequency?: "annual" | "quarterly" | "monthly";
+            };
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodsView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    backtest_record_strategies__strategy_id__record_get: {
+        parameters: {
+            query?: {
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
+            };
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestResultSummary"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    result_strategies__strategy_id__result_get: {
+        parameters: {
+            query?: {
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
+            };
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestRunResult"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    weights_strategies__strategy_id__weights_get: {
+        parameters: {
+            query?: {
+                /** @description Date to report at, YYYY-MM-DD. Defaults to the latest rebalance. */
+                asof?: string | null;
+                /** @description Decompose the portfolio's volatility across its constituents. Off by default: estimating a covariance over every name is the pane's whole cost. */
+                risk?: boolean;
+                /** @description Index id to measure tracking error against, calculated on its own. Requires risk=true. */
+                benchmark?: string | null;
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
+            };
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeightsView"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
