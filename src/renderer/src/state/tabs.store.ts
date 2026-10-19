@@ -11,7 +11,7 @@ import type { Tab, WorkspaceState } from './tabs.types'
  * (BU-55). Version 9 dropped the seeded tabs (BU-59): every page opens empty
  * and the user opens what they want from the `+`.
  */
-export const WORKSPACE_VERSION = 10
+export const WORKSPACE_VERSION = 11
 
 /**
  * The shape stored before version 10, when a page had exactly one pane.
@@ -39,6 +39,11 @@ export function migrateWorkspace(stored: unknown): WorkspaceState {
   const tabs: Tab[] = (state.tabs ?? [])
     .filter((tab) => !tab.id.startsWith('seed-'))
     .map((tab) => ({ ...tab, pane: tab.pane ?? 0 }))
+    // v11: Weights became Holdings (Karan, 2026-10-19). A saved tab keeps
+    // the title it was opened with, so the old name is renamed here.
+    .map((tab) =>
+      tab.viewKind === 'weights' && tab.title === 'Weights' ? { ...tab, title: 'Holdings' } : tab
+    )
 
   const previous = state.activeByPane ?? state.activeByPage ?? {}
   const activeByPane = Object.fromEntries(

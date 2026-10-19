@@ -215,3 +215,20 @@ describe('the workspace no longer seeds', () => {
     expect(migrated.activeByPane['data-explorer#0']).toBeUndefined()
   })
 })
+
+describe('Weights became Holdings (Karan, 2026-10-19)', () => {
+  it('renames a saved Weights tab, and leaves a tab its user renamed alone', async () => {
+    const { migrateWorkspace } = await import('../state/tabs.store')
+
+    const migrated = migrateWorkspace({
+      tabs: [
+        tab({ id: 'old', archetype: 'linked', viewKind: 'weights', title: 'Weights' }),
+        tab({ id: 'own', archetype: 'linked', viewKind: 'weights', title: 'My book' })
+      ],
+      activeByPane: {},
+      closed: []
+    })
+
+    expect(migrated.tabs.map((entry) => entry.title)).toEqual(['Holdings', 'My book'])
+  })
+})
