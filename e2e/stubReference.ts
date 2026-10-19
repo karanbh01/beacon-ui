@@ -96,8 +96,37 @@ const LABELS: Record<string, string> = {
   free_float: 'Free float'
 }
 
+/** Kept in capitals wherever they fall in a name (py-beacon 0.9.3, BN-327). */
+const ACRONYMS = new Set([
+  'adr',
+  'adv',
+  'cusip',
+  'etf',
+  'figi',
+  'gics',
+  'icb',
+  'id',
+  'ipo',
+  'isin',
+  'lei',
+  'mic',
+  'nav',
+  'ric',
+  'sedol',
+  'trbc',
+  'usd',
+  'eur',
+  'gbp',
+  'jpy'
+])
+
 /** A field's label: its own where it has one, else its name in words. */
 export function labelOf(name: string): string {
-  const words = name.replace(/_/g, ' ')
-  return LABELS[name] ?? words.charAt(0).toUpperCase() + words.slice(1)
+  const own = LABELS[name]
+  if (own !== undefined) return own
+  const words = name
+    .split('_')
+    .map((word) => (ACRONYMS.has(word) ? word.toUpperCase() : word))
+    .join(' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }

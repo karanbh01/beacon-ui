@@ -1282,6 +1282,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/strategies/{strategy_id}/holdings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Holdings
+         * @description The strategy's holdings workflow at a date, one row per name: the
+         *     universe narrowed to the index, the index's cap, the benchmark's
+         *     weight, the strategy's choice, each implementation stage, the weight
+         *     traded to at the rebalance in force, and as of the date its drift,
+         *     held weight and units. The run's last day when no date is given.
+         */
+        get: operations["holdings_strategies__strategy_id__holdings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/strategies/{strategy_id}/overview": {
         parameters: {
             query?: never;
@@ -4077,6 +4101,170 @@ export interface components {
             settled: number;
         };
         /**
+         * HoldingRow
+         * @description One name's way through the workflow at the rebalance in force.
+         */
+        HoldingRow: {
+            /**
+             * Benchmark Weight
+             * @description Its weight in the backtest's benchmark index; null without one, or for a name it does not hold.
+             */
+            benchmark_weight?: number | null;
+            /**
+             * Current Weight
+             * @description Its weight in the book as of `as_of`.
+             */
+            current_weight?: number | null;
+            /**
+             * Excluded At
+             * @description The key of the stage it left at; null for a name still in the book.
+             */
+            excluded_at?: string | null;
+            /**
+             * Identifier
+             * @description The name.
+             */
+            identifier: string;
+            /**
+             * Implementation
+             * @description By implementation stage key, the weight it carried after that stage; null after the stage that removed it.
+             */
+            implementation?: {
+                [key: string]: number | null;
+            };
+            /**
+             * Index Weight
+             * @description Its index weight after the index's cap.
+             */
+            index_weight?: number | null;
+            /**
+             * Index Weight Uncapped
+             * @description Its index weight before the index's cap.
+             */
+            index_weight_uncapped?: number | null;
+            /**
+             * Portfolio Weight
+             * @description The weight the rebalance traded to.
+             */
+            portfolio_weight?: number | null;
+            /**
+             * Reference
+             * @description The reference columns asked for with `reference_fields`, as of `as_of`, keyed in lower case; null when the name had no reference row then.
+             */
+            reference?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Shares Held
+             * @description The units of it the book held as of `as_of`.
+             */
+            shares_held?: number | null;
+            /**
+             * Strategy Weight
+             * @description What the strategy chose before the implementation: the index weight for a strategy that holds its index, the replication's or the construction's otherwise.
+             */
+            strategy_weight?: number | null;
+            /**
+             * Universe Weight
+             * @description Its share of the universe's total market cap at the rebalance. A universe has no weighting of its own, so this is its free-float market cap over the universe's total where the index weights by free-float market cap, its full market cap otherwise. Null when it has no cap that day.
+             */
+            universe_weight?: number | null;
+            /**
+             * Weight Drift
+             * @description Its held weight less its portfolio weight as of `as_of`; null on the rebalance date itself.
+             */
+            weight_drift?: number | null;
+        };
+        /**
+         * HoldingStage
+         * @description One step of the workflow, in order.
+         */
+        HoldingStage: {
+            /**
+             * Description
+             * @description One plain sentence of what the stage does with its settings, to show as written.
+             * @default
+             */
+            description: string;
+            /**
+             * Key
+             * @description What a row's `excluded_at` and `implementation` name it by: a rule's id, a screen's type, or the kind for the single steps.
+             */
+            key: string;
+            /**
+             * Kind
+             * @description One of universe, index_rule, index_cap, strategy, implementation_screen, cash_buffer, implementation_cap.
+             */
+            kind: string;
+            /**
+             * Label
+             * @description What a column header reads, such as 'Minimum price'.
+             */
+            label: string;
+            /**
+             * Params
+             * @description Its settings, labelled and formatted.
+             */
+            params?: components["schemas"]["StageParam"][];
+            /**
+             * Remaining
+             * @description How many names are left after it.
+             */
+            remaining: number;
+            /**
+             * Type
+             * @description The stage's class, or its kind for a step that has none.
+             * @default
+             */
+            type: string;
+        };
+        /**
+         * HoldingsView
+         * @description Response of `GET /strategies/{strategy_id}/holdings`.
+         */
+        HoldingsView: {
+            /**
+             * As Of
+             * @description The date asked about, YYYY-MM-DD.
+             */
+            as_of: string;
+            /**
+             * Cash Weight
+             * @description The share of the book the rebalance left in cash.
+             */
+            cash_weight?: number | null;
+            /**
+             * Index Id
+             * @description The index it holds.
+             */
+            index_id: string;
+            /**
+             * Rebalance Date
+             * @description The rebalance in force on `as_of`.
+             */
+            rebalance_date: string;
+            /**
+             * Rebalance Dates
+             * @description Every rebalance of the run, in order.
+             */
+            rebalance_dates: string[];
+            /**
+             * Rows
+             * @description One per name in the universe at the rebalance, those that left included, then any name held that the universe did not name.
+             */
+            rows: components["schemas"]["HoldingRow"][];
+            /**
+             * Stages
+             * @description The workflow's steps, in order.
+             */
+            stages: components["schemas"]["HoldingStage"][];
+            /**
+             * Strategy Id
+             * @description The strategy whose latest run this reads.
+             */
+            strategy_id: string;
+        };
+        /**
          * IdentifierMatch
          * @description One identifier a search or enumeration returned.
          */
@@ -5200,6 +5388,11 @@ export interface components {
              */
             uncapped_weight?: number | null;
             /**
+             * Universe Weight
+             * @description Its share of the universe's total market cap on the preview date. A universe has no weighting of its own, so this is its free-float market cap over the universe's total where the index weights by free-float market cap, its full market cap otherwise. Null when it has no cap that day.
+             */
+            universe_weight?: number | null;
+            /**
              * Weight
              * @description Final weight as a fraction: the capped pipeline weight on a rule-driven preview, the solved weight on a derived one. Null when the name is not held.
              */
@@ -5379,10 +5572,21 @@ export interface components {
          */
         PreviewStep: {
             /**
+             * Description
+             * @description One plain sentence of what the stage does with its settings, to show as written.
+             * @default
+             */
+            description: string;
+            /**
              * Excluded
              * @description Identifiers this step removed. Empty for the universe row.
              */
             excluded?: string[];
+            /**
+             * Params
+             * @description Its settings, labelled and formatted.
+             */
+            params?: components["schemas"]["StageParam"][];
             /**
              * Position
              * @description 0 is the universe; rules follow in order.
@@ -5403,6 +5607,12 @@ export interface components {
              * @description Rule class name.
              */
             rule_type?: string | null;
+            /**
+             * Type
+             * @description The stage's class, or its kind for a step that has none.
+             * @default
+             */
+            type: string;
         };
         /**
          * PriceGapPayload
@@ -6589,6 +6799,22 @@ export interface components {
              * @default 0
              */
             unrecognised: number;
+        };
+        /**
+         * StageParam
+         * @description One setting of a stage, as a reader sees it.
+         */
+        StageParam: {
+            /**
+             * Label
+             * @description The setting's label, as its editor shows it.
+             */
+            label: string;
+            /**
+             * Value
+             * @description Its value, formatted with its unit.
+             */
+            value: string;
         };
         /**
          * StoreProblem
@@ -15425,6 +15651,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BacktestValidation"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    holdings_strategies__strategy_id__holdings_get: {
+        parameters: {
+            query?: {
+                /** @description Date to report at, YYYY-MM-DD. Defaults to the latest rebalance. */
+                date?: string | null;
+                /** @description Reference columns to put on each row, comma-separated, such as 'name,sector,country_domicile', each as it stood on the row's date. Leave out for the name, asset class, sector and country; give an empty value for none. `GET /data/fields` lists the reference columns. */
+                reference_fields?: string | null;
+            };
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldingsView"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */

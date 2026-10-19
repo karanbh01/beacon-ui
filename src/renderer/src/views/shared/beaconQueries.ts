@@ -138,6 +138,39 @@ export function useWeights(
   })
 }
 
+export type HoldingsView = components['schemas']['HoldingsView']
+
+/**
+ * A strategy's whole holdings workflow at a date (py-beacon 0.9.3, BN-326):
+ * every universe name through the index's rules and cap, the benchmark's
+ * weight, the strategy's, the implementation's stages, what the rebalance
+ * traded to, the drift since and the shares held. Without a date, the run's
+ * last day.
+ */
+export function useHoldings(
+  strategyId: string,
+  date = '',
+  referenceFields: readonly string[] = [],
+  /** Off until the reader runs it: Holdings Detail opens empty (Karan, 2026-10-19). */
+  enabled = true
+) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: ['beacon', 'holdings', strategyId, date, referenceFields.join(',')],
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/strategies/{strategy_id}/holdings', {
+        params: { strategy_id: strategyId },
+        query: { ...(date === '' ? {} : { date }), ...referenceQuery(referenceFields) },
+        signal
+      })
+    },
+    enabled: client !== null && strategyId !== '' && enabled,
+    retry: false
+  })
+}
+
 export function useAttribution(
   strategyId: string,
   start?: string,

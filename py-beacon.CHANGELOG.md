@@ -10,6 +10,24 @@ Before 1.0, a breaking change raises the middle number, as in 0.1 to 0.2.
 
 ### Added
 
+- `GET /strategies/{id}/holdings?date=` shows a strategy's whole holdings workflow at a date, one row per name: the universe narrowed by the index's rules, the index's cap, the benchmark's weight, the strategy's choice, the weight after each implementation screen, the cash buffer and the caps, the weight traded to, and as of the date the held weight, its drift and the units held, with every rebalance date of the run and each stage's label and count. A backtest now keeps how each rebalance's universe narrowed (`IndexResult.selections`) and each name's weight after the screens (`RebalanceStep.screened`).
+- `universe_weight` on holdings rows and constituent preview assets: each universe name's share of the universe's total market cap, free-float where the index weights by free-float market cap, full otherwise.
+- Each holdings stage and constituent preview step says what it is and does: its `type`, a plain-sentence `description` of what it does with its settings, and its settings as labelled `params` formatted with their units. The market cap and liquidity rules' thresholds now carry their units (money, shares) in `/indices/rule-types`.
+
+### Fixed
+
+- A constituent preview's stale-price step no longer takes another rule's id.
+
+### Changed
+
+- `/data/fields` labels keep acronyms in capitals: "GICS industry", "ISIN", "IPO date", rather than "Gics industry".
+
+## [0.9.2] - 2026-10-19
+
+Every figure a run shows comes from the engine: a run compared with its index and its benchmark, its figures by year, quarter and month, and each holding's reference columns as they stood on the row's date.
+
+### Added
+
 - A run's `comparisons` compare it with its index and its benchmark: each comparator's level and own figures over the days both have (total and annualised return, volatility, Sharpe ratio, maximum drawdown and monthly hit rate) and the run's figures against it (relative and annualised relative return, tracking error, information ratio, correlation, beta and the share of months it beat it), for every kind of strategy. The run's metrics add `hit_rate_monthly`. `beacon.analysis.comparison` computes them in Python.
 - `GET /strategies/{id}/periods?frequency=annual|quarterly|monthly` gives a run's figures in each calendar year, quarter or month, and against its index and its benchmark, each period from the previous period's close so they compound to the whole run.
 - Reference columns on every row that names a holding, as they stood on the row's date: the weights view, each rebalance of a run with its unfilled orders and price gaps, attribution, an optimisation run's rows and frontier, and a constituent preview. `reference_fields` chooses the columns; without it a row carries the name, asset class, sector and country. A missing `ASSET_CLASS` answers `Equity`, as the engine reads it. `GET /optimise/runs/{id}` serves a run's rows, and `GET /data/fields` gives each field a `label`. `beacon.data.reference_as_of.ReferenceAsOf` answers many names on many dates from one read.
@@ -347,7 +365,8 @@ The first release.
 - An index or backtest never uses a price, rate or free float dated after the day it is working on.
 - Requires Python 3.11 or later.
 
-[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/karanbh01/py-beacon/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/karanbh01/py-beacon/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/karanbh01/py-beacon/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/karanbh01/py-beacon/compare/v0.8.0...v0.8.1

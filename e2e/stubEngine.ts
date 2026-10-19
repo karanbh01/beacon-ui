@@ -4,6 +4,7 @@ import type { Duplex } from 'node:stream'
 import backtestOptions from './data/backtest-options.json'
 import runResult from './data/run-result.json'
 import { askedFields, labelOf, referenceFor, referenceMap } from './stubReference'
+import { STAGE_DETAIL, holdingsView, universeCuts } from './stubHoldings'
 import {
   comparisonOf,
   drawdownOf,
@@ -497,7 +498,7 @@ interface StubHolding {
   capped: boolean
   shares_outstanding: number
   delta_since_rebalance: number
-  risk_contribution: number
+  risk_contribution: number | null
   active_weight: number | null
   active_risk_contribution: number | null
 }
@@ -532,7 +533,8 @@ function holdings(indexId = 'TECH10'): StubHolding[] {
     capped: position < 2,
     shares_outstanding: 1_200_000 + position * 35_000,
     delta_since_rebalance: Number((Math.sin(position) / 200).toFixed(5)),
-    risk_contribution: Number((weight * 1.08).toFixed(5)),
+    // Only with `risk=true`, which no pane asks for: the engine sends null.
+    risk_contribution: null,
     active_weight: null,
     active_risk_contribution: null
   }))
@@ -757,6 +759,13 @@ function referenceEntry(
       adv_3m: 4_182_000 - index * 9_000
     }
   }
+}
+
+/** The run's latest rebalance on or before `date`, or its first. */
+function rebalanceInForce(date: string): string {
+  const dates = runResult.rebalances.map((snapshot) => snapshot.date).sort()
+  const day = date.slice(0, 10)
+  return dates.filter((rebalance) => rebalance <= day).pop() ?? dates[0] ?? day
 }
 
 /**
@@ -2117,6 +2126,47 @@ function body(url: URL): unknown {
    * per-constituent detail BN-123 added; `weights` the bare map, because a
    * client that reads only the map is still a valid one.
    */
+  // BN-326: the strategy's whole holdings workflow at a date (py-beacon 0.9.3).
+  if (/^\/strategies\/[^/]+\/holdings$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const fields = referenceAsked(url)
+    if (isRefusal(fields)) return fields
+    const rebalanceDates = runResult.rebalances.map((snapshot) => snapshot.date).sort()
+    const level = levelSeries(seedFor(run.indexId))
+    const asOf = (url.searchParams.get('date') ?? level.index[level.index.length - 1] ?? '').slice(
+      0,
+      10
+    )
+    if (asOf < (rebalanceDates[0] ?? '')) {
+      return notFound(
+        `holdings of '${run.strategyId}' on ${asOf}, before its first rebalance`,
+        'JobStore'
+      )
+    }
+    // TECH10's run names EU-VALUE as its benchmark, an index, so its
+    // weights are read as at the rebalance.
+    const benchmark =
+      run.strategyId === 'TECH10'
+        ? Object.fromEntries(holdings('EU-VALUE').map((row) => [row.identifier, row.weight]))
+        : null
+    return holdingsView({
+      strategyId: run.strategyId,
+      indexId: run.indexId,
+      kind: run.kind,
+      asOf,
+      rebalanceDate: rebalanceInForce(asOf),
+      rebalanceDates,
+      held: holdings(run.indexId),
+      benchmark,
+      referenceOf: (identifier) => rowReference(fields, identifier, asOf),
+      capOf: (identifier) => {
+        const cap = holdingReference(identifier)?.free_float_market_cap
+        return typeof cap === 'number' ? cap : null
+      }
+    })
+  }
+
   if (/^\/strategies\/[^/]+\/weights$/.test(path)) {
     const run = runOf(path)
     if (isRefusal(run)) return run
@@ -2127,8 +2177,16 @@ function body(url: URL): unknown {
     const fields = referenceAsked(url)
     if (isRefusal(fields)) return fields
     const asOf = asof ?? (level.index[level.index.length - 1] ?? '').slice(0, 10)
+    /*
+     * The rebalance in force on the date asked about: the run's latest on or
+     * before it. On the rebalance day itself nothing has drifted, so the
+     * engine sends no drift then rather than a zero.
+     */
+    const rebalance = rebalanceInForce(asOf)
+    const settled = asOf.slice(0, 10) === rebalance
     const held = holdings(indexId).map((row) => ({
       ...row,
+      delta_since_rebalance: settled ? null : row.delta_since_rebalance,
       reference: rowReference(fields, row.identifier, asOf)
     }))
 
@@ -2136,20 +2194,22 @@ function body(url: URL): unknown {
       strategy_id: run.strategyId,
       index_id: indexId,
       as_of: asOf,
-      rebalance_date: '2025-06-20',
+      rebalance_date: rebalance,
       announced_date: null,
       weights: Object.fromEntries(held.map((row) => [row.identifier, row.weight])),
       capped: held.filter((row) => row.capped).map((row) => row.identifier),
       cap: 0.12,
       cap_redistributed: 0.06,
       rows: held,
-      drift: {
-        since: '2025-06-20',
-        total_absolute: 0.082,
-        maximum: 0.021,
-        worst: 'CMP003',
-        turnover: 0.041
-      },
+      drift: settled
+        ? null
+        : {
+            since: rebalance,
+            total_absolute: 0.082,
+            maximum: 0.021,
+            worst: 'CMP003',
+            turnover: 0.041
+          },
       risk: null,
       active_risk: null,
       concentration: {
@@ -2403,6 +2463,36 @@ function body(url: URL): unknown {
     const nav = levels.map((value) => Number(((value / base) * capital).toFixed(2)))
     const rebased = levels.map((value) => Number(((value / base) * 100).toFixed(4)))
 
+    /*
+     * Each name's columns over the panel (BN-325). One window each: the
+     * stub's names are never reclassified, so the classification of any day
+     * is the one they listed with.
+     */
+    const windowsOf = (book: string): Record<string, unknown> | null =>
+      fields.length === 0
+        ? null
+        : Object.fromEntries(
+            heldPanel(book, dates).columns.map((name) => [
+              name,
+              [
+                {
+                  date_from: listedFrom(seedOf(name, seedFor(name))),
+                  date_to: null,
+                  reference: rowReference(fields, name) ?? {}
+                }
+              ]
+            ])
+          )
+    // What the fund held: the index's weights less the two per cent the
+    // implementation keeps in cash, so the fund's book and the index's differ.
+    const indexPanel = heldPanel(identifier, dates)
+    const fundPanel = {
+      ...indexPanel,
+      data: indexPanel.data.map((row) =>
+        row.map((weight) => (weight === null ? null : Number((weight * 0.98).toFixed(6))))
+      )
+    }
+
     return {
       run_at: STAMPED.includes(identifier)
         ? new Date(Date.now() - 3 * 86_400_000).toISOString()
@@ -2412,8 +2502,9 @@ function body(url: URL): unknown {
         initial_capital: capital,
         nav: { index: [eve, ...dates], data: [capital, ...nav] },
         cash: { index: dates, data: dates.map(() => 8_000) },
-        weights: { index: [], columns: [], data: [] },
-        weights_dates_total: 0,
+        weights: fundPanel,
+        weights_dates_total: dates.length,
+        reference_windows: windowsOf(identifier),
         positions: { index: [], columns: [], data: [] },
         positions_total: 0,
         transactions: { index: [], columns: [], data: [] }
@@ -2430,26 +2521,7 @@ function body(url: URL): unknown {
           weights_dates_total: dates.length,
           rebalances: decidedSnapshots(identifier, dates),
           rebalances_total: decidedSnapshots(identifier, dates).length,
-          /*
-           * Each name's columns over the panel (BN-325). One window each:
-           * the stub's names are never reclassified, so the classification
-           * of any day is the one they listed with.
-           */
-          reference_windows:
-            fields.length === 0
-              ? null
-              : Object.fromEntries(
-                  heldPanel(identifier, dates).columns.map((name) => [
-                    name,
-                    [
-                      {
-                        date_from: listedFrom(seedOf(name, seedFor(name))),
-                        date_to: null,
-                        reference: rowReference(fields, name) ?? {}
-                      }
-                    ]
-                  ])
-                ),
+          reference_windows: windowsOf(identifier),
           /*
            * A window the calendar could not cover (BN-198).
            *
@@ -2478,7 +2550,19 @@ function body(url: URL): unknown {
         },
         optimised: null
       },
-      benchmark: null,
+      // TECH10's run names EU-VALUE as its benchmark, an index with a book.
+      benchmark:
+        identifier === 'TECH10'
+          ? {
+              levels: { index: dates, data: rebased },
+              weights: heldPanel('EU-VALUE', dates),
+              weights_dates_total: dates.length,
+              rebalances: decidedSnapshots('EU-VALUE', dates),
+              rebalances_total: decidedSnapshots('EU-VALUE', dates).length,
+              reference_windows: windowsOf('EU-VALUE'),
+              calendar_coverage: null
+            }
+          : null,
       unfilled: [],
       metrics: metricsOf({ index: dates, data: levels })
     }
@@ -2758,16 +2842,31 @@ function previewFace(
   const common = { index_id: indexId, as_of: `${asOf}T00:00:00`, total_weight: 1 }
   const face = derived ? solvedPreview() : walkedPreview(indexId)
   const currency = (indexDocument(indexId) as { currency: string }).currency
-  const assets = (face.assets as Record<string, unknown>[]).map((asset) => ({
-    ...withCaps(asset, currency),
+  const withCap = (face.assets as Record<string, unknown>[]).map((asset) =>
+    withCaps(asset, currency)
+  )
+  // Each asset's share of the universe's free-float cap (0.9.3).
+  const capOf = (asset: Record<string, unknown>): number =>
+    typeof asset.free_float_market_cap === 'number' ? asset.free_float_market_cap : 0
+  const universeCap = withCap.reduce((sum, asset) => sum + capOf(asset), 0)
+  const assets = withCap.map((asset) => ({
+    ...asset,
+    universe_weight: universeCap === 0 ? null : Number((capOf(asset) / universeCap).toFixed(6)),
     reference: rowReference(fields, String(asset.identifier), asOf)
   }))
+  // What each step is and does (0.9.3), from the rule it ran.
+  const steps = Array.isArray(face.steps)
+    ? (face.steps as Record<string, unknown>[]).map((step) => ({
+        ...step,
+        ...STAGE_DETAIL[typeof step.rule_id === 'string' ? step.rule_id : 'universe']
+      }))
+    : face.steps
 
   if (derived) {
     return { ...common, steps: null, cap: null, cap_redistributed: 0, ...face, assets }
   }
 
-  return { ...common, solve: null, ...face, assets }
+  return { ...common, solve: null, ...face, steps, assets }
 }
 
 /**
@@ -2831,8 +2930,12 @@ function walkedPreview(indexId: string): Record<string, unknown> {
    */
   const unpriced = indexId === UNPRICED
   const kept = Array.from({ length: 10 }, (_, i) => `CMP${String(i).padStart(3, '0')}`)
-  const cutBy1 = ['CMP010', 'CMP011']
-  const cutBy2 = ['CMP012']
+  // Every other universe name too, as the engine lists them (one row per
+  // universe member): CMP010 and CMP011 among the first rule's, CMP012 the
+  // second's.
+  const cuts = universeCuts(kept)
+  const cutBy1 = cuts.filter((cut) => cut.rule === 'rule-1').map((cut) => cut.identifier)
+  const cutBy2 = cuts.filter((cut) => cut.rule === 'rule-2').map((cut) => cut.identifier)
 
   const weight = 1 / kept.length
   const assets = [
@@ -2865,8 +2968,20 @@ function walkedPreview(indexId: string): Record<string, unknown> {
   return {
     steps: [
       { position: 0, remaining: 120, rule_id: null, rule_type: null, excluded: [] },
-      { position: 1, remaining: 11, rule_id: 'rule-1', rule_type: 'FilterRule', excluded: cutBy1 },
-      { position: 2, remaining: 10, rule_id: 'rule-2', rule_type: 'FilterRule', excluded: cutBy2 }
+      {
+        position: 1,
+        remaining: 120 - cutBy1.length,
+        rule_id: 'rule-1',
+        rule_type: 'FilterRule',
+        excluded: cutBy1
+      },
+      {
+        position: 2,
+        remaining: 120 - cutBy1.length - cutBy2.length,
+        rule_id: 'rule-2',
+        rule_type: 'FilterRule',
+        excluded: cutBy2
+      }
     ],
     assets,
     weights: Object.fromEntries(kept.map((identifier) => [identifier, weight])),

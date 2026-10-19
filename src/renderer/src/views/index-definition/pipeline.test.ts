@@ -203,8 +203,15 @@ describe('pipelineRows', () => {
     // A draft that added a rule must not shift the last preview's counts
     // onto the wrong rows.
     const steps: PreviewStep[] = [
-      { position: 0, remaining: 512 },
-      { position: 1, rule_id: 'r2', rule_type: 'RankRule', remaining: 24 }
+      { position: 0, remaining: 512, type: 'Universe', description: '' },
+      {
+        position: 1,
+        rule_id: 'r2',
+        rule_type: 'RankRule',
+        remaining: 24,
+        type: 'RankRule',
+        description: ''
+      }
     ]
     const rows = pipelineRows(doc(), steps)
 
