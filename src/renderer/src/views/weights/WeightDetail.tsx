@@ -8,9 +8,16 @@ import { useWorkspace } from '../../state/tabs.store'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useWeights } from '../shared/beaconQueries'
 import { constituentRows, percent, weightRows, type WeightRow } from '../shared/indexMetrics'
+import {
+  holdingColumns,
+  useReferenceColumns,
+  type ReferenceColumn,
+  type ReferenceValues
+} from '../shared/holdingColumns'
+import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
 
 export interface WeightDetailProps {
-  indexId: string
+  strategyId: string
   page: string
   pane: number | undefined
   asof: string
@@ -27,7 +34,7 @@ interface DetailRow extends WeightRow {
 }
 
 /**
- * Weights → Weight Detail. Figma 234:8155.
+ * Holdings → Holdings Detail. Figma 234:8155.
  *
  * Cross-sectional: what was held at one date. The bar lane went in BU-177 —
  * a weight is already a number in the column beside it, and the lane was
@@ -39,7 +46,7 @@ interface DetailRow extends WeightRow {
  * whether or not anyone has back-tested it.
  */
 export function WeightDetail({
-  indexId,
+  strategyId,
   page,
   pane,
   asof,
@@ -48,7 +55,8 @@ export function WeightDetail({
   onBenchmark,
   others
 }: WeightDetailProps): ReactElement {
-  const weights = useWeights(indexId, asof)
+  const reference = useReferenceColumns(TABLE)
+  const weights = useWeights(strategyId, asof, reference.fields)
   const against = useWeights(benchmark, asof)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
@@ -64,6 +72,14 @@ export function WeightDetail({
 
     return withBenchmark(base, benchmark === '' ? undefined : (against.data?.weights ?? {}))
   }, [weights.data, against.data, benchmark])
+
+  // The engine's reference columns, as of the date asked about (BN-325).
+  const referenceOf = useMemo(() => {
+    const byTicker = new Map(
+      (weights.data?.rows ?? []).map((row) => [row.identifier, row.reference])
+    )
+    return (row: DetailRow): ReferenceValues => byTicker.get(row.ticker)
+  }, [weights.data])
 
   const concentration = weights.data?.concentration
   const drift = weights.data?.drift
@@ -101,8 +117,10 @@ export function WeightDetail({
         </Field>
       </div>
 
-      {indexId === '' && <ViewEmpty>Name an index in Overview — this pane follows it.</ViewEmpty>}
-      {weights.isPending && indexId !== '' && <ViewLoading what={indexId} />}
+      {strategyId === '' && (
+        <ViewEmpty>Name a strategy in Overview — this pane follows it.</ViewEmpty>
+      )}
+      {weights.isPending && strategyId !== '' && <ViewLoading what={strategyId} />}
       {weights.isError && <ViewError error={weights.error} />}
 
       {weights.isSuccess && (
@@ -138,7 +156,8 @@ export function WeightDetail({
           {rows.length > 0 && (
             <>
               <Table
-                columns={columnsFor(benchmark)}
+                columns={columnsFor(benchmark, referenceOf, reference.columns)}
+                headerAction={<HoldingColumnsButton table={TABLE} />}
                 rows={rows}
                 getRowId={(row) => row.ticker}
                 onSelectRow={(row) => {
@@ -161,13 +180,9 @@ export function WeightDetail({
                 }}
                 maxBodyHeight={560}
               />
+              {/* The rebalance date is in the field above; this says which day the table is. */}
               <p className="weights-footnote type-11">
-                weights in force at {weights.data.rebalance_date.slice(0, 10)}, asked at{' '}
-                {weights.data.as_of.slice(0, 10)}
-                {drift != null &&
-                  ` · largest move ${percent(drift.maximum * 100)} (${drift.worst}) since ${drift.since.slice(0, 10)}`}
-                {benchmark !== '' && ` · active is this index minus ${benchmark} at the same date`}{' '}
-                · click a row to open Drilldown
+                weights as of {weights.data.as_of.slice(0, 10)} · click a row to open Drilldown
               </p>
             </>
           )}
@@ -203,10 +218,17 @@ function withBenchmark(
   })
 }
 
-function columnsFor(benchmark: string): Column<DetailRow>[] {
+/** This table's own column choice, under Asset → Holding columns. */
+const TABLE = 'holdings-detail'
+
+function columnsFor(
+  benchmark: string,
+  referenceOf: (row: DetailRow) => ReferenceValues,
+  reference: readonly ReferenceColumn[]
+): Column<DetailRow>[] {
+  // No rank column (Karan, 2026-10-19): the rows are in weight order already.
   const columns: Column<DetailRow>[] = [
-    { key: 'rank', header: '#', width: 36, align: 'right', render: (row) => String(row.rank) },
-    { key: 'ticker', header: 'Ticker', width: 90, emphasis: true, render: (row) => row.ticker },
+    ...holdingColumns<DetailRow>((row) => row.ticker, referenceOf, reference),
     {
       key: 'weight',
       header: 'Index w',

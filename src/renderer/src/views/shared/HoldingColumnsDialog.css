@@ -1,0 +1,60 @@
+/* The column chooser: a filter, then the columns as checkboxes in a scrolling list. */
+.holding-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.holding-columns-search {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.holding-columns-search:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.holding-columns-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.holding-columns-note {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* The button at the right end of a table's column names that opens it. */
+.holding-columns-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.holding-columns-button:hover {
+  background: var(--divider);
+  color: var(--text-primary);
+}
+
+.holding-columns-button:focus-visible {
+  outline: 1px solid var(--accent);
+}

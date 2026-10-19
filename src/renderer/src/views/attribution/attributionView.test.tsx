@@ -9,6 +9,7 @@ import { AttributionView } from './AttributionView'
 import type { AttributionView as AttributionPayload } from './attribution'
 
 const RECONCILING: AttributionPayload = {
+  strategy_id: 'TECH10',
   index_id: 'TECH10',
   start: '2026-01-01',
   end: '2026-07-22',

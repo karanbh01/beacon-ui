@@ -18,6 +18,8 @@ import {
   useSchedule
 } from '../shared/strategyQueries'
 import { useReferenceRows } from '../shared/queries'
+import { holdingColumns, useReferenceColumns, type ReferenceColumn } from '../shared/holdingColumns'
+import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
 import { pipelineOf } from '../index-definition/pipeline'
 import {
   CELL_GLYPH,
@@ -51,6 +53,12 @@ import { IndexOverview } from '../index-definition/IndexOverview'
  */
 const PREVIEW_CAP_FIELDS = ['market_cap', 'free_float_market_cap'] as const
 
+/**
+ * This table's own column choice, under Asset → Holding columns. Asked for
+ * when the preview runs, so a column added afterwards fills on the next run.
+ */
+const PREVIEW_TABLE = 'constituent-preview'
+
 function buildColumns(
   preview: PreviewResponse,
   caps: CapRows,
@@ -63,18 +71,15 @@ function buildColumns(
    * both reports a fault as an absence — the shape this repo has filed five
    * times. So the columns come out and a notice goes up instead.
    */
-  capsFailed: boolean
+  capsFailed: boolean,
+  reference: readonly ReferenceColumn[]
 ): Column<PreviewAsset>[] {
-  const columns: Column<PreviewAsset>[] = [
-    {
-      key: 'ticker',
-      header: 'Ticker',
-      width: 80,
-      minWidth: 64,
-      emphasis: true,
-      render: (asset) => asset.identifier
-    }
-  ]
+  const columns: Column<PreviewAsset>[] = holdingColumns<PreviewAsset>(
+    (asset) => asset.identifier,
+    (asset) => asset.reference,
+    reference,
+    { minWidth: 64 }
+  )
 
   // Null on a derived index, which has no rules to walk (BN-170). The
   // waterfall is then empty rather than absent; the solve face is BU-173.
@@ -150,7 +155,8 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
     remember({ asOf: next, ...(ran === undefined ? {} : { ran }) })
   }
   const preview = usePreviewIndex()
-  const shown = useRanPreview(indexId, ran)
+  const reference = useReferenceColumns(PREVIEW_TABLE)
+  const shown = useRanPreview(indexId, ran, reference.fields)
   const result = shown.data
   const schedule = useSchedule(indexId)
   /*
@@ -240,7 +246,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   const run = (): void => {
     if (indexId === '' || asOf === '') return
     mutate(
-      { indexId, asOf },
+      { indexId, asOf, referenceFields: reference.fields },
       {
         onSuccess: () => {
           remember({ asOf, ran: asOf })
@@ -268,9 +274,9 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
   }, [result, solve])
   const columns = useMemo(() => {
     if (result === undefined) return []
-    if (solve !== undefined) return solveColumns()
-    return buildColumns(result, capRows, weighting, capsError !== undefined)
-  }, [result, solve, capRows, capsError, weighting])
+    if (solve !== undefined) return solveColumns(reference.columns)
+    return buildColumns(result, capRows, weighting, capsError !== undefined, reference.columns)
+  }, [result, solve, capRows, capsError, weighting, reference.columns])
 
   /*
    * Working until BOTH halves are in: the resolve, and the caps that belong
@@ -487,6 +493,7 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
             getRowId={(asset) => asset.identifier}
             maxBodyHeight={560}
             fillWidth
+            headerAction={<HoldingColumnsButton table={PREVIEW_TABLE} />}
           />
           {solve === undefined ? (
             <p className="preview-footnote type-11">

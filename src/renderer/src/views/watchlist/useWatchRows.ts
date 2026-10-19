@@ -23,6 +23,8 @@ function oneYearAgo(now: Date): string {
  */
 export function useWatchRows(identifiers: readonly string[]): {
   rows: WatchRow[]
+  /** Each symbol's reference row, from the same calls, for the holding columns. */
+  references: ReadonlyMap<string, Readonly<Record<string, unknown>>>
   loading: boolean
   error: unknown
 } {
@@ -64,8 +66,15 @@ export function useWatchRows(identifiers: readonly string[]): {
     })
   )
 
+  const byIdentifier = new Map<string, Readonly<Record<string, unknown>>>()
+  identifiers.forEach((identifier, index) => {
+    const fields = references[index]?.data?.fields
+    if (fields !== undefined) byIdentifier.set(identifier, fields)
+  })
+
   return {
     rows,
+    references: byIdentifier,
     loading: prices.some((result) => result.isPending),
     // The first real failure, so a whole watchlist does not go blank because
     // one symbol is unknown — but a dead engine still says so.

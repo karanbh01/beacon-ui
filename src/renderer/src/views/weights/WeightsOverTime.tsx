@@ -9,6 +9,13 @@ import { PercentCell } from '../../components/Table/cells'
 import { isAbsent, useBacktestRecord } from '../shared/beaconQueries'
 import { percent } from '../shared/indexMetrics'
 import { ViewError } from '../shared/ViewState'
+import {
+  holdingColumns,
+  useReferenceColumns,
+  type ReferenceColumn,
+  type ReferenceValues
+} from '../shared/holdingColumns'
+import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
 import { useGroupings } from './groupings'
 import {
   activeAgainst,
@@ -26,7 +33,7 @@ import {
 type BookPayload = components['schemas']['BookPayload']
 
 export interface WeightsOverTimeProps {
-  indexId: string
+  strategyId: string
   /** Subtract the benchmark's weights, making every cell an active weight. */
   active: boolean
   frequency: Frequency
@@ -52,7 +59,7 @@ export interface WeightsOverTimeProps {
  * fanning out a request per date behind the reader.
  */
 export function WeightsOverTime({
-  indexId,
+  strategyId,
   active,
   frequency,
   onFrequency,
@@ -62,8 +69,9 @@ export function WeightsOverTime({
   onBenchmark,
   others
 }: WeightsOverTimeProps): ReactElement {
-  const record = useBacktestRecord(indexId)
-  const against = useBacktestRecord(benchmark, active && benchmark !== '')
+  const reference = useReferenceColumns(TABLE)
+  const record = useBacktestRecord(strategyId, true, reference.fields)
+  const against = useBacktestRecord(benchmark, active && benchmark !== '', reference.fields)
 
   const mine = useMemo(
     () => matrixOf(record.data?.index?.target, frequency),
@@ -93,7 +101,39 @@ export function WeightsOverTime({
   )
 
   const totals = useMemo(() => columnTotals(matrix), [matrix])
-  const columns = useMemo(() => columnsFor(matrix, groupBy, active), [matrix, groupBy, active])
+  /*
+   * Each name as it is classified now: the latest of the windows the record
+   * carries over the panel (BN-325). A name only the benchmark holds is read
+   * from the benchmark's record.
+   */
+  const referenceOf = useMemo(() => {
+    const latest = new Map<string, ReferenceValues>([
+      ...latestOf(against.data?.index?.target?.reference_windows),
+      ...latestOf(record.data?.index?.target?.reference_windows)
+    ])
+    return (row: MatrixRow): ReferenceValues => latest.get(row.key)
+  }, [record.data, against.data])
+  const columns = useMemo(
+    () => columnsFor(matrix, groupBy, active, referenceOf, reference.columns),
+    [matrix, groupBy, active, referenceOf, reference.columns]
+  )
+  /*
+   * Only what the table does not already say (Karan, 2026-10-19): the
+   * rebalance view and a complete history need no line under them.
+   */
+  const footnote = [
+    ...(frequency === 'rebalance' ? [] : ['what was held on each date, drift included']),
+    ...(active
+      ? [`minus ${benchmark}, so a name only the benchmark holds is a real underweight`]
+      : []),
+    // Both sources are bounded to their most recent entries, and the failure
+    // mode is quiet: a table that starts late without saying why (BN-186).
+    ...(matrix.truncation === undefined
+      ? []
+      : [`most recent ${String(matrix.truncation.served)} of ${String(matrix.truncation.total)}`]),
+    ...(groupBy === '' ? [] : ['groups sum to the same total as their members'])
+  ]
+
   /** The engine holds a record for this index but could not serve it. */
   const broken = record.isError && !isAbsent(record.error)
 
@@ -157,8 +197,8 @@ export function WeightsOverTime({
       */}
       {!record.isPending && !broken && mine.dates.length === 0 && (
         <p className="weights-note type-11">
-          {indexId} has no stored run, and weights over time come from one. Back-test it to see how
-          its holdings moved.
+          {strategyId} has no stored run, and weights over time come from one. Back-test it to see
+          how its holdings moved.
         </p>
       )}
 
@@ -209,28 +249,13 @@ export function WeightsOverTime({
             getRowId={(row) => row.key}
             maxBodyHeight={560}
             minColumns={4}
+            {...(groupBy === '' ? { headerAction: <HoldingColumnsButton table={TABLE} /> } : {})}
           />
         </>
       )}
 
-      {matrix.dates.length > 0 && !missing && (
-        <p className="weights-footnote type-11">
-          {frequency === 'rebalance'
-            ? 'the composition decided at each rebalance'
-            : 'what was held on each date, drift included'}
-          {active &&
-            ` · minus ${benchmark}, so a name only the benchmark holds is a real underweight`}
-          {' · '}
-          {/*
-            Both sources are bounded to their most recent entries, and the
-            failure mode is quiet: a table that starts late without saying
-            why (BN-186).
-          */}
-          {matrix.truncation === undefined
-            ? 'the whole history'
-            : `most recent ${String(matrix.truncation.served)} of ${String(matrix.truncation.total)}`}
-          {groupBy !== '' && ' · groups sum to the same total as their members'}
-        </p>
+      {matrix.dates.length > 0 && !missing && footnote.length > 0 && (
+        <p className="weights-footnote type-11">{footnote.join(' · ')}</p>
       )}
     </>
   )
@@ -248,19 +273,37 @@ function matrixOf(book: BookPayload | null | undefined, frequency: Frequency): W
   return fromPanel(book.weights, book.weights_dates_total, frequency)
 }
 
-function columnsFor(matrix: WeightMatrix, groupBy: string, active: boolean): Column<MatrixRow>[] {
-  const head: Column<MatrixRow> = {
-    key: 'name',
-    header: groupBy === '' ? 'Constituent' : 'Group',
-    width: 130,
-    emphasis: true,
-    render: (row) => row.key
-  }
+/** This table's own column choice, under Asset → Holding columns. */
+const TABLE = 'holdings-history'
+
+type Windows = Record<string, components['schemas']['ReferenceWindow'][]> | null | undefined
+
+/** Each name's latest window: the classification it holds at the end of the panel. */
+function latestOf(windows: Windows): [string, ReferenceValues][] {
+  return Object.entries(windows ?? {}).map(([identifier, spans]) => {
+    const last = [...spans].sort((one, other) => one.date_from.localeCompare(other.date_from)).pop()
+    return [identifier, last?.reference]
+  })
+}
+
+function columnsFor(
+  matrix: WeightMatrix,
+  groupBy: string,
+  active: boolean,
+  referenceOf: (row: MatrixRow) => ReferenceValues,
+  reference: readonly ReferenceColumn[]
+): Column<MatrixRow>[] {
+  // A holding's row reads like every other ticker table's; a group's row is
+  // a sector or a country, with nothing more to say about it.
+  const head: Column<MatrixRow>[] =
+    groupBy === ''
+      ? holdingColumns<MatrixRow>((row) => row.key, referenceOf, reference)
+      : [{ key: 'name', header: 'Group', width: 130, emphasis: true, render: (row) => row.key }]
 
   // One column per date, newest LAST so the table reads left to right in
   // time — which is the direction a history is read in.
   return [
-    head,
+    ...head,
     ...matrix.dates.map((date, at) => ({
       key: date,
       header: date,

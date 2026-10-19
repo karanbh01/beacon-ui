@@ -24,6 +24,7 @@ export type MenuAction =
   | 'generate-data'
   | 'refresh-data'
   | 'data-preferences'
+  | 'holding-columns'
   | 'open-data-folder'
   | 'import-data'
   | `preset-apply-${string}`
@@ -234,7 +235,19 @@ export function buildMenus(context: MenuContext): Menu[] {
       soon('Run backtest…'),
       ...(context.releaseBuild === true ? [] : [soon('Run optimisation…'), soon('Risk model…')])
     ],
-    Asset: [soon('Add to watchlist'), soon('Corporate actions'), soon('Reference data')],
+    Asset: [
+      soon('Add to watchlist'),
+      soon('Corporate actions'),
+      soon('Reference data'),
+      // Which reference columns sit beside a ticker in every holdings table
+      // (Karan, 2026-10-19). A table can still choose its own.
+      {
+        label: 'Holding columns…',
+        action: 'holding-columns',
+        enabled: true,
+        separatorBefore: true
+      }
+    ],
     Portfolio: [soon('New portfolio…'), soon('Rebalance…'), soon('Attribution…')],
     Settings: [soon('Preferences…'), soon('Data directory…'), soon('Keyboard shortcuts…')],
     Help: [soon('Documentation'), soon('Release notes'), soon('About Beacon')]

@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import type { Column } from '../../components/Table/Table'
+import { holdingColumns, type ReferenceColumn } from '../shared/holdingColumns'
 import { percent, type PreviewAsset } from './derivation'
 
 /**
@@ -13,20 +14,21 @@ import { percent, type PreviewAsset } from './derivation'
  * Δ is signed and coloured because its sign is the point: reading down the
  * column tells you what the objective bought and what it sold.
  */
-export function solveColumns(): Column<PreviewAsset>[] {
+export function solveColumns(reference: readonly ReferenceColumn[]): Column<PreviewAsset>[] {
   return [
-    {
-      key: 'ticker',
-      header: 'Ticker',
-      width: 90,
-      emphasis: true,
-      // A name solved to zero is out of the index, not merely small. The
-      // weight column says 0.00% either way, so the identifier carries the
-      // distinction the waterfall's ✕ carries on the other face.
-      render: (asset) => (
-        <span className={asset.included ? undefined : 'solve-dropped'}>{asset.identifier}</span>
-      )
-    },
+    ...holdingColumns<PreviewAsset>(
+      (asset) => asset.identifier,
+      (asset) => asset.reference,
+      reference,
+      {
+        // A name solved to zero is out of the index, not merely small. The
+        // weight column says 0.00% either way, so the identifier carries the
+        // distinction the waterfall's ✕ carries on the other face.
+        render: (asset) => (
+          <span className={asset.included ? undefined : 'solve-dropped'}>{asset.identifier}</span>
+        )
+      }
+    ),
     {
       key: 'before',
       header: 'Parent w',

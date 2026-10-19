@@ -19,6 +19,14 @@ import './UniverseEditor.css'
 import { Calculating } from '../../components/Calculating/Calculating'
 import { Count, Money, MoneyHeader } from '../shared/LargeNumber'
 import { ViewEmpty } from '../shared/ViewState'
+import {
+  holdingColumns,
+  lowerKeys,
+  useReferenceColumns,
+  type ReferenceColumn,
+  type ReferenceValues
+} from '../shared/holdingColumns'
+import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
 
 export interface UniverseEditorProps {
   draft: DraftUniverse
@@ -45,17 +53,34 @@ export interface UniverseEditorProps {
   loading?: boolean
 }
 
-const COLUMNS: readonly Column<UniverseRow>[] = [
-  {
-    key: 'position',
-    header: '#',
-    width: 40,
-    align: 'right',
-    render: (row) => String(row.position)
-  },
-  { key: 'ticker', header: 'Ticker', width: 90, emphasis: true, render: (row) => row.ticker },
-  { key: 'name', header: 'Name', width: 190, render: (row) => row.name ?? '—' },
-  { key: 'sector', header: 'Sector', width: 170, render: (row) => row.sector ?? '—' },
+/** This table's own column choice, under Asset → Holding columns. */
+const TABLE = 'universe-builder'
+
+/**
+ * Position, the holding (holdingColumns), then its size and liquidity. The
+ * reference columns come from the reference rows this table already reads,
+ * which carry every stored column.
+ */
+function columnsFor(
+  referenceOf: (row: UniverseRow) => ReferenceValues,
+  reference: readonly ReferenceColumn[]
+): Column<UniverseRow>[] {
+  return [
+    POSITION,
+    ...holdingColumns<UniverseRow>((row) => row.ticker, referenceOf, reference),
+    ...SIZE_COLUMNS
+  ]
+}
+
+const POSITION: Column<UniverseRow> = {
+  key: 'position',
+  header: '#',
+  width: 40,
+  align: 'right',
+  render: (row) => String(row.position)
+}
+
+const SIZE_COLUMNS: readonly Column<UniverseRow>[] = [
   {
     key: 'cap',
     header: <MoneyHeader label="FF Mkt Cap" currency="USD" />,
@@ -114,6 +139,8 @@ export function UniverseEditor({
     () => new Map(pool.map((candidate) => [candidate.identifier, candidate.fields])),
     [pool]
   )
+  const reference = useReferenceColumns(TABLE)
+  const referenceOf = (row: UniverseRow): ReferenceValues => lowerKeys(byIdentifier.get(row.ticker))
   const tableRows = members.map((identifier, index) =>
     buildRow(identifier, index + 1, byIdentifier.get(identifier), byIdentifier.has(identifier))
   )
@@ -244,7 +271,8 @@ export function UniverseEditor({
       {tableRows.length > 0 && (
         <div className="universe-editor-preview">
           <Table
-            columns={COLUMNS}
+            columns={columnsFor(referenceOf, reference.columns)}
+            headerAction={<HoldingColumnsButton table={TABLE} />}
             rows={tableRows}
             getRowId={(row) => row.ticker}
             maxBodyHeight={320}

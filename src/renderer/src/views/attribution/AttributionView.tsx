@@ -9,6 +9,8 @@ import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
 import { useAttribution } from '../shared/beaconQueries'
 import { fromFraction, percent, signedPercent, tone } from '../shared/indexMetrics'
+import { holdingColumns, useReferenceColumns, type ReferenceValues } from '../shared/holdingColumns'
+import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
 import {
   attributionRows,
   residualPercent,
@@ -17,8 +19,11 @@ import {
 } from './attribution'
 import './AttributionView.css'
 
+/** This table's own column choice, under Asset → Holding columns. */
+const TABLE = 'attribution'
+
+/* After the holding's own columns (holdingColumns). */
 const COLUMNS: readonly Column<AttributionRow>[] = [
-  { key: 'ticker', header: 'Ticker', width: 90, emphasis: true, render: (row) => row.ticker },
   {
     key: 'weight',
     header: 'Avg weight',
@@ -78,14 +83,22 @@ const COLUMNS: readonly Column<AttributionRow>[] = [
  * someone to quote a contribution that does not belong to that return.
  */
 export function AttributionView({ tab, subject }: ViewProps): ReactElement {
-  const indexId = subject ?? tab.pinnedDoc ?? ''
+  const strategyId = subject ?? tab.pinnedDoc ?? ''
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
 
-  const attribution = useAttribution(indexId, start, end)
+  const reference = useReferenceColumns(TABLE)
+  const attribution = useAttribution(strategyId, start, end, reference.fields)
 
   const view = attribution.data
   const rows = useMemo(() => (view === undefined ? [] : attributionRows(view)), [view])
+  // As of the window's end (BN-325).
+  const referenceOf = useMemo(() => {
+    const byTicker = new Map(
+      (view?.contributions ?? []).map((row) => [row.asset_id, row.reference])
+    )
+    return (row: AttributionRow): ReferenceValues => byTicker.get(row.ticker)
+  }, [view])
 
   useEffect(() => {
     if (view === undefined) return
@@ -120,8 +133,10 @@ export function AttributionView({ tab, subject }: ViewProps): ReactElement {
         <Field label="Method" width={170} value="Contribution to return" />
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Name an index in Overview — this pane follows it.</ViewEmpty>}
-      {attribution.isPending && indexId !== '' && <ViewLoading what={indexId} />}
+      {strategyId === '' && (
+        <ViewEmpty>Name a strategy in Overview — this pane follows it.</ViewEmpty>
+      )}
+      {attribution.isPending && strategyId !== '' && <ViewLoading what={strategyId} />}
       {attribution.isError && <ViewError error={attribution.error} />}
 
       {view !== undefined && (
@@ -162,7 +177,20 @@ export function AttributionView({ tab, subject }: ViewProps): ReactElement {
 
       {view?.reconciles === true && rows.length > 0 && (
         <>
-          <Table columns={COLUMNS} rows={rows} getRowId={(row) => row.ticker} maxBodyHeight={560} />
+          <Table
+            columns={[
+              ...holdingColumns<AttributionRow>(
+                (row) => row.ticker,
+                referenceOf,
+                reference.columns
+              ),
+              ...COLUMNS
+            ]}
+            headerAction={<HoldingColumnsButton table={TABLE} />}
+            rows={rows}
+            getRowId={(row) => row.ticker}
+            maxBodyHeight={560}
+          />
           <p className="attribution-footnote type-11">
             {view.start.slice(0, 10)} → {view.end.slice(0, 10)}
             {/*

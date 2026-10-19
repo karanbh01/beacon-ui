@@ -126,15 +126,16 @@ describe('IndexWeightsView', () => {
     expect(first?.textContent).toContain('20.00%')
   })
 
-  it('reports the rebalance in force, which is not the date asked about', async () => {
+  it('says which day the weights are, with the rebalance they came from in its own field', async () => {
     // An index holds the weights set at its last rebalance until the next
-    // one, so these two differ almost always.
+    // one, so the two dates differ almost always (Karan, 2026-10-19).
     mountWeights()
     await screen.findByText('NVDA')
 
     expect(
-      screen.getByText(/weights in force at 2026-06-19, asked at 2026-07-22/)
+      screen.getByText('weights as of 2026-07-22 · click a row to open Drilldown')
     ).toBeInTheDocument()
+    expect(screen.getByText('2026-06-19')).toBeInTheDocument()
   })
 
   it('says "first rebalance" rather than 0% when there is nothing to drift from', async () => {
@@ -225,7 +226,7 @@ describe('Weights into Drilldown (BU-29, BU-166)', () => {
     expect(state.tabs.find((tab) => tab.id === 'weights')?.subject).toBeUndefined()
   })
 
-  it('drills into the index the page is about', async () => {
+  it('drills into the strategy the page is about', async () => {
     mountWeightsLinked()
     await userEvent.click(await screen.findByText('AVGO'))
 
@@ -242,7 +243,7 @@ describe('Weights into Drilldown (BU-29, BU-166)', () => {
     )
 
     // The index comes from Overview, not from a hard-coded 'TECH10' (BU-166).
-    expect(await screen.findByText(/constituent of TECH10/)).toBeInTheDocument()
+    expect(await screen.findByText(/held by TECH10/)).toBeInTheDocument()
   })
 
   it('says which currency the returns are in, and which the price is', async () => {
@@ -255,7 +256,7 @@ describe('Weights into Drilldown (BU-29, BU-166)', () => {
     const drilldown = within(await mountDrilldown())
 
     expect(await drilldown.findByText('total return (USD)')).toBeInTheDocument()
-    expect(drilldown.getByText('excess vs index (USD)')).toBeInTheDocument()
+    expect(drilldown.getByText('excess vs TECH10 (USD)')).toBeInTheDocument()
   })
 
   it('says nothing about currency for an engine that does not', async () => {

@@ -20,6 +20,7 @@ import { buildMenus, type MenuAction } from './chrome/menuModel'
 import { HOME_PAGE_ID } from './pages'
 import type { ViewOption } from './viewRegistry'
 import { WindowControls } from './WindowControls'
+import { HoldingColumnsDialog } from '../views/shared/HoldingColumnsDialog'
 import './MenuBar.css'
 import { assistantShips, isReleaseBuild } from './release'
 
@@ -109,6 +110,7 @@ export function MenuBar({
   className
 }: MenuBarProps): ReactElement {
   const [panel, setPanel] = useState<OpenPanel>('none')
+  const [choosingColumns, setChoosingColumns] = useState(false)
   /** Which top-level menu is open, by label. Only one at a time (BU-76). */
   const [menu, setMenu] = useState<string | undefined>(undefined)
   const bar = useRef<HTMLElement>(null)
@@ -197,6 +199,7 @@ export function MenuBar({
     else if (action === 'generate-data') generate.mutate()
     else if (action === 'refresh-data' && served !== undefined) refreshStore.mutate(served.id)
     else if (action === 'data-preferences') onDataPreferences?.()
+    else if (action === 'holding-columns') setChoosingColumns(true)
     else if (action === 'layout-reset') {
       // Both halves, or it is not a reset: a single pane still holding six
       // tabs is the arrangement you were trying to get out of.
@@ -327,6 +330,13 @@ export function MenuBar({
         <span className="menu-bar-rule" />
         <WindowControls />
       </div>
+      {choosingColumns && (
+        <HoldingColumnsDialog
+          onClose={() => {
+            setChoosingColumns(false)
+          }}
+        />
+      )}
     </header>
   )
 }

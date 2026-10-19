@@ -12,6 +12,13 @@ import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useIndices } from '../shared/strategyQueries'
 import { percent, signedPercent, weightRows, type WeightRow } from '../shared/indexMetrics'
+import {
+  holdingColumns,
+  useReferenceColumns,
+  type ReferenceColumn,
+  type ReferenceValues
+} from '../shared/holdingColumns'
+import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
 import { useConstraintSets, useFrontier, useRunOptimisation } from '../shared/optimiseQueries'
 import './OptimisationRunView.css'
 
@@ -20,9 +27,22 @@ const RATES = ['0', '0.02', '0.04', '0.05'].map((rate) => ({
   label: `${(Number(rate) * 100).toFixed(2)}%`
 }))
 
-const COLUMNS: readonly Column<WeightRow>[] = [
-  { key: 'rank', header: '#', width: 36, align: 'right', render: (row) => String(row.rank) },
-  { key: 'ticker', header: 'Asset', width: 90, emphasis: true, render: (row) => row.ticker },
+/** This table's own column choice, under Asset → Holding columns. */
+const TABLE = 'optimiser-weights'
+
+/** Rank, the holding (holdingColumns), then its optimal weight. */
+function columnsFor(
+  referenceOf: (row: WeightRow) => ReferenceValues,
+  reference: readonly ReferenceColumn[]
+): Column<WeightRow>[] {
+  return [
+    { key: 'rank', header: '#', width: 36, align: 'right', render: (row) => String(row.rank) },
+    ...holdingColumns<WeightRow>((row) => row.ticker, referenceOf, reference),
+    ...WEIGHT_COLUMNS
+  ]
+}
+
+const WEIGHT_COLUMNS: readonly Column<WeightRow>[] = [
   {
     key: 'weight',
     header: 'Optimal w',
@@ -55,12 +75,15 @@ export function OptimisationRunView({ tab, subject, pane }: ViewProps): ReactEle
   const sets = useConstraintSets()
   const run = useRunOptimisation()
   const jobs = useJobs((state) => state.jobs)
-  const frontier = useFrontier(runId, Number(rate))
+  const reference = useReferenceColumns(TABLE)
+  const frontier = useFrontier(runId, Number(rate), reference.fields)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
 
   const running = activeJobs(jobs).find((job) => job.kind.toLowerCase().includes('optimis'))
   const tangency = frontier.data?.tangency
   const rows = weightRows(tangency?.weights ?? {})
+  // The frontier's names, as of the optimisation's date (BN-325).
+  const referenceOf = (row: WeightRow): ReferenceValues => frontier.data?.reference?.[row.ticker]
 
   const available = sets.data?.constraint_sets ?? []
   const chosenSet = constraintSetId !== '' ? constraintSetId : (available[0]?.id ?? '')
@@ -189,7 +212,8 @@ export function OptimisationRunView({ tab, subject, pane }: ViewProps): ReactEle
 
           {rows.length > 0 && (
             <Table
-              columns={COLUMNS}
+              columns={columnsFor(referenceOf, reference.columns)}
+              headerAction={<HoldingColumnsButton table={TABLE} />}
               rows={rows}
               getRowId={(row) => row.ticker}
               maxBodyHeight={480}

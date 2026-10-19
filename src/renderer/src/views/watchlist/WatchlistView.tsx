@@ -15,6 +15,8 @@ import { useWatchRows } from './useWatchRows'
 import { summariseRows, type WatchRow } from './watchlist'
 import './WatchlistView.css'
 import { Money, MoneyHeader } from '../shared/LargeNumber'
+import { holdingColumns, lowerKeys, useReferenceColumns } from '../shared/holdingColumns'
+import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
 
 function toneOf(value: number | undefined): 'positive' | 'negative' | 'default' {
   if (value === undefined || value === 0) return 'default'
@@ -25,9 +27,11 @@ function pct(value: number | undefined, dp = 2): ReactElement {
   return <span className={`tone-${toneOf(value)}`}>{signedPercent(value, dp)}</span>
 }
 
+/** This table's own column choice, under Asset → Holding columns. */
+const TABLE = 'watchlist'
+
+/* After the holding's own columns (holdingColumns). */
 const COLUMNS: readonly Column<WatchRow>[] = [
-  { key: 'ticker', header: 'Ticker', width: 80, emphasis: true, render: (row) => row.ticker },
-  { key: 'name', header: 'Name', width: 160, render: (row) => row.name ?? '—' },
   {
     key: 'last',
     header: 'Last',
@@ -83,7 +87,8 @@ export function WatchlistView({ tab, pane }: ViewProps): ReactElement {
   const current = watchlists.find((list) => list.id === selectedId) ?? watchlists[0]
   const identifiers = useMemo(() => current?.identifiers ?? [], [current])
 
-  const { rows, loading, error } = useWatchRows(identifiers)
+  const { rows, references, loading, error } = useWatchRows(identifiers)
+  const reference = useReferenceColumns(TABLE)
   const summary = useMemo(() => summariseRows(rows), [rows])
 
   const addSymbol = (symbol: string): void => {
@@ -158,7 +163,15 @@ export function WatchlistView({ tab, pane }: ViewProps): ReactElement {
 
           {identifiers.length > 0 && (
             <Table
-              columns={COLUMNS}
+              columns={[
+                ...holdingColumns<WatchRow>(
+                  (row) => row.ticker,
+                  (row) => lowerKeys(references.get(row.ticker)),
+                  reference.columns
+                ),
+                ...COLUMNS
+              ]}
+              headerAction={<HoldingColumnsButton table={TABLE} />}
               rows={rows}
               getRowId={(row) => row.ticker}
               onSelectRow={(row) => {
