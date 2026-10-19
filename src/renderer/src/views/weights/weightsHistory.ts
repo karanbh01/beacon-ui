@@ -52,6 +52,12 @@ export interface WeightMatrix {
    * quiet: a table that simply starts late. Present only when they differ.
    */
   truncation?: { served: number; total: number }
+  /**
+   * Which book each column is, when books sit side by side: "Portfolio",
+   * "Index", "Benchmark". Absent for a table of one book, whose columns are
+   * its dates alone.
+   */
+  books?: string[]
 }
 
 export const EMPTY: WeightMatrix = { dates: [], rows: [] }
@@ -66,6 +72,29 @@ export function fromSnapshots(
   const columns = ordered.map((snapshot) => snapshot.weights)
 
   return build(dates, columns, snapshots.length, total)
+}
+
+/**
+ * The daily panel on the given days only: a fund's weights at each
+ * rebalance. A portfolio stores no rebalance decisions of its own (it trades
+ * toward the index's), so what it held on a rebalance day, after trading,
+ * is what that rebalance traded to.
+ */
+export function fromPanelOn(
+  frame: TableFrame | undefined,
+  total: number,
+  days: readonly string[]
+): WeightMatrix {
+  if (frame === undefined) return EMPTY
+
+  const wanted = new Set(days.map((day) => day.slice(0, 10)))
+  const rows = frame.index
+    .map((label, row) => [String(label).slice(0, 10), row] as const)
+    .filter(([day]) => wanted.has(day))
+  const dates = rows.map(([day]) => day)
+  const columns = rows.map(([, row]) => weightsIn(frame, row))
+
+  return build(dates, columns, frame.index.length, total)
 }
 
 /**
@@ -202,6 +231,50 @@ export function activeAgainst(matrix: WeightMatrix, benchmark: WeightMatrix): We
   })
 
   return { ...matrix, rows: rows.sort(byPeak) }
+}
+
+/**
+ * Books side by side on the first book's dates (Karan, 2026-10-19): for
+ * each date, a column per book. Another book's column is the one on the
+ * same day, or in the same month or quarter, as `keyOf` says; a book with
+ * none there leaves its column blank rather than borrowing a neighbour's.
+ */
+export function alongside(
+  books: readonly { label: string; matrix: WeightMatrix }[],
+  keyOf: (date: string) => string
+): WeightMatrix {
+  const first = books[0]
+  if (first === undefined) return EMPTY
+  if (books.length === 1) return first.matrix
+
+  const columns = first.matrix.dates.flatMap((date) =>
+    books.map((book) => ({
+      date,
+      label: book.label,
+      book,
+      at: book.matrix.dates.findIndex((own) => keyOf(own) === keyOf(date))
+    }))
+  )
+  const names = new Set(books.flatMap((book) => book.matrix.rows.map((row) => row.key)))
+  const byBook = books.map((book) => new Map(book.matrix.rows.map((row) => [row.key, row])))
+
+  const rows = [...names].map((key) => {
+    const cells = columns.map((column) => {
+      if (column.at < 0) return undefined
+      return byBook[books.indexOf(column.book)]?.get(key)?.cells[column.at]
+    })
+    // Ordered by the first book alone: the fund's holdings lead, and a name
+    // only the benchmark holds sorts below them however large it is there.
+    const own = cells.filter((_cell, at) => columns[at]?.book === first)
+    return { key, cells, peak: peakOf(own) }
+  })
+
+  return {
+    dates: columns.map((column) => column.date),
+    books: columns.map((column) => column.label),
+    rows: rows.sort(byPeak),
+    ...(first.matrix.truncation === undefined ? {} : { truncation: first.matrix.truncation })
+  }
 }
 
 /** Column sums, for the total row a weights table is checked against. */

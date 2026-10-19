@@ -1,5 +1,6 @@
-import { useMemo, type ReactElement } from 'react'
+import { useMemo, useState, type ReactElement } from 'react'
 import type { components } from '@shared/api.generated'
+import { Checkbox } from '../../components/Checkbox/Checkbox'
 import { Field } from '../../components/Field/Field'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { Select } from '../../components/Select/Select'
@@ -8,7 +9,8 @@ import { Table, type Column } from '../../components/Table/Table'
 import { PercentCell } from '../../components/Table/cells'
 import { isAbsent, useBacktestRecord } from '../shared/beaconQueries'
 import { percent } from '../shared/indexMetrics'
-import { ViewError } from '../shared/ViewState'
+import { bucketOf } from '../shared/periods'
+import { ViewEmpty, ViewError } from '../shared/ViewState'
 import {
   holdingColumns,
   useReferenceColumns,
@@ -20,10 +22,12 @@ import { useGroupings } from './groupings'
 import {
   activeAgainst,
   aggregateBy,
+  alongside,
   columnTotals,
   EMPTY,
   FREQUENCIES,
   fromPanel,
+  fromPanelOn,
   fromSnapshots,
   type Frequency,
   type MatrixRow,
@@ -31,6 +35,7 @@ import {
 } from './weightsHistory'
 
 type BookPayload = components['schemas']['BookPayload']
+type RecordPayload = components['schemas']['BacktestResultSummary']
 
 export interface WeightsOverTimeProps {
   strategyId: string
@@ -71,18 +76,46 @@ export function WeightsOverTime({
 }: WeightsOverTimeProps): ReactElement {
   const reference = useReferenceColumns(TABLE)
   const record = useBacktestRecord(strategyId, true, reference.fields)
+  // The index's and the benchmark's weights beside the fund's (Karan, 2026-10-19).
+  const [showIndex, setShowIndex] = useState(false)
+  const [showBenchmark, setShowBenchmark] = useState(false)
+  const hasBenchmark = record.data?.benchmark != null
   const against = useBacktestRecord(benchmark, active && benchmark !== '', reference.fields)
 
-  const mine = useMemo(
-    () => matrixOf(record.data?.index?.target, frequency),
-    [record.data, frequency]
-  )
-  const theirs = useMemo(
-    () => matrixOf(against.data?.index?.target, frequency),
-    [against.data, frequency]
-  )
+  /*
+   * The fund's own book: what it held (Karan, 2026-10-19). The index's
+   * target book is what the index decided, before the implementation's
+   * screens, caps and cash.
+   */
+  const mine = useMemo(() => matrixOf(record.data, frequency), [record.data, frequency])
+  const theirs = useMemo(() => matrixOf(against.data, frequency), [against.data, frequency])
 
-  const base = useMemo(() => (active ? activeAgainst(mine, theirs) : mine), [active, mine, theirs])
+  /*
+   * With the index or the benchmark shown, each date becomes a group of
+   * Portfolio, Index and Benchmark columns. The index's book is what it
+   * decided at each rebalance, or held at each month or quarter end; the
+   * benchmark's the same, from the run's own benchmark.
+   */
+  const shown = useMemo(() => {
+    if (active || record.data === undefined) return mine
+    const books = [
+      { label: 'Portfolio', matrix: mine },
+      ...(showIndex
+        ? [{ label: 'Index', matrix: bookOf(record.data.index?.target, frequency) }]
+        : []),
+      ...(showBenchmark && hasBenchmark
+        ? [{ label: 'Benchmark', matrix: bookOf(record.data.benchmark, frequency) }]
+        : [])
+    ]
+    return alongside(books, (date) =>
+      frequency === 'rebalance' ? date.slice(0, 10) : bucketOf(date, frequency)
+    )
+  }, [active, record.data, mine, showIndex, showBenchmark, hasBenchmark, frequency])
+
+  const base = useMemo(
+    () => (active ? activeAgainst(mine, theirs) : shown),
+    [active, mine, theirs, shown]
+  )
 
   /*
    * Every name the table will show, not just this index's.
@@ -108,8 +141,10 @@ export function WeightsOverTime({
    */
   const referenceOf = useMemo(() => {
     const latest = new Map<string, ReferenceValues>([
-      ...latestOf(against.data?.index?.target?.reference_windows),
-      ...latestOf(record.data?.index?.target?.reference_windows)
+      ...latestOf(against.data?.portfolio.reference_windows),
+      ...latestOf(record.data?.benchmark?.reference_windows),
+      ...latestOf(record.data?.index?.target?.reference_windows),
+      ...latestOf(record.data?.portfolio.reference_windows)
     ])
     return (row: MatrixRow): ReferenceValues => latest.get(row.key)
   }, [record.data, against.data])
@@ -166,6 +201,18 @@ export function WeightsOverTime({
           />
         </Field>
 
+        {!active && (
+          <div className="weights-alongside">
+            <Checkbox label="Index" checked={showIndex} onChange={setShowIndex} />
+            <Checkbox
+              label="Benchmark"
+              checked={showBenchmark && hasBenchmark}
+              disabled={!hasBenchmark}
+              onChange={setShowBenchmark}
+            />
+          </div>
+        )}
+
         {active && (
           <Field label="Benchmark" width={170}>
             <Select
@@ -196,16 +243,13 @@ export function WeightsOverTime({
         has no history to show. Saying so beats an empty table.
       */}
       {!record.isPending && !broken && mine.dates.length === 0 && (
-        <p className="weights-note type-11">
-          {strategyId} has no stored run, and weights over time come from one. Back-test it to see
-          how its holdings moved.
-        </p>
+        <ViewEmpty figure="drawer">
+          {strategyId} has no run yet. Backtest it to see how its holdings moved.
+        </ViewEmpty>
       )}
 
       {missing && (
-        <p className="weights-note type-11">
-          Choose a benchmark to measure active weights against.
-        </p>
+        <ViewEmpty figure="ticker">Choose a benchmark to measure active weights against.</ViewEmpty>
       )}
 
       {/*
@@ -220,9 +264,9 @@ export function WeightsOverTime({
         (against.isError && !isAbsent(against.error) ? (
           <ViewError error={against.error} />
         ) : (
-          <p className="weights-note type-11">
-            {benchmark} has no stored run, so there are no benchmark weights to measure against.
-          </p>
+          <ViewEmpty figure="drawer">
+            {benchmark} has no run yet, so there are no benchmark weights to measure against.
+          </ViewEmpty>
         ))}
 
       {matrix.dates.length > 0 && !missing && (
@@ -233,12 +277,12 @@ export function WeightsOverTime({
                 label: `${String(matrix.rows.length)} rows`,
                 value: groupBy === '' ? 'constituents' : 'groups'
               },
-              { label: 'dates', value: String(matrix.dates.length) },
+              { label: 'dates', value: String(new Set(matrix.dates).size) },
               {
                 label: active ? 'Σ active' : 'Σ latest',
                 // Rounded before signing, so a residue of 1e-16 does not
                 // print as "−0.00%".
-                value: percent(Number(((totals[totals.length - 1] ?? 0) * 100).toFixed(2)), 2)
+                value: percent(Number(((latestOwn(matrix, totals) ?? 0) * 100).toFixed(2)), 2)
               }
             ]}
           />
@@ -249,6 +293,7 @@ export function WeightsOverTime({
             getRowId={(row) => row.key}
             maxBodyHeight={560}
             minColumns={4}
+            queryable
             {...(groupBy === '' ? { headerAction: <HoldingColumnsButton table={TABLE} /> } : {})}
           />
         </>
@@ -261,15 +306,39 @@ export function WeightsOverTime({
   )
 }
 
-/** The book's history at the asked-for frequency, or nothing yet. */
-function matrixOf(book: BookPayload | null | undefined, frequency: Frequency): WeightMatrix {
-  if (book == null) return EMPTY
+/**
+ * The fund's history at the asked-for frequency, or nothing yet: its daily
+ * weights, on the index's rebalance days or at each month's or quarter's
+ * end.
+ */
+function matrixOf(record: RecordPayload | undefined, frequency: Frequency): WeightMatrix {
+  if (record === undefined) return EMPTY
+  const book = record.portfolio
 
-  // `rebalances_total` carries a schema default, so it is always present;
-  // `rebalances` is nullable, and null means a record written before BN-186.
   if (frequency === 'rebalance') {
-    return fromSnapshots(book.rebalances ?? [], book.rebalances_total)
+    // `rebalances` is nullable: null means a record written before BN-186.
+    const days = (record.index?.target?.rebalances ?? []).map((snapshot) => snapshot.date)
+    return fromPanelOn(book.weights, book.weights_dates_total, days)
   }
+  return fromPanel(book.weights, book.weights_dates_total, frequency)
+}
+
+/**
+ * The latest total of the fund's own book: the last column, or with the
+ * index and benchmark beside it, the last Portfolio column.
+ */
+function latestOwn(
+  matrix: WeightMatrix,
+  totals: readonly (number | undefined)[]
+): number | undefined {
+  const own = matrix.books?.lastIndexOf('Portfolio') ?? totals.length - 1
+  return totals[own]
+}
+
+/** An index's book (the tracked index, or the benchmark) at the asked-for frequency. */
+function bookOf(book: BookPayload | null | undefined, frequency: Frequency): WeightMatrix {
+  if (book == null) return EMPTY
+  if (frequency === 'rebalance') return fromSnapshots(book.rebalances ?? [], book.rebalances_total)
   return fromPanel(book.weights, book.weights_dates_total, frequency)
 }
 
@@ -298,19 +367,37 @@ function columnsFor(
   const head: Column<MatrixRow>[] =
     groupBy === ''
       ? holdingColumns<MatrixRow>((row) => row.key, referenceOf, reference)
-      : [{ key: 'name', header: 'Group', width: 130, emphasis: true, render: (row) => row.key }]
+      : [
+          {
+            key: 'name',
+            header: 'Group',
+            width: 130,
+            emphasis: true,
+            render: (row) => row.key,
+            value: (row) => row.key
+          }
+        ]
 
   // One column per date, newest LAST so the table reads left to right in
-  // time — which is the direction a history is read in.
+  // time — which is the direction a history is read in. With books side by
+  // side, the date heads a group and each column is named for its book.
   return [
     ...head,
-    ...matrix.dates.map((date, at) => ({
-      key: date,
-      header: date,
-      width: 96,
-      align: 'right' as const,
-      render: (row: MatrixRow) => cell(row.cells[at], active)
-    }))
+    ...matrix.dates.map((date, at) => {
+      const book = matrix.books?.[at]
+      return {
+        key: book === undefined ? date : `${date}-${book}`,
+        header: book ?? date,
+        ...(book === undefined ? {} : { group: date }),
+        width: book === undefined ? 96 : 84,
+        align: 'right' as const,
+        render: (row: MatrixRow) => cell(row.cells[at], active),
+        value: (row: MatrixRow) => {
+          const value = row.cells[at]
+          return value === undefined ? undefined : value * 100
+        }
+      }
+    })
   ]
 }
 

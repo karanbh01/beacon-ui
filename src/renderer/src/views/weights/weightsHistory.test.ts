@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   activeAgainst,
   aggregateBy,
+  alongside,
   columnTotals,
   fromPanel,
+  fromPanelOn,
   fromSnapshots,
   type RebalanceSnapshot,
   type TableFrame
@@ -165,5 +167,64 @@ describe('active weights (BU-177)', () => {
     const active = activeAgainst(index, short)
 
     expect(active.rows.every((row) => row.cells[0] === undefined)).toBe(true)
+  })
+})
+
+describe("the fund's book and the books beside it (Karan, 2026-10-19)", () => {
+  const panel = {
+    index: ['2026-03-19', '2026-03-20', '2026-03-23'],
+    columns: ['AAA', 'BBB'],
+    data: [
+      [0.5, 0.48],
+      [0.49, 0.49],
+      [0.5, 0.48]
+    ]
+  }
+
+  it('reads what the fund held on the rebalance days, and only those', () => {
+    const matrix = fromPanelOn(panel, 3, ['2026-03-20'])
+    expect(matrix.dates).toEqual(['2026-03-20'])
+    expect(matrix.rows.find((row) => row.key === 'AAA')?.cells).toEqual([0.49])
+  })
+
+  it('puts each book under each date, and leaves a book blank on a date it lacks', () => {
+    const fund = fromPanelOn(panel, 3, ['2026-03-20', '2026-03-23'])
+    const index = fromPanelOn(panel, 3, ['2026-03-20'])
+    const both = alongside(
+      [
+        { label: 'Portfolio', matrix: fund },
+        { label: 'Index', matrix: index }
+      ],
+      (date) => date
+    )
+
+    expect(both.dates).toEqual(['2026-03-20', '2026-03-20', '2026-03-23', '2026-03-23'])
+    expect(both.books).toEqual(['Portfolio', 'Index', 'Portfolio', 'Index'])
+    expect(both.rows.find((row) => row.key === 'BBB')?.cells).toEqual([0.49, 0.49, 0.48, undefined])
+  })
+
+  it('is the one book unchanged when nothing is shown beside it', () => {
+    const fund = fromPanelOn(panel, 3, ['2026-03-20'])
+    expect(alongside([{ label: 'Portfolio', matrix: fund }], (date) => date)).toBe(fund)
+  })
+})
+
+describe('books side by side, ordered by the fund', () => {
+  it("sorts by the fund's weights, so a name only the benchmark holds comes last", () => {
+    const fund = fromPanelOn({ index: ['2026-03-20'], columns: ['AAA'], data: [[0.1]] }, 1, [
+      '2026-03-20'
+    ])
+    const benchmark = fromPanelOn({ index: ['2026-03-20'], columns: ['ZZZ'], data: [[0.9]] }, 1, [
+      '2026-03-20'
+    ])
+    const both = alongside(
+      [
+        { label: 'Portfolio', matrix: fund },
+        { label: 'Benchmark', matrix: benchmark }
+      ],
+      (date) => date
+    )
+
+    expect(both.rows.map((row) => row.key)).toEqual(['AAA', 'ZZZ'])
   })
 })
