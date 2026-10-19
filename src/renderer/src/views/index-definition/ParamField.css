@@ -1,0 +1,31 @@
+/* A catalogue parameter's control, shared by the rule editor and the backtest and strategy forms. */
+
+.param-field-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: normal;
+  color: var(--text-primary);
+}
+
+.param-field-input:focus {
+  outline: none;
+}
+
+/*
+ * A parameter whose value is a structure, not a scalar (BU-182).
+ *
+ * Full width and stacked under its own label, because the rows inside are
+ * a form in their own right — squeezing them into the 180px box the other
+ * parameters use would make a screen unreadable to save space in a row
+ * that is already wrapping.
+ */
+.param-field-structured {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}

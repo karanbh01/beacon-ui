@@ -14,6 +14,7 @@ import {
   describeCascade,
   describeDeleted,
   describeRule,
+  holdersOf,
   describeWeighting,
   errorsOf,
   humanise,
@@ -463,13 +464,31 @@ describe('what a delete takes with it (BU-170)', () => {
     expect(detail).toContain('1 optimised index')
   })
 
-  it('says only what it used to when nothing was solved from it', () => {
-    // The cascade is downward: deleting a child leaves its parent, so a
-    // childless index warns exactly as it did before (BU-151).
+  it('says only the definition goes when nothing was solved from it', () => {
+    // The cascade is downward: deleting a child leaves its parent. Runs are
+    // strategies' since py-beacon 0.9.0, so none go with an index.
     const detail = describeCascade('TECH10-OPT', catalogue())
 
-    expect(detail).toContain('backtest results')
+    expect(detail).toContain('The definition is removed')
     expect(detail).not.toContain('optimised')
+    expect(detail).not.toContain('backtest')
+  })
+
+  it('says it will be refused while a strategy holds it (0.9.0)', () => {
+    const detail = describeCascade('TECH10', catalogue(), ['tech10', 'tech10-capped'])
+
+    expect(detail).toContain('Held by tech10, tech10-capped')
+    expect(detail).toContain('refused')
+  })
+
+  it('finds the strategies holding an index or any index solved from it', () => {
+    const holders = holdersOf('TECH10', catalogue(), [
+      { id: 'plain', index_id: 'TECH10' },
+      { id: 'solved', index_id: 'TECH10-OPT' },
+      { id: 'other', index_id: 'EU-VALUE' }
+    ])
+
+    expect(holders).toEqual(['plain', 'solved'])
   })
 
   it('reports what actually went from the engine and not from the guess', () => {
@@ -478,35 +497,18 @@ describe('what a delete takes with it (BU-170)', () => {
     const said = describeDeleted({
       index_id: 'TECH10',
       deleted: [
-        {
-          index_id: 'TECH10',
-          derived_from: null,
-          backtest_record_deleted: true,
-          backtest_results_deleted: 2
-        },
-        {
-          index_id: 'TECH10-OPT',
-          derived_from: 'TECH10',
-          backtest_record_deleted: false,
-          backtest_results_deleted: 1
-        }
+        { index_id: 'TECH10', derived_from: null },
+        { index_id: 'TECH10-OPT', derived_from: 'TECH10' }
       ]
     })
 
-    expect(said).toBe('Deleted 2 indices, 3 backtest results, 1 stored run: TECH10, TECH10-OPT.')
+    expect(said).toBe('Deleted 2 indices: TECH10, TECH10-OPT.')
   })
 
   it('counts one of a thing as one thing', () => {
     const said = describeDeleted({
       index_id: 'EU-VALUE',
-      deleted: [
-        {
-          index_id: 'EU-VALUE',
-          derived_from: null,
-          backtest_record_deleted: false,
-          backtest_results_deleted: 0
-        }
-      ]
+      deleted: [{ index_id: 'EU-VALUE', derived_from: null }]
     })
 
     expect(said).toBe('Deleted 1 index: EU-VALUE.')

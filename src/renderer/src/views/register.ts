@@ -25,6 +25,7 @@ import { FeaturesView } from './features/FeaturesView'
 import { IndexDefinitionView } from './index-definition/IndexDefinitionView'
 import { PricesView } from './prices/PricesView'
 import { ReferenceView } from './reference/ReferenceView'
+import { StrategyView } from './strategy/StrategyView'
 import { UniverseView } from './universe/UniverseView'
 import { WatchlistView } from './watchlist/WatchlistView'
 
@@ -117,7 +118,7 @@ const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] 
      * Beacon View has no document view of its own, and pages are independent
      * workspaces — so hanging these off Index Definition, which lives on
      * Strategy Builder, was a link nobody could see. Overview names the
-     * index and the views describing that same index follow it.
+     * strategy and the views describing its run follow it (0.9.0).
      */
     archetype: 'query',
     component: IndexOverviewView
@@ -125,7 +126,7 @@ const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] 
   {
     kind: 'weights',
     page: 'beacon-view',
-    title: 'Weights',
+    title: 'Holdings',
     // Follows Overview, which holds this page's subject (BU-166).
     archetype: 'linked',
     component: IndexWeightsView
@@ -165,8 +166,8 @@ const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] 
     page: 'beacon-view',
     title: 'Backtest',
     /*
-     * A question about an index you name, not a view of a document you have
-     * open (BU-164). As `pinned` it could only be opened beside a document
+     * A question about a strategy you name, not a view of a document you
+     * have open (BU-164); with none named, the list of runs. As `pinned` it could only be opened beside a document
      * tab — and the only document view in the app is on another page, so the
      * entry was permanently disabled and the index was never anyone's
      * choice.
@@ -180,6 +181,17 @@ const VIEWS: readonly (ViewMeta & { kind: string; component: ViewComponent })[] 
     title: 'Index Definition',
     archetype: 'document',
     component: IndexDefinitionView
+  },
+  {
+    kind: 'strategy',
+    page: 'strategy-builder',
+    title: 'Strategy',
+    /*
+     * The strategy Beacon View backtests (py-beacon 0.9.0): written here,
+     * run there. A document like the index it holds.
+     */
+    archetype: 'document',
+    component: StrategyView
   },
   {
     kind: 'universe-set',

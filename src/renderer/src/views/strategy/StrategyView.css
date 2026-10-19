@@ -1,0 +1,73 @@
+/*
+ * Strategy Builder → Strategy. The index-definition grammar: rows of
+ * label-above-box fields, 12px apart, inside cards that hug a readable width.
+ */
+
+.strategy-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.strategy-card {
+  width: 880px;
+  max-width: 100%;
+}
+
+.strategy-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.strategy-spec,
+.strategy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.strategy-list-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.strategy-list-row > .strategy-spec {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.strategy-section-label {
+  margin: 12px 0 8px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.strategy-section-label:first-child {
+  margin-top: 0;
+}
+
+.strategy-note {
+  margin: 0;
+  max-width: 640px;
+  color: var(--text-muted);
+}
+
+/* What stops a save, in the danger colour: conditions to fix above. */
+.strategy-findings {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--danger);
+}
+
+/* What a delete actually removed, in the engine's own words. */
+.strategy-removed {
+  margin: 0;
+  color: var(--text-muted);
+}

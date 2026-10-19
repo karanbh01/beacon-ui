@@ -23,21 +23,6 @@
   align-items: flex-end;
 }
 
-.rule-editor-input {
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: none;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  line-height: normal;
-  color: var(--text-primary);
-}
-
-.rule-editor-input:focus {
-  outline: none;
-}
-
 .rule-editor-actions {
   display: flex;
   gap: 8px;
@@ -47,19 +32,4 @@
   margin: 0;
   max-width: 620px;
   color: var(--text-muted);
-}
-
-/*
- * A parameter whose value is a structure, not a scalar (BU-182).
- *
- * Full width and stacked under its own label, because the rows inside are
- * a form in their own right — squeezing them into the 180px box the other
- * parameters use would make a screen unreadable to save space in a row
- * that is already wrapping.
- */
-.rule-editor-structured {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
 }

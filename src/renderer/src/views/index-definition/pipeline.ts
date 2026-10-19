@@ -452,41 +452,58 @@ export function childrenOf(indexId: string, catalogue: readonly IndexDocument[])
 }
 
 /**
- * What deleting this index will take with it.
+ * What deleting this index will take with it, or why it will be refused.
  *
- * Computed from the catalogue because the confirmation has to be shown BEFORE
- * the request — the response says what actually went, and the two are
- * different jobs. py-beacon cascades downward only, so a child names its
- * parent and never the reverse.
+ * Computed from the catalogues because the confirmation has to be shown
+ * BEFORE the request — the response says what actually went, and the two
+ * are different jobs. py-beacon cascades downward only, so a child names its
+ * parent and never the reverse. Since 0.9.0 it refuses (409 IN_USE) while a
+ * stored strategy holds the index or a child it would take, and runs belong
+ * to strategies, so none go with an index.
  */
-export function describeCascade(indexId: string, catalogue: readonly IndexDocument[]): string {
+export function describeCascade(
+  indexId: string,
+  catalogue: readonly IndexDocument[],
+  holders: readonly string[] = []
+): string {
   const children = childrenOf(indexId, catalogue)
-  const runs = 'The definition and its backtest results are removed from the engine.'
-  const untouched = 'Universes and market data are untouched.'
+  if (holders.length > 0) {
+    return (
+      `Held by ${holders.join(', ')}. The engine keeps an index while a strategy holds it, ` +
+      'so this will be refused until those strategies are deleted or point at another index.'
+    )
+  }
 
-  if (children.length === 0) return `${runs} ${untouched}`
+  const gone = 'The definition is removed from the engine.'
+  const untouched = 'Universes, strategies and market data are untouched.'
+  if (children.length === 0) return `${gone} ${untouched}`
 
   const named = children.map((child) => child.id).join(', ')
   return (
-    `${runs} So are the ${String(children.length)} optimised ` +
-    `${children.length === 1 ? 'index' : 'indices'} solved from it — ${named} — ` +
-    `and their results. ${untouched}`
+    `${gone} So are the ${String(children.length)} optimised ` +
+    `${children.length === 1 ? 'index' : 'indices'} solved from it — ${named}. ${untouched}`
   )
+}
+
+/** The strategies holding this index or any index solved from it. */
+export function holdersOf(
+  indexId: string,
+  catalogue: readonly IndexDocument[],
+  strategies: readonly { id: string; index_id: string }[]
+): string[] {
+  const taken = new Set([indexId, ...childrenOf(indexId, catalogue).map((child) => child.id)])
+  return strategies
+    .filter((strategy) => taken.has(strategy.index_id))
+    .map((strategy) => strategy.id)
 }
 
 /** What actually went, from the engine's own answer (BN-168). */
 export function describeDeleted(result: IndexDeletion): string {
+  // Runs belong to strategies since py-beacon 0.9.0, and an index a strategy
+  // holds is refused rather than deleted, so only indices are ever removed.
   const removed = result.deleted
-  const runs = removed.reduce((sum, entry) => sum + entry.backtest_results_deleted, 0)
-  const records = removed.filter((entry) => entry.backtest_record_deleted).length
-
-  const parts = [
-    `${String(removed.length)} ${removed.length === 1 ? 'index' : 'indices'}`,
-    ...(runs === 0 ? [] : [`${String(runs)} backtest ${runs === 1 ? 'result' : 'results'}`]),
-    ...(records === 0 ? [] : [`${String(records)} stored ${records === 1 ? 'run' : 'runs'}`])
-  ]
-
-  return `Deleted ${parts.join(', ')}: ${removed.map((entry) => entry.index_id).join(', ')}.`
+  const count = `${String(removed.length)} ${removed.length === 1 ? 'index' : 'indices'}`
+  return `Deleted ${count}: ${removed.map((entry) => entry.index_id).join(', ')}.`
 }
 
 /**

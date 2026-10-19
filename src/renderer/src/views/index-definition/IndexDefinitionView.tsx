@@ -17,6 +17,7 @@ import {
   useUniverses,
   useValidateIndex
 } from '../shared/strategyQueries'
+import { useStrategies } from '../shared/strategyDocuments'
 import { useConstraintTypes } from '../shared/optimiseQueries'
 import { Derivation } from './Derivation'
 import { IndexDetailsForm } from './IndexDetailsForm'
@@ -31,6 +32,7 @@ import {
   applyRow,
   describeCascade,
   describeDeleted,
+  holdersOf,
   draftFindings,
   derivationOf,
   hasWeighting,
@@ -51,6 +53,7 @@ import { BackButton } from '../../components/BackButton/BackButton'
 export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactElement {
   const indices = useIndices()
   const deleteIndex = useDeleteIndex()
+  const strategies = useStrategies()
   const catalogue = indices.data?.indices ?? []
 
   /*
@@ -131,6 +134,8 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
         {/* What actually went, in the engine's own count — a cascade can
             remove more than the row that was clicked (BU-170). */}
         {removed !== undefined && <p className="index-removed type-11">{removed}</p>}
+        {/* A refusal names the strategies holding it (409 IN_USE, 0.9.0). */}
+        {deleteIndex.isError && <ViewError error={deleteIndex.error} />}
 
         <IndexOverview
           indices={catalogue}
@@ -139,11 +144,12 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
             /*
              * The confirmation names what goes with it (BU-151, BU-170).
              *
-             * The engine deletes the runs keyed to this id along with the
-             * definition, and since BN-168 the indices solved FROM it as
-             * well. A backtest somebody waited two minutes for — or a whole
-             * optimised index — disappearing unannounced is the app failing
-             * to say what it was about to do.
+             * The engine deletes the indices solved FROM it along with the
+             * definition (BN-168), and since 0.9.0 refuses outright while a
+             * strategy holds either — so the confirmation names those
+             * strategies rather than letting a refusal be the first word.
+             * A whole optimised index disappearing unannounced is the app
+             * failing to say what it was about to do.
              *
              * Warned from the catalogue, reported from the response: the
              * warning has to come before the request and only the answer
@@ -153,7 +159,11 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
               ?.confirm({
                 title: 'Delete index',
                 message: `Delete “${index.name}”?`,
-                detail: describeCascade(index.id, catalogue)
+                detail: describeCascade(
+                  index.id,
+                  catalogue,
+                  holdersOf(index.id, catalogue, strategies.data?.strategies ?? [])
+                )
               })
               .then((confirmed) => {
                 if (!confirmed) return
