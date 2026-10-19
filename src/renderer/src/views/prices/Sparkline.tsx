@@ -61,7 +61,7 @@ export function Sparkline({
       role="img"
       aria-label={label}
     >
-      <polyline points={points} fill="none" strokeWidth={1.5} />
+      <polyline points={points} fill="none" strokeWidth={2} />
     </svg>
   )
 }

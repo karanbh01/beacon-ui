@@ -17,7 +17,9 @@ import './ComparisonView.css'
 /**
  * Beacon View → Comparison. Figma 234:9128.
  *
- * `/beacon/compare` rebases every entry to 100 on the first SHARED date, so
+ * Strategies' latest runs, side by side (py-beacon 0.9.0).
+ *
+ * `/strategies/compare` rebases every run to 100 on the first SHARED date, so
  * the chart is a comparison of shape rather than of level — which is the
  * point, and why the pane does not offer a "since base" toggle the endpoint
  * could not honour.
@@ -32,7 +34,7 @@ export function ComparisonView({ tab, subject }: ViewProps): ReactElement {
 
   const series = useMemo<Record<string, Point[]>>(() => {
     const entries = compare.data?.entries ?? []
-    return Object.fromEntries(entries.map((entry) => [entry.index_id, toPoints(entry.level)]))
+    return Object.fromEntries(entries.map((entry) => [entry.strategy_id, toPoints(entry.level)]))
   }, [compare.data])
 
   const rows = useMemo(() => metricRows(series), [series])
@@ -40,7 +42,14 @@ export function ComparisonView({ tab, subject }: ViewProps): ReactElement {
 
   const columns = useMemo<Column<MetricRow>[]>(
     () => [
-      { key: 'metric', header: 'Metric', width: 190, emphasis: true, render: (row) => row.metric },
+      {
+        key: 'metric',
+        header: 'Metric',
+        width: 190,
+        emphasis: true,
+        rowName: true,
+        render: (row) => row.metric
+      },
       ...drawn.map((id) => ({
         key: id,
         header: id,
@@ -85,7 +94,7 @@ export function ComparisonView({ tab, subject }: ViewProps): ReactElement {
             </span>
           ))}
           <AddValue
-            label="Add index…"
+            label="Add strategy…"
             onAdd={(id) => {
               setAdded((current) => (ids.includes(id) ? current : [...current, id]))
             }}
@@ -94,10 +103,10 @@ export function ComparisonView({ tab, subject }: ViewProps): ReactElement {
       </PaneHeader>
 
       {anchor === '' && (
-        <ViewEmpty>Name an index in Overview — this pane compares from it.</ViewEmpty>
+        <ViewEmpty>Name a strategy in Overview — this pane compares from it.</ViewEmpty>
       )}
       {ids.length < 2 && anchor !== '' && (
-        <ViewEmpty>Add a second index — a comparison needs two.</ViewEmpty>
+        <ViewEmpty>Add a second strategy — a comparison needs two.</ViewEmpty>
       )}
       {compare.isError && <ViewError error={compare.error} />}
 
@@ -108,13 +117,14 @@ export function ComparisonView({ tab, subject }: ViewProps): ReactElement {
             series={drawn.map((id) => ({ label: id, points: series[id] ?? [] }))}
             note={`growth of 100 · ${String(compare.data.observations)} shared observations`}
             height={480}
+            reference={100}
           />
 
           <Table columns={columns} rows={rows} getRowId={(row) => row.metric} />
 
           <p className="comparison-footnote type-11">
             {compare.data.start.slice(0, 10)} → {compare.data.end.slice(0, 10)} · rebased to 100 on
-            the first date every index covers · everything below total return is derived from those
+            the first date every run covers · everything below total return is derived from those
             levels · Sharpe is omitted: it needs a risk-free rate neither the engine nor the design
             defines
           </p>

@@ -1,9 +1,21 @@
-/* Figma 289:2846. Legend sits inside the plot, top-left, over the canvas. */
+/*
+ * py-beacon's chart design (Karan, 2026-10-18; beacon/plot): no box, no
+ * heading, a legend top-right with no frame, panel titles above their
+ * panes, and a "Notes:" line under the plot.
+ */
+
+/* The chart and its notes, so a fixed-height chart can have a line under it. */
+.level-chart-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 320px;
+}
 
 .level-chart {
   position: relative;
   width: 100%;
-  min-width: 320px;
 }
 
 .level-chart-canvas {
@@ -11,11 +23,47 @@
   height: 100%;
 }
 
+/* A gutter right of the plot for the end labels (END_GUTTER in the component). */
+.level-chart-plot {
+  position: relative;
+  height: 100%;
+  padding-right: 48px;
+}
+
+/*
+ * A line's last value: a dot on its end and the figure beside it, in its
+ * colour. Positioned apart, because a figure may move to clear another and
+ * the dot must not.
+ */
+.level-chart-end {
+  position: absolute;
+  z-index: 3;
+  transform: translate(7px, -50%);
+  pointer-events: none;
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.level-chart-end-dot {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+/*
+ * Top-right, inside the plot, with no frame: py-beacon's legend sits at the
+ * plot's right edge. `right` is set inline from the measured right axis.
+ */
 .level-chart-legend {
   position: absolute;
-  top: 8px;
-  right: 12px;
-  /* `left` is set inline, from the measured axis width (BU-133). */
+  top: 4px;
   /*
    * Above the chart's own canvases, which are absolute at z-index 1 and 2.
    * Anything lower is painted over — a legend at z-index 1 disappears
@@ -24,82 +72,125 @@
    */
   z-index: 3;
   display: flex;
-  gap: 20px;
-  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 14px;
+  max-width: 70%;
   pointer-events: none;
-  color: var(--text-secondary);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--text-primary);
 }
 
 .level-chart-key {
   display: inline-flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
-.level-chart-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-/* The overlay's key: a dash, because the line it names is dashed (BU-152). */
-.level-chart-dash {
-  width: 10px;
+/* A short length of the line it names, at about its drawn weight. */
+.level-chart-line {
+  width: 16px;
   height: 2px;
 }
 
-/* "rebased · 100 = 22 Jul 2025" — pushed to the right edge of the plot. */
-.level-chart-note {
-  margin-left: auto;
-  color: var(--text-muted);
+/* The overlay's key: a dashed length, because its line is dashed (BU-152). */
+.level-chart-dash {
+  width: 16px;
+  height: 0;
+  border-top: 2px dashed;
 }
 
-/* "VOLUME · AAPL" over the subpanel divider (Figma 289:2870). */
-/* `bottom` is set inline, from the subpanel's real share of the frame. */
-.level-chart-sublabel {
+/* The upper pane's own bottom axis line, and the gap under it (PaneGaps). */
+.level-chart-spine {
   position: absolute;
-  left: 16px;
-  /* Canvas behind the text, which is the chart's own background: invisible
-     except where a pane below is dense enough to swallow the label. With
-     three panes stacked, one of them always is. */
-  padding: 0 4px;
-  background: var(--canvas);
-  /*
-   * Above the chart's own canvases, which are absolute at z-index 1 and 2.
-   * Anything lower is painted over — a legend at z-index 1 disappears
-   * entirely, which is not obvious from the DOM since the element is there
-   * and visible.
-   */
   z-index: 3;
+  height: 1px;
   pointer-events: none;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  background: var(--text-primary);
+}
+
+.level-chart-gap {
+  position: absolute;
+  z-index: 3;
+  width: 3px;
+  pointer-events: none;
+  background: var(--canvas);
 }
 
 /*
- * The plot's own outline (BU-130).
- *
- * Positioned rather than a border on the canvas host, because the host
- * INCLUDES the axes — a border there would put the price labels inside the
- * box. Inset by what the chart reports its axes to be, so the frame tracks
- * a five-figure price becoming a six-figure one.
+ * The hover popup (ChartReadout), as py-beacon's interactive charts draw it
+ * and the app's popover is: glass blurring what is behind, a half-pixel
+ * edge, a 2px radius and a soft shadow.
  */
-.level-chart-plot {
-  position: relative;
-  height: 100%;
+.chart-readout {
+  position: absolute;
+  z-index: 10;
+  padding: 5px 7px;
+  pointer-events: none;
+  background: var(--glass);
+  border: 0.5px solid var(--chrome-border);
+  border-radius: 2px;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+  backdrop-filter: blur(3px);
+  font-family: var(--font-data);
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
-.level-chart-frame {
+.chart-readout-date {
+  margin-bottom: 2px;
+  font-weight: 400;
+}
+
+.chart-readout-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-weight: 300;
+}
+
+.chart-readout-swatch {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+}
+
+.chart-readout-value {
+  margin-left: auto;
+  padding-left: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A panel's title above it, left-aligned, as py-beacon titles grid panels. */
+/* `top` is set inline, from where the pane really is. */
+.level-chart-sublabel {
   position: absolute;
-  top: 0;
-  right: 0;
-  /* Above the chart's own canvases, which are absolute at z-index 1 and 2 —
-     the same trap the legend documents. Without this the frame is drawn and
-     then painted over, which looks exactly like it was never drawn. */
+  /* Canvas behind the text, so a dense pane below does not swallow it. */
+  padding: 0 4px;
+  background: var(--canvas);
+  /* Above the chart's canvases, for the reason on the legend. */
   z-index: 3;
   pointer-events: none;
-  border: 1px solid var(--border);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+/* "Notes: Source: …" under the plot: Light italic, text-primary. */
+.level-chart-notes {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.2;
+  color: var(--text-primary);
 }
 
 /*
@@ -107,14 +198,14 @@
  *
  * The chart itself watches its container — `autoSize` — so this is the whole
  * of the resizing. The floor is a readability limit, not a layout one: a
- * price line under about this is a squiggle.
+ * price line under about 240px is a squiggle.
  */
 .level-chart-filling {
   flex: 1 1 auto;
-  /*
-   * 240 rather than 320: the header, toolbar and footnote take about 170px,
-   * so a floor of 320 made a half-height pane scroll — which is the thing
-   * filling was supposed to stop. A price line reads fine at this.
-   */
   min-height: 240px;
+}
+
+.level-chart-filling > .level-chart {
+  flex: 1 1 auto;
+  min-height: 0;
 }

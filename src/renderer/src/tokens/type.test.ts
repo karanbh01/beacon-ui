@@ -96,7 +96,14 @@ describe('type scale', () => {
         // Window chrome only, and bundled for the reason BU-52 found: it was
         // resolving off the local machine and falling back to Inter — 5%
         // wider — anywhere it was not installed.
-        'Roboto 400 normal'
+        'Roboto 400 normal',
+        // py-beacon's plotting face, for charts and tables (Karan, 2026-10-18).
+        'Inter Tight 300 normal',
+        'Inter Tight 400 normal',
+        'Inter Tight 300 italic',
+        // The Light file again, under a name a canvas can ask for: a canvas
+        // font string takes no weight it can be trusted with.
+        'Inter Tight Light 400 normal'
       ])
     )
   })

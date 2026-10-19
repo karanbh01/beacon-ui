@@ -116,8 +116,8 @@ describe('chart theme', () => {
     // resolved value. Both come from one generator, so they cannot drift.
     const options = chartOptions('dark')
     expect(options.layout?.background).toMatchObject({ color: COLORS.dark.canvas })
-    expect(options.layout?.textColor).toBe(COLORS.dark['text-muted'])
-    expect(options.grid?.horzLines?.color).toBe(COLORS.dark.divider)
+    expect(options.layout?.textColor).toBe(COLORS.dark['text-primary'])
+    expect(options.leftPriceScale?.borderColor).toBe(COLORS.dark['text-primary'])
   })
 
   it('puts the price scale on the left, as every Figma frame does', () => {
@@ -126,24 +126,29 @@ describe('chart theme', () => {
     expect(options.rightPriceScale?.visible).toBe(false)
   })
 
-  it('draws horizontal gridlines only', () => {
+  it('draws no gridlines, as py-beacon does not', () => {
     expect(chartOptions('light').grid?.vertLines?.visible).toBe(false)
+    expect(chartOptions('light').grid?.horzLines?.visible).toBe(false)
   })
 
   it('changes every colour between the two themes', () => {
     expect(chartOptions('light').layout?.textColor).not.toBe(chartOptions('dark').layout?.textColor)
   })
 
-  it('uses the three approved series tokens, then wraps', () => {
-    // A fourth compared asset reuses a colour rather than inventing one no
-    // token approves.
-    expect(seriesColors('light')).toHaveLength(3)
-    expect(seriesColor('light', 3)).toBe(seriesColor('light', 0))
+  it("uses py-beacon's nine series colours, then wraps", () => {
+    expect(seriesColors('light')).toHaveLength(9)
+    expect(seriesColor('light', 0)).toBe('#4a88c7')
+    expect(seriesColor('dark', 0)).toBe('#6fa7dc')
+    expect(seriesColor('light', 9)).toBe(seriesColor('light', 0))
   })
 
-  it('labels the last value on the axis instead of drawing a price line', () => {
+  it('draws the lead series heavier than the rest', () => {
+    expect(lineOptions('light', 0).lineWidth).toBeGreaterThan(lineOptions('light', 1).lineWidth)
+  })
+
+  it('labels the last value at the line end, not on the axis or as a price line', () => {
     const options = lineOptions('light', 0)
-    expect(options.lastValueVisible).toBe(true)
+    expect(options.lastValueVisible).toBe(false)
     expect(options.priceLineVisible).toBe(false)
   })
 

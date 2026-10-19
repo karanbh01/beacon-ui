@@ -15,7 +15,7 @@
   flex-wrap: wrap;
 }
 
-.drilldown-main-row .level-chart {
+.drilldown-main-row .level-chart-block {
   flex: 1;
   min-width: 460px;
 }

@@ -80,20 +80,20 @@ const HISTORY_COLUMNS: readonly Column<HistoryRow>[] = [
  */
 export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
   const identifier = subject ?? ''
-  // A drilldown is always into some index; the pin says which.
   /*
-   * The index this constituent belongs to, from the page's Overview (BU-166).
+   * The strategy whose run held this name, from the page's Overview
+   * (BU-166). A pin on an older tab says which, where there is no Overview.
    *
    * It used to fall back to a hard-coded 'TECH10', so a drilldown opened from
    * any other index quietly described that one instead.
    */
   const anchor = useWorkspace((state) => pageSubject(state, tab.page, 'overview'))
-  const indexId = anchor === '' ? (tab.pinnedDoc ?? '') : anchor
+  const strategyId = anchor === '' ? (tab.pinnedDoc ?? '') : anchor
 
   const mode = useThemeMode()
-  const asset = useAsset(indexId, identifier)
-  const overview = useOverview(indexId)
-  const weights = useWeights(indexId)
+  const asset = useAsset(strategyId, identifier)
+  const overview = useOverview(strategyId)
+  const weights = useWeights(strategyId)
 
   const setSubject = useWorkspace((state) => state.setSubject)
   const severLink = useWorkspace((state) => state.severLink)
@@ -130,7 +130,7 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
         {...(asset.data === undefined
           ? {}
           : {
-              meta: `constituent of ${indexId} · ${String(asset.data.rebalances_held)} rebalances held`
+              meta: `held by ${strategyId} · ${asset.data.index_id} · ${String(asset.data.rebalances_held)} rebalances held`
             })}
         onQuery={(next) => {
           if (tab.archetype === 'linked') severLink(tab.id)
@@ -174,7 +174,7 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
           <SummaryLine
             items={[
               {
-                label: 'index weight',
+                label: 'weight',
                 value: mine === undefined ? '—' : `${(mine.weight * 100).toFixed(2)}%`
               },
               {
@@ -188,11 +188,11 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
                 tone: tone(asset.data.total_return)
               },
               {
-                label: `excess vs index${inCurrency(money.returns)}`,
+                label: `excess vs ${strategyId}${inCurrency(money.returns)}`,
                 value: signedPercent(asset.data.excess_return * 100),
                 tone: tone(asset.data.excess_return)
               },
-              { label: `beta vs ${indexId}`, value: asset.data.beta.toFixed(2) },
+              { label: `beta vs ${strategyId}`, value: asset.data.beta.toFixed(2) },
               { label: 'tracking error', value: percent(asset.data.tracking_error * 100) }
             ]}
           />
@@ -205,10 +205,11 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
                   { label: `${identifier}${inCurrency(money.price)}`, points: assetPoints },
                   ...(indexPoints.length === 0
                     ? []
-                    : [{ label: `${indexId}${inCurrency(money.returns)}`, points: indexPoints }])
+                    : [{ label: `${strategyId}${inCurrency(money.returns)}`, points: indexPoints }])
                 ]}
                 note={`rebased · 100 = ${assetPoints[0]?.date ?? ''}`}
                 height={440}
+                reference={100}
               />
             )}
 
@@ -229,7 +230,11 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
 
           <p className="drilldown-footnote type-11">
             {String(asset.data.observations)} observations · correlation{' '}
-            {asset.data.correlation.toFixed(2)} · index return{' '}
+            {/*
+              "index_return" is the run's return, not the index's: since
+              0.9.0 the engine measures a name against the run that held it.
+            */}
+            {asset.data.correlation.toFixed(2)} · {strategyId} return{' '}
             {signedPercent(asset.data.index_return * 100)}
             {tab.archetype === 'linked' && ` · linked to ${sourceTitle ?? 'another tab'}`}
           </p>

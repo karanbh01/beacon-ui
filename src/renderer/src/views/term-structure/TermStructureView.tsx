@@ -189,8 +189,7 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
       {indexId === '' && <ViewEmpty>Name an index to price its curve.</ViewEmpty>}
       {indexId !== '' && options.expiries.length === 0 && (
         <ViewEmpty>
-          Name at least one contract expiry — py-beacon prices contracts, so there is no curve
-          without them.
+          Name at least one contract expiry. The curve is priced from its contracts.
         </ViewEmpty>
       )}
       {curve.isPending && indexId !== '' && <ViewLoading what={indexId} />}
@@ -237,13 +236,15 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
               <AxisLeft
                 scale={y}
                 numTicks={5}
-                stroke={token.divider}
-                tickStroke={token.divider}
+                stroke={token['text-primary']}
+                tickStroke={token['text-primary']}
+                // Inward, as py-beacon draws every tick.
+                tickLength={-3}
                 tickLabelProps={() => ({
-                  fill: token['text-muted'],
+                  fill: token['text-primary'],
                   fontSize: 10,
                   textAnchor: 'end',
-                  dx: -4,
+                  dx: -6,
                   dy: 3
                 })}
               />
@@ -251,14 +252,15 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
                 top={innerHeight}
                 scale={x}
                 numTicks={5}
-                stroke={token.divider}
-                tickStroke={token.divider}
+                stroke={token['text-primary']}
+                tickStroke={token['text-primary']}
+                tickLength={-3}
                 tickFormat={(value) => `${Number(value).toFixed(2)}y`}
                 tickLabelProps={() => ({
-                  fill: token['text-muted'],
+                  fill: token['text-primary'],
                   fontSize: 10,
                   textAnchor: 'middle',
-                  dy: 2
+                  dy: 6
                 })}
               />
 
@@ -269,12 +271,12 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
                   x2={innerWidth}
                   y1={y(curve.data.spot)}
                   y2={y(curve.data.spot)}
-                  stroke={token['text-muted']}
-                  strokeDasharray="3 3"
+                  stroke={token.border}
+                  strokeWidth={1}
                 />
               )}
 
-              <path d={path} fill="none" stroke={seriesColor(mode, 0)} strokeWidth={1.5} />
+              <path d={path} fill="none" stroke={seriesColor(mode, 0)} strokeWidth={2} />
               {points.map((point) => (
                 <circle
                   key={point.expiry}
@@ -294,12 +296,11 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
             maxBodyHeight={320}
           />
 
-          <p className="curve-footnote type-11">
-            as of {curve.data?.as_of.slice(0, 10) ?? '—'} · the dashed line is spot · a curve above
-            it is contango, below it backwardation · annualised roll is positive in backwardation,
-            which is py-beacon&rsquo;s convention and is carried through unchanged · expiries
-            default to quarter-ends because the engine publishes no contract calendar · roll is
-            measured between the first two
+          <p className="curve-footnote">
+            Notes: Prices as of {curve.data?.as_of.slice(0, 10) ?? 'the latest close'}. The flat
+            line is spot. A curve above it is in contango, below it in backwardation. Annualised
+            roll is positive in backwardation. Expiries default to quarter ends, and the roll is
+            measured between the first two.
           </p>
         </>
       )}

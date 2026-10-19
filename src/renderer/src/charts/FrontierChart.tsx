@@ -33,7 +33,7 @@ export interface FrontierChartProps {
   height?: number
 }
 
-const MARGIN = { top: 16, right: 24, bottom: 44, left: 56 }
+const MARGIN = { top: 16, right: 24, bottom: 48, left: 64 }
 
 /**
  * The efficient frontier (Figma 342:1254).
@@ -100,14 +100,16 @@ export function FrontierChart({
         <AxisLeft
           scale={y}
           numTicks={6}
-          stroke={token.divider}
-          tickStroke={token.divider}
+          stroke={token['text-primary']}
+          tickStroke={token['text-primary']}
+          // Inward, as py-beacon draws every tick.
+          tickLength={-3}
           tickFormat={(value) => `${(Number(value) * 100).toFixed(0)}%`}
           tickLabelProps={() => ({
-            fill: token['text-muted'],
+            fill: token['text-primary'],
             fontSize: 10,
             textAnchor: 'end',
-            dx: -4,
+            dx: -6,
             dy: 3
           })}
         />
@@ -115,14 +117,15 @@ export function FrontierChart({
           top={innerHeight}
           scale={x}
           numTicks={6}
-          stroke={token.divider}
-          tickStroke={token.divider}
+          stroke={token['text-primary']}
+          tickStroke={token['text-primary']}
+          tickLength={-3}
           tickFormat={(value) => `${(Number(value) * 100).toFixed(0)}%`}
           tickLabelProps={() => ({
-            fill: token['text-muted'],
+            fill: token['text-primary'],
             fontSize: 10,
             textAnchor: 'middle',
-            dy: 2
+            dy: 6
           })}
         />
 
@@ -135,13 +138,12 @@ export function FrontierChart({
             x2={x(tangency.volatility * 1.35)}
             y2={y(riskFreeRate + (tangency.expectedReturn - riskFreeRate) * 1.35)}
             stroke={token['text-muted']}
-            strokeDasharray="3 3"
+            strokeWidth={1}
+            strokeDasharray="2 1.6"
           />
         )}
 
-        {path !== '' && (
-          <path d={path} fill="none" stroke={seriesColor(mode, 0)} strokeWidth={1.5} />
-        )}
+        {path !== '' && <path d={path} fill="none" stroke={seriesColor(mode, 0)} strokeWidth={2} />}
 
         {points.map((point, index) => (
           <circle
@@ -159,26 +161,43 @@ export function FrontierChart({
 
         {markers.map((marker) => (
           <Group key={marker.label} left={x(marker.volatility)} top={y(marker.expectedReturn)}>
-            <circle r={4.5} fill="none" stroke={seriesColor(mode, 1)} strokeWidth={1.5} />
-            <text className="frontier-marker" x={8} y={3} fill={token['text-secondary']}>
+            <circle r={4} fill={markerColour(mode, marker.label)} />
+            <text className="frontier-marker" x={8} y={3} fill={token['text-primary']}>
               {marker.label}
             </text>
           </Group>
         ))}
 
+        {/* Axis titles as py-beacon sets them: plain words, centred on the axis. */}
         <text
           className="frontier-axis-title"
-          x={innerWidth}
-          y={innerHeight + 34}
-          textAnchor="end"
-          fill={token['text-muted']}
+          x={innerWidth / 2}
+          y={innerHeight + 38}
+          textAnchor="middle"
+          fill={token['text-primary']}
         >
-          ex-ante volatility →
+          Volatility
         </text>
-        <text className="frontier-axis-title" x={0} y={-4} fill={token['text-muted']}>
-          expected return ↑
+        <text
+          className="frontier-axis-title"
+          transform={`translate(${String(-48)}, ${String(innerHeight / 2)}) rotate(-90)`}
+          textAnchor="middle"
+          fill={token['text-primary']}
+        >
+          Expected return
         </text>
       </Group>
     </svg>
   )
+}
+
+/**
+ * py-beacon's frontier marks: the minimum variance point in palette-3 and
+ * the tangency point in palette-2; anything else in the lead colour.
+ */
+function markerColour(mode: ThemeMode, label: string): string {
+  const name = label.toLowerCase()
+  if (name.includes('min')) return seriesColor(mode, 2)
+  if (name.includes('tang')) return seriesColor(mode, 1)
+  return seriesColor(mode, 0)
 }

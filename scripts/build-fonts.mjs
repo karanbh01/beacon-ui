@@ -38,12 +38,20 @@ const FACES = [
   // The menu bar only (Figma 81:2 specifies Roboto there, not Inter). Bundled
   // for the same reason as the others: it is on some machines and not others,
   // and the fallback is 5% wider — see BU-52.
-  { package: 'roboto', file: 'roboto-latin-400-normal.woff2' }
+  { package: 'roboto', file: 'roboto-latin-400-normal.woff2' },
+  // Charts and tables (Karan, 2026-10-18): py-beacon's plotting faces, so a
+  // table on screen reads as the figure the engine exports. Light for
+  // values, ticks and legends; Regular for row names and last-value labels;
+  // Light italic for chart notes.
+  { package: 'inter-tight', file: 'inter-tight-latin-300-normal.woff2' },
+  { package: 'inter-tight', file: 'inter-tight-latin-400-normal.woff2' },
+  { package: 'inter-tight', file: 'inter-tight-latin-300-italic.woff2' }
 ]
 
 const LICENCES = [
   { package: 'inter', to: 'Inter-OFL.txt' },
-  { package: 'roboto', to: 'Roboto-Apache-2.0.txt' }
+  { package: 'roboto', to: 'Roboto-Apache-2.0.txt' },
+  { package: 'inter-tight', to: 'InterTight-OFL.txt' }
 ]
 
 async function version(name) {
@@ -66,6 +74,7 @@ async function main() {
 
   const inter = await version('inter')
   const roboto = await version('roboto')
+  const interTight = await version('inter-tight')
 
   // Provenance beside the binaries. A woff2 in a repo with no note saying
   // where it came from or what licence it carries is a liability.
@@ -80,11 +89,13 @@ async function main() {
       '  https://github.com/rsms/inter',
       `Roboto ${roboto.version} (${roboto.license}) — @fontsource/roboto`,
       '  https://github.com/googlefonts/roboto',
+      `Inter Tight ${interTight.version} (${interTight.license}) — @fontsource/inter-tight`,
+      '  https://github.com/rsms/inter',
       '',
-      'Inter is under the SIL Open Font License 1.1; Roboto is under the',
-      'Apache License 2.0. Both permit redistribution as part of a bundled',
-      'application. Full terms are in Inter-OFL.txt and Roboto-Apache-2.0.txt',
-      'in this directory.',
+      'Inter and Inter Tight are under the SIL Open Font License 1.1; Roboto',
+      'is under the Apache License 2.0. All permit redistribution as part of a',
+      'bundled application. Full terms are in Inter-OFL.txt, InterTight-OFL.txt',
+      'and Roboto-Apache-2.0.txt in this directory.',
       ''
     ].join('\n')
   )

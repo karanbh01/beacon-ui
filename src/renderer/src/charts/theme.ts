@@ -3,6 +3,7 @@ import {
   CrosshairMode,
   LineStyle,
   type DeepPartial,
+  type LineWidth,
   type ChartOptions
 } from 'lightweight-charts'
 import { COLORS, type ThemeMode } from '../tokens/tokens'
@@ -16,17 +17,61 @@ import { COLORS, type ThemeMode } from '../tokens/tokens'
  * from one source, so a chart cannot drift from the surface around it.
  */
 
-const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-
-/**
- * Series palette, in order.
- *
- * Three colours, because the design has three: accent is series 1, and
- * `series-2` / `series-3` exist for exactly this. A fourth compared asset
- * wraps rather than inventing a colour no token approves.
+/*
+ * py-beacon's plotting face (Karan, 2026-10-18): Inter Tight Light, under
+ * the name type.css gives the Light file, since a canvas font takes no
+ * weight and would otherwise draw the ticks in Regular.
  */
+const FONT_DATA = "'Inter Tight Light', 'Inter Tight', 'Inter', sans-serif"
+
+/*
+ * py-beacon's series palette, in order (beacon/plot/themes.py, SERIES):
+ * nine colours, then context greys. Not tokens: the tokens' series-2 and
+ * series-3 are the app's, and py-beacon's charts do not use them.
+ */
+const PALETTE: Record<ThemeMode, readonly string[]> = {
+  light: [
+    '#4a88c7',
+    '#070f67',
+    '#cc0088',
+    '#ff70cf',
+    '#adbc10',
+    '#20a464',
+    '#404f25',
+    '#f0200d',
+    '#682107',
+    '#000000',
+    '#262626',
+    '#4d4d4d',
+    '#737373',
+    '#999999',
+    '#bfbfbf'
+  ],
+  dark: [
+    '#6fa7dc',
+    '#0072a3',
+    '#beacec',
+    '#7d59d9',
+    '#6bcf9a',
+    '#ccf403',
+    '#09714e',
+    '#e0474b',
+    '#ed8a83',
+    '#ffffff',
+    '#f2f2f2',
+    '#cccccc',
+    '#a6a6a6',
+    '#808080',
+    '#595959'
+  ]
+}
+
+/** Grey for a bar with no sign to colour it: py-beacon's palette-14. */
+const UNSIGNED = 13
+
+/** The nine series colours, before the greys. */
 export function seriesColors(mode: ThemeMode): string[] {
-  return [COLORS[mode].accent, COLORS[mode]['series-2'], COLORS[mode]['series-3']]
+  return PALETTE[mode].slice(0, 9)
 }
 
 export function seriesColor(mode: ThemeMode, index: number): string {
@@ -49,15 +94,16 @@ export function withAlpha(hex: string, alpha: number): string {
 }
 
 /**
- * Shared conventions, read off Figma 289:2846:
+ * py-beacon's chart design (Karan, 2026-10-18; beacon/plot/style.py):
  *
- * - price scale on the LEFT, not the right
- * - horizontal gridlines only; vertical ones are not drawn in any frame
- * - crosshair follows the pointer freely rather than snapping to a bar
- * - no series price line; the last value is labelled on the axis instead
+ * - no gridlines in either direction
+ * - axis lines left and bottom only, ticks on them, all in text-primary
+ * - ticks, legend and notes in Inter Tight Light
+ * - price scale on the LEFT
+ * - a dashed vertical crosshair in text-secondary, and no horizontal one
  *
  * They live here rather than per-chart so a second chart cannot quietly
- * disagree with the first about which side the axis is on.
+ * disagree with the first.
  */
 export function chartOptions(mode: ThemeMode): DeepPartial<ChartOptions> {
   const token = COLORS[mode]
@@ -67,30 +113,34 @@ export function chartOptions(mode: ThemeMode): DeepPartial<ChartOptions> {
       // `canvas`, not `surface` — surface is translucent, and a chart drawn
       // on it would blend with whatever happens to sit behind the pane.
       background: { type: ColorType.Solid, color: token.canvas },
-      textColor: token['text-muted'],
-      fontFamily: FONT_UI,
-      fontSize: 11,
+      textColor: token['text-primary'],
+      fontFamily: FONT_DATA,
+      fontSize: 10,
       attributionLogo: false,
-      // The default separator is a hard slate line that reads as a border
-      // from another app; the panes are one chart, so it takes `divider`.
+      // Invisible: the upper pane's bottom axis line and the gap under it
+      // are drawn over the chart (PaneGaps). Still there to drag.
       panes: {
-        separatorColor: token.divider,
+        separatorColor: 'rgba(0, 0, 0, 0)',
         separatorHoverColor: token['sidebar-active-bg'],
         enableResize: true
       }
     },
     grid: {
-      horzLines: { color: token.divider, style: LineStyle.Solid },
+      horzLines: { visible: false },
       vertLines: { visible: false }
     },
     leftPriceScale: {
       visible: true,
-      borderVisible: false,
-      scaleMargins: { top: 0.12, bottom: 0.08 }
+      borderVisible: true,
+      borderColor: token['text-primary'],
+      ticksVisible: true,
+      scaleMargins: { top: 0.08, bottom: 0.04 }
     },
     rightPriceScale: { visible: false },
     timeScale: {
-      borderVisible: false,
+      borderVisible: true,
+      borderColor: token['text-primary'],
+      ticksVisible: true,
       // The design labels months, not days, and fitting the whole range is
       // what a range control implies — the user picked the window already.
       fixLeftEdge: true,
@@ -99,17 +149,12 @@ export function chartOptions(mode: ThemeMode): DeepPartial<ChartOptions> {
     crosshair: {
       mode: CrosshairMode.Normal,
       vertLine: {
-        color: token['text-muted'],
+        color: token['text-secondary'],
         width: 1,
         style: LineStyle.Dashed,
-        labelBackgroundColor: token.accent
+        labelBackgroundColor: token['text-secondary']
       },
-      horzLine: {
-        color: token['text-muted'],
-        width: 1,
-        style: LineStyle.Dashed,
-        labelBackgroundColor: token.accent
-      }
+      horzLine: { visible: false, labelVisible: false }
     },
     /*
      * Ranging is deliberate or it does not happen (BU-134).
@@ -136,14 +181,23 @@ export function chartOptions(mode: ThemeMode): DeepPartial<ChartOptions> {
   }
 }
 
-/** Per-series options every line in the app shares. */
+/** The lead series 1.2pt in py-beacon, the rest 0.88pt: 2px and 1px on screen. */
+function widthOf(index: number): LineWidth {
+  return index === 0 ? 2 : 1
+}
+
+/**
+ * Per-series options every line in the app shares.
+ *
+ * The lead series heavier than the rest, as py-beacon draws it (1.2pt
+ * against 0.88pt). The last value is labelled at the line's end by the
+ * chart, not on the axis.
+ */
 export function lineOptions(mode: ThemeMode, index: number) {
   return {
     color: seriesColor(mode, index),
-    lineWidth: 1 as const,
-    // The axis carries the last value (Figma 289:2866); a price line across
-    // the plot would say the same thing twice and cross the other series.
-    lastValueVisible: true,
+    lineWidth: widthOf(index),
+    lastValueVisible: false,
     priceLineVisible: false,
     crosshairMarkerVisible: true,
     crosshairMarkerRadius: 3
@@ -153,7 +207,10 @@ export function lineOptions(mode: ThemeMode, index: number) {
 /** Volume and drawdown both render as a histogram under the main pane. */
 export function histogramOptions(mode: ThemeMode, tone: 'muted' | 'negative' = 'muted') {
   return {
-    color: tone === 'negative' ? COLORS[mode].danger : COLORS[mode]['text-muted'],
+    color:
+      tone === 'negative'
+        ? COLORS[mode].danger
+        : (PALETTE[mode][UNSIGNED] ?? COLORS[mode]['text-muted']),
     priceLineVisible: false,
     lastValueVisible: false,
     priceFormat: { type: 'volume' as const }

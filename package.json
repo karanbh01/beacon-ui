@@ -64,6 +64,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@fontsource/inter": "^5",
+    "@fontsource/inter-tight": "^5",
     "@fontsource/roboto": "^5",
     "@playwright/test": "^1",
     "@storybook/addon-essentials": "^8",

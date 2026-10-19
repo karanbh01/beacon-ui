@@ -54,9 +54,9 @@ export function panesFor(chosen: readonly string[], points: readonly Point[]): S
         // Histogram first: series drawn later sit on top, and the bars are
         // the background the two lines are read against.
         series: [
-          { points: study.histogram, kind: 'histogram', tone: 'muted' },
-          { points: study.line, kind: 'line', tone: 'accent', guides: [0] },
-          { points: study.signal, kind: 'line', tone: 'second', badge: false }
+          { points: study.histogram, kind: 'histogram', tone: 'muted', label: 'Histogram' },
+          { points: study.line, kind: 'line', tone: 'accent', guides: [0], label: 'MACD' },
+          { points: study.signal, kind: 'line', tone: 'second', badge: false, label: 'Signal' }
         ]
       })
     }

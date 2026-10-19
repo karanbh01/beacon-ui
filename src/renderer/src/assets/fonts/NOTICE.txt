@@ -6,8 +6,10 @@ Inter 5.3.0 (OFL-1.1) — @fontsource/inter
   https://github.com/rsms/inter
 Roboto 5.3.0 (OFL-1.1) — @fontsource/roboto
   https://github.com/googlefonts/roboto
+Inter Tight 5.3.0 (OFL-1.1) — @fontsource/inter-tight
+  https://github.com/rsms/inter
 
-Inter is under the SIL Open Font License 1.1; Roboto is under the
-Apache License 2.0. Both permit redistribution as part of a bundled
-application. Full terms are in Inter-OFL.txt and Roboto-Apache-2.0.txt
-in this directory.
+Inter and Inter Tight are under the SIL Open Font License 1.1; Roboto
+is under the Apache License 2.0. All permit redistribution as part of a
+bundled application. Full terms are in Inter-OFL.txt, InterTight-OFL.txt
+and Roboto-Apache-2.0.txt in this directory.

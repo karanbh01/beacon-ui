@@ -3,7 +3,9 @@
 .frontier-chart {
   display: block;
   max-width: 100%;
-  font-family: var(--font-ui);
+  /* py-beacon's plotting face: Light for ticks, labels and axis titles. */
+  font-family: var(--font-data);
+  font-weight: 300;
 }
 
 .frontier-marker,
