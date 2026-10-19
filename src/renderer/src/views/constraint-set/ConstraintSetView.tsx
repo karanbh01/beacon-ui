@@ -111,7 +111,7 @@ export function ConstraintSetView({ tab, subject }: ViewProps): ReactElement {
       {save.isError && <ViewError error={save.error} />}
 
       {sets.isSuccess && available.length === 0 && (
-        <ViewEmpty>This engine has no stored constraint sets.</ViewEmpty>
+        <ViewEmpty figure="drawer">This engine has no stored constraint sets.</ViewEmpty>
       )}
 
       {draft !== undefined && (

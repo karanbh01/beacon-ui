@@ -160,7 +160,7 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
       />
 
       {identifier === '' && (
-        <ViewEmpty>
+        <ViewEmpty figure="ticker">
           {tab.archetype === 'linked'
             ? 'The tab this one follows has no constituent selected yet.'
             : 'Type a constituent to drill into it.'}

@@ -148,7 +148,9 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
         <Field label="As of" width={140} value={overview.data?.end.slice(0, 10) ?? '—'} />
       </PaneHeader>
 
-      {strategyId === '' && <ViewEmpty>Name a strategy to draw its factsheet.</ViewEmpty>}
+      {strategyId === '' && (
+        <ViewEmpty figure="ticker">Choose a strategy to draw its factsheet.</ViewEmpty>
+      )}
       {render.isError && <ViewError error={render.error} />}
       {open.isError && <ViewError error={open.error} />}
       {message !== undefined && <p className="factsheet-message type-11">{message}</p>}

@@ -34,7 +34,7 @@ export function FlowsAum({ strategyId }: { strategyId: string }): ReactElement {
   if (result.isPending) return <ViewLoading what="the run" />
   if (result.isError) {
     return isAbsent(result.error) ? (
-      <ViewEmpty>This strategy has no run with fund detail yet.</ViewEmpty>
+      <ViewEmpty figure="drawer">This strategy has no run with fund detail yet.</ViewEmpty>
     ) : (
       <ViewError error={result.error} />
     )
@@ -47,9 +47,9 @@ export function FlowsAum({ strategyId }: { strategyId: string }): ReactElement {
 
   if (nav.length === 0 && classes.length === 0 && run.market == null) {
     return (
-      <ViewEmpty>
-        This run had no flows, share classes or market — a vehicle and flows in the backtest setup
-        give it some.
+      <ViewEmpty figure="plot">
+        This run had no flows, share classes or market. Set a vehicle and flows in the backtest to
+        see them here.
       </ViewEmpty>
     )
   }

@@ -85,7 +85,9 @@ export function ExposuresPaneView({ subject }: ViewProps): ReactElement {
         <Field label="Run" width={200} value={runId === '' ? '—' : runId} />
       </PaneHeader>
 
-      {runId === '' && <ViewEmpty>Run an optimisation, then open its exposures.</ViewEmpty>}
+      {runId === '' && (
+        <ViewEmpty figure="plot">Run an optimisation, then open its exposures.</ViewEmpty>
+      )}
       {exposures.isPending && runId !== '' && <ViewLoading what={runId} />}
       {exposures.isError && <ViewError error={exposures.error} />}
 

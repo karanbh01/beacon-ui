@@ -99,7 +99,7 @@ export function RiskModelPaneView({ tab, subject }: ViewProps): ReactElement {
       {estimate.isError && <ViewError error={estimate.error} />}
 
       {models.isSuccess && available.length === 0 && (
-        <ViewEmpty>This engine has no estimated risk models.</ViewEmpty>
+        <ViewEmpty figure="drawer">This engine has no estimated risk models.</ViewEmpty>
       )}
 
       {model.isSuccess && diagnostics !== undefined && (

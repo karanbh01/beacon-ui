@@ -46,7 +46,9 @@ export function FrontierPaneView({ subject }: ViewProps): ReactElement {
         </Field>
       </PaneHeader>
 
-      {runId === '' && <ViewEmpty>Run an optimisation, then open its frontier.</ViewEmpty>}
+      {runId === '' && (
+        <ViewEmpty figure="plot">Run an optimisation, then open its frontier.</ViewEmpty>
+      )}
       {frontier.isPending && runId !== '' && <ViewLoading what={runId} />}
       {frontier.isError && <ViewError error={frontier.error} />}
 

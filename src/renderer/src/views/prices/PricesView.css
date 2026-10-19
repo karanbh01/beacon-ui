@@ -31,15 +31,20 @@
 }
 
 /*
- * The mini chart's block (Figma 266:2820, BU-141). No box: py-beacon's
- * charts sit bare on the canvas (Karan, 2026-10-18), and the link under the
- * line is what keeps it from reading as a fourth statistic.
+ * The mini chart's block (Figma 266:2820, BU-141).
+ *
+ * A bordered card rather than a bare line: it sits at the end of a strip of
+ * numbers, and without an edge it reads as a fourth statistic that happens to
+ * be a squiggle. Kept when the charts went bare (Karan, 2026-10-19).
  */
 .prices-spark {
   display: flex;
   flex-direction: column;
   gap: 2px;
   align-items: flex-start;
+  padding: 8px 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
 /* Stroke on the SVG, inherited by the line: an unstyled polyline is invisible

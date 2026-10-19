@@ -186,9 +186,9 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
         </Field>
       </PaneHeader>
 
-      {indexId === '' && <ViewEmpty>Name an index to price its curve.</ViewEmpty>}
+      {indexId === '' && <ViewEmpty figure="ticker">Choose an index to price its curve.</ViewEmpty>}
       {indexId !== '' && options.expiries.length === 0 && (
-        <ViewEmpty>
+        <ViewEmpty figure="calendar">
           Name at least one contract expiry. The curve is priced from its contracts.
         </ViewEmpty>
       )}
@@ -220,7 +220,7 @@ export function TermStructureView({ tab, subject }: ViewProps): ReactElement {
       )}
 
       {curve.isSuccess && points.length === 0 && (
-        <ViewEmpty>This index publishes no futures curve.</ViewEmpty>
+        <ViewEmpty figure="plot">This index publishes no futures curve.</ViewEmpty>
       )}
 
       {points.length > 0 && (

@@ -108,7 +108,7 @@ export function TemplateEditorView({ tab, subject }: ViewProps): ReactElement {
       {save.isError && <ViewError error={save.error} />}
 
       {list.isSuccess && stored.length === 0 && (
-        <ViewEmpty>
+        <ViewEmpty figure="drawer">
           This engine has no stored templates. Built-in templates are generated from code and cannot
           be edited.
         </ViewEmpty>

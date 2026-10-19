@@ -103,10 +103,12 @@ export function ComparisonView({ tab, subject }: ViewProps): ReactElement {
       </PaneHeader>
 
       {anchor === '' && (
-        <ViewEmpty>Name a strategy in Overview — this pane compares from it.</ViewEmpty>
+        <ViewEmpty figure="ticker">
+          Choose a strategy in Overview. This tab compares from it.
+        </ViewEmpty>
       )}
       {ids.length < 2 && anchor !== '' && (
-        <ViewEmpty>Add a second strategy — a comparison needs two.</ViewEmpty>
+        <ViewEmpty figure="cardindex">Add a second strategy to compare with.</ViewEmpty>
       )}
       {compare.isError && <ViewError error={compare.error} />}
 
