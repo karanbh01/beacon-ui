@@ -7,6 +7,11 @@
 .empty-figure {
   width: 320px;
   max-width: 100%;
+}
+
+/* The palette, on any element holding a figure: an empty state or a guide card's. */
+.empty-figure,
+.figure-palette {
   --hairline-plate: var(--canvas);
   --hairline-hi: var(--accent);
   --hairline-edge: var(--text-muted);

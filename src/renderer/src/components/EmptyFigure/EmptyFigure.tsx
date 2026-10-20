@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactElement } from 'react'
 import { mountFigure, type FigureKind } from './mountFigure'
 import './EmptyFigure.css'
 
-export type { FigureKind } from './mountFigure'
+export type { FigureKind, GuideFigureKind } from './mountFigure'
 
 /**
  * An isometric line figure for an empty state (BU-231): the thing that would

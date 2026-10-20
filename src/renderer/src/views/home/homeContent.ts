@@ -6,6 +6,8 @@
  * live source, and it comes from the workspace and job stores.
  */
 
+import type { GuideFigureKind } from '../../components/EmptyFigure/mountFigure'
+
 export interface QuickstartAction {
   id: string
   label: string
@@ -66,12 +68,14 @@ export const QUICKSTART: readonly QuickstartAction[] = [
 export interface Guide {
   title: string
   subtitle: string
+  /** Its figure, in the card's bottom-right corner. */
+  figure: GuideFigureKind
 }
 
 export const GUIDES: readonly Guide[] = [
-  { title: 'Define your first index', subtitle: 'Rules, weights, rebalance' },
-  { title: 'Run a backtest', subtitle: 'Costs, tracking, NAV' },
-  { title: 'Read tracking metrics', subtitle: 'TE, TD, attribution' }
+  { title: 'Define your first index', subtitle: 'Rules, weights, rebalance', figure: 'blocks' },
+  { title: 'Run a backtest', subtitle: 'Costs, tracking, NAV', figure: 'recorder' },
+  { title: 'Read tracking metrics', subtitle: 'TE, TD, attribution', figure: 'level' }
 ]
 
 /**

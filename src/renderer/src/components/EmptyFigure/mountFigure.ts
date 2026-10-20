@@ -1,8 +1,11 @@
 import { drawer, plot, sieve } from '@lucasmarkes/hairline'
 import { HL, type KitFigure, type KitStage } from './kit/kernel'
 import binders from './kit/binders'
+import blocks from './kit/blocks'
 import calendar from './kit/calendar'
 import cardindex from './kit/cardindex'
+import level from './kit/level'
+import recorder from './kit/recorder'
 import ticker from './kit/ticker'
 
 /**
@@ -28,16 +31,33 @@ export type FigureKind =
   /** Asked for by name, and not there. */
   | 'binders'
 
+/**
+ * Home's guide cards, one figure each (Karan, 2026-10-20): what the guide
+ * teaches, as an object on a desk.
+ */
+export type GuideFigureKind =
+  /** Define an index: its weights as stacks of counters, rebalanced. */
+  | 'blocks'
+  /** Run a backtest: a chart recorder replaying a fund's history. */
+  | 'recorder'
+  /** Read tracking metrics: a spirit level, how far a fund leans off its index. */
+  | 'level'
+
 export interface MountedFigure {
   destroy(): void
 }
 
 /** Drawn for Beacon on Hairline's figure kit; see kit/ for where they came from. */
-const KIT: Readonly<Record<'ticker' | 'calendar' | 'cardindex' | 'binders', KitFigure>> = {
+const KIT: Readonly<
+  Record<'ticker' | 'calendar' | 'cardindex' | 'binders' | GuideFigureKind, KitFigure>
+> = {
   ticker,
   calendar,
   cardindex,
-  binders
+  binders,
+  blocks,
+  recorder,
+  level
 }
 
 /**
@@ -76,7 +96,7 @@ function mountKit(figure: KitFigure, host: HTMLElement): MountedFigure {
   }
 }
 
-export function mountFigure(kind: FigureKind, host: HTMLElement): MountedFigure {
+export function mountFigure(kind: FigureKind | GuideFigureKind, host: HTMLElement): MountedFigure {
   if (kind === 'plot' || kind === 'sieve' || kind === 'drawer') return PACKAGE[kind](host)
   return mountKit(KIT[kind], host)
 }
