@@ -357,33 +357,41 @@ test('the treatment is added and removed rather than assumed', async ({ window }
   await expect(window.getByText('Adjust divisor')).toBeVisible()
 })
 
-test('an index can be deleted, with its backtest results named', async ({ app, window }) => {
+test('an index no strategy holds can be deleted', async ({ app, window }) => {
+  // Electron's own confirmation, answered yes.
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false })
+  })
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Index Definition')
 
   const overview = window.locator('.index-overview')
-  await expect(overview.getByText('EU-VALUE').first()).toBeVisible()
+  await expect(overview.getByText('WEIGHT-CRASH').first()).toBeVisible()
 
-  // Every row offers it: no index is seeded, so unlike a universe there is
-  // none the engine would refuse (BN-157, BU-151).
-  const seen: string[] = []
-  await app.evaluate(({ dialog }) => {
-    dialog.showMessageBox = (...args: unknown[]) => {
-      const options = (args.length > 1 ? args[1] : args[0]) as { detail?: string }
-      ;(globalThis as { asked?: string[] }).asked ??= []
-      ;(globalThis as { asked?: string[] }).asked?.push(options.detail ?? '')
-      return Promise.resolve({ response: 0, checkboxChecked: false })
-    }
-  })
-
-  await overview.getByRole('button', { name: 'Delete EU-VALUE' }).click()
-  await expect(overview.getByText('EU-VALUE')).toHaveCount(0)
+  await overview.getByRole('button', { name: 'Delete WEIGHT-CRASH' }).click()
+  await expect(overview.getByText('WEIGHT-CRASH')).toHaveCount(0)
   await expect(overview.getByText('TECH10').first()).toBeVisible()
+})
 
-  // The confirmation said what else goes, because a run somebody waited for
-  // disappearing unannounced is the app failing to say what it was doing.
-  const asked = await app.evaluate(() => (globalThis as { asked?: string[] }).asked ?? [])
-  expect(seen.concat(asked).join(' ')).toContain('backtest results')
+test('an index a strategy holds is kept, and the engine says which', async ({ app, window }) => {
+  // Electron's own confirmation, answered yes.
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false })
+  })
+  /*
+   * py-beacon 0.9.0: a strategy holds an index, so deleting one would leave
+   * the strategy pointing at nothing. The engine refuses with IN_USE and
+   * names the strategies; nothing failed to load.
+   */
+  await openPage(window, 'Strategy Builder')
+  await openView(window, 'Index Definition')
+
+  const overview = window.locator('.index-overview')
+  await overview.getByRole('button', { name: 'Delete EU-VALUE' }).click()
+
+  await expect(window.getByText('Still in use, so it can’t be deleted.')).toBeVisible()
+  await expect(window.getByText(/while EU-VALUE use it/)).toBeVisible()
+  await expect(overview.getByText('EU-VALUE').first()).toBeVisible()
 })
 
 test('an optimised index shows what it was derived from (BU-170)', async ({ window }) => {
@@ -479,7 +487,10 @@ test('previewing a rule-driven index still shows the waterfall (BU-173)', async 
   await expect(preview.getByText(/names evaluated/)).toBeVisible()
 })
 
-test('deleting a parent says which optimised indices go with it', async ({ app, window }) => {
+test('a parent an optimised index was derived from warns of it, and is kept while held', async ({
+  app,
+  window
+}) => {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Index Definition')
 
@@ -495,14 +506,13 @@ test('deleting a parent says which optimised indices go with it', async ({ app, 
   const overview = window.locator('.index-overview')
   await overview.getByRole('button', { name: 'Delete TECH10', exact: true }).click()
 
-  // Warned from the catalogue, before the request.
+  // Warned from the catalogue, before the request (BN-168).
   const warned = await app.evaluate(() => (globalThis as { warned?: string[] }).warned ?? [])
   expect(warned.join(' ')).toContain('TECH10-OPT')
 
-  // Reported from the response, which is the only thing that knows what the
-  // engine actually removed (BN-168).
-  await expect(window.getByText(/Deleted 2 indices/)).toBeVisible()
-  await expect(overview.getByText('TECH10-OPT')).toHaveCount(0)
+  // Strategies hold both, so the engine keeps them and says so.
+  await expect(window.getByText('Still in use, so it can’t be deleted.')).toBeVisible()
+  await expect(overview.getByText('TECH10-OPT')).toBeVisible()
 })
 
 test('a listing that left a universe out says so (BU-185)', async ({ engine, window }) => {

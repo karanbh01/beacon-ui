@@ -231,6 +231,20 @@ export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
     )
   }
 
+  if (fault.code === 'IN_USE') {
+    /*
+     * A delete refused because something still holds the document: a
+     * strategy its index, a child its parent (py-beacon 0.9.0). Nothing failed
+     * to load, and the engine's sentence names what to change first.
+     */
+    return (
+      <div className="view-state">
+        <p className="type-13">Still in use, so it can’t be deleted.</p>
+        <p className="type-11">{fault.message}</p>
+      </div>
+    )
+  }
+
   /*
    * An unclassified failure, which BN-199 gives a code rather than a null
    * (`UNCLASSIFIED_FAILURE`, on jobs that failed before it existed), and

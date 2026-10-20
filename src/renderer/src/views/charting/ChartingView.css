@@ -22,6 +22,7 @@
   min-height: 0;
 }
 
-.charting-view > *:not(.level-chart, .view-empty) {
+/* The chart sits in a block of its own since BU-237, and that block is what fills. */
+.charting-view > *:not(.level-chart-block, .view-empty) {
   flex: none;
 }

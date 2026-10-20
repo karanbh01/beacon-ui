@@ -116,9 +116,9 @@ test('Beacon View anchors on its own Overview (BU-166)', async ({ window }) => {
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
 
   // Named, not "needs a query tab": the tab to open first is right there.
-  const weights = window.getByRole('menuitem', { name: /^Weights/ })
-  await expect(weights).toBeDisabled()
-  await expect(weights).toContainText('needs Overview open to follow')
+  const holdings = window.getByRole('menuitem', { name: /^Holdings/ })
+  await expect(holdings).toBeDisabled()
+  await expect(holdings).toContainText('needs Overview open to follow')
 
   await window.getByRole('menuitem', { name: 'Overview', exact: true }).click()
 
@@ -136,7 +136,7 @@ test('Beacon View anchors on its own Overview (BU-166)', async ({ window }) => {
 
   // And the rest of the page follows it.
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
-  await window.getByRole('menuitem', { name: 'Weights', exact: true }).click()
+  await window.getByRole('menuitem', { name: 'Holdings', exact: true }).click()
 
   await expect(window.locator('.tab-chip-label')).toHaveText(['TECH10', 'TECH10'])
 })

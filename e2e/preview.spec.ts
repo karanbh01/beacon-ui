@@ -46,8 +46,10 @@ test('the portfolio is at the top, heaviest first', async ({ window }) => {
   // The two capped names carry 12% against everyone else's 9.5%, so they
   // lead — rank order used to put whatever the universe listed first.
   await expect(rows.first()).toContainText('12.00%')
-  // And the excluded names are last, however the included ones sort.
-  await expect(rows.last()).toContainText('CMP012')
+  // And the excluded names are last, however the included ones sort: the
+  // whole starting universe is listed, each name a rule dropped at nothing.
+  await expect(rows.last()).toContainText('0.00%')
+  await expect(window.getByText(/120 names evaluated/)).toBeVisible()
 })
 
 test('a market-cap index shows both caps', async ({ window }) => {
@@ -388,7 +390,7 @@ test('caps that could not be read are a fault, not a column of dashes', async ({
   // And the rest of the table stands: the weights came from a different
   // request and nothing is wrong with them.
   await expect(window.locator('.tbl-body .tbl-row').first()).toBeVisible()
-  await expect(window.locator('.tbl-head')).toContainText('Weights')
+  await expect(window.locator('.tbl-head')).toContainText('Index Weight')
 })
 
 test('a cap says how old it is, and an old one says so', async ({ window }) => {

@@ -132,12 +132,12 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
             placeholder={templateId}
           />
         </Field>
-        {/* This view names its own index now (BU-167): Reports has no
+        {/* This view names its own strategy (BU-167): Reports has no
             document to hang off, and a page is its own workspace. */}
-        <Field label="Index" width={140}>
+        <Field label="Strategy" width={140}>
           <TickerField
             className="ticker-field-inline"
-            label="Index"
+            label="Strategy"
             subject={strategyId}
             index={catalogue.rows}
             onQuery={(next) => {

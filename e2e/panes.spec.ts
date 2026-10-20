@@ -414,9 +414,8 @@ test('the label row keeps its height when the table fills the pane', async ({ wi
   // A flex item shrinks below its height unless told not to, and in a
   // height-constrained card the label row was squashed to the 13px its text
   // needed (BU-140).
-  // Taller than a row, not merely equal to it: the frame gives the labels
-  // more air than the numbers, and squashed to their text they read as a
-  // first row that lost its values (BU-140).
-  expect(rows.head).toBeGreaterThan(rows.row)
-  expect(rows.head).toBeGreaterThanOrEqual(32)
+  // At least a row's height in py-beacon's lines style (BU-238): squashed to
+  // their text, the labels read as a first row that lost its values.
+  expect(rows.head).toBeGreaterThanOrEqual(rows.row)
+  expect(rows.head).toBeGreaterThanOrEqual(24)
 })

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { choose, expect, openPage, test } from './fixtures'
+import { expect, openPage, test } from './fixtures'
 
 /**
  * Backtesting a stored strategy (BU-174; py-beacon 0.9.0).
@@ -29,7 +29,7 @@ test('with no strategy named it lists the runs, newest first (Karan)', async ({ 
   await openBacktest(window, '')
 
   const runs = window.locator('.backtest-runs')
-  await expect(runs).toContainText('Runs · 3')
+  await expect(runs).toContainText('Runs · 4')
   // Stamped runs date themselves; one py-beacon never stamped (BN-162)
   // says only that it happened.
   await expect(runs.locator('.tbl-row').first()).toContainText('TECH10')
@@ -45,17 +45,29 @@ test('with no strategy named it lists the runs, newest first (Karan)', async ({ 
 test('every setting the engine accepts is on the pane', async ({ window }) => {
   await openBacktest(window, 'TECH10')
 
-  await expect(window.getByLabel('Start')).toBeVisible()
-  await expect(window.getByLabel('End')).toBeVisible()
-  await expect(window.getByLabel('Transaction cost (bps)')).toBeVisible()
-  await expect(window.getByLabel('Initial capital')).toHaveValue('1000000')
-  await expect(window.getByLabel('Benchmark', { exact: true })).toBeVisible()
   await expect(window.getByRole('combobox', { name: 'Preset' })).toBeVisible()
   await expect(window.getByRole('button', { name: /Add share class/ })).toBeVisible()
-  await expect(window.getByRole('button', { name: /Add flows/ })).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Capital and flows…' })).toBeVisible()
+  await expect(window.getByLabel('Start', { exact: true })).toBeVisible()
+  await expect(window.getByLabel('End', { exact: true })).toBeVisible()
+  await expect(window.getByLabel('Transaction cost (bps)')).toBeVisible()
+  await expect(window.getByLabel('Benchmark', { exact: true })).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Modelling assumptions…' })).toBeVisible()
 
   // And nothing is drawn: performance is read in the Overview (BU-175).
   await expect(window.locator('.level-chart')).toHaveCount(0)
+})
+
+test('a strategy run before opens on the settings of its last run', async ({ window }) => {
+  await openBacktest(window, 'TECH10')
+
+  await expect(
+    window.getByText(/These settings come from the last backtest of TECH10/)
+  ).toBeVisible()
+  await expect(window.locator('.backtest-view')).toContainText('B · distributing · hedged')
+
+  await window.getByRole('button', { name: 'Start afresh' }).click()
+  await expect(window.getByText(/These settings come from the last backtest/)).toHaveCount(0)
 })
 
 test('a finished run hands over to the Overview rather than drawing it', async ({ window }) => {
@@ -63,40 +75,32 @@ test('a finished run hands over to the Overview rather than drawing it', async (
 
   await window.getByRole('button', { name: 'Run backtest' }).click()
 
-  await expect(window.getByText('Back-tested TECH10.')).toBeVisible()
+  await expect(window.getByText('The backtest for TECH10 has finished.')).toBeVisible()
   await window.getByRole('button', { name: 'Open overview' }).click()
   await expect(window.locator('.index-overview-view')).toBeVisible()
 })
 
-test('a preset vehicle, a hedged class and a flow reach the engine as set', async ({ window }) => {
+test('the vehicle, its classes, their capital and flows reach the engine as set', async ({
+  window
+}) => {
   let body: Record<string, unknown> | undefined
   await window.route(/\/strategies\/TECH10\/backtest$/, async (route) => {
     body = route.request().postDataJSON() as Record<string, unknown>
     await route.continue()
   })
 
+  // The last run's settings: a UK OEIC with a hedged EUR class and flows.
   await openBacktest(window, 'TECH10')
-  await choose(window, 'Preset', 'uk_oeic')
-
-  await window.getByRole('button', { name: /Add share class/ }).click()
-  // Scoped: the vehicle has a Name of its own.
-  const shareClass = window.locator('.backtest-class')
-  await shareClass.getByLabel('Name', { exact: true }).fill('B')
-  await shareClass.getByLabel('Currency', { exact: true }).fill('EUR')
-  await choose(window, 'Hedged into its currency', 'true')
-
-  await window.getByRole('button', { name: /Add flows/ }).click()
-  await window.getByLabel('Flow date 1').fill('2024-03-01')
-  await window.getByLabel('Flow amount 1').fill('250000')
-
   await window.getByRole('button', { name: 'Run backtest' }).click()
-  await expect(window.getByText('Back-tested TECH10.')).toBeVisible()
+  await expect(window.getByText('The backtest for TECH10 has finished.')).toBeVisible()
 
   expect(body).toMatchObject({
-    vehicle: { preset: 'uk_oeic', settings: {} },
-    share_classes: [{ name: 'B', currency: 'EUR', hedged: true }],
-    initial_capital: { B: 1_000_000 },
-    flows: { B: [{ type: 'DatedFlows', params: { amounts: { '2024-03-01': 250_000 } } }] }
+    vehicle: { preset: 'uk_oeic' },
+    share_classes: expect.arrayContaining([
+      expect.objectContaining({ name: 'B', currency: 'EUR', hedged: true })
+    ]),
+    initial_capital: { A: 300_000_000, B: 100_000_000 },
+    flows: { A: [expect.objectContaining({ type: 'DatedFlows' })] }
   })
 })
 
@@ -104,22 +108,23 @@ test('validate asks the engine what it would run', async ({ window }) => {
   await openBacktest(window, 'TECH10')
 
   await window.getByRole('button', { name: 'Validate' }).click()
-  await expect(window.getByText('The engine would run this as set.')).toBeVisible()
+  await expect(window.getByText('No problems found. The backtest is ready to run.')).toBeVisible()
 })
 
 test('a run the form knows the engine would refuse is not sent', async ({ window }) => {
   await openBacktest(window, 'TECH10')
 
-  await window.getByLabel('Initial capital').fill('0')
+  await window.getByLabel('Start', { exact: true }).fill('2025-12-31')
+  await window.getByLabel('End', { exact: true }).fill('2023-01-31')
 
-  await expect(window.getByText(/Initial capital has to be more than zero/)).toBeVisible()
+  await expect(window.getByText('The start date is after the end date.')).toBeVisible()
   await expect(window.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
 })
 
 test('a name no strategy has says so, and offers nothing to run', async ({ window }) => {
   await openBacktest(window, 'NOT-A-STRATEGY')
 
-  await expect(window.getByText(/No stored strategy is called NOT-A-STRATEGY/)).toBeVisible()
+  await expect(window.getByText(/no saved strategy called NOT-A-STRATEGY/)).toBeVisible()
   await expect(window.getByRole('button', { name: 'Run backtest' })).toHaveCount(0)
 })
 

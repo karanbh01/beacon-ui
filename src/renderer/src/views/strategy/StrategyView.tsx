@@ -28,6 +28,9 @@ import './StrategyView.css'
  * Validate, Revert and Save, the catalogue when nothing is open — and the
  * strategy it saves is what Beacon View backtests (Backtest… opens that).
  */
+/** The title a fresh Strategy tab carries (views/register.ts). */
+const VIEW_TITLE = 'Strategy'
+
 export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
   const strategies = useStrategies()
   const deleteStrategy = useDeleteStrategy()
@@ -36,8 +39,10 @@ export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
 
   // What the catalogue opened, kept per tab like Index Definition's (BU-227).
   const [opened, setOpened] = useOpenedDefinition(tab.id)
-  const named =
-    subject ?? tab.subject ?? tab.pinnedDoc ?? (isDocumentId(tab.title) ? tab.title : undefined)
+  // The view's own name passes for an id, so a fresh tab titled "Strategy"
+  // opened a draft called Strategy instead of the catalogue.
+  const titled = tab.title !== VIEW_TITLE && isDocumentId(tab.title) ? tab.title : undefined
+  const named = subject ?? tab.subject ?? tab.pinnedDoc ?? titled
   const chosen = named ?? opened
   const strategyId = chosen ?? ''
 

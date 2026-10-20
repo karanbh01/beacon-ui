@@ -376,7 +376,9 @@ test('the search field browses with the arrows and completes with Tab', async ({
   await expect(search).toHaveValue('CMP000 ')
 })
 
-test('the chart frames the plot and keeps volume to a tenth of it', async ({ window }) => {
+test('the chart is drawn in py-beacon’s style, with volume in a pane of its own', async ({
+  window
+}) => {
   await openPage(window, 'Data Explorer')
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
   await window.getByRole('menuitem', { name: 'Prices', exact: true }).click()
@@ -386,36 +388,12 @@ test('the chart frames the plot and keeps volume to a tenth of it', async ({ win
   // Charting is linked, so it needs a query tab to follow.
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
   await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
-  await window.locator('.level-chart-frame').waitFor()
+  await window.locator('.level-chart-plot').waitFor()
 
-  const box = await window.evaluate(() => {
-    const frame = document.querySelector('.level-chart-frame')?.getBoundingClientRect()
-    const plot = document.querySelector('.level-chart-plot')?.getBoundingClientRect()
-    if (frame === undefined || plot === undefined) return undefined
-    return { insetLeft: frame.left - plot.left, insetBottom: plot.bottom - frame.bottom }
-  })
-
-  // Inset on both axis sides, so the labels sit outside the box (BU-130).
-  expect(box?.insetLeft ?? 0).toBeGreaterThan(20)
-  expect(box?.insetBottom ?? 0).toBeGreaterThan(10)
-
-  // The legend and the volume caption sit INSIDE that box, left aligned to
-  // it rather than to the canvas, which includes the axis (BU-133).
-  const labels = await window.evaluate(() => {
-    const frame = document.querySelector('.level-chart-frame')?.getBoundingClientRect()
-    const legend = document.querySelector('.level-chart-legend')?.getBoundingClientRect()
-    const caption = document.querySelector('.level-chart-sublabel')?.getBoundingClientRect()
-    if (frame === undefined || legend === undefined || caption === undefined) return undefined
-    return {
-      legend: legend.left - frame.left,
-      caption: caption.left - frame.left,
-      captionInside: caption.bottom < frame.bottom && caption.top > frame.top
-    }
-  })
-
-  expect(labels?.legend).toBeGreaterThan(0)
-  expect(labels?.legend).toBe(labels?.caption)
-  expect(labels?.captionInside).toBe(true)
+  // No box round the plot (BU-237): py-beacon draws its axes and nothing else.
+  await expect(window.locator('.level-chart-frame')).toHaveCount(0)
+  // Volume is the one pane under the price, named where it starts.
+  await expect(window.locator('.level-chart-sublabel')).toHaveCount(1)
 })
 
 test('the chart draws the adjusted line or the traded one, never both', async ({ window }) => {
@@ -448,7 +426,7 @@ test('the chart flags corporate actions and draws a feature on its own axis', as
   await window.keyboard.press('Enter')
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
   await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
-  await window.locator('.level-chart-frame').waitFor()
+  await window.locator('.level-chart-plot').waitFor()
 
   // Off until asked for: a chart of a price is what this view is for.
   await expect(window.getByText(/corporate action/)).toHaveCount(0)
@@ -460,21 +438,8 @@ test('the chart flags corporate actions and draws a feature on its own axis', as
   await choose(window, 'Feature', 'pe_ratio')
   // Named with the axis it is read against, because a P/E and a price share
   // a calendar and nothing else.
-  await expect(window.getByText('Pe ratio · right axis')).toBeVisible()
+  await expect(window.locator('.level-chart-legend')).toContainText('Pe ratio (right)')
   await expect(window.getByText(/Pe ratio on the right axis/)).toBeVisible()
-
-  // And the frame steps in from that axis, as it does from the left one.
-  // Polled: the chart reports its new axis width a frame after the series
-  // that caused it is added, and the inset is measured from that.
-  await expect
-    .poll(async () =>
-      window.evaluate(() => {
-        const frame = document.querySelector('.level-chart-frame')?.getBoundingClientRect()
-        const plot = document.querySelector('.level-chart-plot')?.getBoundingClientRect()
-        return frame === undefined || plot === undefined ? 0 : plot.right - frame.right
-      })
-    )
-    .toBeGreaterThan(20)
 })
 
 test('indicators draw on the line, or in a pane of their own', async ({ window }) => {
@@ -487,7 +452,7 @@ test('indicators draw on the line, or in a pane of their own', async ({ window }
   await window.keyboard.press('Enter')
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
   await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
-  await window.locator('.level-chart-frame').waitFor()
+  await window.locator('.level-chart-plot').waitFor()
 
   // None by default: the view is a price chart first.
   await expect(window.locator('.level-chart-sublabel')).toHaveCount(1)
@@ -517,7 +482,7 @@ test('an instrument with neither says so rather than offering empty controls', a
   await window.keyboard.press('Enter')
   await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
   await window.getByRole('menuitem', { name: 'Charting', exact: true }).click()
-  await window.locator('.level-chart-frame').waitFor()
+  await window.locator('.level-chart-plot').waitFor()
 
   await expect(window.getByRole('checkbox', { name: 'No corporate actions' })).toBeDisabled()
   await expect(window.getByLabel('Feature', { exact: true })).toBeDisabled()
@@ -646,11 +611,12 @@ test('every page can be opened from empty, and names its own subject', async ({ 
   /*
    * BU-167. Factsheet and Term Structure were `pinned`, on pages with no
    * document view — so with pages independent (BU-166) neither could ever be
-   * opened from the tab menu. Both take an index, so both name one.
+   * opened from the tab menu. Each names its own subject: a strategy for a
+   * factsheet, an index for a curve.
    */
-  for (const [page, view, empty] of [
-    ['Reports', 'Factsheet', 'Name an index to draw its factsheet.'],
-    ['Derivatives', 'Term Structure', 'Name an index to price its curve.']
+  for (const [page, view, subject, empty] of [
+    ['Reports', 'Factsheet', 'Strategy', 'Choose a strategy to draw its factsheet.'],
+    ['Derivatives', 'Term Structure', 'Index', 'Choose an index to price its curve.']
   ] as const) {
     await openPage(window, page)
     await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
@@ -661,7 +627,7 @@ test('every page can be opened from empty, and names its own subject', async ({ 
     await expect(window.getByText(empty)).toBeVisible()
 
     // The catalogue, in the same query bar as everywhere else.
-    const field = window.getByRole('combobox', { name: 'Index' })
+    const field = window.getByRole('combobox', { name: subject })
     await field.fill('tech')
     await expect(window.getByRole('option', { name: /^TECH10 / })).toBeVisible()
     await window.keyboard.press('ArrowDown')

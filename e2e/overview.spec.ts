@@ -33,27 +33,22 @@ test('the faces are in Karan’s order', async ({ window }) => {
   ])
 })
 
-test('summary draws the run, its weights and the index beside it', async ({ window }) => {
+test('summary draws the run, the index beside it, and the engine’s figures', async ({ window }) => {
   await openOverview(window, 'TECH10')
 
-  await expect(window.getByText('LEVEL', { exact: true })).toBeVisible()
-  await expect(window.locator('.level-chart')).toBeVisible()
+  const view = window.locator('.index-overview-view')
+  await expect(view.getByText('TOTAL RETURN', { exact: true })).toBeVisible()
+  await expect(window.locator('.level-chart').first()).toBeVisible()
 
-  // The run is the strategy's; the index line is the index calculated on
-  // its own over the same dates (`/indices/{id}/level`), not a second run.
-  await expect(window.locator('.level-chart-key')).toContainText('TECH10')
-  await expect(window.locator('.index-overview-view')).toContainText('latest run, captured 3d ago')
-  await expect(window.locator('.index-overview-view')).toContainText(
-    'TECH10 calculated alone over the same dates'
-  )
+  // The strategy's line, its index's, and the run's benchmark.
+  await expect(window.locator('.level-chart-legend').first()).toContainText('TECH10')
+  await expect(window.locator('.level-chart-legend').first()).toContainText('benchmark')
+  await expect(view).toContainText('latest run, captured 3d ago')
 
-  // Both columns are py-beacon's own metrics: the run's, and the index's.
-  const stats = window.locator('.overview-stats-card')
-  await expect(stats.getByText('Sharpe ratio')).toBeVisible()
-  await expect(stats.getByText('Strategy', { exact: true })).toBeVisible()
-  await expect(stats.getByText('Index', { exact: true })).toBeVisible()
-
-  await expect(window.locator('.overview-weight').first()).toContainText('CMP000')
+  // Every figure is py-beacon's: the strategy's, and against index and benchmark.
+  await expect(view).toContainText('Summary statistics')
+  await expect(view).toContainText('Sharpe ratio')
+  await expect(view).toContainText('Rel. Performance')
 })
 
 test('a strategy never run says so, and offers to back-test it', async ({ window }) => {
@@ -63,7 +58,7 @@ test('a strategy never run says so, and offers to back-test it', async ({ window
   await expect(
     window.getByText('TECH10-OPT has no run yet. Backtest it to see one here.')
   ).toBeVisible()
-  await expect(window.locator('.overview-stats-card')).toHaveCount(0)
+  await expect(window.locator('.index-overview-view')).not.toContainText('Summary statistics')
 
   await window.getByRole('button', { name: 'Backtest…' }).click()
   await expect(window.locator('.backtest-strategy')).toContainText('TECH10-OPT')
@@ -91,7 +86,7 @@ test('flows and AUM reads the money in, out, and each class', async ({ window })
   await window.getByRole('radio', { name: 'Flows & AUM' }).click()
 
   const view = window.locator('.index-overview-view')
-  await expect(view.getByText('NAV PER UNIT')).toBeVisible()
+  await expect(view.getByText('NAV PER UNIT', { exact: true })).toBeVisible()
   await expect(view).toContainText('Flows')
   await expect(view).toContainText('Share classes')
   await expect(view).toContainText('EUR · hedged')
@@ -103,31 +98,29 @@ test('statistics detail buckets returns, and the period control changes them', a
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Statistics Detail' }).click()
 
-  await expect(window.getByText('ANNUAL RETURNS')).toBeVisible()
-  const annual = await window.locator('.tbl-body .tbl-row').count()
+  const view = window.locator('.index-overview-view')
+  await expect(view).toContainText('Returns')
+  const head = window.locator('.tbl-head').first()
+  await expect(head).toContainText('Since inception')
+  const annual = await head.locator('.tbl-cell').count()
 
   await window.getByRole('radio', { name: 'Monthly' }).click()
-  await expect(window.getByText('MONTHLY RETURNS')).toBeVisible()
 
-  // Three years of daily levels is three annual buckets and about thirty-six
+  // Three years of daily levels is three annual columns and about thirty-six
   // monthly ones: the control changes the question, not just the label.
-  expect(await window.locator('.tbl-body .tbl-row').count()).toBeGreaterThan(annual)
+  await expect.poll(() => head.locator('.tbl-cell').count()).toBeGreaterThan(annual)
 })
 
-test('a benchmark adds the columns it can fill, and nothing before that', async ({ window }) => {
+test('the run’s index and benchmark each have their own comparison', async ({ window }) => {
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Statistics Detail' }).click()
 
-  // Nothing to compare against yet, so no excess column standing empty.
-  await expect(window.locator('.tbl-head')).not.toContainText('Excess')
-  await expect(window.locator('.index-overview-view')).toContainText('pick a benchmark')
-
-  await choose(window, 'Benchmark', 'EU-VALUE')
-
-  await expect(window.locator('.tbl-head')).toContainText('Excess')
-  await expect(window.locator('.tbl-head')).toContainText('EU-VALUE')
-  // An information ratio needs a benchmark, and now it has one.
-  await expect(window.locator('.index-overview-view')).not.toContainText('pick a benchmark')
+  const view = window.locator('.index-overview-view')
+  await expect(view).toContainText('Against the index · TECH10')
+  await expect(view).toContainText('Against the benchmark · EU-VALUE')
+  // An information ratio needs a benchmark, and the run has one.
+  await expect(view).toContainText('Information ratio')
+  await expect(view).toContainText('Tracking error')
 })
 
 test('the period choice survives a move between faces', async ({ window }) => {
@@ -146,15 +139,17 @@ test('risk shows one chart with three series behind a selector', async ({ window
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Risk & Correlation' }).click()
 
-  await expect(window.locator('.index-overview-view')).toContainText('VaR · historical')
-  await expect(window.locator('.index-overview-view')).toContainText('expected shortfall')
+  const view = window.locator('.index-overview-view')
+  await expect(view).toContainText('VaR · historical')
+  await expect(view).toContainText('expected shortfall')
 
   // One plot, not three stacked down the pane.
   await expect(window.locator('.level-chart')).toHaveCount(1)
-  await expect(window.getByText('drawdown', { exact: true })).toBeVisible()
+  // The drawdown first, its note naming the worst of it.
+  await expect(view).toContainText(/Worst −\d/)
 
   await choose(window, 'Series', 'volatility')
-  await expect(window.locator('.level-chart-key')).toContainText('volatility · 60d')
+  await expect(view).toContainText('60 observations, stamped at the end of each window')
 
   // Rolling correlation has nothing to correlate against until one is picked,
   // and says so rather than drawing an empty chart.
@@ -174,10 +169,12 @@ test('correlations are against the strategies the reader picks', async ({ window
   await window.getByRole('checkbox', { name: 'EU-VALUE' }).check()
   await window.keyboard.press('Escape')
 
-  const correlation = window.locator('.overview-stats-card').last()
+  const correlation = window.locator('section', { hasText: 'Correlation' }).last()
   await expect(correlation).toContainText('EU-VALUE')
   // A real number, computed from returns on the dates both series share.
-  await expect(correlation.locator('.tbl-row').first()).toContainText(/[01]\.\d{3}|−0\.\d{3}/)
+  await expect(correlation.locator('.tbl-body .tbl-row').first()).toContainText(
+    /[01]\.\d{3}|−0\.\d{3}/
+  )
 })
 
 test('a window the calendar narrowed says so, and which end', async ({ window }) => {

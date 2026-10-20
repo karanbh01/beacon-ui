@@ -317,3 +317,22 @@ describe('findings past the engine’s cap (BN-239)', () => {
     expect(screen.getAllByText(/market, row 4, DATE/)).toHaveLength(2)
   })
 })
+
+describe('a delete refused because something still holds the document', () => {
+  it('says it is in use rather than that something could not load', () => {
+    render(
+      <ViewError
+        error={
+          new ApiError(409, {
+            code: 'IN_USE',
+            message:
+              "index 'EU-VALUE' cannot be deleted while EU-VALUE use it. Delete them or point them at another document first."
+          })
+        }
+      />
+    )
+    expect(screen.getByText('Still in use, so it can’t be deleted.')).toBeInTheDocument()
+    expect(screen.queryByText('Could not load.')).toBeNull()
+    expect(screen.getByText(/point them at another document first/)).toBeInTheDocument()
+  })
+})
