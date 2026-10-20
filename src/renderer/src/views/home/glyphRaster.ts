@@ -1,6 +1,6 @@
 /*
  * The glyph field's pixels, built in memory and handed to the canvas once a
- * frame. A header card holds some six thousand glyphs: drawn one call at a
+ * frame. Home's header holds some six thousand glyphs: drawn one call at a
  * time, as text or as copies from a sprite sheet, they took most of each
  * frame on a machine without a GPU, which froze the page and then, once the
  * field slowed itself, left it stepping (Karan, 2026-10-19). Writing pixels
@@ -124,7 +124,7 @@ export function stamp(
     const row = Math.floor(at / cell)
     const px = left + at - row * cell
     const py = top + row
-    // Only a glyph on the card's edge has pixels to clip.
+    // Only a glyph on the field's edge has pixels to clip.
     if (!inside && (px < 0 || py < 0 || px >= width || py >= height)) continue
     const target = py * width + px
     const colour = sprite.colour[k] ?? 0

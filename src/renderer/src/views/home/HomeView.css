@@ -26,19 +26,23 @@
   /* The header card's own padding: the content below starts where Home does
      and ends where the date does (Karan, 2026-10-19). */
   --home-inset: 27px;
+  --home-top: 24px;
+  --home-side: 56px;
 
   height: 100%;
   /* Even sides (Karan, 2026-10-19); the frame's right inset was 127.6. */
-  padding: 24px 56px 0;
-  overflow-y: auto;
+  padding: var(--home-top) var(--home-side) 0;
+  /* No scrollbar (Karan, 2026-10-19): Home is laid out to fit the pane. */
+  overflow: hidden;
 }
 
 /*
- * The header is the website's landing card (Karan, 2026-10-19), as wide as
- * the content below it: the site's paper palette, its 1.5x padding and
- * corners, Home and the date at the foot in its card face, and Greek glyphs
- * drifting above them (glyphField.ts). --glyph-strong and --glyph-soft are
- * read by the canvas; blue and a deeper blue, as on the site.
+ * The header (Karan, 2026-10-19): Home and the date in the website's card
+ * face, with its Greek glyphs drifting above them (glyphField.ts) on the
+ * app's own ground. It was the site's card; now only the glyphs remain,
+ * from the top of the pane and across its width, thinning out behind the
+ * words and gone just under them. --glyph-strong and --glyph-soft are read
+ * by the canvas: blue and a deeper blue, as on the site.
  */
 .home-banner {
   --glyph-strong: color-mix(in srgb, var(--accent) 55%, var(--text-primary));
@@ -52,10 +56,8 @@
   /* Taller into the top inset (Karan, 2026-10-19): the frame's 56px above
      the title became 24px, the rest given to the card. */
   height: 252px;
-  padding: 24px var(--home-inset);
-  overflow: hidden;
-  background: color-mix(in srgb, var(--text-primary) 4%, var(--canvas));
-  border-radius: 9px;
+  /* 39px under the words, 15 more than the card had (Karan, 2026-10-19). */
+  padding: 24px var(--home-inset) 39px;
 }
 
 :root[data-theme='dark'] .home-banner {
@@ -63,12 +65,21 @@
   --glyph-soft: color-mix(in srgb, var(--accent) 42%, var(--canvas));
 }
 
-/* Behind the words, taking no pointer and no room. */
+/*
+ * Behind the words, taking no pointer and no room: out to the pane's top and
+ * sides, and 56px under the header, to the headings below, where glyphField.ts's
+ * BELOW has them gone.
+ */
 .home-banner-field {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: calc(-1 * var(--home-top));
+  right: calc(-1 * var(--home-side));
+  bottom: -56px;
+  left: calc(-1 * var(--home-side));
+  /* Under the words and everything after the header, which paint later. */
+  z-index: 0;
+  width: calc(100% + 2 * var(--home-side));
+  height: calc(100% + var(--home-top) + 56px);
   pointer-events: none;
 }
 
@@ -90,7 +101,7 @@
 }
 
 .home-banner-title {
-  font-size: 32px;
+  font-size: 38px;
 }
 
 .home-banner-date {
@@ -99,8 +110,8 @@
 }
 
 /*
- * Quickstart and Recent Activity share a 663-wide column; Changelog sits
- * 64.6 to its right. Not a symmetric two-up.
+ * Recent Activity has a 663-wide column; Quickstart and Changelog sit 64.6
+ * to its right. Not a symmetric two-up.
  */
 /*
  * Takes the height between the header and Guides (BU-225), so the
@@ -114,7 +125,7 @@
   margin-top: 40px;
   padding: 0 var(--home-inset);
   /* Never shorter than what it holds: on a short window the taller guide
-     cards ran over Recent Activity. The page scrolls instead. */
+     cards ran over Recent Activity. */
   flex: 1 0 auto;
 }
 
@@ -133,14 +144,33 @@
  * the main column it floated mid-page on a wide window, belonging to
  * neither. On a narrower window it gives up width before the main column
  * does — the shrink weight is what makes it the one that yields — down to
- * the frame's 238.
+ * the frame's 238. Quickstart sits above the changelog here since Karan
+ * moved it (2026-10-19), and Recent Activity has the left column to itself.
  */
-.home-changelog {
+.home-side {
+  display: flex;
   flex: 0 100 540px;
+  flex-direction: column;
+  gap: 36.1px;
+  align-self: stretch;
   min-width: 238px;
   margin-left: auto;
-  align-self: stretch;
+}
+
+/*
+ * The changelog takes the column's room below Quickstart, and its list as
+ * many releases as fit in it (ReleaseList's useFitted). Its list adds no
+ * height of its own, so it never pushes Guides down.
+ */
+.home-changelog {
+  flex: 1 1 0;
   min-height: 0;
+}
+
+.home-changelog-fitted {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .home-section {
@@ -271,19 +301,31 @@
 /* ---- Changelog (40:295) ---------------------------------------------- */
 
 /*
- * Both products' releases (BU-219). The column is the frame's 238px, so each
- * release is one line until opened, and the list scrolls rather than pushing
- * Guides down the page.
+ * Both products' releases (BU-219), the newest few on Home and the rest in
+ * a pop-up (Karan, 2026-10-19). The list ran down to Guides and scrolled
+ * inside, which made Home's right column a long page of its own.
  */
-/*
- * Down to Guides, scrolling inside (Karan, after 0.1.1). It stopped at 340px
- * with the page empty below it. 160 is the floor on a short window, where
- * the page itself scrolls instead.
- */
-.home-changelog-list {
-  flex: 1 1 0;
-  min-height: 160px;
-  overflow-y: auto;
+.home-changelog-foot {
+  padding-top: 8px;
+}
+
+.home-changelog-more {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.home-changelog-more:hover {
+  text-decoration: underline;
+}
+
+.home-changelog-more:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .home-changelog-entry {
@@ -361,7 +403,9 @@
  */
 .home-guides {
   margin-top: auto;
-  padding: 40px var(--home-inset) 79px;
+  /* Lower than the frame's 79px above the pane's foot (Karan, 2026-10-19),
+     to give the columns above it room. */
+  padding: 64px var(--home-inset) 48px;
   flex: none;
 }
 
@@ -373,12 +417,26 @@
 }
 
 .home-guide-card {
-  /* Twice the frame's 83px (Karan, 2026-10-19). */
-  min-height: 166px;
+  /* Taller than the frame's 83px (Karan, 2026-10-19, and 200 on 10-20). */
+  min-height: 200px;
+  position: relative;
+  overflow: hidden;
   padding: 19px 21px 21px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 3px;
+}
+
+/*
+ * The guide's figure in the card's bottom-right corner (Karan, 2026-10-20),
+ * small and clear of the words. Hairline draws at 5:4 to the width it is
+ * given.
+ */
+.home-guide-figure {
+  position: absolute;
+  right: 6px;
+  bottom: 2px;
+  width: 156px;
 }
 
 .home-guide-title {
@@ -396,4 +454,37 @@
   font-size: 11px;
   line-height: 17.4px;
   color: var(--text-muted);
+}
+
+/*
+ * Home has no scrollbar (Karan, 2026-10-19), so on a window up to 1040px
+ * tall, down to the app's 900px floor, everything gives a little: a
+ * shorter header, tighter gaps and shorter guide cards. Taller windows keep
+ * the sizes above.
+ */
+@media (max-height: 1040px) {
+  .home-banner {
+    height: 220px;
+  }
+
+  .home-band {
+    margin-top: 32px;
+  }
+
+  .home-side {
+    gap: 24px;
+  }
+
+  .home-guides {
+    padding: 40px var(--home-inset) 20px;
+  }
+
+  /* 130px at the 900px floor, back to 200 by a window about 1030px tall. */
+  .home-guide-card {
+    min-height: clamp(130px, calc(100vh - 830px), 200px);
+  }
+
+  .home-guide-figure {
+    width: clamp(124px, calc(100vh - 856px), 156px);
+  }
 }

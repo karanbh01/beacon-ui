@@ -37,12 +37,15 @@ const WARP_SPEED = 0.07
 const EVOLVE = 0.17
 const WANDER = 0.9
 
-// Where the glyphs meet the words: not a cut. Behind the words they show at
-// BEHIND strength at most, and rise to full strength over FADE pixels beyond
-// them, from a broad curve up to twice REACH away that slowly moves.
-const BEHIND = 0.16
+// Where the glyphs meet the words: not a cut, and with no card to end at
+// (Karan, 2026-10-19), no end either. One eased fade runs from full strength
+// REACH + FADE pixels above the words, on a broad curve that slowly moves,
+// to nothing BELOW pixels under them, so the words sit on a faint field and
+// it thins out towards the headings below. In two parts, thinning above the
+// words and again under them, it read as cut off just under Home.
 const REACH = 33
-const FADE = 135
+const FADE = 200
+const BELOW = 90
 /** Too faint to see, so not worth drawing. */
 const FAINT = 0.03
 
@@ -155,13 +158,8 @@ function edges(columns: number, cellWidth: number, seed: number, time: number): 
 
 /** How strongly the field shows at height y, with the words below it. */
 function weight(frame: FieldFrame, y: number, offset: number): number {
-  const past = frame.wordsTop - y
-  if (past <= 0) {
-    const height = Math.max(1, frame.wordsBottom - frame.wordsTop)
-    return BEHIND * Math.max(0, 1 + past / height)
-  }
-  const start = REACH + offset
-  return BEHIND + (1 - BEHIND) * smoothstep(start, start + FADE, past)
+  const start = frame.wordsTop - REACH - FADE - offset
+  return 1 - smoothstep(start, frame.wordsBottom + BELOW, y)
 }
 
 /** One frame of the field at `time` seconds, into `raster`, cleared first. */

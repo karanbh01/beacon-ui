@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { TrackedJob } from '@/api/jobs'
@@ -164,6 +164,21 @@ describe('HomeView', () => {
     expect(screen.queryByText(/Nothing has run yet/)).toBeNull()
   })
 
+  it("leads with each product's newest release, and has the rest in a pop-up", () => {
+    // How many follow depends on the room, which jsdom does not lay out.
+    const { container } = render(<HomeView {...props} onQuickstart={vi.fn()} />)
+    const entries = [...container.querySelectorAll('.home-changelog-entry')]
+    const products = entries.map(
+      (entry) => entry.querySelector('.home-changelog-product')?.textContent
+    )
+    expect(products.slice(0, 2).sort()).toEqual(['Beacon', 'py-beacon'])
+    expect(entries.some((entry) => entry.textContent.includes('unreleased'))).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Full changelog' }))
+    const all = screen.getByRole('dialog', { name: 'Changelog' })
+    expect(all.querySelectorAll('.home-changelog-entry').length).toBeGreaterThan(3)
+  })
+
   it('lists both products’ releases, and marks what is running', () => {
     /*
      * BU-219. The list was two invented entries, one tagged "current" that
@@ -171,10 +186,13 @@ describe('HomeView', () => {
      * engine's version only when the engine reports it.
      */
     render(<HomeView {...props} running={{ engine: '0.1.1' }} onQuickstart={vi.fn()} />)
+    // Home shows the newest few; the full changelog is a click away.
+    fireEvent.click(screen.getByRole('button', { name: 'Full changelog' }))
 
     expect(screen.getAllByText('Beacon').length).toBeGreaterThan(0)
     expect(screen.getAllByText('py-beacon').length).toBeGreaterThan(0)
-    const current = screen.getByText('current').closest('.home-changelog-version')
+    const all = screen.getByRole('dialog', { name: 'Changelog' })
+    const current = within(all).getByText('current').closest('.home-changelog-version')
     expect(current?.textContent).toContain('py-beacon')
     expect(current?.textContent).toContain('v0.1.1')
     expect(screen.queryByText('v0.0.2')).toBeNull()

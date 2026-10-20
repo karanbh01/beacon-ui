@@ -113,6 +113,27 @@ export function mergeReleases(...lists: readonly (readonly Release[])[]): Releas
   return shown.sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
 }
 
+/**
+ * Released versions in the order Home lists them (Karan, 2026-10-19): each
+ * product's newest first, the versions people are on, then the rest newest
+ * first, for as many as there is room for. Work not yet released waits for
+ * the full list.
+ */
+export function latestFirst(releases: readonly Release[]): Release[] {
+  const released = releases.filter((release) => release.version !== 'unreleased')
+  const isLatest = (release: Release, at: number): boolean =>
+    released.findIndex((other) => other.product === release.product) === at
+  return [
+    ...released.filter((release, at) => isLatest(release, at)),
+    ...released.filter((release, at) => !isLatest(release, at))
+  ]
+}
+
+/** How many releases `latestFirst` puts first: one per product. */
+export function latestCount(releases: readonly Release[]): number {
+  return new Set(releases.filter((r) => r.version !== 'unreleased').map((r) => r.product)).size
+}
+
 /** Unreleased sorts above every dated release. */
 function dateOf(release: Release): string {
   return release.date ?? '9999-99-99'

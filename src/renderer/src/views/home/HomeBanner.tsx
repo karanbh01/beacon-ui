@@ -18,18 +18,18 @@ const BUSY = 0.5
 const STILL = 4
 
 /**
- * Home's header (Karan, 2026-10-19): the website's landing card, as wide as
- * the page, with Home and the date at its foot in the site's card face and
- * Greek glyphs drifting above them.
+ * Home's header (Karan, 2026-10-19): Home and the date in the website's card
+ * face, with the site's Greek glyphs drifting above them on the app's own
+ * ground, from the top of the pane down to just under the words.
  */
 export function HomeBanner({ date }: { date: string }): ReactElement {
-  const card = useRef<HTMLElement>(null)
+  const header = useRef<HTMLElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const words = useRef<HTMLDivElement>(null)
   const mode = useThemeMode()
 
   useEffect(() => {
-    const box = card.current
+    const box = header.current
     const surface = canvas.current
     const foot = words.current
     const context = surface?.getContext('2d')
@@ -38,6 +38,9 @@ export function HomeBanner({ date }: { date: string }): ReactElement {
     const inks = { strong: ink(box, '--glyph-strong'), soft: ink(box, '--glyph-soft') }
     let sprites = glyphSprites(GLYPHS, inks, window.devicePixelRatio || 1)
     let raster: Raster | undefined
+    // The field reaches past the header to the pane's top and sides, so the
+    // words are placed against the canvas, measured on each resize.
+    let place = { width: 0, height: 0, wordsTop: 0, wordsBottom: 0 }
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
     const started = performance.now()
     let frame = 0
@@ -47,18 +50,7 @@ export function HomeBanner({ date }: { date: string }): ReactElement {
     const draw = (): void => {
       if (raster === undefined) return
       const time = reduced.matches ? STILL : (performance.now() - started) / 1000
-      drawField(
-        raster,
-        {
-          width: box.clientWidth,
-          height: box.clientHeight,
-          wordsTop: foot.offsetTop,
-          wordsBottom: foot.offsetTop + foot.offsetHeight,
-          seed: 31
-        },
-        sprites,
-        time
-      )
+      drawField(raster, { ...place, seed: 31 }, sprites, time)
       context.putImageData(raster.image, 0, 0)
     }
 
@@ -66,9 +58,17 @@ export function HomeBanner({ date }: { date: string }): ReactElement {
       const ratio = window.devicePixelRatio || 1
       // A window dragged to a screen of another density wants its glyphs redrawn.
       if (sprites.ratio !== ratio) sprites = glyphSprites(GLYPHS, inks, ratio)
-      surface.width = Math.round(box.clientWidth * ratio)
-      surface.height = Math.round(box.clientHeight * ratio)
-      // A card with no size, as in a hidden pane, has no pixels to hold.
+      const area = surface.getBoundingClientRect()
+      const text = foot.getBoundingClientRect()
+      place = {
+        width: surface.clientWidth,
+        height: surface.clientHeight,
+        wordsTop: text.top - area.top,
+        wordsBottom: text.bottom - area.top
+      }
+      surface.width = Math.round(place.width * ratio)
+      surface.height = Math.round(place.height * ratio)
+      // A header with no size, as in a hidden pane, has no pixels to hold.
       const image =
         surface.width > 0 && surface.height > 0
           ? context.createImageData(surface.width, surface.height)
@@ -90,8 +90,10 @@ export function HomeBanner({ date }: { date: string }): ReactElement {
       interval = Math.max(1000 / FRAMES_PER_SECOND, (performance.now() - before) / BUSY)
     }
 
+    // The words as well: a face arriving moves them without resizing the canvas.
     const resizer = new ResizeObserver(fit)
-    resizer.observe(box)
+    resizer.observe(surface)
+    resizer.observe(foot)
     fit()
     frame = window.requestAnimationFrame(loop)
     return () => {
@@ -101,7 +103,7 @@ export function HomeBanner({ date }: { date: string }): ReactElement {
   }, [mode])
 
   return (
-    <header ref={card} className="home-banner">
+    <header ref={header} className="home-banner">
       <canvas ref={canvas} className="home-banner-field" aria-hidden="true" />
       <div ref={words} className="home-banner-words">
         <h1 className="home-banner-title">Home</h1>
@@ -116,10 +118,10 @@ export function HomeBanner({ date }: { date: string }): ReactElement {
  * hidden probe. A color-mix() comes back as color(srgb r g b), which is
  * turned into rgba() as the site does, for a canvas that will not take it.
  */
-function ink(card: HTMLElement, property: string): string {
+function ink(element: HTMLElement, property: string): string {
   const probe = document.createElement('span')
   probe.style.cssText = `position:absolute;visibility:hidden;color:var(${property})`
-  card.append(probe)
+  element.append(probe)
   const colour = getComputedStyle(probe).color
   probe.remove()
 

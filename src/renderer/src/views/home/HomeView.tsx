@@ -1,4 +1,5 @@
-import type { ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
+import { Dialog } from '../../components/Dialog/Dialog'
 import {
   BlockchainIcon,
   CubeIcon,
@@ -8,6 +9,7 @@ import {
   type IconProps
 } from '../../icons/generated'
 import { GUIDES, QUICKSTART, formatHomeDate } from './homeContent'
+import { GuideFigure } from './GuideFigure'
 import { HomeBanner } from './HomeBanner'
 import { ReleaseList, type ReleaseListProps } from './ReleaseList'
 import { RecentActivity, type Activity } from './RecentActivity'
@@ -50,46 +52,59 @@ export function HomeView({
   running,
   engineChangelog
 }: HomeViewProps): ReactElement {
+  const [changelogOpen, setChangelogOpen] = useState(false)
+
   return (
     <div className="home">
       <HomeBanner date={formatHomeDate(today)} />
 
+      {/*
+       * Recent Activity on the left; Quickstart above a short Changelog on
+       * the right (Karan, 2026-10-19), the whole changelog in a pop-up.
+       */}
       <div className="home-band">
         <div className="home-main">
-          <section className="home-section">
-            <h2 className="type-section-label home-label">Quickstart</h2>
-            <ul className="home-quickstart">
-              {QUICKSTART.filter((action) => pageShips(action.page)).map((action) => {
-                const Glyph = GLYPHS[action.icon]
-                return (
-                  <li key={action.id}>
-                    <button
-                      type="button"
-                      className="home-quickstart-item"
-                      onClick={() => {
-                        onQuickstart(action.page, action.tab)
-                      }}
-                    >
-                      {Glyph !== undefined && <Glyph size={16} aria-hidden="true" />}
-                      <span>{action.label}</span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-
           <RecentActivity
             activity={activity}
             {...(onOpenActivity === undefined ? {} : { onOpen: onOpenActivity })}
           />
         </div>
 
-        <section className="home-section home-changelog">
-          <h2 className="type-section-label home-label">Changelog</h2>
-          <ReleaseList running={running ?? {}} engine={engineChangelog} />
-        </section>
+        <div className="home-side">
+          <Quickstart onQuickstart={onQuickstart} />
+          <section className="home-section home-changelog">
+            <h2 className="type-section-label home-label">Changelog</h2>
+            <ReleaseList
+              running={running ?? {}}
+              engine={engineChangelog}
+              fit
+              footer={
+                <button
+                  type="button"
+                  className="home-changelog-more"
+                  onClick={() => {
+                    setChangelogOpen(true)
+                  }}
+                >
+                  Full changelog
+                </button>
+              }
+            />
+          </section>
+        </div>
       </div>
+
+      {changelogOpen && (
+        <Dialog
+          title="Changelog"
+          width={640}
+          onClose={() => {
+            setChangelogOpen(false)
+          }}
+        >
+          <ReleaseList running={running ?? {}} engine={engineChangelog} />
+        </Dialog>
+      )}
 
       <section className="home-section home-guides">
         <h2 className="type-section-label home-label">Guides</h2>
@@ -98,10 +113,42 @@ export function HomeView({
             <article key={guide.title} className="home-guide-card">
               <p className="home-guide-title">{guide.title}</p>
               <p className="home-guide-subtitle">{guide.subtitle}</p>
+              <GuideFigure kind={guide.figure} />
             </article>
           ))}
         </div>
       </section>
     </div>
+  )
+}
+
+function Quickstart({
+  onQuickstart
+}: {
+  onQuickstart: (page: string, tab: string) => void
+}): ReactElement {
+  return (
+    <section className="home-section">
+      <h2 className="type-section-label home-label">Quickstart</h2>
+      <ul className="home-quickstart">
+        {QUICKSTART.filter((action) => pageShips(action.page)).map((action) => {
+          const Glyph = GLYPHS[action.icon]
+          return (
+            <li key={action.id}>
+              <button
+                type="button"
+                className="home-quickstart-item"
+                onClick={() => {
+                  onQuickstart(action.page, action.tab)
+                }}
+              >
+                {Glyph !== undefined && <Glyph size={16} aria-hidden="true" />}
+                <span>{action.label}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }

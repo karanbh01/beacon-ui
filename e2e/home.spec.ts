@@ -1,3 +1,4 @@
+import type { Locator, Page } from '@playwright/test'
 import { expect, test } from './fixtures'
 
 /**
@@ -8,8 +9,16 @@ import { expect, test } from './fixtures'
  * build time. The stub reports a release the bundled copy has never heard
  * of, so finding it proves which source the list read.
  */
+/** Home shows the newest few releases; the whole list is in a pop-up. */
+async function fullChangelog(window: Page): Promise<Locator> {
+  await window.getByRole('button', { name: 'Full changelog' }).click()
+  return window.getByRole('dialog', { name: 'Changelog' })
+}
+
 test('lists the connected engine’s own releases, and marks it current', async ({ window }) => {
-  const entry = window.locator('.home-changelog-entry', { hasText: 'v0.0.2' })
+  const entry = (await fullChangelog(window)).locator('.home-changelog-entry', {
+    hasText: 'v0.0.2'
+  })
 
   await expect(entry).toContainText('py-beacon')
   await expect(entry).toContainText('The engine these tests run against.')
@@ -18,7 +27,9 @@ test('lists the connected engine’s own releases, and marks it current', async 
 })
 
 test('opens a release to its notes', async ({ window }) => {
-  const entry = window.locator('.home-changelog-entry', { hasText: 'v0.0.2' })
+  const entry = (await fullChangelog(window)).locator('.home-changelog-entry', {
+    hasText: 'v0.0.2'
+  })
   await entry.locator('summary').click()
 
   await expect(entry).toContainText('Every route the app calls.')
