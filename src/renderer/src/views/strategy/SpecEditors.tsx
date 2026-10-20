@@ -2,7 +2,6 @@ import { useState, type ReactElement, type ReactNode } from 'react'
 import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
 import { Select } from '../../components/Select/Select'
-import { ParamField } from '../index-definition/ParamField'
 import {
   fieldValue,
   orderedParameters,
@@ -10,6 +9,7 @@ import {
   type ParameterSpec,
   type TypeSpec
 } from '../index-definition/ruleCatalogue'
+import { StrategyParamField } from './params/StrategyParamField'
 import type { TypedSpec } from './strategyDraft'
 import '../index-definition/RuleEditor.css'
 
@@ -24,13 +24,16 @@ export function TypedEditor({
   catalogue,
   spec,
   onApply,
-  onCancel
+  onCancel,
+  children
 }: {
   label: string
   catalogue: readonly TypeSpec[]
   spec: TypedSpec | null | undefined
   onApply: (next: TypedSpec) => void
   onCancel: () => void
+  /** Fields of the caller's own before the type, such as a factor's name. */
+  children?: ReactNode
 }): ReactElement {
   const [type, setType] = useState(spec?.type ?? '')
   // What has been typed, by setting; a new type starts from its own defaults.
@@ -53,6 +56,7 @@ export function TypedEditor({
   return (
     <div className="rule-editor">
       <div className="rule-editor-fields">
+        {children}
         <Field label={label} width={220}>
           <Select
             label={label}
@@ -66,10 +70,11 @@ export function TypedEditor({
           />
         </Field>
         {parameters.map((param) => (
-          <ParamField
+          <StrategyParamField
             key={`${type}.${param.name}`}
             param={param}
             value={current(param)}
+            siblings={Object.fromEntries(parameters.map((other) => [other.name, current(other)]))}
             onChange={(next) => {
               setEdited((all) => ({ ...all, [param.name]: next }))
             }}

@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react'
-import { ParamField } from '../index-definition/ParamField'
 import { parseValue, type ParameterSpec } from '../index-definition/ruleCatalogue'
+import { StrategyParamField } from './params/StrategyParamField'
 
 /** A value as a field shows it; unset shows the catalogue's default. */
 function display(param: ParameterSpec, value: unknown): string {
@@ -32,7 +32,7 @@ export function BoundField({
     JSON.stringify(parseValue(param, text)) === JSON.stringify(value ?? null) ||
     (value === undefined && text === display(param, undefined))
   return (
-    <ParamField
+    <StrategyParamField
       param={param}
       value={agrees ? text : display(param, value)}
       onChange={(raw) => {

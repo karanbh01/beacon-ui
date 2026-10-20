@@ -391,6 +391,23 @@ export function useFieldCatalogue() {
 }
 
 /**
+ * Every value a reference column holds, current or not, sorted (BN-330):
+ * what an exclusion screen's sector and region pickers offer.
+ */
+export function useReferenceValues(column: string) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: keys.data.referenceValues(column),
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/data/reference-values', { query: { column }, signal })
+    },
+    enabled: client !== null && column !== ''
+  })
+}
+
+/**
  * The running engine's release history, from its own wheel (py-beacon 0.3.0).
  *
  * What the home page lists for py-beacon once connected, so the list is of

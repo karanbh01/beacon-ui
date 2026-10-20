@@ -3,6 +3,7 @@ import {
   type ParameterSpec,
   type TypeSpec
 } from '../index-definition/ruleCatalogue'
+import { describeStructured } from './params/paramValues'
 import type { TypedSpec } from './strategyDraft'
 
 /**
@@ -23,6 +24,11 @@ export function summariseValues(
   const parts = parameters.flatMap((param) => {
     const value = values[param.name]
     if (value === undefined || value === null || value === '') return []
+    // A list or a table in a few words, rather than its JSON.
+    if (param.ref != null) {
+      const said = describeStructured(param, value)
+      return said === undefined ? [] : [said]
+    }
     return [`${param.label} ${shown(value)}`]
   })
   return parts.length === 0 ? 'Engine defaults' : parts.join(' · ')

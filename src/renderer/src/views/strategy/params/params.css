@@ -1,0 +1,105 @@
+/*
+ * Structured strategy settings (BN-330). On the editor's ground, with no
+ * card behind them: tickers in a line, a lines table for a number per name,
+ * and typed rows as the methodology draws them.
+ */
+
+/* Tickers, each with its own ×. */
+.param-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.param-name {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.param-remove {
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.param-remove:hover {
+  color: var(--danger);
+}
+
+.param-remove:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* The ticker search, at a field's width rather than the query bar's. */
+.param-search {
+  width: 240px;
+}
+
+/* A number per name, in py-beacon's lines style: rules under the head and the last row. */
+.param-table {
+  width: max-content;
+  min-width: 280px;
+  border-collapse: collapse;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.param-table th {
+  padding: 2px 12px 4px 0;
+  font-weight: 400;
+  text-align: left;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--text-secondary);
+}
+
+.param-table td {
+  padding: 3px 12px 3px 0;
+}
+
+.param-table tbody tr:last-child td {
+  border-bottom: 1px solid var(--text-secondary);
+}
+
+/* The number column holds an input, as wide as a figure needs. */
+.param-table td:nth-child(2) {
+  width: 96px;
+}
+
+.param-table td:nth-child(2) .param-field-input {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.param-table .param-field-input::placeholder {
+  color: var(--text-muted);
+}
+
+.param-total,
+.param-note {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--text-secondary);
+}
+
+/* Typed rows inside a setting: the methodology's rows, under the label. */
+.param-rows {
+  width: 100%;
+  max-width: 720px;
+  border-top: 1px solid var(--divider);
+}

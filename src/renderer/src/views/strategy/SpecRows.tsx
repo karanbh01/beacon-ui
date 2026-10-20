@@ -39,14 +39,27 @@ export function SpecRows({
   title: string
   groups: readonly SpecGroup[]
 }): ReactElement {
+  return (
+    <Card title={title} flush className="strategy-rows">
+      <SpecRowList groups={groups} />
+    </Card>
+  )
+}
+
+/**
+ * The rows alone, for a list inside a setting, such as an optimised
+ * replication's constraints (BN-330): the same rows, under no card. A group
+ * with no label gets no heading.
+ */
+export function SpecRowList({ groups }: { groups: readonly SpecGroup[] }): ReactElement {
   const [open, setOpen] = useState<string | undefined>(undefined)
   const all = groups.flatMap((group) => group.rows)
 
   return (
-    <Card title={title} flush className="strategy-rows">
+    <>
       {groups.map((group) => (
         <Fragment key={group.key}>
-          <h4 className="methodology-group">{group.label}</h4>
+          {group.label !== '' && <h4 className="methodology-group">{group.label}</h4>}
           {group.rows.map((row) => (
             <Fragment key={row.id}>
               <Row
@@ -75,7 +88,7 @@ export function SpecRows({
           )}
         </Fragment>
       ))}
-    </Card>
+    </>
   )
 }
 

@@ -1957,6 +1957,25 @@ function body(url: URL): unknown {
     }
   }
 
+  // Every value one column holds, for a screen's sector and region pickers
+  // (py-beacon 0.9.3, BN-330). The column is matched without regard to case;
+  // an unknown one is a 404, as the engine answers it.
+  if (path === '/data/reference-values') {
+    const asked = url.searchParams.get('column') ?? ''
+    const column = asked.toUpperCase()
+    if (!REFERENCE_COLUMNS.includes(column)) {
+      return refuse(404, 'NOT_FOUND', `No reference column ${asked}`)
+    }
+    const held = IDENTIFIERS.map(
+      (identifier, position) =>
+        (
+          referenceEntry(identifier, seedOf(identifier, position)).fields as Record<string, unknown>
+        )[column.toLowerCase()]
+    )
+    const values = [...new Set(held.filter((value) => typeof value === 'string'))].sort()
+    return { column, values }
+  }
+
   if (path === '/data/reference') {
     const wanted = url.searchParams.getAll('identifiers').flatMap((value) => value.split(','))
     const ids = wanted.length > 0 ? wanted : IDENTIFIERS

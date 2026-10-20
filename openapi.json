@@ -728,6 +728,14 @@
             "title": "Pricing",
             "type": "array"
           },
+          "replication_constraints": {
+            "description": "For `OptimisedReplication.constraints`: the optimiser's constraints, the same catalogue `GET /optimise/constraint-types` serves.",
+            "items": {
+              "$ref": "#/components/schemas/TypeSpec"
+            },
+            "title": "Replication Constraints",
+            "type": "array"
+          },
           "replications": {
             "description": "For `strategy.replication`.",
             "items": {
@@ -786,6 +794,7 @@
           "replications",
           "signals",
           "constructions",
+          "replication_constraints",
           "active_constraints",
           "presets",
           "vehicle_settings",
@@ -2104,6 +2113,14 @@
         "title": "ConstraintRow",
         "type": "object"
       },
+      "ConstraintRows": {
+        "description": "Optimiser constraints, one row each. The parameter's `options` names the\nfamily whose types the rows take.",
+        "items": {
+          "$ref": "#/components/schemas/ConstraintRow"
+        },
+        "title": "ConstraintRows",
+        "type": "array"
+      },
       "ConstraintSet": {
         "description": "A named list of constraints.",
         "properties": {
@@ -2346,6 +2363,14 @@
           "identifier"
         ],
         "title": "CorporateActionsResponse",
+        "type": "object"
+      },
+      "CountryRates": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "description": "A rate for each two-letter country code, such as {\"US\": 0.15}, as a\nfraction.",
+        "title": "CountryRates",
         "type": "object"
       },
       "CoverageResponse": {
@@ -2850,6 +2875,17 @@
         "title": "DatasetCoverage",
         "type": "object"
       },
+      "DatedAmounts": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "description": "An amount for each date (YYYY-MM-DD), in the book's currency, positive\nin and negative out.",
+        "propertyNames": {
+          "format": "date"
+        },
+        "title": "DatedAmounts",
+        "type": "object"
+      },
       "DeletedIndex": {
         "description": "One index a delete removed, and what went with it.",
         "properties": {
@@ -3098,6 +3134,22 @@
           "exposure"
         ],
         "title": "FactorExposure",
+        "type": "object"
+      },
+      "FactorSignals": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/TypedSpec"
+        },
+        "description": "Each factor by a name of your choosing, as a signal whose scores are the\nnames' exposures to it. The parameter's `options` names the family the\nsignals' types come from.",
+        "title": "FactorSignals",
+        "type": "object"
+      },
+      "FactorTargets": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "description": "A target active exposure, in scores, for each factor named in the\nconstruction's `factors`. A factor with no target is aimed at zero.",
+        "title": "FactorTargets",
         "type": "object"
       },
       "FeatureBatchEntry": {
@@ -4681,6 +4733,14 @@
         "title": "HoldingsView",
         "type": "object"
       },
+      "IdentifierList": {
+        "description": "Instrument identifiers, such as those `GET /data/identifiers` finds.",
+        "items": {
+          "type": "string"
+        },
+        "title": "IdentifierList",
+        "type": "array"
+      },
       "IdentifierMatch": {
         "description": "One identifier a search or enumeration returned.",
         "properties": {
@@ -4770,6 +4830,14 @@
           }
         },
         "title": "IdentifierSearchResponse",
+        "type": "object"
+      },
+      "IdentifierValues": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "description": "A number for each identifier. The parameter's `help` says what the\nnumbers are, and whether they are scaled to add up to one.",
+        "title": "IdentifierValues",
         "type": "object"
       },
       "ImplementationSpec": {
@@ -6035,6 +6103,18 @@
             "description": "The accepted values, when this is a closed set. Null means any value of `type` is allowed.",
             "title": "Choices"
           },
+          "column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a list of reference values, the reference column they are values of, such as 'SECTOR'; `GET /data/reference-values` lists what it holds. Null otherwise.",
+            "title": "Column"
+          },
           "default": {
             "description": "Value used when omitted. Null both for 'no default' and for a default of None; `required` distinguishes them.",
             "title": "Default"
@@ -6084,6 +6164,18 @@
             "description": "Parameter name, as it must appear in `params`.",
             "title": "Name",
             "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a parameter whose entries are themselves configurable types, the family in `GET /backtest/options` their types come from, such as 'signals'. Null otherwise.",
+            "title": "Options"
           },
           "order": {
             "description": "Position in the form, ascending.",
@@ -7234,6 +7326,38 @@
           "fields"
         ],
         "title": "ReferenceResponse",
+        "type": "object"
+      },
+      "ReferenceValueList": {
+        "description": "Values of one reference column, matched exactly. The parameter's `column`\nnames the column, and `GET /data/reference-values` lists what it holds.",
+        "items": {
+          "type": "string"
+        },
+        "title": "ReferenceValueList",
+        "type": "array"
+      },
+      "ReferenceValues": {
+        "description": "Response of `GET /data/reference-values`.",
+        "properties": {
+          "column": {
+            "description": "The column, as the reference data names it.",
+            "title": "Column",
+            "type": "string"
+          },
+          "values": {
+            "description": "Every value it holds in any record, current or not, sorted. A screen matches them exactly.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "column",
+          "values"
+        ],
+        "title": "ReferenceValues",
         "type": "object"
       },
       "ReferenceWindow": {
@@ -9948,6 +10072,14 @@
         ],
         "title": "TypedSpec",
         "type": "object"
+      },
+      "TypedSpecs": {
+        "description": "Configurable objects, each a type and its parameters. The parameter's\n`options` names the family their types come from.",
+        "items": {
+          "$ref": "#/components/schemas/TypedSpec"
+        },
+        "title": "TypedSpecs",
+        "type": "array"
       },
       "UnfilledOrderPayload": {
         "description": "An order the simulation could not execute in full.",
@@ -12707,6 +12839,122 @@
           }
         },
         "summary": "Reference Batch",
+        "tags": [
+          "data"
+        ]
+      }
+    },
+    "/data/reference-values": {
+      "get": {
+        "description": "The values one reference column holds.",
+        "operationId": "reference_values_data_reference_values_get",
+        "parameters": [
+          {
+            "description": "The reference column, such as 'SECTOR'. Matched without regard to case.",
+            "in": "query",
+            "name": "column",
+            "required": true,
+            "schema": {
+              "description": "The reference column, such as 'SECTOR'. Matched without regard to case.",
+              "minLength": 1,
+              "title": "Column",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceValues"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Reference Values",
         "tags": [
           "data"
         ]

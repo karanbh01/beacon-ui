@@ -88,9 +88,15 @@
   background: var(--sidebar-active-bg);
 }
 
-/* The tick follows the theme rather than the platform's blue. */
-.check-select-option input {
+/*
+ * The tick follows the theme rather than the platform's blue. Its own size
+ * too, against the field box's `input { width: 100% }`: inside a Field the
+ * tick took the whole row and pushed its value out of sight.
+ */
+.check-select-option input[type='checkbox'] {
   flex: none;
+  width: auto;
+  margin: 0;
   accent-color: var(--accent);
 }
 

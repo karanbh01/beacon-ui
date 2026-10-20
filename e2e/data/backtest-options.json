@@ -18,7 +18,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "IdentifierList",
+     "column": null,
+     "options": null
     },
     {
      "name": "sectors",
@@ -33,7 +35,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "ReferenceValueList",
+     "column": "SECTOR",
+     "options": null
     },
     {
      "name": "regions",
@@ -48,7 +52,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "ReferenceValueList",
+     "column": "REGION",
+     "options": null
     }
    ],
    "slack_unit": null
@@ -71,7 +77,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "ExpressionNode",
+     "column": null,
+     "options": null
     },
     {
      "name": "on_missing",
@@ -86,7 +94,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -109,7 +119,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "min_volume",
@@ -124,7 +136,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "exit",
@@ -139,7 +153,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "lookback_days",
@@ -154,7 +170,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "on_missing",
@@ -169,7 +187,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -192,7 +212,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -215,7 +237,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "exit",
@@ -230,7 +254,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "float_adjusted",
@@ -245,7 +271,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "on_missing",
@@ -260,7 +288,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -283,7 +313,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "exit",
@@ -298,7 +330,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "on_missing",
@@ -313,7 +347,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -338,7 +374,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "participation",
@@ -353,7 +391,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "lookback_days",
@@ -368,7 +408,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -391,7 +433,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "free_float",
@@ -406,7 +450,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -429,7 +475,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -446,15 +494,17 @@
      "type": "json",
      "required": true,
      "default": null,
-     "label": "Amounts",
+     "label": "Amounts by date",
      "order": 0,
      "choices": null,
      "help": null,
-     "unit": null,
+     "unit": "money",
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "DatedAmounts",
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -477,7 +527,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "base",
@@ -492,7 +544,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "lookback_days",
@@ -507,7 +561,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "frequency",
@@ -528,7 +584,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -551,7 +609,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "fraction",
@@ -566,7 +626,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "frequency",
@@ -587,7 +649,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -610,7 +674,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "volatility",
@@ -625,7 +691,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "frequency",
@@ -646,7 +714,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "seed",
@@ -661,7 +731,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -686,7 +758,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "threshold",
@@ -701,7 +775,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "on",
@@ -720,7 +796,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -743,7 +821,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "bid_bps",
@@ -758,7 +838,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -788,7 +870,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "threshold",
@@ -803,7 +887,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -835,7 +921,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -867,7 +955,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "roll_cost_bps",
@@ -882,7 +972,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "dividend_yield",
@@ -897,7 +989,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -920,7 +1014,9 @@
      "minimum": 1.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "constraints",
@@ -935,7 +1031,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "ConstraintRows",
+     "column": null,
+     "options": "replication_constraints"
     },
     {
      "name": "lookback_days",
@@ -950,7 +1048,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "minimum_observations",
@@ -965,7 +1065,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -988,7 +1090,9 @@
      "minimum": 1.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "size_buckets",
@@ -1003,7 +1107,9 @@
      "minimum": 1.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "scheme",
@@ -1018,7 +1124,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1041,7 +1149,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "IdentifierValues",
+     "column": null,
+     "options": null
     },
     {
      "name": "spread_bps",
@@ -1056,7 +1166,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "exposure_limit",
@@ -1071,7 +1183,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1096,7 +1210,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "FieldNode",
+     "column": null,
+     "options": null
     },
     {
      "name": "higher_is_better",
@@ -1111,7 +1227,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1134,7 +1252,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "skip_days",
@@ -1149,7 +1269,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1174,7 +1296,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "tau",
@@ -1189,7 +1313,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "alpha_per_score",
@@ -1204,7 +1330,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "confidence",
@@ -1219,7 +1347,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1242,7 +1372,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "FactorSignals",
+     "column": null,
+     "options": "signals"
     },
     {
      "name": "targets",
@@ -1257,7 +1389,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "FactorTargets",
+     "column": null,
+     "options": null
     },
     {
      "name": "strength",
@@ -1272,7 +1406,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1295,7 +1431,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1325,7 +1463,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "alpha_per_score",
@@ -1340,7 +1480,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1363,7 +1505,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "alpha_per_score",
@@ -1378,7 +1522,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1408,7 +1554,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": "IdentifierValues",
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1431,7 +1579,9 @@
      "minimum": 1.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "weighting",
@@ -1449,10 +1599,283 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
+  }
+ ],
+ "replication_constraints": [
+  {
+   "name": "Cardinality",
+   "label": "Cardinality",
+   "summary": "A limit on how many names may be held.",
+   "parameters": [
+    {
+     "name": "maximum",
+     "type": "integer",
+     "required": true,
+     "default": null,
+     "label": "Maximum holdings",
+     "order": 1,
+     "choices": null,
+     "help": "Not convex: solved by a heuristic, so the result is not provably optimal.",
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    }
+   ],
+   "slack_unit": "count"
+  },
+  {
+   "name": "ExpectedReturnTarget",
+   "label": "Expected return target",
+   "summary": "The portfolio must be expected to return exactly this much.",
+   "parameters": [
+    {
+     "name": "expected_returns",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Expected returns",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": "IdentifierValues",
+     "column": null,
+     "options": null
+    },
+    {
+     "name": "target",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Target return",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    }
+   ],
+   "slack_unit": "fraction"
+  },
+  {
+   "name": "FullInvestment",
+   "label": "Full investment",
+   "summary": "The weights must sum to a fixed total, normally one.",
+   "parameters": [
+    {
+     "name": "target",
+     "type": "number",
+     "required": false,
+     "default": 1.0,
+     "label": "Total weight",
+     "order": 1,
+     "choices": null,
+     "help": "Normally 1.0 for a fully invested book.",
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    }
+   ],
+   "slack_unit": "fraction"
+  },
+  {
+   "name": "GroupBounds",
+   "label": "Group bounds",
+   "summary": "Limits on the combined weight of a set of names.",
+   "parameters": [
+    {
+     "name": "name",
+     "type": "string",
+     "required": true,
+     "default": null,
+     "label": "Group name",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    },
+    {
+     "name": "members",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Members",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": "IdentifierList",
+     "column": null,
+     "options": null
+    },
+    {
+     "name": "minimum",
+     "type": "number",
+     "required": false,
+     "default": 0.0,
+     "label": "Minimum combined weight",
+     "order": 3,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    },
+    {
+     "name": "maximum",
+     "type": "number",
+     "required": false,
+     "default": 1.0,
+     "label": "Maximum combined weight",
+     "order": 4,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    }
+   ],
+   "slack_unit": "fraction"
+  },
+  {
+   "name": "PositionBounds",
+   "label": "Position bounds",
+   "summary": "Lower and upper limits on individual weights.",
+   "parameters": [
+    {
+     "name": "minimum",
+     "type": "number",
+     "required": false,
+     "default": 0.0,
+     "label": "Minimum weight",
+     "order": 1,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    },
+    {
+     "name": "maximum",
+     "type": "number",
+     "required": false,
+     "default": 1.0,
+     "label": "Maximum weight",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    },
+    {
+     "name": "assets",
+     "type": "json",
+     "required": false,
+     "default": null,
+     "label": "Applies to",
+     "order": 3,
+     "choices": null,
+     "help": "Names the bounds apply to. Blank for all.",
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": "IdentifierList",
+     "column": null,
+     "options": null
+    }
+   ],
+   "slack_unit": "fraction"
+  },
+  {
+   "name": "TurnoverBudget",
+   "label": "Turnover budget",
+   "summary": "A limit on how far the solution may move from the current holdings.",
+   "parameters": [
+    {
+     "name": "maximum",
+     "type": "number",
+     "required": true,
+     "default": null,
+     "label": "Maximum one-way turnover",
+     "order": 1,
+     "choices": null,
+     "help": "Half the sum of absolute weight changes.",
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": null,
+     "column": null,
+     "options": null
+    },
+    {
+     "name": "current_weights",
+     "type": "json",
+     "required": true,
+     "default": null,
+     "label": "Current holdings",
+     "order": 2,
+     "choices": null,
+     "help": null,
+     "unit": null,
+     "minimum": null,
+     "maximum": null,
+     "applies_to": null,
+     "ref": "IdentifierValues",
+     "column": null,
+     "options": null
+    }
+   ],
+   "slack_unit": "fraction"
   }
  ],
  "active_constraints": [
@@ -1474,7 +1897,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "maximum",
@@ -1489,7 +1914,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1512,7 +1939,9 @@
      "minimum": 1.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1535,7 +1964,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1558,7 +1989,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     },
     {
      "name": "scheme",
@@ -1573,7 +2006,9 @@
      "minimum": null,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1596,7 +2031,9 @@
      "minimum": 0.0,
      "maximum": null,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1619,7 +2056,9 @@
      "minimum": 0.0,
      "maximum": 1.0,
      "applies_to": null,
-     "ref": null
+     "ref": null,
+     "column": null,
+     "options": null
     }
    ],
    "slack_unit": null
@@ -1844,7 +2283,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "launch_price",
@@ -1859,7 +2300,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "pricing",
@@ -1874,7 +2317,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": "TypedSpec",
+   "column": null,
+   "options": "pricing"
   },
   {
    "name": "limits",
@@ -1889,7 +2334,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": "TypedSpecs",
+   "column": null,
+   "options": "limits"
   },
   {
    "name": "name",
@@ -1904,7 +2351,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "domicile",
@@ -1919,7 +2368,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "withholding_rates",
@@ -1934,7 +2385,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": "CountryRates",
+   "column": null,
+   "options": null
   },
   {
    "name": "creation_unit",
@@ -1951,7 +2404,9 @@
    "applies_to": [
     "exchange_traded"
    ],
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "in_kind",
@@ -1968,7 +2423,9 @@
    "applies_to": [
     "exchange_traded"
    ],
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "ap_fee",
@@ -1985,7 +2442,9 @@
    "applies_to": [
     "exchange_traded"
    ],
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "creation_fee_bps",
@@ -2002,7 +2461,9 @@
    "applies_to": [
     "exchange_traded"
    ],
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "market",
@@ -2019,7 +2480,9 @@
    "applies_to": [
     "exchange_traded"
    ],
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   }
  ],
  "market_settings": [
@@ -2036,7 +2499,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "basket_sensitivity",
@@ -2051,7 +2516,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "volatility_sensitivity",
@@ -2066,7 +2533,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "tick",
@@ -2081,7 +2550,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "persistence",
@@ -2096,7 +2567,9 @@
    "minimum": 0.0,
    "maximum": 1.0,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "flow_sensitivity",
@@ -2111,7 +2584,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "return_sensitivity",
@@ -2126,7 +2601,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "noise_bps",
@@ -2141,7 +2618,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "volatility_days",
@@ -2156,7 +2635,9 @@
    "minimum": 2.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "seed",
@@ -2171,7 +2652,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   }
  ],
  "implementation_settings": [
@@ -2188,7 +2671,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "minimum_position.weight",
@@ -2203,7 +2688,9 @@
    "minimum": 0.0,
    "maximum": 1.0,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "impact.coefficient",
@@ -2218,7 +2705,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "impact.lookback_days",
@@ -2233,7 +2722,9 @@
    "minimum": 1.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "execution.participation",
@@ -2248,7 +2739,9 @@
    "minimum": 0.0,
    "maximum": 1.0,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "execution.days",
@@ -2263,7 +2756,9 @@
    "minimum": 1.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "execution.lookback_days",
@@ -2278,7 +2773,9 @@
    "minimum": 1.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "equitise.roll_days",
@@ -2293,7 +2790,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "equitise.roll_cost_bps",
@@ -2308,7 +2807,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "equitise.dividend_yield",
@@ -2323,7 +2824,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "redistribution",
@@ -2341,7 +2844,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "cash_buffer",
@@ -2356,7 +2861,9 @@
    "minimum": 0.0,
    "maximum": 1.0,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "invest_flows",
@@ -2374,7 +2881,171 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
+  }
+ ],
+ "run_settings": [
+  {
+   "name": "start",
+   "type": "date",
+   "required": false,
+   "default": null,
+   "label": "Start",
+   "order": 0,
+   "choices": null,
+   "help": "Leave blank to start at the index's base date.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
+   "name": "end",
+   "type": "date",
+   "required": false,
+   "default": null,
+   "label": "End",
+   "order": 1,
+   "choices": null,
+   "help": "Leave blank to run to the last date the data covers.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
+   "name": "initial_capital",
+   "type": "number",
+   "required": false,
+   "default": 1000000.0,
+   "label": "Initial capital",
+   "order": 2,
+   "choices": null,
+   "help": "With share classes, give it by class name, each in its class's currency.",
+   "unit": "money",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
+   "name": "transaction_cost_bps",
+   "type": "number",
+   "required": false,
+   "default": 0.0,
+   "label": "Trading cost",
+   "order": 3,
+   "choices": null,
+   "help": "Per trade, on its notional.",
+   "unit": "bps",
+   "minimum": 0.0,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
+   "name": "currency",
+   "type": "string",
+   "required": false,
+   "default": null,
+   "label": "Book currency",
+   "order": 4,
+   "choices": null,
+   "help": "A three-letter code, such as 'EUR'. Leave blank for the index's.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
+   "name": "dividends",
+   "type": "string",
+   "required": false,
+   "default": "reinvest",
+   "label": "Dividends",
+   "order": 5,
+   "choices": [
+    "reinvest",
+    "cash",
+    "distribute"
+   ],
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
+   "name": "benchmark.kind",
+   "type": "string",
+   "required": false,
+   "default": null,
+   "label": "Benchmark",
+   "order": 6,
+   "choices": [
+    "index",
+    "identifier"
+   ],
+   "help": "A stored index, or a series in the market data. Leave blank for none.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
+   "name": "benchmark.id",
+   "type": "string",
+   "required": false,
+   "default": null,
+   "label": "Benchmark id",
+   "order": 7,
+   "choices": null,
+   "help": null,
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
+   "name": "benchmark.price_column",
+   "type": "string",
+   "required": false,
+   "default": "CLOSE",
+   "label": "Benchmark column",
+   "order": 8,
+   "choices": null,
+   "help": "The market-data column read for an identifier benchmark.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
   }
  ],
  "share_class_settings": [
@@ -2391,7 +3062,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "management_fee_bps",
@@ -2406,7 +3079,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "distribution",
@@ -2424,7 +3099,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "currency",
@@ -2439,7 +3116,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "hedged",
@@ -2454,7 +3133,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "hedge_ratio",
@@ -2469,7 +3150,9 @@
    "minimum": 0.0,
    "maximum": 2.0,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "hedge_band",
@@ -2484,7 +3167,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   }
  ],
  "modelling_assumptions": [
@@ -2504,7 +3189,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "max_price_staleness_days",
@@ -2519,7 +3206,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "free_float_backfill_days",
@@ -2534,7 +3223,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "cash_rate",
@@ -2549,7 +3240,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "risk_free_rate",
@@ -2564,7 +3257,9 @@
    "minimum": null,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "periods_per_year",
@@ -2579,7 +3274,9 @@
    "minimum": 1.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "withholding_tax_rate",
@@ -2594,7 +3291,9 @@
    "minimum": 0.0,
    "maximum": 1.0,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   },
   {
    "name": "volume_backfill_days",
@@ -2609,7 +3308,9 @@
    "minimum": 0.0,
    "maximum": null,
    "applies_to": null,
-   "ref": null
+   "ref": null,
+   "column": null,
+   "options": null
   }
  ],
  "choices": {

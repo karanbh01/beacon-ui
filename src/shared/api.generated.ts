@@ -271,6 +271,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data/reference-values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reference Values
+         * @description The values one reference column holds.
+         */
+        get: operations["reference_values_data_reference_values_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/data/reference/{identifier}": {
         parameters: {
             query?: never;
@@ -1940,6 +1960,11 @@ export interface components {
              */
             pricing: components["schemas"]["TypeSpec"][];
             /**
+             * Replication Constraints
+             * @description For `OptimisedReplication.constraints`: the optimiser's constraints, the same catalogue `GET /optimise/constraint-types` serves.
+             */
+            replication_constraints: components["schemas"]["TypeSpec"][];
+            /**
              * Replications
              * @description For `strategy.replication`.
              */
@@ -2780,6 +2805,12 @@ export interface components {
             type: string;
         };
         /**
+         * ConstraintRows
+         * @description Optimiser constraints, one row each. The parameter's `options` names the
+         *     family whose types the rows take.
+         */
+        ConstraintRows: components["schemas"]["ConstraintRow"][];
+        /**
          * ConstraintSet
          * @description A named list of constraints.
          */
@@ -2928,6 +2959,14 @@ export interface components {
              * @description Trailing dividend over the close on the as-of date. Null when no price is available, since a missing price is a reason to say nothing rather than to guess.
              */
             trailing_dividend_yield?: number | null;
+        };
+        /**
+         * CountryRates
+         * @description A rate for each two-letter country code, such as {"US": 0.15}, as a
+         *     fraction.
+         */
+        CountryRates: {
+            [key: string]: number;
         };
         /**
          * CoverageResponse
@@ -3206,6 +3245,14 @@ export interface components {
             start?: string | null;
         };
         /**
+         * DatedAmounts
+         * @description An amount for each date (YYYY-MM-DD), in the book's currency, positive
+         *     in and negative out.
+         */
+        DatedAmounts: {
+            [key: string]: number;
+        };
+        /**
          * DeletedIndex
          * @description One index a delete removed, and what went with it.
          */
@@ -3358,6 +3405,23 @@ export interface components {
             exposure: number;
             /** Factor */
             factor: string;
+        };
+        /**
+         * FactorSignals
+         * @description Each factor by a name of your choosing, as a signal whose scores are the
+         *     names' exposures to it. The parameter's `options` names the family the
+         *     signals' types come from.
+         */
+        FactorSignals: {
+            [key: string]: components["schemas"]["TypedSpec"];
+        };
+        /**
+         * FactorTargets
+         * @description A target active exposure, in scores, for each factor named in the
+         *     construction's `factors`. A factor with no target is aimed at zero.
+         */
+        FactorTargets: {
+            [key: string]: number;
         };
         /**
          * FeatureBatchEntry
@@ -4265,6 +4329,11 @@ export interface components {
             strategy_id: string;
         };
         /**
+         * IdentifierList
+         * @description Instrument identifiers, such as those `GET /data/identifiers` finds.
+         */
+        IdentifierList: string[];
+        /**
          * IdentifierMatch
          * @description One identifier a search or enumeration returned.
          */
@@ -4327,6 +4396,14 @@ export interface components {
              * @default
              */
             version: string;
+        };
+        /**
+         * IdentifierValues
+         * @description A number for each identifier. The parameter's `help` says what the
+         *     numbers are, and whether they are scaled to add up to one.
+         */
+        IdentifierValues: {
+            [key: string]: number;
         };
         /**
          * ImplementationSpec
@@ -5052,6 +5129,11 @@ export interface components {
              */
             choices?: string[] | null;
             /**
+             * Column
+             * @description For a list of reference values, the reference column they are values of, such as 'SECTOR'; `GET /data/reference-values` lists what it holds. Null otherwise.
+             */
+            column?: string | null;
+            /**
              * Default
              * @description Value used when omitted. Null both for 'no default' and for a default of None; `required` distinguishes them.
              */
@@ -5081,6 +5163,11 @@ export interface components {
              * @description Parameter name, as it must appear in `params`.
              */
             name: string;
+            /**
+             * Options
+             * @description For a parameter whose entries are themselves configurable types, the family in `GET /backtest/options` their types come from, such as 'signals'. Null otherwise.
+             */
+            options?: string | null;
             /**
              * Order
              * @description Position in the form, ascending.
@@ -5811,6 +5898,28 @@ export interface components {
              * @description Universes containing this instrument, so a client can answer 'where is this used?' without reading every universe and searching it.
              */
             universes?: components["schemas"]["UniverseMembership"][];
+        };
+        /**
+         * ReferenceValueList
+         * @description Values of one reference column, matched exactly. The parameter's `column`
+         *     names the column, and `GET /data/reference-values` lists what it holds.
+         */
+        ReferenceValueList: string[];
+        /**
+         * ReferenceValues
+         * @description Response of `GET /data/reference-values`.
+         */
+        ReferenceValues: {
+            /**
+             * Column
+             * @description The column, as the reference data names it.
+             */
+            column: string;
+            /**
+             * Values
+             * @description Every value it holds in any record, current or not, sorted. A screen matches them exactly.
+             */
+            values: string[];
         };
         /**
          * ReferenceWindow
@@ -7463,6 +7572,12 @@ export interface components {
              */
             type: string;
         };
+        /**
+         * TypedSpecs
+         * @description Configurable objects, each a type and its parameters. The parameter's
+         *     `options` names the family their types come from.
+         */
+        TypedSpecs: components["schemas"]["TypedSpec"][];
         /**
          * UnfilledOrderPayload
          * @description An order the simulation could not execute in full.
@@ -9281,6 +9396,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BatchReferenceResponse"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reference_values_data_reference_values_get: {
+        parameters: {
+            query: {
+                /** @description The reference column, such as 'SECTOR'. Matched without regard to case. */
+                column: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceValues"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
