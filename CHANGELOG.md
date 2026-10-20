@@ -6,22 +6,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-20
+
+Strategies: build one in Strategy Builder, backtest it in Beacon View, and read its holdings and figures in py-beacon's own style. py-beacon 0.9.3 inside.
+
+### Added
+
+- Strategy Builder has a Strategy view. Hold an index as defined, track it through a replication, or build an active portfolio from a signal, an optimiser and constraints. Screens, caps, cash, trading and futures are rows you add and open, as an index's methodology is.
+- Settings with a shape of their own are edited in that shape: constraints as rows, a field picker, ticker lists and tables, sector and region ticks, and named factors with their targets.
+- The Backtest tab runs a saved strategy, starting from the settings of its last run, and lists every run when no strategy is chosen.
+- Holdings, which was Weights, shows one day of the strategy's workflow: from the universe through each rule, screen and cap to the fund's weights and shares, with the drift since the last rebalance. Hover a rule's column to see what it does.
+- Portfolio shows the fund's own weights over time, with the index's and the benchmark's beside them.
+- Results tables sort and filter from their column names.
+- Tables of tickers can show reference columns beside them, chosen once for every table or for one table.
+- Empty views draw what is missing: a ticker tape waiting for a symbol, a calendar with no date picked, a drawer, a card index or a shelf with one binder gone.
+
 ### Changed
 
-- The home page's changelog is wider again and sits against the right edge, under the date, instead of floating mid-page on a wide window.
-- The home page's changelog runs down to Guides instead of stopping short.
-- The constituent preview draws its table sooner: it no longer asks the engine for trading volumes it never showed, about a fifth of the wait.
-- While a constituent preview calculates, an animated orb says so.
-- py-beacon 0.8.1 inside. Backtests receive dividends, size their buys net of costs and keep their book in the index's currency, so a backtest's starting capital is asked for in that currency. Exchange rates are read from CLOSE like every other series: a data store saved before py-beacon 0.7.0 can no longer be used, and Manage sources says so and how to fix it, by regenerating or re-importing it.
-- The constituent preview's market caps arrive with the engine's answer, so the table draws in about a second and a half rather than eight on a 4,500-name index.
+- The Overview follows the strategy, and every figure on it is py-beacon's.
+- Charts and tables are drawn in py-beacon's style.
+- The home page opens under drifting Greek glyphs, with Quickstart above a short changelog, the full list a click away, and a small figure on each guide. It fits the window without scrolling.
+- The constituent preview lists the whole starting universe with each name's universe weight, draws its table sooner, narrows with the window before it scrolls, and shows an orb while it calculates.
+- A tab keeps what it was showing when you come back to it.
+- Universe Set and Index Definition have a back button to their lists, and Constituent Preview has its own index search.
+- Data → Data Preferences chooses the unit money amounts read in and the decimal places on large numbers.
 - A new app icon: Beacon's cube logo.
-- The constituent preview table narrows with the window, its long column names wrapping, before it scrolls sideways.
-- A tab keeps what it was showing: a preview you ran, or the definition you had open, is still there when you come back to it.
-- Universe Set shows the orb while it reads a universe at a date.
-- Universe Set and Index Definition have a back button to their lists.
-- Constituent Preview has its own index search, and lists the indices when none is chosen, so it no longer has to be opened from Index Definition.
-- Data → Data Preferences chooses the unit money amounts read in (thousands to trillions, or each value its own) and the decimal places on every large number. Column headers name the unit chosen.
-- Empty views draw what is missing: a ticker tape waiting for a symbol, a calendar with no date picked, a drawer, a card index or a shelf with one binder gone. Universe Set lists a universe's members only as they stood on a date you choose.
+- Backtests receive dividends, size their buys net of costs and keep their book in the index's currency. A data store saved before py-beacon 0.7.0 can no longer be used, and Manage sources says so and how to fix it.
 
 ## [0.1.1] - 2026-10-02
 
