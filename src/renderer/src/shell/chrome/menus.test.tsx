@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WithQueries } from '../../../../test/queries'
 import { LAYOUT_OPTIONS, useChrome } from '../../state/chrome'
 import { useWorkspace } from '../../state/tabs.store'
@@ -233,5 +233,33 @@ describe('the menu bar', () => {
     await userEvent.keyboard('{ArrowDown}')
 
     expect(screen.getByRole('menuitemradio', { name: /Light theme/ })).toHaveFocus()
+  })
+})
+
+describe('Refresh Engine (0.2.2)', () => {
+  it('is offered once the engine has been started, and not before', () => {
+    const analysis = (engineStarted: boolean): MenuItem | undefined =>
+      buildMenus({ ...CONTEXT, engineStarted })
+        .find((menu) => menu.label === 'Analysis')
+        ?.items.find((item) => item.label === 'Refresh Engine')
+
+    expect(analysis(true)?.enabled).toBe(true)
+    expect(analysis(false)?.enabled).toBe(false)
+  })
+
+  it('restarts the engine, whatever state it was left in', async () => {
+    const restart = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('beacon', { ...window.beacon, engine: { ...window.beacon?.engine, restart } })
+    render(
+      <WithQueries>
+        <MenuBar engine="stopped" page="data-explorer" />
+      </WithQueries>
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Analysis' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Refresh Engine' }))
+
+    expect(restart).toHaveBeenCalledTimes(1)
+    vi.unstubAllGlobals()
   })
 })

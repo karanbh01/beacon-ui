@@ -25,6 +25,7 @@ export type MenuAction =
   | 'refresh-data'
   | 'data-preferences'
   | 'holding-columns'
+  | 'refresh-engine'
   | 'open-data-folder'
   | 'import-data'
   | `preset-apply-${string}`
@@ -85,6 +86,8 @@ export interface MenuContext {
    * here go with it rather than sitting inert for a page that is not there.
    */
   releaseBuild?: boolean
+  /** Whether the engine has been started, so Refresh Engine has one to restart. */
+  engineStarted?: boolean
 }
 
 /**
@@ -232,7 +235,18 @@ export function buildMenus(context: MenuContext): Menu[] {
       }
     ],
     Analysis: [
-      soon('Run backtest…'),
+      /*
+       * Restart py-beacon by hand (Karan, 0.2.2). The supervisor restarts
+       * one that exits, and gives up after six tries in a row; one that
+       * stops answering is left running, since it may only be busy. Either
+       * way this is the way back.
+       */
+      {
+        label: 'Refresh Engine',
+        action: 'refresh-engine',
+        enabled: context.engineStarted ?? false
+      },
+      { ...soon('Run backtest…'), separatorBefore: true },
       ...(context.releaseBuild === true ? [] : [soon('Run optimisation…'), soon('Risk model…')])
     ],
     Asset: [

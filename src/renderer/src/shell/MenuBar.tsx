@@ -153,7 +153,8 @@ export function MenuBar({
     layout,
     arrangeable,
     refreshable,
-    releaseBuild: isReleaseBuild()
+    releaseBuild: isReleaseBuild(),
+    engineStarted: engine !== 'idle'
   })
 
   /*
@@ -200,6 +201,7 @@ export function MenuBar({
     else if (action === 'refresh-data' && served !== undefined) refreshStore.mutate(served.id)
     else if (action === 'data-preferences') onDataPreferences?.()
     else if (action === 'holding-columns') setChoosingColumns(true)
+    else if (action === 'refresh-engine') void window.beacon?.engine.restart()
     else if (action === 'layout-reset') {
       // Both halves, or it is not a reset: a single pane still holding six
       // tabs is the arrangement you were trying to get out of.
