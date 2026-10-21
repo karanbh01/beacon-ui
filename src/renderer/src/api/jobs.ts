@@ -11,6 +11,8 @@ export interface TrackedJob {
   error?: Fault
   /** When it reached a terminal state, for auto-dismiss. */
   settledAt?: number
+  /** When the engine last said anything about it, by event or by asking. */
+  heardAt: number
 }
 
 export interface JobsStore {
@@ -51,7 +53,8 @@ export const useJobs = create<JobsStore>()((set) => ({
         progress: event.status === 'succeeded' ? 1 : progress,
         message: event.message ?? existing?.message ?? '',
         ...(event.error != null ? { error: event.error } : {}),
-        ...(settled ? { settledAt: Date.now() } : {})
+        ...(settled ? { settledAt: Date.now() } : {}),
+        heardAt: Date.now()
       }
 
       return { jobs: { ...state.jobs, [event.job_id]: job } }

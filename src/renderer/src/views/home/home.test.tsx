@@ -9,7 +9,7 @@ import { QUICKSTART, formatHomeDate } from './homeContent'
 const TODAY = new Date('2026-07-16T12:00:00Z')
 
 function job(over: Partial<TrackedJob> & { jobId: string }): TrackedJob {
-  return { kind: 'calculate', status: 'succeeded', progress: 1, message: '', ...over }
+  return { kind: 'calculate', status: 'succeeded', progress: 1, message: '', heardAt: 0, ...over }
 }
 
 describe('formatHomeDate', () => {

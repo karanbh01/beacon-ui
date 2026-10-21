@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import type { EngineState } from '@shared/ipc'
@@ -6,6 +6,7 @@ import { IdentifierIndexProvider } from '../views/shared/IdentifierIndexProvider
 import { createClient } from './client'
 import { eventsUrl, parseEvent } from './events'
 import { useJobs } from './jobs'
+import { useJobSync } from './jobSync'
 import { invalidationsFor, invalidationsForLoad } from './keys'
 import { ClientContext, makeQueryClient } from './queryClient'
 
@@ -58,6 +59,13 @@ export function BeaconProvider({
 
   const { baseUrl, token, status } = engine
   const retryTimer = useRef<NodeJS.Timeout>(undefined)
+
+  // A job whose finish the socket missed is asked about, and settles as one
+  // the socket heard would (0.2.1).
+  const refetchAll = useCallback(() => {
+    void queries.invalidateQueries()
+  }, [queries])
+  useJobSync(status === 'connected' ? client : null, refetchAll)
 
   /*
    * A reconnect invalidates everything (BU-86).
