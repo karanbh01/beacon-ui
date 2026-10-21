@@ -6,6 +6,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-21
+
+Fixes to 0.2.1: the engine stays up through a long backtest, a way to restart it from the Analysis menu, updates that install without the installer, and py-beacon 0.9.5 inside.
+
+### Fixed
+
+- A backtest no longer stops the engine. While a long run keeps it busy, the footer says so and the app waits, where before it restarted the engine and lost the run.
+- An engine that takes a while to load a large store is given the time, instead of being restarted until it gave up.
+- Backtests on synthetic data no longer fail on a negative price. Regenerate synthetic data for clean prices.
+- The app opens once your data is loaded, and a view that asks while it loads fills in when it is ready.
+
+### Added
+
+- Analysis → Refresh Engine restarts the engine, whatever state it is in.
+
+### Changed
+
+- An update downloaded in the app installs on restart without showing the installer, from the next update on.
+- py-beacon 0.9.5 inside. The engine answers while a job runs, and a stock with no price on a rebalance day keeps its last close.
+
 ## [0.2.1] - 2026-10-21
 
 Fixes to 0.2.0: jobs that finish while the connection drops, forms that keep what you typed, new work that opens straight onto its form, and empty states drawn and centred.

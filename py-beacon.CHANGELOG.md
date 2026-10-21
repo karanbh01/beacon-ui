@@ -8,6 +8,21 @@ Before 1.0, a breaking change raises the middle number, as in 0.1 to 0.2.
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-10-21
+
+The engine stays responsive: it answers while a backtest or any other job runs, and announces its port before loading its data. Synthetic prices never go negative, and a missing or bad price is carried at its last close on any day, rebalances included, instead of failing a run.
+
+### Changed
+
+- The engine prints `BEACON_PORT` before loading its registered data store, and loads it in the background, with `GET /health` reporting `data_source.loading: true` until it is served and a `data.loaded` event when it is. On the default synthetic store the port used to wait 31 s for the load, and a client could not tell loading from hung. Data named with `--data` or `$BEACON_DATA_PATH` still loads first, so an unreadable path still exits with code 2.
+
+### Fixed
+
+- A name with no price on a rebalance day, whether its bar is absent or was at or below zero, is carried at its last close and the day recorded as a price gap, as on any other day. It used to fail the whole index calculation ("IndexUnits ... could not be priced"). A name with no trade within `max_price_staleness_days` is still dropped by the stale-price step at that rebalance, and one that has never printed a bar is still refused.
+- Synthetic prices never go negative. Fat-tailed daily returns were used as simple returns, so a draw below -100% turned a name's price negative for the rest of the panel: one draw in 1.5 million, so several names in a store at the API's default size, and a backtest that traded one failed with "price cannot be negative". Returns are now drawn as log returns, less half each name's variance so the expected return is unchanged (8.1% a year across 600 names, as before). Every synthetic store generated from now on has different numbers from one generated before.
+- A price at or below zero, from a store generated before this release or a frame built in Python, is read as a missing bar: the last good close is carried and the day recorded as a price gap, with one warning per load naming the identifiers. Imported and Postgres stores already refused such prices.
+- A backtest, optimisation, risk model or report no longer holds the server for its whole run. Each job's work runs in a worker thread, as do the settings and index calculations its submit route does first, so `/health` and every other request are answered while a job runs, and a submit answers 202 at once. A cancelled job stops at its next progress report rather than going on to save its results.
+
 ## [0.9.4] - 2026-10-21
 
 A store saves in well under half the time with its progress shown, and the API refuses requests it used to misread: a parameter given twice, a boolean for a number, a price column it does not hold.
@@ -386,7 +401,8 @@ The first release.
 - An index or backtest never uses a price, rate or free float dated after the day it is working on.
 - Requires Python 3.11 or later.
 
-[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.9.4...HEAD
+[Unreleased]: https://github.com/karanbh01/py-beacon/compare/v0.9.5...HEAD
+[0.9.5]: https://github.com/karanbh01/py-beacon/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/karanbh01/py-beacon/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/karanbh01/py-beacon/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/karanbh01/py-beacon/compare/v0.9.1...v0.9.2
