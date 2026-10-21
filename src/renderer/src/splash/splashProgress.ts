@@ -28,6 +28,16 @@ export function splashProgress(engine: EngineState): SplashProgress | undefined 
   // and no bar to draw (BU-115). A bar at zero still says "started, at zero".
   if (engine.status === 'idle') return undefined
 
+  /*
+   * Up, but still reading its store (py-beacon 0.9.5, BN-335). The engine
+   * announces its port before it loads now, so connected no longer means
+   * there is data; opening the app here would greet the reader with views
+   * that each say nothing is loaded.
+   */
+  if (engine.status === 'connected' && engine.dataLoading === true) {
+    return { fraction: 0.9, label: 'Loading data…', ready: false, failed: false }
+  }
+
   if (engine.status === 'connected') {
     return { fraction: 1, label: 'Ready', ready: true, failed: false }
   }

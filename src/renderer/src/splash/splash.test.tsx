@@ -35,6 +35,16 @@ describe('splashProgress', () => {
     expect(at({ status: 'starting' }).ready).toBe(false)
   })
 
+  it('waits while the engine is up but still loading its data (BN-335)', () => {
+    // py-beacon 0.9.5 announces its port before it reads the store, so
+    // connected alone would open the app onto views with nothing to show.
+    expect(at({ status: 'connected', dataLoading: true })).toMatchObject({
+      label: 'Loading data…',
+      ready: false
+    })
+    expect(at({ status: 'connected', dataLoading: false }).ready).toBe(true)
+  })
+
   it('stops pretending to progress when startup failed', () => {
     const failed = at({ status: 'stopped', detail: 'server exited with code 2' })
 

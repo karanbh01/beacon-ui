@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from 'react'
 import { ApiError, NetworkError } from '../../api/errors'
+import { useDataLoading } from '../../api/queryClient'
 import { EmptyFigure, type FigureKind } from '../../components/EmptyFigure/EmptyFigure'
 import './ViewState.css'
 
@@ -274,11 +275,23 @@ export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
 }
 
 export function ViewError({ error }: { error: unknown }): ReactElement {
+  const dataLoading = useDataLoading()
+
   if (error instanceof NetworkError) {
     return (
       <div className="view-state">
         <p className="type-13">The Beacon engine is not reachable.</p>
         <p className="type-11">Check the footer — it reports what the python process is doing.</p>
+      </div>
+    )
+  }
+
+  // Asked before the store was served (BN-335). Refetched once it is.
+  if (error instanceof ApiError && error.code === 'NO_DATA_LOADED' && dataLoading) {
+    return (
+      <div className="view-state">
+        <p className="type-13">The data is still loading.</p>
+        <p className="type-11">This fills in once it is ready.</p>
       </div>
     )
   }

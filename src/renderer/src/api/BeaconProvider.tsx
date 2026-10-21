@@ -8,7 +8,7 @@ import { eventsUrl, parseEvent } from './events'
 import { useJobs } from './jobs'
 import { useJobSync } from './jobSync'
 import { invalidationsFor, invalidationsForLoad } from './keys'
-import { ClientContext, makeQueryClient } from './queryClient'
+import { ClientContext, DataLoadingContext, makeQueryClient } from './queryClient'
 
 /** Reconnect delay for the event socket. */
 const SOCKET_RETRY_MS = 1_500
@@ -116,6 +116,19 @@ export function BeaconProvider({
     }
   }, [engine.dataVersion, queries])
 
+  /*
+   * The store finished loading (BN-335). The engine is up before its data
+   * now, so anything asked for in between was answered NO_DATA_LOADED, and
+   * the first data_version is a first sighting rather than a change, which
+   * the effect above deliberately ignores.
+   */
+  const wasLoading = useRef(false)
+  useEffect(() => {
+    const loading = engine.dataLoading === true
+    if (wasLoading.current && !loading) void queries.invalidateQueries()
+    wasLoading.current = loading
+  }, [engine.dataLoading, queries])
+
   useEffect(() => {
     if (baseUrl === undefined || token === undefined || status !== 'connected') return undefined
 
@@ -174,9 +187,11 @@ export function BeaconProvider({
   return (
     <QueryClientProvider client={queries}>
       <ClientContext.Provider value={client}>
-        {/* One identifier index for the whole app (BU-68), rather than each
-            query view running the same fan-out. */}
-        <IdentifierIndexProvider>{children}</IdentifierIndexProvider>
+        <DataLoadingContext.Provider value={engine.dataLoading === true}>
+          {/* One identifier index for the whole app (BU-68), rather than each
+              query view running the same fan-out. */}
+          <IdentifierIndexProvider>{children}</IdentifierIndexProvider>
+        </DataLoadingContext.Provider>
       </ClientContext.Provider>
     </QueryClientProvider>
   )

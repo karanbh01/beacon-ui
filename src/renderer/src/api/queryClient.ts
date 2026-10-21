@@ -25,6 +25,18 @@ export function makeQueryClient(): QueryClient {
 
 export const ClientContext = createContext<BeaconClient | null>(null)
 
+/** Whether the engine is still reading its store (BN-335); false when unknown. */
+export const DataLoadingContext = createContext(false)
+
+/**
+ * True while the engine is up but still loading its data, when every data
+ * request answers NO_DATA_LOADED. A view says it is on its way rather than
+ * that there is none.
+ */
+export function useDataLoading(): boolean {
+  return useContext(DataLoadingContext)
+}
+
 /**
  * The API client for the currently connected engine.
  *

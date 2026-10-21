@@ -457,3 +457,35 @@ describe('different data under the same engine (BU-216)', () => {
     expect(seen.keys()).toEqual([])
   })
 })
+
+describe('an engine up before its data (py-beacon 0.9.5, BN-335)', () => {
+  const at = (dataLoading: boolean): EngineState => ({
+    status: 'connected',
+    baseUrl: 'http://127.0.0.1:1',
+    token: 't',
+    dataLoading
+  })
+  const provider = (engine: EngineState, queries: QueryClient): ReactElement => (
+    <BeaconProvider
+      engine={engine}
+      queryClient={queries}
+      socketFactory={() => new FakeSocket() as unknown as WebSocket}
+    >
+      <p>pane</p>
+    </BeaconProvider>
+  )
+
+  it('asks again for everything once the store is served', async () => {
+    // Whatever was asked while it loaded was answered NO_DATA_LOADED, and
+    // the first data_version is a first sighting, not a change.
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { rerender } = render(provider(at(true), queries))
+    const invalidate = vi.spyOn(queries, 'invalidateQueries')
+
+    rerender(provider(at(false), queries))
+
+    await waitFor(() => {
+      expect(invalidate).toHaveBeenCalled()
+    })
+  })
+})

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { ApiError, NetworkError } from '../../api/errors'
 import { ViewError } from './ViewState'
+import { DataLoadingContext } from '../../api/queryClient'
 
 /**
  * Which remedy an error state points at (BU-199).
@@ -218,6 +219,18 @@ describe('an engine without usable data (BU-213, BN-236)', () => {
     )
     expect(screen.getByText('No data is loaded.')).toBeInTheDocument()
     expect(screen.getByText(/Load a data store first/)).toBeInTheDocument()
+  })
+
+  it('says the data is on its way while the engine is still loading it (BN-335)', () => {
+    render(
+      <DataLoadingContext.Provider value={true}>
+        <ViewError
+          error={apiError(409, 'NO_DATA_LOADED', 'No data is loaded. Load a data store first.')}
+        />
+      </DataLoadingContext.Provider>
+    )
+    expect(screen.getByText('The data is still loading.')).toBeInTheDocument()
+    expect(screen.queryByText('No data is loaded.')).not.toBeInTheDocument()
   })
 
   it('shows a store problem in the engine’s words, remedy included', () => {
