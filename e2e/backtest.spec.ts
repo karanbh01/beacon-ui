@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, openPage, test } from './fixtures'
+import { choose, expect, openPage, test } from './fixtures'
 
 /**
  * Backtesting a stored strategy (BU-174; py-beacon 0.9.0).
@@ -21,8 +21,10 @@ async function openBacktest(window: Page, strategyId: string): Promise<void> {
   await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
 
   if (strategyId === '') return
-  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill(strategyId)
-  await window.keyboard.press('Enter')
+  // Chosen from the saved strategies, as a new index is named (0.2.1).
+  await window.getByRole('button', { name: 'New backtest…' }).click()
+  await choose(window, 'Strategy', strategyId)
+  await window.getByRole('button', { name: 'Set up', exact: true }).click()
 }
 
 test('with no strategy named it lists the runs, newest first (Karan)', async ({ window }) => {
@@ -121,10 +123,24 @@ test('a run the form knows the engine would refuse is not sent', async ({ window
   await expect(window.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
 })
 
-test('a name no strategy has says so, and offers nothing to run', async ({ window }) => {
-  await openBacktest(window, 'NOT-A-STRATEGY')
+test('a strategy deleted under its tab says so, and offers nothing to run', async ({
+  app,
+  window
+}) => {
+  // Chosen from the saved strategies since 0.2.1, a backtest can only point at
+  // a missing one when the strategy goes after its tab opened.
+  await openBacktest(window, 'EU-VALUE')
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false })
+  })
+  await openPage(window, 'Strategy Builder')
+  await window.locator('[data-pane="0"]').getByRole('button', { name: 'New tab' }).click()
+  await window.getByRole('menuitem', { name: 'Strategy', exact: true }).click()
+  await window.getByRole('button', { name: 'Delete EU-VALUE' }).click()
+  await expect(window.getByText(/Deleted EU-VALUE/)).toBeVisible()
 
-  await expect(window.getByText(/no saved strategy called NOT-A-STRATEGY/)).toBeVisible()
+  await openPage(window, 'Beacon View')
+  await expect(window.getByText(/no saved strategy called EU-VALUE/)).toBeVisible()
   await expect(window.getByRole('button', { name: 'Run backtest' })).toHaveCount(0)
 })
 
@@ -202,4 +218,19 @@ test('the capital and flows table narrows with a side-by-side pane (0.2.1)', asy
   expect((box?.x ?? 0) + (box?.width ?? Infinity)).toBeLessThanOrEqual(
     (pane?.x ?? 0) + (pane?.width ?? 0)
   )
+})
+
+test('a backtest starts from New backtest, as an index does (0.2.1)', async ({ window }) => {
+  await openBacktest(window, '')
+
+  // The runs are the page; a new one is chosen from the saved strategies.
+  await expect(window.locator('.backtest-runs')).toBeVisible()
+  await window.getByRole('button', { name: 'New backtest…' }).click()
+  await expect(window.getByRole('button', { name: 'Set up', exact: true })).toBeDisabled()
+  await choose(window, 'Strategy', 'EU-VALUE')
+  await window.getByRole('button', { name: 'Set up', exact: true }).click()
+
+  await expect(window.locator('.backtest-strategy')).toContainText('EU-VALUE')
+  await window.getByRole('button', { name: 'Back to all runs' }).click()
+  await expect(window.locator('.backtest-runs')).toBeVisible()
 })

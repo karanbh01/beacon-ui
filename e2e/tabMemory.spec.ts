@@ -98,8 +98,9 @@ test('a backtest being set up keeps its settings after looking at another tab', 
 }) => {
   await openPage(window, 'Beacon View')
   await openView(window, 'Backtest')
-  await window.locator('.backtest-view').getByRole('combobox', { name: 'Subject' }).fill('TECH10')
-  await window.keyboard.press('Enter')
+  await window.getByRole('button', { name: 'New backtest…' }).click()
+  await choose(window, 'Strategy', 'TECH10')
+  await window.getByRole('button', { name: 'Set up', exact: true }).click()
   await window.getByLabel('Transaction cost (bps)').fill('7')
 
   await openView(window, 'Overview')

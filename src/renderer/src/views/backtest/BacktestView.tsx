@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { activeJobs, useJobs, type TrackedJob } from '../../api/jobs'
+import { BackButton } from '../../components/BackButton/BackButton'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
@@ -18,6 +19,7 @@ import {
 } from '../shared/strategyDocuments'
 import { useBacktestRun } from '../shared/strategyQueries'
 import { MoneySection } from './MoneySection'
+import { NewBacktest } from './NewBacktest'
 import { PeriodSection } from './PeriodSection'
 import { RunsList } from './RunsList'
 import { VehicleSection } from './VehicleSection'
@@ -52,48 +54,55 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
     openOrRetarget({ page, pane, viewKind, title: strategyId, subject: strategyId })
   }
 
-  return (
-    <div className="backtest-view">
-      <PaneHeader
-        kind="query"
-        subject={strategyId}
-        index={catalogue.rows}
-        {...metaOf(strategy.data, catalogue.skipped)}
-        onQuery={(next) => {
-          // As typed: a strategy's id is the user's, and case is part of it.
-          setSubject(tab.id, next)
-        }}
-        controls={
-          strategyId === '' ? undefined : (
-            <>
-              <Button
-                onClick={() => {
-                  setSubject(tab.id, '')
-                }}
-              >
-                All runs
-              </Button>
-              <Button
-                onClick={() => {
-                  open('strategy', 'strategy-builder')
-                }}
-              >
-                Open strategy
-              </Button>
-            </>
-          )
-        }
-      />
-
-      {strategyId === '' && (
+  /*
+   * The runs, and "New backtest…" to start one, as Index Definition lists
+   * its indices (Karan, 0.2.1): typing a strategy's name into a query bar
+   * was the only way in, and nothing said which names there were.
+   */
+  if (strategyId === '') {
+    return (
+      <div className="backtest-view backtest-catalogue">
+        <NewBacktest
+          strategies={catalogue.rows}
+          onStart={(id) => {
+            setSubject(tab.id, id)
+          }}
+        />
         <RunsList
           onOpen={(id) => {
             setSubject(tab.id, id)
           }}
         />
-      )}
+      </div>
+    )
+  }
 
-      {strategyId !== '' && strategy.isPending && <ViewLoading what={strategyId} />}
+  return (
+    <div className="backtest-view">
+      <PaneHeader
+        kind="document"
+        title={strategyId}
+        {...metaOf(strategy.data, catalogue.skipped)}
+        controls={
+          <>
+            <BackButton
+              to="All runs"
+              onClick={() => {
+                setSubject(tab.id, '')
+              }}
+            />
+            <Button
+              onClick={() => {
+                open('strategy', 'strategy-builder')
+              }}
+            >
+              Open strategy
+            </Button>
+          </>
+        }
+      />
+
+      {strategy.isPending && <ViewLoading what={strategyId} />}
       {strategy.isError &&
         (isAbsent(strategy.error) ? (
           <ViewEmpty figure="binders">

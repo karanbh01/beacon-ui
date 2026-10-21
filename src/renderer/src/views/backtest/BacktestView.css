@@ -226,3 +226,11 @@
   max-width: 640px;
   min-width: 0;
 }
+
+/* The runs and "New backtest…", laid out as Index Definition's catalogue. */
+.backtest-catalogue {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}

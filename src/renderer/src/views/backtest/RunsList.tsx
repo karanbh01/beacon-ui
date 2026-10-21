@@ -28,7 +28,7 @@ export function RunsList({ onOpen }: { onOpen: (strategyId: string) => void }): 
   if (rows.length === 0) {
     return (
       <ViewEmpty figure="cardindex">
-        No backtests have been run yet. Type the name of a saved strategy above to set one up.
+        No backtests have been run yet. “New backtest…” sets one up.
       </ViewEmpty>
     )
   }
