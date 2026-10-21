@@ -17,8 +17,14 @@ import { SERVER_MODULE, interpreterFlags, locatePython, parsePort } from './pyth
 /** How often to confirm the server is still answering. */
 const HEALTH_INTERVAL_MS = 4_000
 
-/** A start that never announces a port is treated as failed. */
-const START_TIMEOUT_MS = 30_000
+/**
+ * A start that never announces a port is treated as failed.
+ *
+ * Generous on purpose (0.2.2): py-beacon loads the served store before it
+ * announces, and a 6,000-name synthetic store took 31s to. At 30s every
+ * restart was killed just short of ready, until the backoff gave up.
+ */
+const START_TIMEOUT_MS = 180_000
 
 const HEALTH_TIMEOUT_MS = 2_500
 
@@ -66,6 +72,11 @@ function dataStateOf(
     dataStore: typeof source.store_name === 'string' ? source.store_name : undefined,
     dataVersion: typeof source.data_version === 'string' ? source.data_version : undefined
   }
+}
+
+/** The health request ran out of time, rather than being refused. */
+function isTimeout(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'TimeoutError'
 }
 
 function sameState(a: EngineState, b: EngineState): boolean {
@@ -245,7 +256,12 @@ export class Engine extends EventEmitter {
   private spawnServer(): void {
     const python = this.python()
 
-    this.setState({ status: 'starting', detail: undefined, restarts: this.attempt })
+    this.setState({
+      status: 'starting',
+      detail: undefined,
+      busy: undefined,
+      restarts: this.attempt
+    })
 
     const launch = this.options.spawnImpl ?? spawn
     const flags = interpreterFlags(python, this.options.resourcesPath)
@@ -334,12 +350,32 @@ export class Engine extends EventEmitter {
         status: 'connected',
         version: body.version,
         detail: undefined,
+        busy: undefined,
         restarts: 0,
         ...dataStateOf(body)
       })
-    } catch {
+    } catch (error) {
+      /*
+       * Busy is not dead (0.2.2). py-beacon runs a backtest on its event
+       * loop, so /health waits behind it. Killing it there threw the run
+       * away, and on a large store the restart's own load timed out too,
+       * until the backoff gave up and left the engine stopped. Only an exit
+       * restarts it now; one that never answers again is for Analysis →
+       * Refresh Engine.
+       */
+      if (isTimeout(error) && this.isAlive()) {
+        this.setState({ busy: true })
+        return
+      }
       this.fail('health check did not respond')
     }
+  }
+
+  /** Our process still running, or a server we attached to and do not own. */
+  private isAlive(): boolean {
+    const external = this.options.serverUrl
+    if (external !== undefined && external !== '') return true
+    return this.child !== null && this.child.exitCode === null
   }
 
   /** Move to degraded and schedule a restart, or give up. */
@@ -350,13 +386,13 @@ export class Engine extends EventEmitter {
     this.killChild()
 
     if (shouldGiveUp(this.attempt)) {
-      this.setState({ status: 'stopped', detail, restarts: this.attempt })
+      this.setState({ status: 'stopped', detail, busy: undefined, restarts: this.attempt })
       return
     }
 
     const delay = restartDelay(this.attempt)
     this.attempt += 1
-    this.setState({ status: 'degraded', detail, restarts: this.attempt })
+    this.setState({ status: 'degraded', detail, busy: undefined, restarts: this.attempt })
 
     // An attached external server is not ours to restart; keep polling and
     // let it come back on its own.

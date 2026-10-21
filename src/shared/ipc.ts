@@ -56,6 +56,13 @@ export interface EngineState {
   token?: string
   /** Human-readable reason when degraded or stopped. */
   detail?: string
+  /**
+   * The process is alive but did not answer its last health check in time
+   * (0.2.2). py-beacon runs a backtest on its event loop, so it cannot answer
+   * while one runs. Not a failure: the status stays where it was, so views
+   * and the event socket carry on, and the footer says it is busy.
+   */
+  busy?: boolean
   /*
    * What data the engine is serving, from the same /health poll that sets
    * `version` (BU-215, BU-216). Flat primitives rather than one `data`

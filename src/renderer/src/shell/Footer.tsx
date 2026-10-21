@@ -18,7 +18,7 @@ export type EngineState = EngineStatus
 
 export interface FooterProps {
   /** Live from the python supervisor (BU-19). */
-  engine?: { state: EngineState; version?: string; detail?: string }
+  engine?: { state: EngineState; version?: string; detail?: string; busy?: boolean }
   /** e.g. "2h ago". BU-21 supplies it from freshness events. */
   dataUpdated?: string
   /**
@@ -65,6 +65,13 @@ const ENGINE_TONE: Record<EngineState, string> = {
  * restart is in flight, stopped means we gave up. Saying "reconnecting" when
  * nothing is reconnecting is the failure mode BU-19 is meant to remove.
  */
+/*
+ * Running but not answering, usually because a backtest has the engine's
+ * attention (0.2.2). Not a fault, so the working tone rather than danger.
+ */
+const BUSY_TITLE =
+  'The engine is not answering while it works. If it stays busy, Analysis > Refresh Engine restarts it.'
+
 function engineLabel(state: EngineState, version?: string): string {
   if (state === 'idle') return 'engine not started'
   if (state === 'degraded') return 'engine unavailable · reconnecting'
@@ -183,10 +190,17 @@ export function Footer({
 
   return (
     <footer className={['footer', className].filter(Boolean).join(' ')}>
-      <span className="footer-status" title={engine.detail}>
-        <span className={`footer-dot ${ENGINE_TONE[engine.state]}`} aria-hidden="true" />
-        {engineLabel(engine.state, engine.version)}
-      </span>
+      {engine.busy === true && engine.state === 'connected' ? (
+        <span className="footer-status" title={BUSY_TITLE}>
+          <span className="footer-dot dot-working" aria-hidden="true" />
+          engine busy · still working
+        </span>
+      ) : (
+        <span className="footer-status" title={engine.detail}>
+          <span className={`footer-dot ${ENGINE_TONE[engine.state]}`} aria-hidden="true" />
+          {engineLabel(engine.state, engine.version)}
+        </span>
+      )}
 
       <DataSlot data={data} updated={dataUpdated} />
 

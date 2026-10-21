@@ -204,7 +204,8 @@ function AppBody(): ReactElement {
         engine: {
           state: engine.status,
           ...(engine.version === undefined ? {} : { version: engine.version }),
-          ...(engine.detail === undefined ? {} : { detail: engine.detail })
+          ...(engine.detail === undefined ? {} : { detail: engine.detail }),
+          ...(engine.busy === undefined ? {} : { busy: engine.busy })
         },
         // Real freshness from /health's cache_age, refreshed when py-beacon
         // publishes a data.freshness event rather than on a timer.

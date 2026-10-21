@@ -101,3 +101,18 @@ describe('the data slot (BU-215)', () => {
     expect(screen.getByText('data updated · 2m ago')).toBeInTheDocument()
   })
 })
+
+describe('an engine too busy to answer (0.2.2)', () => {
+  it('says it is busy, not that it has failed', () => {
+    render(<Footer engine={{ state: 'connected', version: '0.9.4', busy: true }} />)
+
+    expect(screen.getByText('engine busy · still working')).toBeInTheDocument()
+    expect(screen.queryByText(/unavailable|stopped/)).not.toBeInTheDocument()
+  })
+
+  it('says connected again once it answers', () => {
+    render(<Footer engine={{ state: 'connected', version: '0.9.4' }} />)
+
+    expect(screen.getByText('engine connected · py-beacon 0.9.4')).toBeInTheDocument()
+  })
+})

@@ -72,3 +72,80 @@ describe('the engine lifecycle', () => {
     expect(engine.getState().status).toBe('idle')
   })
 })
+
+/**
+ * A busy engine is not a dead one (0.2.2).
+ *
+ * py-beacon runs a backtest on its event loop, so /health waits behind it.
+ * The supervisor killed it there, which lost the run and, on a large store,
+ * looped through restarts until it gave up.
+ */
+describe('an engine that stops answering its health check', () => {
+  const timedOut = (): Promise<Response> =>
+    Promise.reject(new DOMException('The operation was aborted due to timeout', 'TimeoutError'))
+  const healthy = (): Promise<Response> =>
+    Promise.resolve(new Response(JSON.stringify({ status: 'ok', version: '0.9.4' })))
+
+  /** Start it and announce a port: the child, and a `kill` of its own to watch. */
+  function announce(engine: InstanceType<typeof Engine>): {
+    child: ReturnType<typeof fakeChild>
+    kill: ReturnType<typeof vi.fn>
+  } {
+    const kill = vi.fn()
+    const child = Object.assign(fakeChild(), { kill })
+    spawn.mockImplementationOnce(() => child)
+    engine.start()
+    child.stdout.emit('data', Buffer.from('BEACON_PORT=57020\n'))
+    return { child, kill }
+  }
+
+  it('is kept running and called busy, while its process lives', async () => {
+    const fetchImpl = vi.fn(healthy)
+    const engine = new Engine({ spawnImpl: spawn, fetchImpl })
+    const { kill } = announce(engine)
+    await vi.waitFor(() => {
+      expect(engine.getState().status).toBe('connected')
+    })
+
+    fetchImpl.mockImplementation(timedOut)
+    await (engine as unknown as { checkHealth: () => Promise<void> }).checkHealth()
+
+    expect(engine.getState()).toMatchObject({ status: 'connected', busy: true })
+    expect(kill).not.toHaveBeenCalled()
+    expect(spawn).toHaveBeenCalledTimes(1)
+
+    fetchImpl.mockImplementation(healthy)
+    await (engine as unknown as { checkHealth: () => Promise<void> }).checkHealth()
+    expect(engine.getState().busy).toBeUndefined()
+    engine.stop()
+  })
+
+  it('is still restarted when its process has gone', async () => {
+    const engine = new Engine({ spawnImpl: spawn, fetchImpl: vi.fn(healthy) })
+    const { child } = announce(engine)
+    await vi.waitFor(() => {
+      expect(engine.getState().status).toBe('connected')
+    })
+
+    child.emit('exit', 1, null)
+
+    expect(engine.getState().status).toBe('degraded')
+    engine.stop()
+  })
+
+  it('is restarted when the health check is refused rather than slow', async () => {
+    const fetchImpl = vi.fn(healthy)
+    const engine = new Engine({ spawnImpl: spawn, fetchImpl })
+    const { kill } = announce(engine)
+    await vi.waitFor(() => {
+      expect(engine.getState().status).toBe('connected')
+    })
+
+    fetchImpl.mockImplementation(() => Promise.reject(new TypeError('fetch failed')))
+    await (engine as unknown as { checkHealth: () => Promise<void> }).checkHealth()
+
+    expect(engine.getState().status).toBe('degraded')
+    expect(kill).toHaveBeenCalled()
+    engine.stop()
+  })
+})
