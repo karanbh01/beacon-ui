@@ -28,7 +28,7 @@ export interface UpdateFeed {
   on(event: 'error', listener: (error: Error) => void): unknown
   checkForUpdates(): Promise<unknown>
   downloadUpdate(): Promise<unknown>
-  quitAndInstall(): void
+  quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean): void
 }
 
 export function sameUpdate(a: UpdateState, b: UpdateState): boolean {
@@ -119,10 +119,15 @@ export class Updater extends EventEmitter {
    *
    * Guarded on `ready` because `quitAndInstall` with nothing staged quits the
    * app and does not bring it back — the user would just see Beacon vanish.
+   *
+   * Silent, and Beacon reopened after (Karan, 0.2.2). Its defaults ran the
+   * assisted installer with its pages, so an update asked for in the app
+   * walked the user through a first install again. Silent reuses the folder
+   * chosen then.
    */
   install(): void {
     if (this.feed === undefined || this.state.status !== 'ready') return
-    this.feed.quitAndInstall()
+    this.feed.quitAndInstall(true, true)
   }
 
   private subscribe(feed: UpdateFeed): void {

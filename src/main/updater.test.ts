@@ -104,6 +104,8 @@ describe('Updater', () => {
     feed.emit('update-downloaded', { version: '0.2.0' })
     updater.install()
     expect(feed.quitAndInstall).toHaveBeenCalledOnce()
+    // Without the installer's pages, and back into Beacon after (0.2.2).
+    expect(feed.quitAndInstall).toHaveBeenCalledWith(true, true)
   })
 
   it('will not restart a check while a download is in flight', () => {
