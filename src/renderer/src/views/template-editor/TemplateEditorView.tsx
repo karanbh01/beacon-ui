@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
+import { Fragment, useEffect, useState, type ReactElement } from 'react'
 import { AddSlot } from '../../components/AddSlot/AddSlot'
 import { Badge } from '../../components/Badge/Badge'
 import { Button } from '../../components/Button/Button'
@@ -27,6 +27,7 @@ import {
   replaceBlock
 } from './blocks'
 import './TemplateEditorView.css'
+import { useTabState } from '../../state/tabMemory'
 
 /**
  * Reports → Template Editor. Figma 234:11076.
@@ -46,9 +47,13 @@ export function TemplateEditorView({ tab, subject }: ViewProps): ReactElement {
     subject !== undefined && subject !== '' ? subject : (stored[0]?.template_id ?? '')
   const template = useTemplate(templateId)
 
-  const [draft, setDraft] = useState<ReportTemplate | undefined>(undefined)
+  // Kept while the reader is on another tab (0.2.1), per template.
+  const [draft, setDraft] = useTabState<ReportTemplate | undefined>(
+    tab.id,
+    `template-draft:${templateId}`,
+    undefined
+  )
   const [editing, setEditing] = useState<number | undefined>(undefined)
-  const seededFor = useRef<string | undefined>(undefined)
 
   const save = useSaveTemplate()
   const setSubject = useWorkspace((state) => state.setSubject)
@@ -56,10 +61,9 @@ export function TemplateEditorView({ tab, subject }: ViewProps): ReactElement {
 
   const saved = template.data
   useEffect(() => {
-    if (saved === undefined || seededFor.current === templateId) return
-    seededFor.current = templateId
+    if (saved === undefined || draft !== undefined) return
     setDraft(saved)
-  }, [saved, templateId])
+  }, [saved, draft, setDraft])
 
   const dirty = draft !== undefined && isDirty(draft, saved)
   useEffect(() => {
@@ -121,7 +125,6 @@ export function TemplateEditorView({ tab, subject }: ViewProps): ReactElement {
             value={templateId}
             label="Template"
             onChange={(value) => {
-              seededFor.current = undefined
               setSubject(tab.id, value)
             }}
           />

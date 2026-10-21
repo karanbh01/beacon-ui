@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import type { components } from '@shared/api.generated'
 import { ApiError } from '../../api/errors'
+import { useTabState } from '../../state/tabMemory'
 import { useWorkspace } from '../../state/tabs.store'
 import {
   useStrategy,
@@ -99,15 +100,19 @@ export interface StrategyDraft {
 
 /**
  * The editable copy of a strategy, and the dirty flag its tab shows — the
- * same arrangement as an index's (`useIndexDraft`): local state seeded once
+ * same arrangement as an index's (`useIndexDraft`): tab state seeded once
  * from the query, a 404 read as a new strategy, dirty pushed to the tab.
  */
 export function useStrategyDraft(tabId: string, strategyId: string): StrategyDraft {
   const query = useStrategy(strategyId)
   const setDirty = useWorkspace((state) => state.setDirty)
 
-  const [draft, setDraft] = useState<StrategyDocument | undefined>(undefined)
-  const seededFor = useRef<string | undefined>(undefined)
+  // Kept per tab and per strategy, as an index's draft is (0.2.1).
+  const [draft, setDraft] = useTabState<StrategyDocument | undefined>(
+    tabId,
+    `strategy-draft:${strategyId}`,
+    undefined
+  )
 
   const saved = useMemo(
     () => (query.data === undefined ? undefined : asDocument(query.data)),
@@ -116,11 +121,10 @@ export function useStrategyDraft(tabId: string, strategyId: string): StrategyDra
   const missing = query.error instanceof ApiError && query.error.isNotFound
 
   useEffect(() => {
-    if (seededFor.current === strategyId) return
+    if (draft !== undefined) return
     if (saved === undefined && !missing) return
-    seededFor.current = strategyId
     setDraft(saved ?? blankStrategy(strategyId))
-  }, [saved, missing, strategyId])
+  }, [draft, saved, missing, strategyId, setDraft])
 
   const dirty = draft !== undefined && isDirty(draft, saved)
 
@@ -128,17 +132,23 @@ export function useStrategyDraft(tabId: string, strategyId: string): StrategyDra
     setDirty(tabId, dirty)
   }, [tabId, dirty, setDirty])
 
-  const edit = useCallback((change: (current: StrategyDocument) => StrategyDocument) => {
-    setDraft((current) => (current === undefined ? current : change(current)))
-  }, [])
+  const edit = useCallback(
+    (change: (current: StrategyDocument) => StrategyDocument) => {
+      setDraft((current) => (current === undefined ? current : change(current)))
+    },
+    [setDraft]
+  )
 
   const revert = useCallback(() => {
     setDraft(saved)
-  }, [saved])
+  }, [saved, setDraft])
 
-  const commit = useCallback((document: StrategyDocument) => {
-    setDraft(document)
-  }, [])
+  const commit = useCallback(
+    (document: StrategyDocument) => {
+      setDraft(document)
+    },
+    [setDraft]
+  )
 
   return {
     draft,

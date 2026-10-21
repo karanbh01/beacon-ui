@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { ApiError } from '../../api/errors'
 import { isDocumentId } from '../../api/ids'
+import { useTabState } from '../../state/tabMemory'
 import { useWorkspace } from '../../state/tabs.store'
 import { useIndex } from '../shared/strategyQueries'
 import { blankIndex, isDirty, type IndexDocument } from './pipeline'
@@ -20,8 +21,8 @@ export interface IndexDraft {
 /**
  * The editable copy of an index, and the dirty flag the tab shows.
  *
- * The draft is local state seeded from the query, not the query's data
- * mutated in place: editing the cache would make the "revert" button
+ * The draft is the tab's own state seeded from the query, kept while the
+ * reader is on another tab (0.2.1), not the query's data mutated in place: editing the cache would make the "revert" button
  * impossible and would leak a half-finished edit into any other view reading
  * the same key.
  *
@@ -33,8 +34,13 @@ export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
   const query = useIndex(indexId)
   const setDirty = useWorkspace((state) => state.setDirty)
 
-  const [draft, setDraft] = useState<IndexDocument | undefined>(undefined)
-  const seededFor = useRef<string | undefined>(undefined)
+  // Kept per tab and per index, so a draft survives a look at another tab
+  // and a tab moved to another index starts that one from what is stored.
+  const [draft, setDraft] = useTabState<IndexDocument | undefined>(
+    tabId,
+    `index-draft:${indexId}`,
+    undefined
+  )
 
   // GET /indices/{id} returns the document itself; only create and save wrap
   // it in a SavedIndex alongside their non-blocking findings.
@@ -50,13 +56,12 @@ export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
   const missing = query.error instanceof ApiError && query.error.isNotFound
 
   // Seed once per index. Re-seeding on every query result would discard the
-  // user's edits the moment anything refetched.
+  // user's edits the moment anything refetched; a kept draft is not reseeded.
   useEffect(() => {
-    if (seededFor.current === indexId) return
+    if (draft !== undefined) return
     if (saved === undefined && !missing) return
-    seededFor.current = indexId
     setDraft(saved ?? blankIndex(indexId))
-  }, [saved, missing, indexId])
+  }, [draft, saved, missing, indexId, setDraft])
 
   const dirty = draft !== undefined && isDirty(draft, saved)
 
@@ -64,17 +69,23 @@ export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
     setDirty(tabId, dirty)
   }, [tabId, dirty, setDirty])
 
-  const edit = useCallback((change: (current: IndexDocument) => IndexDocument) => {
-    setDraft((current) => (current === undefined ? current : change(current)))
-  }, [])
+  const edit = useCallback(
+    (change: (current: IndexDocument) => IndexDocument) => {
+      setDraft((current) => (current === undefined ? current : change(current)))
+    },
+    [setDraft]
+  )
 
   const revert = useCallback(() => {
     setDraft(saved)
-  }, [saved])
+  }, [saved, setDraft])
 
-  const commit = useCallback((document: IndexDocument) => {
-    setDraft(document)
-  }, [])
+  const commit = useCallback(
+    (document: IndexDocument) => {
+      setDraft(document)
+    },
+    [setDraft]
+  )
 
   return {
     draft,

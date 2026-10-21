@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react'
+import type { ReactElement } from 'react'
 import { activeJobs, useJobs, type TrackedJob } from '../../api/jobs'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
@@ -24,6 +24,7 @@ import { VehicleSection } from './VehicleSection'
 import { setupFindings, toRequest } from './setup'
 import { useBacktestSetup } from './useBacktestSetup'
 import './BacktestView.css'
+import { useTabState } from '../../state/tabMemory'
 
 /**
  * Beacon View → Backtest (BU-174; a stored strategy's since py-beacon 0.9.0).
@@ -106,6 +107,7 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
         <Setup
           // A fresh form per strategy: one's flows are not another's.
           key={strategyId}
+          tabId={tab.id}
           strategy={strategy.data}
           onOpenOverview={() => {
             open('overview', 'beacon-view')
@@ -117,16 +119,28 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
 }
 
 function Setup({
+  tabId,
   strategy,
   onOpenOverview
 }: {
+  tabId: string
   strategy: StoredStrategy
   onOpenOverview: () => void
 }): ReactElement {
-  const [jobId, setJobId] = useState<string | undefined>(undefined)
+  // The run submitted from this tab, so its progress is still here on coming back.
+  const [jobId, setJobId] = useTabState<string | undefined>(
+    tabId,
+    `backtest-job:${strategy.id}`,
+    undefined
+  )
 
   const options = useBacktestOptions()
-  const { setup, edit: setSetup, origin, startAfresh } = useBacktestSetup(strategy.id, options.data)
+  const {
+    setup,
+    edit: setSetup,
+    origin,
+    startAfresh
+  } = useBacktestSetup(tabId, strategy.id, options.data)
   const validate = useValidateStrategyBacktest()
   const run = useRunStrategyBacktest()
   const jobs = useJobs((state) => state.jobs)

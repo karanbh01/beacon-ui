@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
@@ -16,6 +16,7 @@ import {
 import { ConstraintList } from './ConstraintList'
 import { isDirty } from './constraints'
 import './ConstraintSetView.css'
+import { useTabState } from '../../state/tabMemory'
 
 /**
  * Optimiser → Constraint Set. Figma 234:6904.
@@ -33,8 +34,12 @@ export function ConstraintSetView({ tab, subject }: ViewProps): ReactElement {
   const selectedId = subject !== undefined && subject !== '' ? subject : (available[0]?.id ?? '')
   const stored = useConstraintSet(selectedId)
 
-  const [draft, setDraft] = useState<ConstraintSet | undefined>(undefined)
-  const seededFor = useRef<string | undefined>(undefined)
+  // Kept while the reader is on another tab (0.2.1), per set.
+  const [draft, setDraft] = useTabState<ConstraintSet | undefined>(
+    tab.id,
+    `constraint-set-draft:${selectedId}`,
+    undefined
+  )
 
   const save = useSaveConstraintSet()
   const validate = useValidateConstraintSet()
@@ -43,10 +48,9 @@ export function ConstraintSetView({ tab, subject }: ViewProps): ReactElement {
 
   const saved = stored.data
   useEffect(() => {
-    if (saved === undefined || seededFor.current === selectedId) return
-    seededFor.current = selectedId
+    if (saved === undefined || draft !== undefined) return
     setDraft(saved)
-  }, [saved, selectedId])
+  }, [saved, draft, setDraft])
 
   const dirty = draft !== undefined && isDirty(draft, saved)
   useEffect(() => {
@@ -99,7 +103,6 @@ export function ConstraintSetView({ tab, subject }: ViewProps): ReactElement {
           label="Constraint set"
           disabled={available.length === 0}
           onChange={(value) => {
-            seededFor.current = undefined
             setSubject(tab.id, value)
           }}
         />

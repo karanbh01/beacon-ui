@@ -1,4 +1,5 @@
-import { useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, type Dispatch, type SetStateAction } from 'react'
+import { useTabState } from '../../state/tabMemory'
 import { useRunResult } from '../shared/beaconQueries'
 import type { BacktestOptions } from '../shared/strategyDocuments'
 import { setupFromRun } from './fromRun'
@@ -24,18 +25,32 @@ export interface BacktestSetupState {
  * the run in hand already shows its values instead of flashing the defaults.
  */
 export function useBacktestSetup(
+  tabId: string,
   strategyId: string,
   options: BacktestOptions | undefined
 ): BacktestSetupState {
   const latest = useRunResult(strategyId)
-  const [setup, setSetup] = useState<BacktestSetup>(DEFAULT_SETUP)
-  const [origin, setOrigin] = useState<SetupOrigin>('defaults')
+  // The tab's own, so a form half filled in is still there after a look at
+  // another tab (Karan, 0.2.1); per strategy, as one's flows are not another's.
+  const [setup, setSetup] = useTabState<BacktestSetup>(
+    tabId,
+    `backtest-setup:${strategyId}`,
+    DEFAULT_SETUP
+  )
+  const [origin, setOrigin] = useTabState<SetupOrigin>(
+    tabId,
+    `backtest-origin:${strategyId}`,
+    'defaults'
+  )
 
+  // Prefilled once from the last run, in an effect since the form is kept
+  // in a store, and a store is not written during render.
   const settings = latest.data?.settings
-  if (origin === 'defaults' && settings != null && options !== undefined) {
+  useEffect(() => {
+    if (origin !== 'defaults' || settings == null || options === undefined) return
     setOrigin('run')
     setSetup(setupFromRun(settings, options))
-  }
+  }, [origin, settings, options, setOrigin, setSetup])
 
   return {
     setup,

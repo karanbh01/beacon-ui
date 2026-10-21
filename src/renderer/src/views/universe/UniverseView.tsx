@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactElement } from 'react'
+import { useMemo, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
 import { Field } from '../../components/Field/Field'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
@@ -34,6 +34,7 @@ import {
   type ReferenceValues
 } from '../shared/holdingColumns'
 import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
+import { useTabState } from '../../state/tabMemory'
 
 /** This table's own column choice, under Asset → Holding columns. */
 const TABLE = 'universe'
@@ -122,10 +123,15 @@ export function UniverseView({ tab, subject, pane }: ViewProps): ReactElement {
    * Empty is the default and has to stay so: a date field that starts filled
    * makes every reader check whether they are looking at live data.
    */
-  const [asOf, setAsOf] = useState('')
+  const [asOf, setAsOf] = useTabState(tab.id, 'universe-as-of', '')
 
-  const [draft, setDraft] = useState<DraftUniverse | undefined>(undefined)
-  const [mode, setMode] = useState<'create' | 'edit'>('create')
+  // The universe being built, kept while the reader is on another tab (0.2.1).
+  const [draft, setDraft] = useTabState<DraftUniverse | undefined>(
+    tab.id,
+    'universe-draft',
+    undefined
+  )
+  const [mode, setMode] = useTabState<'create' | 'edit'>(tab.id, 'universe-mode', 'create')
   const create = useCreateUniverse()
   const save = useSaveUniverse()
   const deleteUniverse = useDeleteUniverse()
