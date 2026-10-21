@@ -45,3 +45,9 @@
 .index-input:disabled {
   color: var(--text-muted);
 }
+
+/* What is wrong with a new index's id, under the row it sits in (0.2.1). */
+.index-id-problem {
+  margin: 0;
+  color: var(--danger);
+}

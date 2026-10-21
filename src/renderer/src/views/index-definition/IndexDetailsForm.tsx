@@ -37,6 +37,8 @@ export interface IndexDetailsFormProps {
   onChange: (change: (current: IndexDocument) => IndexDocument) => void
   /** A saved index cannot be renamed: the id is its URL. */
   idLocked: boolean
+  /** What is wrong with a new index's id, said under the details. */
+  idProblem?: string
 }
 
 /**
@@ -53,7 +55,8 @@ export interface IndexDetailsFormProps {
 export function IndexDetailsForm({
   document,
   onChange,
-  idLocked
+  idLocked,
+  idProblem
 }: IndexDetailsFormProps): ReactElement {
   const calendars = useCalendars()
 
@@ -100,6 +103,8 @@ export function IndexDetailsForm({
           />
         </Field>
       </div>
+
+      {idProblem !== undefined && <p className="index-id-problem type-11">{idProblem}</p>}
 
       <div className="index-form-row">
         <Field label="Base date" width={140}>

@@ -18,6 +18,8 @@ export interface StrategyFormProps {
   document: StrategyDocument
   onChange: Edit
   options: BacktestOptions | undefined
+  /** Fixed once saved: it is the strategy's address. Chosen here for a new one. */
+  idLocked: boolean
 }
 
 /** An active strategy's two windows, described as the catalogue would. */
@@ -50,7 +52,12 @@ const OBSERVATIONS: ParameterSpec = {
  * (Karan, 2026-10-19). The details are one row of fields; how it holds the
  * index is rows, as Index Definition draws its methodology.
  */
-export function StrategyForm({ document, onChange, options }: StrategyFormProps): ReactElement {
+export function StrategyForm({
+  document,
+  onChange,
+  options,
+  idLocked
+}: StrategyFormProps): ReactElement {
   const indices = useIndices()
   const kind = document.strategy?.type ?? 'index'
 
@@ -58,6 +65,19 @@ export function StrategyForm({ document, onChange, options }: StrategyFormProps)
     <>
       <Section title="Strategy" className="strategy-card">
         <div className="strategy-form-row">
+          <Field label="Id *" width={160}>
+            <input
+              className="param-field-input"
+              aria-label="Strategy id"
+              value={document.id}
+              maxLength={64}
+              disabled={idLocked}
+              onChange={(event) => {
+                const id = event.target.value
+                onChange((current) => ({ ...current, id }))
+              }}
+            />
+          </Field>
           <Field label="Name *" width={240}>
             <input
               className="param-field-input"

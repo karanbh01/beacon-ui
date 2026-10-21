@@ -30,7 +30,6 @@ test('a new strategy is written, saved, and handed to Backtest', async ({ window
 
   await window.getByRole('button', { name: 'New strategy…' }).click()
   await window.getByLabel('Strategy id').fill('tech10-capped')
-  await window.getByRole('button', { name: 'Create' }).click()
 
   await expect(window.getByText('new · not saved yet')).toBeVisible()
   // What stops a save is said before the engine is asked.

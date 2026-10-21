@@ -1,9 +1,6 @@
-import { useState, type ReactElement } from 'react'
+import type { ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
-import { Card } from '../../components/Card/Card'
-import { Field } from '../../components/Field/Field'
 import { Table, type Column } from '../../components/Table/Table'
-import { isDocumentId } from '../../api/ids'
 import { ViewEmpty } from '../shared/ViewState'
 import type { IndexDocument } from './pipeline'
 import './IndexOverview.css'
@@ -14,10 +11,11 @@ export interface IndexOverviewProps {
   /** Omitted where deleting is not offered — there is no engine, say. */
   onDelete?: (index: IndexDocument) => void
   /**
-   * Offer "New index…". Off where the list is for choosing one to look at —
-   * the constituent preview, which has nothing to preview in an unsaved id.
+   * Offer "New index…", opening the form on a new index. Omitted where the
+   * list is for choosing one to look at: the constituent preview, which has
+   * nothing to preview in an unsaved id.
    */
-  allowCreate?: boolean
+  onNew?: () => void
 }
 
 const COLUMNS: readonly Column<IndexDocument>[] = [
@@ -92,82 +90,21 @@ export function IndexOverview({
   indices,
   onOpen,
   onDelete,
-  allowCreate = true
+  onNew
 }: IndexOverviewProps): ReactElement {
-  const [naming, setNaming] = useState(false)
-  const [id, setId] = useState('')
-
-  const taken = indices.some((index) => index.id === id.trim())
-  const problem = idProblem(id, taken)
-
-  const create = (): void => {
-    if (problem !== undefined) return
-    setNaming(false)
-    setId('')
-    onOpen(id.trim())
-  }
-
   return (
     <div className="index-overview">
-      {allowCreate && !naming && (
-        <Button
-          variant="accent"
-          onClick={() => {
-            setNaming(true)
-          }}
-        >
+      {/* Straight to the form (Karan, 0.2.1): the id is a field in it, checked there. */}
+      {onNew !== undefined && (
+        <Button variant="accent" onClick={onNew}>
           New index…
         </Button>
-      )}
-
-      {naming && (
-        <Card title="New index definition" className="index-overview-new">
-          {/*
-            The id is collected up front because it is the document's ADDRESS:
-            py-beacon derives the URL from it and `IndexDetailsForm` locks it
-            once saved. Checked against the engine's own rule here rather than
-            after a failed save, which would report it as a 422.
-          */}
-          <Field label="Index id" width={240}>
-            <input
-              className="index-overview-input"
-              value={id}
-              maxLength={64}
-              autoFocus
-              aria-label="Index id"
-              onChange={(event) => {
-                setId(event.target.value)
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') create()
-              }}
-            />
-          </Field>
-
-          <p className="index-overview-hint type-11">
-            {problem ?? 'Letters, digits, dash and underscore. This becomes its address.'}
-          </p>
-
-          <div className="index-overview-actions">
-            <Button variant="accent" onClick={create} disabled={problem !== undefined}>
-              Create
-            </Button>
-            <Button
-              onClick={() => {
-                setNaming(false)
-                setId('')
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </Card>
       )}
 
       {indices.length === 0 && (
         <ViewEmpty figure="drawer">
           No index definitions yet.{' '}
-          {allowCreate ? '“New index…” starts one.' : 'Start one in Index Definition.'}
+          {onNew !== undefined ? '“New index…” starts one.' : 'Start one in Index Definition.'}
         </ViewEmpty>
       )}
 
@@ -190,15 +127,4 @@ export function IndexOverview({
       )}
     </div>
   )
-}
-
-/** What the engine, or the catalogue, will refuse — said before asking. */
-function idProblem(id: string, taken: boolean): string | undefined {
-  const value = id.trim()
-  if (value === '') return 'An index needs an id.'
-  if (!isDocumentId(value)) {
-    return 'Letters, digits, dash and underscore only, up to 64 characters.'
-  }
-  if (taken) return `${value} already exists — open it from the list instead.`
-  return undefined
 }

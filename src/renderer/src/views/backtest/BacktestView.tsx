@@ -2,7 +2,9 @@ import type { ReactElement } from 'react'
 import { activeJobs, useJobs, type TrackedJob } from '../../api/jobs'
 import { BackButton } from '../../components/BackButton/BackButton'
 import { Button } from '../../components/Button/Button'
+import { Field } from '../../components/Field/Field'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
+import { Select } from '../../components/Select/Select'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
@@ -19,14 +21,13 @@ import {
 } from '../shared/strategyDocuments'
 import { useBacktestRun } from '../shared/strategyQueries'
 import { MoneySection } from './MoneySection'
-import { NewBacktest } from './NewBacktest'
 import { PeriodSection } from './PeriodSection'
 import { RunsList } from './RunsList'
 import { VehicleSection } from './VehicleSection'
 import { setupFindings, toRequest } from './setup'
 import { useBacktestSetup } from './useBacktestSetup'
 import './BacktestView.css'
-import { useTabState } from '../../state/tabMemory'
+import { forgetTabState, readTabState, useTabState, writeTabState } from '../../state/tabMemory'
 
 /**
  * Beacon View → Backtest (BU-174; a stored strategy's since py-beacon 0.9.0).
@@ -54,20 +55,27 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
     openOrRetarget({ page, pane, viewKind, title: strategyId, subject: strategyId })
   }
 
+  // "New backtest…" opens the form at once, a strategy chosen in it (0.2.1).
+  const [starting, setStarting] = useTabState(tab.id, 'backtest-new', false)
+
   /*
    * The runs, and "New backtest…" to start one, as Index Definition lists
    * its indices (Karan, 0.2.1): typing a strategy's name into a query bar
    * was the only way in, and nothing said which names there were.
    */
-  if (strategyId === '') {
+  if (strategyId === '' && !starting) {
     return (
       <div className="backtest-view backtest-catalogue">
-        <NewBacktest
-          strategies={catalogue.rows}
-          onStart={(id) => {
-            setSubject(tab.id, id)
+        <Button
+          variant="accent"
+          onClick={() => {
+            // A fresh form each time, not the last one left unrun.
+            for (const key of NEW_FORM_KEYS) forgetTabState(tab.id, key)
+            setStarting(true)
           }}
-        />
+        >
+          New backtest…
+        </Button>
         <RunsList
           onOpen={(id) => {
             setSubject(tab.id, id)
@@ -77,32 +85,61 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
     )
   }
 
+  /*
+   * A strategy chosen in the form. Settings changed before it was chosen go
+   * with it; a form nobody touched takes the strategy's last run instead.
+   */
+  const chooseStrategy = (id: string): void => {
+    if (strategyId === '' && readTabState(tab.id, 'backtest-origin:') === 'edited') {
+      writeTabState(tab.id, `backtest-setup:${id}`, readTabState(tab.id, 'backtest-setup:'))
+      writeTabState(tab.id, `backtest-origin:${id}`, 'edited')
+    }
+    setStarting(false)
+    setSubject(tab.id, id)
+  }
+
   return (
     <div className="backtest-view">
       <PaneHeader
         kind="document"
-        title={strategyId}
+        title={strategyId === '' ? 'New backtest' : strategyId}
         {...metaOf(strategy.data, catalogue.skipped)}
         controls={
           <>
             <BackButton
               to="All runs"
               onClick={() => {
+                setStarting(false)
                 setSubject(tab.id, '')
               }}
             />
-            <Button
-              onClick={() => {
-                open('strategy', 'strategy-builder')
-              }}
-            >
-              Open strategy
-            </Button>
+            {strategyId !== '' && (
+              <Button
+                onClick={() => {
+                  open('strategy', 'strategy-builder')
+                }}
+              >
+                Open strategy
+              </Button>
+            )}
           </>
         }
       />
 
-      {strategy.isPending && <ViewLoading what={strategyId} />}
+      <Field label="Strategy" width={320}>
+        <Select
+          label="Strategy"
+          options={catalogue.rows.map((row) => ({
+            value: row.identifier,
+            label: row.name === undefined ? row.identifier : `${row.identifier} · ${row.name}`
+          }))}
+          value={strategyId}
+          placeholder="Choose a saved strategy…"
+          onChange={chooseStrategy}
+        />
+      </Field>
+
+      {strategyId !== '' && strategy.isPending && <ViewLoading what={strategyId} />}
       {strategy.isError &&
         (isAbsent(strategy.error) ? (
           <ViewEmpty figure="binders">
@@ -112,7 +149,7 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
           <ViewError error={strategy.error} />
         ))}
 
-      {strategy.isSuccess && (
+      {(strategyId === '' || strategy.isSuccess) && (
         <Setup
           // A fresh form per strategy: one's flows are not another's.
           key={strategyId}
@@ -127,19 +164,24 @@ export function BacktestView({ tab, subject, pane }: ViewProps): ReactElement {
   )
 }
 
+/** What a new, unchosen form keeps, cleared when another is started. */
+const NEW_FORM_KEYS = ['backtest-setup:', 'backtest-origin:', 'backtest-job:'] as const
+
 function Setup({
   tabId,
   strategy,
   onOpenOverview
 }: {
   tabId: string
-  strategy: StoredStrategy
+  /** None yet on a new backtest: the form shows, and runs once one is chosen. */
+  strategy: StoredStrategy | undefined
   onOpenOverview: () => void
 }): ReactElement {
+  const strategyId = strategy?.id ?? ''
   // The run submitted from this tab, so its progress is still here on coming back.
   const [jobId, setJobId] = useTabState<string | undefined>(
     tabId,
-    `backtest-job:${strategy.id}`,
+    `backtest-job:${strategyId}`,
     undefined
   )
 
@@ -149,14 +191,14 @@ function Setup({
     edit: setSetup,
     origin,
     startAfresh
-  } = useBacktestSetup(tabId, strategy.id, options.data)
+  } = useBacktestSetup(tabId, strategyId, options.data)
   const validate = useValidateStrategyBacktest()
   const run = useRunStrategyBacktest()
   const jobs = useJobs((state) => state.jobs)
 
   // The job kind names the strategy since 0.9.0, so another strategy's run
   // in flight does not hold this form.
-  const running = activeJobs(jobs).find((job) => job.kind === `backtest:${strategy.id}`)
+  const running = activeJobs(jobs).find((job) => job.kind === `backtest:${strategyId}`)
   const status = useBacktestRun(jobId, jobId !== undefined && running === undefined)
   const failure = failureOf(jobId === undefined ? undefined : jobs[jobId], status.data)
   const finished =
@@ -165,14 +207,14 @@ function Setup({
     running === undefined &&
     status.data !== undefined
 
-  const findings = setupFindings(setup, strategy.id)
+  const findings = setupFindings(setup, strategyId)
   const busy = run.isPending || running !== undefined
   const body = (): ReturnType<typeof toRequest> => toRequest(setup, options.data)
 
   const submit = (): void => {
     validate.reset()
     run.mutate(
-      { strategyId: strategy.id, body: body() },
+      { strategyId, body: body() },
       {
         onSuccess: (job) => {
           setJobId(job.job_id)
@@ -183,11 +225,11 @@ function Setup({
 
   return (
     <>
-      <StrategyLine strategy={strategy} />
+      {strategy !== undefined && <StrategyLine strategy={strategy} />}
       {origin === 'run' && (
         <div className="backtest-origin">
           <p className="backtest-note type-11">
-            These settings come from the last backtest of {strategy.id}. Change anything you want
+            These settings come from the last backtest of {strategyId}. Change anything you want
             before running it again.
           </p>
           <Button onClick={startAfresh}>Start afresh</Button>
@@ -210,7 +252,7 @@ function Setup({
         <Button
           disabled={findings.length > 0 || validate.isPending}
           onClick={() => {
-            validate.mutate({ strategyId: strategy.id, body: body() })
+            validate.mutate({ strategyId, body: body() })
           }}
         >
           {validate.isPending ? 'Checking…' : 'Validate'}
@@ -234,7 +276,7 @@ function Setup({
 
       {finished && (
         <div className="backtest-done">
-          <p className="type-13">The backtest for {strategy.id} has finished.</p>
+          <p className="type-13">The backtest for {strategyId} has finished.</p>
           <div className="backtest-done-actions">
             <Button variant="accent" onClick={onOpenOverview}>
               Open overview

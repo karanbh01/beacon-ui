@@ -43,8 +43,7 @@ test('a new index cannot be saved without one', async ({ window }) => {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Index Definition')
   await window.getByRole('button', { name: 'New index…' }).click()
-  await window.getByRole('textbox', { name: 'Index id' }).fill('EU-TEST')
-  await window.getByRole('button', { name: 'Create' }).click()
+  await window.getByRole('textbox', { name: 'Id', exact: true }).fill('EU-TEST')
 
   await expect(window.getByRole('textbox', { name: 'Name' })).toBeVisible()
   // The control is marked required, and the list is the engine's.

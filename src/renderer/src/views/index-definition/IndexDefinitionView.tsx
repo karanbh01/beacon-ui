@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from 'react'
-import { useOpenedDefinition } from '../../state/tabMemory'
+import { forgetTabState, useOpenedDefinition, useTabState } from '../../state/tabMemory'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { Select } from '../../components/Select/Select'
@@ -24,7 +24,7 @@ import { IndexDetailsForm } from './IndexDetailsForm'
 import { IndexOverview } from './IndexOverview'
 import { Methodology } from './Methodology'
 import { ValidationCard } from './ValidationCard'
-import { useIndexDraft } from './useIndexDraft'
+import { idProblem, useIndexDraft } from './useIndexDraft'
 import {
   addCap,
   addRule,
@@ -50,6 +50,9 @@ import { BackButton } from '../../components/BackButton/BackButton'
  * The first document view in the app: it holds a draft, tracks dirty on the
  * tab, and has Validate / Revert / Save rather than a query bar.
  */
+/** The picker's entry for an index still being started; a space keeps it from being an id. */
+const NEW_INDEX = 'new index'
+
 export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactElement {
   const indices = useIndices()
   const deleteIndex = useDeleteIndex()
@@ -83,11 +86,14 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
 
   const named =
     subject ?? tab.subject ?? tab.pinnedDoc ?? (isDocumentId(tab.title) ? tab.title : undefined)
-  const chosen = named ?? opened
+  // "New index…" opens the form at once, its id a field in it (Karan, 0.2.1).
+  const [starting, setStarting] = useTabState(tab.id, 'index-new', false)
+  const chosen = named ?? opened ?? (starting ? '' : undefined)
   const indexId = chosen ?? ''
   const { draft, saved, dirty, loading, error, edit, revert, commit } = useIndexDraft(
     tab.id,
-    indexId
+    indexId,
+    starting && named === undefined && opened === undefined
   )
 
   const [editingId, setEditingId] = useState<string | undefined>(undefined)
@@ -140,6 +146,11 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
         <IndexOverview
           indices={catalogue}
           onOpen={setOpened}
+          onNew={() => {
+            // A fresh form each time, not the last unsaved one.
+            forgetTabState(tab.id, 'index-draft:')
+            setStarting(true)
+          }}
           onDelete={(index) => {
             /*
              * The confirmation names what goes with it (BU-151, BU-170).
@@ -196,6 +207,7 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
               <BackButton
                 to="All indices"
                 onClick={() => {
+                  setStarting(false)
                   setOpened(undefined)
                 }}
               />
@@ -226,11 +238,20 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
     setPreviewedFor(JSON.stringify(document))
   }
 
+  // A new index's id is its address, so it is checked here, before the engine is asked.
+  const newIdProblem =
+    saved === undefined
+      ? idProblem(
+          draft.id,
+          catalogue.some((index) => index.id === draft.id.trim())
+        )
+      : undefined
+
   return (
     <div className="index-definition-view">
       <PaneHeader
         kind="document"
-        title={draft.id}
+        title={draft.id === '' ? 'New index' : draft.id}
         meta={`${draft.name} · ${draft.currency} · base ${draft.base_date.slice(0, 10)}`}
         {...(saved === undefined
           ? { status: 'new · not saved yet' }
@@ -248,10 +269,11 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
             {/* Back to the catalogue from a definition opened out of it (Karan,
                 BU-230): the picker's "All indices" was the only way, and it
                 did not read as one. */}
-            {named === undefined && opened !== undefined && (
+            {named === undefined && (opened !== undefined || starting) && (
               <BackButton
                 to="All indices"
                 onClick={() => {
+                  setStarting(false)
                   setOpened(undefined)
                 }}
               />
@@ -259,18 +281,22 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
             {named === undefined && (
               <Select
                 label="Index"
-                value={indexId}
+                value={starting ? NEW_INDEX : indexId}
                 options={[
                   { value: '', label: 'All indices' },
                   ...catalogue.map((index) => ({ value: index.id, label: index.name })),
                   // A brand new index is not in the catalogue until it saves,
                   // and a picker showing a value it does not list reads as
                   // broken.
-                  ...(catalogue.some((index) => index.id === indexId)
-                    ? []
-                    : [{ value: indexId, label: `${indexId} · new` }])
+                  ...(starting
+                    ? [{ value: NEW_INDEX, label: 'New index' }]
+                    : catalogue.some((index) => index.id === indexId)
+                      ? []
+                      : [{ value: indexId, label: `${indexId} · new` }])
                 ]}
                 onChange={(value) => {
+                  if (value === NEW_INDEX) return
+                  setStarting(false)
                   setOpened(value === '' ? undefined : value)
                 }}
               />
@@ -290,13 +316,20 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
             </Button>
             <Button
               variant="accent"
-              disabled={!dirty || save.isPending || !hasWeighting(draft)}
+              disabled={
+                !dirty || save.isPending || !hasWeighting(draft) || newIdProblem !== undefined
+              }
               onClick={() => {
                 save.mutate(
                   { document: draft, isNew: saved === undefined },
                   {
                     onSuccess: (result) => {
                       commit(result.index)
+                      // A new one is followed under the id it was saved with.
+                      if (starting) {
+                        setStarting(false)
+                        setOpened(result.index.id)
+                      }
                     }
                   }
                 )
@@ -325,7 +358,12 @@ export function IndexDefinitionView({ tab, subject, pane }: ViewProps): ReactEle
       */}
       {working && startedAt !== undefined && <ViewWorking what={draft.id} since={startedAt} />}
 
-      <IndexDetailsForm document={draft} onChange={edit} idLocked={saved !== undefined} />
+      <IndexDetailsForm
+        document={draft}
+        onChange={edit}
+        idLocked={saved !== undefined}
+        {...(newIdProblem === undefined ? {} : { idProblem: newIdProblem })}
+      />
 
       {/*
         A derived index has no universe of its own (BU-170): it takes the

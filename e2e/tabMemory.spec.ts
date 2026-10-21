@@ -100,7 +100,6 @@ test('a backtest being set up keeps its settings after looking at another tab', 
   await openView(window, 'Backtest')
   await window.getByRole('button', { name: 'New backtest…' }).click()
   await choose(window, 'Strategy', 'TECH10')
-  await window.getByRole('button', { name: 'Set up', exact: true }).click()
   await window.getByLabel('Transaction cost (bps)').fill('7')
 
   await openView(window, 'Overview')

@@ -423,7 +423,6 @@ export function ConstituentPreviewView({ tab, subject, pane }: ViewProps): React
       {indexId === '' && indices.isSuccess && (
         <IndexOverview
           indices={indices.data.indices}
-          allowCreate={false}
           onOpen={(id) => {
             setSubject(tab.id, id)
           }}

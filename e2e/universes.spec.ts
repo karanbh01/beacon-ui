@@ -180,13 +180,15 @@ test('an index definition can be created, which is what the tab is for', async (
   await expect(window.locator('.index-overview').getByText('TECH10', { exact: true })).toBeVisible()
   await window.getByRole('button', { name: 'New index…' }).click()
 
-  // Rejected before anything is sent: a space cannot address a document.
-  await window.getByRole('textbox', { name: 'Index id' }).fill('my index')
-  await expect(window.getByRole('button', { name: 'Create' })).toBeDisabled()
+  // Straight onto the form (0.2.1). A space cannot address a document, so
+  // the id is refused before anything is sent.
+  const id = window.getByRole('textbox', { name: 'Id', exact: true })
+  await id.fill('my index')
+  await expect(window.getByText(/The id takes letters, digits/)).toBeVisible()
+  await expect(window.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
 
-  await window.getByRole('textbox', { name: 'Index id' }).fill('MY-INDEX')
-  await window.getByRole('button', { name: 'Create' }).click()
-
+  await id.fill('MY-INDEX')
+  await expect(window.getByRole('heading', { name: 'MY-INDEX' })).toBeVisible()
   await expect(window.getByRole('textbox', { name: 'Name' })).toBeVisible()
 
   // And back out through the picker, since #103 removed the back arrow.
@@ -268,12 +270,15 @@ test('a universe made here can be deleted, and a seeded one cannot', async ({ ap
   ).toHaveCount(0)
 })
 
+/*
+ * A definition with rules to edit. These had gone through "Create MY-INDEX",
+ * which only reached rules because the stub answers any id with TECH10's
+ * document; a new index is blank (0.2.1).
+ */
 async function openDraft(window: Page): Promise<void> {
   await openPage(window, 'Strategy Builder')
   await openView(window, 'Index Definition')
-  await window.getByRole('button', { name: 'New index…' }).click()
-  await window.getByRole('textbox', { name: 'Index id' }).fill('MY-INDEX')
-  await window.getByRole('button', { name: 'Create' }).click()
+  await window.locator('.index-overview').getByText('TECH10', { exact: true }).click()
   await expect(window.getByText('Weighting & caps')).toBeVisible()
 }
 

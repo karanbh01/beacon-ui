@@ -3,7 +3,7 @@ import { isDocumentId } from '../../api/ids'
 import { BackButton } from '../../components/BackButton/BackButton'
 import { Button } from '../../components/Button/Button'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
-import { useOpenedDefinition } from '../../state/tabMemory'
+import { forgetTabState, useOpenedDefinition, useTabState } from '../../state/tabMemory'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { FaultNotice, ViewError, ViewLoading } from '../shared/ViewState'
@@ -43,12 +43,15 @@ export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
   // opened a draft called Strategy instead of the catalogue.
   const titled = tab.title !== VIEW_TITLE && isDocumentId(tab.title) ? tab.title : undefined
   const named = subject ?? tab.subject ?? tab.pinnedDoc ?? titled
-  const chosen = named ?? opened
+  // "New strategy…" opens the form at once, its id a field in it (0.2.1).
+  const [starting, setStarting] = useTabState(tab.id, 'strategy-new', false)
+  const chosen = named ?? opened ?? (starting ? '' : undefined)
   const strategyId = chosen ?? ''
 
   const { draft, saved, dirty, loading, error, edit, revert, commit } = useStrategyDraft(
     tab.id,
-    strategyId
+    strategyId,
+    starting && named === undefined && opened === undefined
   )
   const validate = useValidateStrategy()
   const save = useSaveStrategy()
@@ -66,6 +69,11 @@ export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
         <StrategyCatalogue
           strategies={strategies.data?.strategies ?? []}
           onOpen={setOpened}
+          onNew={() => {
+            // A fresh form each time, not the last unsaved one.
+            forgetTabState(tab.id, 'strategy-draft:')
+            setStarting(true)
+          }}
           onDelete={(strategy) => {
             // Its runs go with it, so the confirmation says so (BN-312).
             void window.beacon
@@ -90,7 +98,10 @@ export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
     )
   }
 
-  const own = draftFindings(draft)
+  const own = draftFindings(
+    draft,
+    saved === undefined ? (strategies.data?.strategies ?? []).map((stored) => stored.id) : undefined
+  )
   const backtest = (): void => {
     openOrRetarget({
       page: 'beacon-view',
@@ -105,7 +116,7 @@ export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
     <div className="strategy-view">
       <PaneHeader
         kind="document"
-        title={draft.id}
+        title={draft.id === '' ? 'New strategy' : draft.id}
         meta={draft.index_id === '' ? 'holds no index yet' : `${draft.name} · ${draft.index_id}`}
         {...(saved === undefined
           ? { status: 'new · not saved yet' }
@@ -118,6 +129,7 @@ export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
               <BackButton
                 to="All strategies"
                 onClick={() => {
+                  setStarting(false)
                   setOpened(undefined)
                 }}
               />
@@ -142,6 +154,11 @@ export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
                   {
                     onSuccess: (result) => {
                       commit(result.strategy)
+                      // A new one is followed under the id it was saved with.
+                      if (starting) {
+                        setStarting(false)
+                        setOpened(result.strategy.id)
+                      }
                     }
                   }
                 )
@@ -180,7 +197,12 @@ export function StrategyView({ tab, subject, pane }: ViewProps): ReactElement {
           />
         ))}
 
-      <StrategyForm document={draft} onChange={edit} options={options.data} />
+      <StrategyForm
+        document={draft}
+        onChange={edit}
+        options={options.data}
+        idLocked={saved !== undefined}
+      />
       <ImplementationCard document={draft} onChange={edit} options={options.data} />
     </div>
   )

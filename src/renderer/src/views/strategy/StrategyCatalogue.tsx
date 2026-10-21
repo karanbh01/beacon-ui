@@ -1,91 +1,34 @@
-import { useState, type ReactElement } from 'react'
+import type { ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
-import { Card } from '../../components/Card/Card'
-import { Field } from '../../components/Field/Field'
 import { Table, type Column } from '../../components/Table/Table'
-import { isDocumentId } from '../../api/ids'
 import { ViewEmpty } from '../shared/ViewState'
 import type { StoredStrategy } from '../shared/strategyDocuments'
 import { KINDS } from './strategyDraft'
 import '../index-definition/IndexOverview.css'
 
 /**
- * What strategies exist, and the way to write one — Index Definition's
- * catalogue, for strategies: the same list, the same "New…" card asking for
- * the id first, the same quiet Delete. A row the engine says cannot run (its
- * index has gone) says why in the list rather than on the first backtest.
+ * What strategies exist, and the way to write one: the list, "New strategy…"
+ * opening the form straight away (Karan, 0.2.1), and a quiet Delete. A row
+ * the engine says cannot run (its index has gone) says why in the list
+ * rather than on the first backtest.
  */
 export function StrategyCatalogue({
   strategies,
   onOpen,
+  onNew,
   onDelete
 }: {
   strategies: readonly StoredStrategy[]
   onOpen: (id: string) => void
+  /** Open the form on a new, unnamed strategy; its id is a field in it. */
+  onNew: () => void
   onDelete: (strategy: StoredStrategy) => void
 }): ReactElement {
-  const [naming, setNaming] = useState(false)
-  const [id, setId] = useState('')
-  const problem = idProblem(
-    id,
-    strategies.some((strategy) => strategy.id === id.trim())
-  )
-
-  const create = (): void => {
-    if (problem !== undefined) return
-    setNaming(false)
-    setId('')
-    onOpen(id.trim())
-  }
-
   return (
     <div className="index-overview">
-      {!naming && (
-        <Button
-          variant="accent"
-          onClick={() => {
-            setNaming(true)
-          }}
-        >
-          New strategy…
-        </Button>
-      )}
-
-      {naming && (
-        <Card title="New strategy" className="index-overview-new">
-          <Field label="Strategy id" width={240}>
-            <input
-              className="index-overview-input"
-              value={id}
-              maxLength={64}
-              autoFocus
-              aria-label="Strategy id"
-              onChange={(event) => {
-                setId(event.target.value)
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') create()
-              }}
-            />
-          </Field>
-          <p className="index-overview-hint type-11">
-            {problem ?? 'Letters, digits, dash and underscore. This becomes its address.'}
-          </p>
-          <div className="index-overview-actions">
-            <Button variant="accent" onClick={create} disabled={problem !== undefined}>
-              Create
-            </Button>
-            <Button
-              onClick={() => {
-                setNaming(false)
-                setId('')
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </Card>
-      )}
+      <Button variant="accent" onClick={onNew}>
+        New strategy…
+      </Button>
 
       {strategies.length === 0 && (
         <ViewEmpty figure="drawer">
@@ -157,12 +100,3 @@ function columnsWith(onDelete: (strategy: StoredStrategy) => void): Column<Store
 }
 
 /** What the engine, or the catalogue, will refuse — said before asking. */
-function idProblem(id: string, taken: boolean): string | undefined {
-  const value = id.trim()
-  if (value === '') return 'A strategy needs an id.'
-  // "compare" and "runs" are routes under /strategies, not ids (BN-313).
-  if (value === 'compare' || value === 'runs') return `“${value}” is reserved by the engine.`
-  if (!isDocumentId(value)) return 'Letters, digits, dash and underscore only, up to 64 characters.'
-  if (taken) return `${value} already exists — open it from the list instead.`
-  return undefined
-}

@@ -21,10 +21,9 @@ async function openBacktest(window: Page, strategyId: string): Promise<void> {
   await window.getByRole('menuitem', { name: 'Backtest', exact: true }).click()
 
   if (strategyId === '') return
-  // Chosen from the saved strategies, as a new index is named (0.2.1).
+  // The form opens at once, its strategy chosen in it (0.2.1).
   await window.getByRole('button', { name: 'New backtest…' }).click()
   await choose(window, 'Strategy', strategyId)
-  await window.getByRole('button', { name: 'Set up', exact: true }).click()
 }
 
 test('with no strategy named it lists the runs, newest first (Karan)', async ({ window }) => {
@@ -223,12 +222,12 @@ test('the capital and flows table narrows with a side-by-side pane (0.2.1)', asy
 test('a backtest starts from New backtest, as an index does (0.2.1)', async ({ window }) => {
   await openBacktest(window, '')
 
-  // The runs are the page; a new one is chosen from the saved strategies.
+  // The runs are the page; a new one opens straight onto its form, the
+  // strategy chosen there from the saved ones.
   await expect(window.locator('.backtest-runs')).toBeVisible()
   await window.getByRole('button', { name: 'New backtest…' }).click()
-  await expect(window.getByRole('button', { name: 'Set up', exact: true })).toBeDisabled()
+  await expect(window.getByRole('heading', { name: 'New backtest' })).toBeVisible()
   await choose(window, 'Strategy', 'EU-VALUE')
-  await window.getByRole('button', { name: 'Set up', exact: true }).click()
 
   await expect(window.locator('.backtest-strategy')).toContainText('EU-VALUE')
   await window.getByRole('button', { name: 'Back to all runs' }).click()

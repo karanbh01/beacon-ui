@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import type { components } from '@shared/api.generated'
 import { ApiError } from '../../api/errors'
+import { isDocumentId } from '../../api/ids'
 import { useTabState } from '../../state/tabMemory'
 import { useWorkspace } from '../../state/tabs.store'
 import {
@@ -76,8 +77,14 @@ function normalised(document: unknown): unknown {
 }
 
 /** What this app can see is wrong before asking the engine. */
-export function draftFindings(document: StrategyDocument): string[] {
+export function draftFindings(
+  document: StrategyDocument,
+  /** The ids already stored, for a strategy not yet saved: its id is still its own to choose. */
+  taken?: readonly string[]
+): string[] {
   const findings: string[] = []
+  const problem = taken === undefined ? undefined : idProblem(document.id, taken)
+  if (problem !== undefined) findings.push(problem)
   if (document.name.trim() === '') findings.push('A strategy needs a name.')
   if (document.index_id === '') findings.push('Choose the index it holds.')
   const kind = document.strategy?.type ?? 'index'
@@ -85,6 +92,17 @@ export function draftFindings(document: StrategyDocument): string[] {
     findings.push('Tracking needs a replication: how the index is held.')
   }
   return findings
+}
+
+/** What is wrong with a new strategy's id, or nothing. */
+function idProblem(id: string, taken: readonly string[]): string | undefined {
+  const value = id.trim()
+  if (value === '') return 'A strategy needs an id.'
+  // "compare" and "runs" are routes under /strategies, not ids (BN-313).
+  if (value === 'compare' || value === 'runs') return `“${value}” is reserved by the engine.`
+  if (!isDocumentId(value)) return 'The id takes letters, digits, dash and underscore, up to 64.'
+  if (taken.includes(value)) return `${value} already exists. Open it from the list instead.`
+  return undefined
 }
 
 export interface StrategyDraft {
@@ -103,7 +121,12 @@ export interface StrategyDraft {
  * same arrangement as an index's (`useIndexDraft`): tab state seeded once
  * from the query, a 404 read as a new strategy, dirty pushed to the tab.
  */
-export function useStrategyDraft(tabId: string, strategyId: string): StrategyDraft {
+export function useStrategyDraft(
+  tabId: string,
+  strategyId: string,
+  /** A new strategy opened from "New strategy…", its id not yet chosen. */
+  starting = false
+): StrategyDraft {
   const query = useStrategy(strategyId)
   const setDirty = useWorkspace((state) => state.setDirty)
 
@@ -122,9 +145,9 @@ export function useStrategyDraft(tabId: string, strategyId: string): StrategyDra
 
   useEffect(() => {
     if (draft !== undefined) return
-    if (saved === undefined && !missing) return
+    if (saved === undefined && !missing && !starting) return
     setDraft(saved ?? blankStrategy(strategyId))
-  }, [draft, saved, missing, strategyId, setDraft])
+  }, [draft, saved, missing, starting, strategyId, setDraft])
 
   const dirty = draft !== undefined && isDirty(draft, saved)
 

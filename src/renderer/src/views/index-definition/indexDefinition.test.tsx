@@ -437,12 +437,11 @@ describe('opened with no document', () => {
     mountFromSidebar()
     await userEvent.click(await screen.findByRole('button', { name: 'New index…' }))
 
-    await userEvent.type(screen.getByLabelText('Index id'), 'MY-NEW-IDX')
-    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
-
-    // The editor, on a blank draft: the engine 404s an id it does not hold,
-    // and `useIndexDraft` reads that as "a new index".
+    // Straight to the editor on a blank draft (0.2.1), its id a field in it.
     expect(await screen.findByLabelText('Name')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'New index' })).toBeInTheDocument()
+
+    await userEvent.type(screen.getByLabelText('Id'), 'MY-NEW-IDX')
     expect(screen.getByRole('heading', { name: 'MY-NEW-IDX' })).toBeInTheDocument()
   })
 
@@ -462,18 +461,20 @@ describe('opened with no document', () => {
   it('refuses an id the engine could not address, before sending anything', async () => {
     mountFromSidebar()
     await userEvent.click(await screen.findByRole('button', { name: 'New index…' }))
-    await userEvent.type(screen.getByLabelText('Index id'), 'my index')
+    await userEvent.type(await screen.findByLabelText('Id'), 'my index')
 
-    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
-    expect(screen.getByText(/Letters, digits, dash and underscore only/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/The id takes letters, digits, dash and underscore/)
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 
   it('refuses an id that is already taken', async () => {
     mountFromSidebar()
     await userEvent.click(await screen.findByRole('button', { name: 'New index…' }))
-    await userEvent.type(screen.getByLabelText('Index id'), 'TECH10')
+    await userEvent.type(await screen.findByLabelText('Id'), 'TECH10')
 
     expect(screen.getByText(/already exists/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 })

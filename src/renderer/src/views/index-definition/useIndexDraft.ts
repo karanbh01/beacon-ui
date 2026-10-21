@@ -30,7 +30,12 @@ export interface IndexDraft {
  * §1: only documents own dirty state), and the tab strip is nowhere near
  * this view.
  */
-export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
+export function useIndexDraft(
+  tabId: string,
+  indexId: string,
+  /** A new index opened from "New index…", its id not yet chosen. */
+  starting = false
+): IndexDraft {
   const query = useIndex(indexId)
   const setDirty = useWorkspace((state) => state.setDirty)
 
@@ -59,9 +64,9 @@ export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
   // user's edits the moment anything refetched; a kept draft is not reseeded.
   useEffect(() => {
     if (draft !== undefined) return
-    if (saved === undefined && !missing) return
+    if (saved === undefined && !missing && !starting) return
     setDraft(saved ?? blankIndex(indexId))
-  }, [draft, saved, missing, indexId, setDraft])
+  }, [draft, saved, missing, starting, indexId, setDraft])
 
   const dirty = draft !== undefined && isDirty(draft, saved)
 
@@ -99,4 +104,13 @@ export function useIndexDraft(tabId: string, indexId: string): IndexDraft {
     revert,
     commit
   }
+}
+
+/** What is wrong with a new index's id, or nothing: it becomes the index's address. */
+export function idProblem(id: string, taken: boolean): string | undefined {
+  const value = id.trim()
+  if (value === '') return 'An index needs an id.'
+  if (!isDocumentId(value)) return 'The id takes letters, digits, dash and underscore, up to 64.'
+  if (taken) return `${value} already exists. Open it from the list instead.`
+  return undefined
 }
