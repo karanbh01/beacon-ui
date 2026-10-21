@@ -336,3 +336,16 @@ describe('a delete refused because something still holds the document', () => {
     expect(screen.getByText(/point them at another document first/)).toBeInTheDocument()
   })
 })
+
+describe('an input the engine will not take (py-beacon 0.9.4)', () => {
+  it('heads an overflowing pricer and a mistyped value as the input refused', () => {
+    for (const code of ['INVALID_ARGUMENT', 'VALIDATION_ERROR']) {
+      const { unmount } = render(
+        <ViewError error={new ApiError(422, { code, message: 'The result would overflow.' })} />
+      )
+      expect(screen.getByText('The engine rejected this as written.')).toBeInTheDocument()
+      expect(screen.queryByText('Could not load.')).toBeNull()
+      unmount()
+    }
+  })
+})

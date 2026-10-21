@@ -154,8 +154,16 @@ function FindingList({ fault }: { fault: Fault }): ReactElement | null {
   )
 }
 
+/** Codes that refuse the reader's own input, whose remedy is in what they entered. */
+const REFUSED_INPUT = new Set([
+  'INVALID_RULE',
+  'INVALID_EXPRESSION',
+  'INVALID_ARGUMENT',
+  'VALIDATION_ERROR'
+])
+
 export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
-  if (fault.code === 'INVALID_RULE' || fault.code === 'INVALID_EXPRESSION') {
+  if (REFUSED_INPUT.has(fault.code)) {
     /*
      * The input, as written, is what was refused (BU-212).
      *
@@ -169,6 +177,10 @@ export function FaultNotice({ fault }: { fault: Fault }): ReactElement {
      * of refusal (py-beacon #267): a universe filter or an expression rule
      * used to select nothing for it, and answers INVALID_EXPRESSION now, the
      * message naming each bad field and the close matches.
+     *
+     * So are an argument the engine will not take and a value of the wrong
+     * kind (py-beacon 0.9.4, BN-331): a pricer whose result would overflow,
+     * a decimal sent as text. Both are 422s about what was entered.
      */
     return (
       <div className="view-state">
