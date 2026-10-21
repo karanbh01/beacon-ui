@@ -32,7 +32,17 @@ export function MoneySection({ setup, onChange, options }: SectionProps): ReactE
         </Button>
       }
     >
-      <Table columns={columns} rows={rows} getRowId={(row) => row.key} maxBodyHeight={280} />
+      {/* As wide as its columns, and narrower with the pane down to their floors
+          (Karan, 0.2.1): side by side, it held its width and ran under the next. */}
+      <div className="backtest-flows-table">
+        <Table
+          columns={columns}
+          rows={rows}
+          getRowId={(row) => row.key}
+          maxBodyHeight={280}
+          fillWidth
+        />
+      </div>
       {setup.flows.length === 0 && (
         <p className="backtest-note type-11">No money is paid in or taken out after the start.</p>
       )}
@@ -54,14 +64,21 @@ export function MoneySection({ setup, onChange, options }: SectionProps): ReactE
 }
 
 const COLUMNS: readonly Column<FlowRow>[] = [
-  { key: 'class', header: 'Class', width: 80, emphasis: true, render: (row) => row.shareClass },
-  { key: 'flow', header: 'Flow', width: 160, render: (row) => row.flow },
-  { key: 'when', header: 'When', width: 130, render: (row) => row.when },
+  {
+    key: 'class',
+    header: 'Class',
+    width: 80,
+    minWidth: 44,
+    emphasis: true,
+    render: (row) => row.shareClass
+  },
+  { key: 'flow', header: 'Flow', width: 160, minWidth: 96, render: (row) => row.flow },
+  { key: 'when', header: 'When', width: 130, minWidth: 84, render: (row) => row.when },
   {
     key: 'amount',
     header: 'Amount',
     width: 220,
-    minWidth: 140,
+    minWidth: 96,
     align: 'right',
     render: (row) => row.amount
   }

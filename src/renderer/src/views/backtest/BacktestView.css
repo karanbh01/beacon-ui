@@ -219,3 +219,10 @@
   gap: 8px;
   align-items: flex-end;
 }
+
+/* The capital and flows table: its columns' width at most, and narrower with the pane. */
+.backtest-flows-table {
+  width: 100%;
+  max-width: 640px;
+  min-width: 0;
+}

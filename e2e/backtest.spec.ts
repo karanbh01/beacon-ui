@@ -177,3 +177,29 @@ test('a job that crashed is headed as a fault, not as a decision', async ({ wind
   await expect(window.getByText(/Raised a KeyError/)).toBeVisible()
   await expect(window.getByText('The engine refused to answer.')).toHaveCount(0)
 })
+
+test('the capital and flows table narrows with a side-by-side pane (0.2.1)', async ({
+  app,
+  window
+}) => {
+  // The narrowest window the app allows, split in two: narrower than the
+  // table's own columns, which it held to and ran past the pane.
+  await app.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0]?.setSize(1280, 900)
+  })
+  await openBacktest(window, 'TECH10')
+  await window.getByRole('button', { name: 'Layout' }).click()
+  await window.getByRole('radio', { name: 'Two columns' }).click()
+  await window.keyboard.press('Escape')
+
+  const table = window
+    .locator('[data-pane="0"] section', { hasText: 'Capital and flows' })
+    .locator('.tbl')
+    .first()
+  await expect(table).toBeVisible()
+  const pane = await window.locator('[data-pane="0"] .pane-body').boundingBox()
+  const box = await table.boundingBox()
+  expect((box?.x ?? 0) + (box?.width ?? Infinity)).toBeLessThanOrEqual(
+    (pane?.x ?? 0) + (pane?.width ?? 0)
+  )
+})
