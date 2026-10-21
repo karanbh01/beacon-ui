@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-21
+
+Fixes to 0.2.0: jobs that finish while the connection drops, forms that keep what you typed, new work that opens straight onto its form, and empty states drawn and centred.
+
+### Fixed
+
+- A job finishes in the tray even when its last update was missed. Loading synthetic data no longer stops at 92%.
+- A form keeps what you typed when you look at another tab, in every view.
+- The capital and flows table in Backtest narrows with its pane when panes sit side by side.
+- Every empty view has its drawing, centred in the pane, including Attribution and Strategy.
+- An input py-beacon refuses is headed as a refusal, not as "Could not load".
+
+### Changed
+
+- New backtest, New strategy and New index open straight onto the form. A backtest's strategy is chosen in the form, and a strategy's or index's id is typed there and checked as you go.
+
 ## [0.2.0] - 2026-10-20
 
 Strategies: build one in Strategy Builder, backtest it in Beacon View, and read its holdings and figures in py-beacon's own style. py-beacon 0.9.3 inside.
