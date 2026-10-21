@@ -42,9 +42,19 @@
  * A view answering with an empty state takes the pane's height, so there is
  * room under its header to centre in. Most views are only as tall as their
  * content; the ones holding a filling table already take the height.
+ *
+ * However deep the view puts it (0.2.1): the Strategy catalogue's sits in a
+ * wrapper inside the view's root, so the root took the height and the
+ * wrapper did not, and the figure sat at the top left. A wrapper holding an
+ * empty state takes the room its root has.
  */
-.pane-body > :has(> .view-empty) {
+.pane-body > :has(.view-empty) {
   min-height: 100%;
+}
+
+.pane-body > * :has(> .view-empty) {
+  flex: 1 0 auto;
+  align-self: stretch;
 }
 
 .view-empty-message {

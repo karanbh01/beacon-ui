@@ -160,8 +160,8 @@ export function FeaturesView({ tab, subject }: ViewProps): ReactElement {
       */}
       {table.isSuccess && rows.length === 0 && (
         <ViewEmpty figure="drawer">
-          The engine holds no features for {identifier}. A store generated before they existed has
-          none — Data Coverage can replace it.
+          The engine holds no features for {identifier}. A store made before features existed has
+          none. Data Coverage can replace it.
         </ViewEmpty>
       )}
 

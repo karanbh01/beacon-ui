@@ -89,8 +89,8 @@ export function StrategyCatalogue({
 
       {strategies.length === 0 && (
         <ViewEmpty figure="drawer">
-          This engine has no stored strategies yet — “New strategy…” starts one. A strategy holds an
-          index: the index as defined, tracked, or beaten.
+          No strategies yet. “New strategy…” starts one. A strategy holds an index: as defined,
+          tracked, or beaten.
         </ViewEmpty>
       )}
 

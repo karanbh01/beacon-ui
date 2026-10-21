@@ -7,7 +7,7 @@ import { Table, type Column } from '../../components/Table/Table'
 import { WeightBar } from '../../components/WeightBar/WeightBar'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
-import { useAttribution } from '../shared/beaconQueries'
+import { isAbsent, useAttribution } from '../shared/beaconQueries'
 import { fromFraction, percent, signedPercent, tone } from '../shared/indexMetrics'
 import { holdingColumns, useReferenceColumns, type ReferenceValues } from '../shared/holdingColumns'
 import { HoldingColumnsButton } from '../shared/HoldingColumnsButton'
@@ -141,7 +141,16 @@ export function AttributionView({ tab, subject }: ViewProps): ReactElement {
         <ViewEmpty figure="ticker">Choose a strategy in Overview. This tab follows it.</ViewEmpty>
       )}
       {attribution.isPending && strategyId !== '' && <ViewLoading what={strategyId} />}
-      {attribution.isError && <ViewError error={attribution.error} />}
+      {/* A strategy never run has nothing to attribute: an absence, drawn as one,
+          as the Overview draws it (0.2.1), not a bare "Not found". */}
+      {attribution.isError &&
+        (isAbsent(attribution.error) ? (
+          <ViewEmpty figure="drawer">
+            {strategyId} has no run yet. Backtest it to see what drove its return.
+          </ViewEmpty>
+        ) : (
+          <ViewError error={attribution.error} />
+        ))}
 
       {view !== undefined && (
         <SummaryLine

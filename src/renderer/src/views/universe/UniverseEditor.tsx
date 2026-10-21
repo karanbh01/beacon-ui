@@ -266,7 +266,7 @@ export function UniverseEditor({
           than leaving a gap the reader has to interpret (BU-231). */}
       {!loading && tableRows.length === 0 && (
         <ViewEmpty figure="cardindex">
-          No members yet — add a filter, a symbol, or paste a list.
+          No members yet. Add a filter or a symbol, or paste a list.
         </ViewEmpty>
       )}
 

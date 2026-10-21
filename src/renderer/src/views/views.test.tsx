@@ -434,7 +434,7 @@ describe('WatchlistView', () => {
       watchlists: { watchlists: [] }
     })
 
-    expect(await screen.findByText(/no watchlists/)).toBeInTheDocument()
+    expect(await screen.findByText(/No watchlists yet/)).toBeInTheDocument()
     expect(screen.getByText('No watchlists')).toBeInTheDocument()
   })
 })

@@ -119,8 +119,7 @@ export function WatchlistView({ tab, pane }: ViewProps): ReactElement {
 
       {lists.isSuccess && current === undefined && (
         <ViewEmpty figure="drawer">
-          This engine has no watchlists — py-beacon stores them in{' '}
-          <code>~/.py-beacon/watchlists.json</code>
+          No watchlists yet. py-beacon keeps them in <code>~/.py-beacon/watchlists.json</code>.
         </ViewEmpty>
       )}
 
