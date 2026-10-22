@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-22
+
+Fixes to 0.2.2: py-beacon 0.9.6 inside, with backtests many times faster, progress you can follow, and a choice of where reinvested dividends go.
+
+### Changed
+
+- Backtests run many times faster. A 6,000-stock backtest with an ETF vehicle, market impact and flows takes under a minute, where it took over 13. Loading a large data store takes seconds.
+- A running backtest shows how far through its dates it is, instead of sitting at 5%.
+- Reinvested dividends go into the stock that paid them by default. Backtest has a Reinvest in setting to spread them across all holdings by value instead.
+- Data stores are saved as Parquet. An existing store is converted the first time it loads, which takes a little longer once.
+
 ## [0.2.2] - 2026-10-21
 
 Fixes to 0.2.1: the engine stays up through a long backtest, a way to restart it from the Analysis menu, updates that install without the installer, and py-beacon 0.9.5 inside.
