@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-22
+
+py-beacon 0.9.7 inside: dividends counted from their ex-date, a cash band for strategies, and futures held in whole contracts.
+
+### Added
+
+- A strategy can have a cash band. Between rebalances, cash above the band is invested back down to the cash buffer, and cash below it is topped up by selling holdings.
+- Equitising cash with futures takes a contract multiplier, whole contracts or not, and how far the exposure may drift before the futures are resized.
+- The futures rolls in the Overview show each roll's multiplier.
+
+### Changed
+
+- A backtest counts a dividend in the fund's value from its ex-date rather than when it is paid, so it tracks a total-return index more closely.
+- Futures exposure is checked every day and held in whole contracts.
+- Newly generated synthetic data spreads dividends across the year, and stocks can leave through takeovers.
+
 ## [0.2.3] - 2026-10-22
 
 Fixes to 0.2.2: py-beacon 0.9.6 inside, with backtests many times faster, progress you can follow, and a choice of where reinvested dividends go.
