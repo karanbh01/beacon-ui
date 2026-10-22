@@ -1069,6 +1069,17 @@
             "description": "The book's currency, which `total_costs` and `initial_capital` are in: the index's. Null on a run saved before this was recorded, whose book was in USD.",
             "title": "Currency"
           },
+          "dividends_receivable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeriesPayload"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The dividends the fund is owed at the end of each day, in the book's currency: gone ex, not yet paid, net of withholding tax. The NAV includes them. Null for a run that is never owed one."
+          },
           "drawdown": {
             "$ref": "#/components/schemas/SeriesPayload",
             "description": "Level against its running peak; 0 at a new high."
@@ -1595,6 +1606,32 @@
           "residual"
         ],
         "title": "CarryDecomposition",
+        "type": "object"
+      },
+      "CashBandSpec": {
+        "additionalProperties": false,
+        "description": "The shares of the book the cash may move between before it is brought\nback to the cash buffer.",
+        "properties": {
+          "lower": {
+            "description": "The lowest share of the book in cash, a fraction.",
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "Lower",
+            "type": "number"
+          },
+          "upper": {
+            "description": "The highest share of the book in cash, a fraction.",
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "Upper",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lower",
+          "upper"
+        ],
+        "title": "CashBandSpec",
         "type": "object"
       },
       "ChangelogEntryView": {
@@ -4060,7 +4097,7 @@
         "description": "One roll of a fund's index futures to the next contract.",
         "properties": {
           "contracts": {
-            "description": "Contracts held of it, each on one unit of the index, so the contracts times the price is the notional.",
+            "description": "Contracts held of it, so the contracts times the price times the multiplier is the notional. Whole unless the run holds fractional contracts.",
             "title": "Contracts",
             "type": "number"
           },
@@ -4083,6 +4120,12 @@
             "description": "The new contract's expiry, YYYY-MM-DD.",
             "title": "Expiry",
             "type": "string"
+          },
+          "multiplier": {
+            "default": 1.0,
+            "description": "The value of one index point per contract, in the book's currency.",
+            "title": "Multiplier",
+            "type": "number"
           },
           "notional": {
             "description": "The exposure carried into it, in the book's currency.",
@@ -4852,6 +4895,17 @@
             "title": "Caps",
             "type": "array"
           },
+          "cash_band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CashBandSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Checked every day between rebalances: cash above `upper` is invested down to `cash_buffer`, and cash below `lower` raised back up to it by selling pro rata. `lower` <= `cash_buffer` <= `upper`. Null leaves the cash to the next rebalance."
+          },
           "cash_buffer": {
             "default": 0.0,
             "description": "The share of the book kept in cash, a fraction.",
@@ -4863,15 +4917,61 @@
           "equitise": {
             "anyOf": [
               {
-                "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                "additionalProperties": false,
+                "properties": {
+                  "band": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "dividend_yield": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "multiplier": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "roll_cost_bps": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "roll_days": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "whole_contracts": {
+                    "type": "boolean"
+                  }
                 },
                 "type": "object"
               },
@@ -4879,7 +4979,7 @@
                 "type": "null"
               }
             ],
-            "description": "Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps` and `dividend_yield` (null to estimate it). Null leaves the cash as cash.",
+            "description": "Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps`, `dividend_yield` (null to estimate it), `multiplier` (the value of an index point per contract, 50 by default), `whole_contracts` (true by default) and `band` (how far the exposure may drift from the cash before the futures are resized, as a share of the net assets; 0.0025 by default). Null leaves the cash as cash.",
             "title": "Equitise"
           },
           "execution": {
@@ -10812,7 +10912,7 @@
   },
   "info": {
     "title": "Beacon API",
-    "version": "0.9.6"
+    "version": "0.9.7"
   },
   "openapi": "3.1.0",
   "paths": {

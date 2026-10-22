@@ -19,6 +19,9 @@ const TRADING = [
 
 const FUTURES = [{ key: 'equitise', title: 'Equitise cash with futures' }] as const
 
+/** How far the cash may drift between rebalances before it is reset (py-beacon 0.9.7). */
+const CASH_BAND = { key: 'cash_band', title: 'Cash band' } as const
+
 /**
  * How the strategy is carried out at the fund's size (BN-312), drawn as
  * Index Definition draws its methodology (Karan, 2026-10-19): which names
@@ -70,7 +73,10 @@ export function ImplementationCard({
     {
       key: 'cash',
       label: 'Cash and flows',
-      rows: [cashRow(settings, implementation, patch)]
+      rows: [
+        cashRow(settings, implementation, patch),
+        groupRow(CASH_BAND, settings, implementation, patch)
+      ]
     },
     {
       key: 'trading',

@@ -80,3 +80,47 @@ describe('the implementation as rows, as Index Definition draws its methodology'
     expect(change(document).implementation?.screens).toEqual([])
   })
 })
+
+describe('the cash band (py-beacon 0.9.7)', () => {
+  const options = {
+    screens: [],
+    caps: [],
+    implementation_settings: [
+      param('cash_buffer', 'Cash buffer'),
+      param('cash_band.lower', 'Lowest cash', 1),
+      param('cash_band.upper', 'Highest cash', 2)
+    ]
+  } as unknown as BacktestOptions
+  const at = (cash_band: { lower: number; upper: number } | null): StrategyDocument => ({
+    id: 'S',
+    name: 'S',
+    index_id: 'TECH10',
+    implementation: {
+      cash_buffer: 0.02,
+      invest_flows: 'target',
+      redistribution: 'pro_rata',
+      cash_band
+    }
+  })
+
+  it('is a row of its own under cash, off until it is set', () => {
+    render(<ImplementationCard document={at(null)} onChange={vi.fn()} options={options} />)
+
+    const row = screen.getByText('Cash band').closest('.methodology-row')
+    expect(row).toHaveTextContent('Off')
+    // Not folded into the buffer's line, as a dotted setting would have been.
+    expect(screen.getByText('Cash buffer 0.02')).toBeInTheDocument()
+  })
+
+  it('shows its bounds once set', () => {
+    render(
+      <ImplementationCard
+        document={at({ lower: 0.01, upper: 0.04 })}
+        onChange={vi.fn()}
+        options={options}
+      />
+    )
+
+    expect(screen.getByText('Lowest cash 0.01 · Highest cash 0.04')).toBeInTheDocument()
+  })
+})

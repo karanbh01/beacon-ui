@@ -432,6 +432,14 @@ const ROLL_COLUMNS: readonly Column<FuturesRoll>[] = [
     align: 'right',
     render: (roll) => roll.price.toFixed(2)
   },
+  // Contracts × price × multiplier is the notional (py-beacon 0.9.7).
+  {
+    key: 'multiplier',
+    header: 'Multiplier',
+    width: 100,
+    align: 'right',
+    render: (roll) => String(roll.multiplier)
+  },
   {
     key: 'notional',
     header: 'Notional',
