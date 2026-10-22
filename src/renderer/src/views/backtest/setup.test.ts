@@ -48,8 +48,15 @@ describe('the backtest request (0.9.0)', () => {
     expect(toRequest(DEFAULT_SETUP, OPTIONS)).toEqual({
       transaction_cost_bps: 5,
       initial_capital: 1_000_000,
-      dividends: 'reinvest'
+      dividends: 'reinvest',
+      reinvest_into: 'payer'
     })
+  })
+
+  it('says where reinvested dividends go (0.9.6)', () => {
+    expect(toRequest({ ...DEFAULT_SETUP, reinvestInto: 'holdings' }, OPTIONS).reinvest_into).toBe(
+      'holdings'
+    )
   })
 
   it('sends a preset with only the settings changed on it', () => {

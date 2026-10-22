@@ -8,6 +8,12 @@ import { AssumptionsForm } from './AssumptionsForm'
 import { TextInput, type SectionProps } from './fields'
 import type { BacktestSetup } from './setup'
 
+/** py-beacon 0.9.6's reinvestment targets, in words (BN-343). */
+const REINVEST_LABELS: Record<string, string> = {
+  payer: 'The stock that paid it',
+  holdings: 'All holdings, by value'
+}
+
 /**
  * Period, costs, the benchmark, the book's currency and dividends — the
  * run's terms. What it takes as given (cash rate, FX policy, staleness…) is
@@ -20,6 +26,7 @@ export function PeriodSection({ setup, onChange, options }: SectionProps): React
     onChange((current) => ({ ...current, ...patch }))
   }
   const dividends = options?.choices.dividends ?? ['reinvest', 'cash', 'distribute']
+  const targets = options?.choices.reinvest_into ?? ['payer', 'holdings']
   const changed = Object.values(setup.assumptions).filter((value) => value !== '').length
 
   return (
@@ -79,6 +86,18 @@ export function PeriodSection({ setup, onChange, options }: SectionProps): React
             }}
           />
         </Field>
+        {setup.dividends === 'reinvest' && (
+          <Field label="Reinvest in" width={200}>
+            <Select
+              label="Reinvest in"
+              options={targets.map((value) => ({ value, label: REINVEST_LABELS[value] ?? value }))}
+              value={setup.reinvestInto}
+              onChange={(next) => {
+                set({ reinvestInto: next })
+              }}
+            />
+          </Field>
+        )}
       </div>
 
       <div className="backtest-form-row">

@@ -7020,6 +7020,12 @@ export interface components {
             /** @description What the run takes as given; each unset field takes the engine's default. */
             modelling_assumptions?: components["schemas"]["ModellingAssumptionsSpec"] | null;
             /**
+             * Reinvest Into
+             * @description Where reinvested dividends go: 'payer', the name that paid each one, or 'holdings', the current holdings in proportion to value.
+             * @default payer
+             */
+            reinvest_into: string;
+            /**
              * Share Classes
              * @description The fund's share classes, sharing one book. Empty runs one class with the request's capital and flows, as without classes.
              */

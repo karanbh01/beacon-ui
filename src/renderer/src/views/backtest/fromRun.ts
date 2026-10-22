@@ -45,6 +45,9 @@ export function setupFromRun(
     benchmarkKind: benchmark?.kind === 'identifier' ? 'identifier' : 'index',
     currency: text(settings.currency),
     dividends: text(settings.dividends) || DEFAULT_SETUP.dividends,
+    // A run before 0.9.6 reinvested across the holdings; it says nothing, so
+    // it opens on today's default rather than claiming to know.
+    reinvestInto: text(settings.reinvest_into) || DEFAULT_SETUP.reinvestInto,
     preset,
     vehicle: vehicleChanges(record(record(settings.vehicle)?.settings), preset, options),
     classes,

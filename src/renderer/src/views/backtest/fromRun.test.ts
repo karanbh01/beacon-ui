@@ -113,5 +113,8 @@ describe('the form as a run left it (BN-322)', () => {
   it('keeps its own defaults where the settings say nothing', () => {
     const setup = setupFromRun({ dividends: 'cash' }, OPTIONS)
     expect(setup).toMatchObject({ dividends: 'cash', costBps: '5', initialCapital: '1000000' })
+    // Unsaid before 0.9.6, so today's default rather than a guess.
+    expect(setup.reinvestInto).toBe('payer')
+    expect(setupFromRun({ reinvest_into: 'holdings' }, OPTIONS).reinvestInto).toBe('holdings')
   })
 })

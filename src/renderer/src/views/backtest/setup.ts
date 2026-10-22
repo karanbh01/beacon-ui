@@ -60,6 +60,8 @@ export interface BacktestSetup {
   /** The book's currency, or '' for the index's. */
   currency: string
   dividends: string
+  /** Where reinvested dividends go: 'payer' or 'holdings' (py-beacon 0.9.6). */
+  reinvestInto: string
   /** A preset key, or '' for a plain backtest with no vehicle and no fee. */
   preset: string
   /** Changes to the preset, by vehicle setting. Only these are sent. */
@@ -80,6 +82,7 @@ export const DEFAULT_SETUP: BacktestSetup = {
   benchmarkKind: 'index',
   currency: '',
   dividends: 'reinvest',
+  reinvestInto: 'payer',
   preset: '',
   vehicle: {},
   classes: [],
@@ -139,6 +142,9 @@ export function toRequest(
             setup.classes.map((draft) => [className(draft), Number(draft.capital)])
           ),
     dividends: setup.dividends,
+    // Always sent, as the request type asks; the engine reads it only when
+    // dividends are reinvested, which is also when the form shows it.
+    reinvest_into: setup.reinvestInto,
     ...(setup.currency === '' ? {} : { currency: setup.currency.toUpperCase() }),
     ...(setup.benchmark === ''
       ? {}

@@ -2994,12 +2994,32 @@
    "options": null
   },
   {
+   "name": "reinvest_into",
+   "type": "string",
+   "required": false,
+   "default": "payer",
+   "label": "Reinvest dividends in",
+   "order": 6,
+   "choices": [
+    "payer",
+    "holdings"
+   ],
+   "help": "The name that paid each one, or the holdings in proportion to value.",
+   "unit": null,
+   "minimum": null,
+   "maximum": null,
+   "applies_to": null,
+   "ref": null,
+   "column": null,
+   "options": null
+  },
+  {
    "name": "benchmark.kind",
    "type": "string",
    "required": false,
    "default": null,
    "label": "Benchmark",
-   "order": 6,
+   "order": 7,
    "choices": [
     "index",
     "identifier"
@@ -3019,7 +3039,7 @@
    "required": false,
    "default": null,
    "label": "Benchmark id",
-   "order": 7,
+   "order": 8,
    "choices": null,
    "help": null,
    "unit": null,
@@ -3036,7 +3056,7 @@
    "required": false,
    "default": "CLOSE",
    "label": "Benchmark column",
-   "order": 8,
+   "order": 9,
    "choices": null,
    "help": "The market-data column read for an identifier benchmark.",
    "unit": null,
@@ -3318,6 +3338,10 @@
    "reinvest",
    "cash",
    "distribute"
+  ],
+  "reinvest_into": [
+   "payer",
+   "holdings"
   ],
   "strategy": [
    "index",

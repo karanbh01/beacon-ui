@@ -9200,6 +9200,12 @@
             ],
             "description": "What the run takes as given; each unset field takes the engine's default."
           },
+          "reinvest_into": {
+            "default": "payer",
+            "description": "Where reinvested dividends go: 'payer', the name that paid each one, or 'holdings', the current holdings in proportion to value.",
+            "title": "Reinvest Into",
+            "type": "string"
+          },
           "share_classes": {
             "description": "The fund's share classes, sharing one book. Empty runs one class with the request's capital and flows, as without classes.",
             "items": {
@@ -10806,7 +10812,7 @@
   },
   "info": {
     "title": "Beacon API",
-    "version": "0.9.5"
+    "version": "0.9.6"
   },
   "openapi": "3.1.0",
   "paths": {

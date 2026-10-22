@@ -55,6 +55,11 @@ test('every setting the engine accepts is on the pane', async ({ window }) => {
   await expect(window.getByLabel('Benchmark', { exact: true })).toBeVisible()
   await expect(window.getByRole('button', { name: 'Modelling assumptions…' })).toBeVisible()
 
+  // Where reinvested dividends go (py-beacon 0.9.6), only while they are.
+  await expect(window.getByRole('combobox', { name: 'Reinvest in' })).toBeVisible()
+  await choose(window, 'Dividends', 'cash')
+  await expect(window.getByRole('combobox', { name: 'Reinvest in' })).toHaveCount(0)
+
   // And nothing is drawn: performance is read in the Overview (BU-175).
   await expect(window.locator('.level-chart')).toHaveCount(0)
 })
