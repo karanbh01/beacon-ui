@@ -7,6 +7,7 @@ import type { BeaconClient } from '../../api/client'
 import { ApiError } from '../../api/errors'
 import { useJobs } from '../../api/jobs'
 import { ClientContext } from '../../api/queryClient'
+import { useModellingDefaults } from '../../state/modellingDefaults'
 import { useWorkspace } from '../../state/tabs.store'
 import type { Tab } from '../../state/tabs.types'
 import { ConstituentPreviewView } from '../constituent-preview/ConstituentPreviewView'
@@ -83,7 +84,19 @@ const OPTIONS = {
   vehicle_settings: [FEE],
   share_class_settings: [],
   flows: [],
-  modelling_assumptions: [],
+  modelling_assumptions: [
+    {
+      name: 'cash_rate',
+      label: 'Cash rate',
+      type: 'number',
+      required: false,
+      default: 0,
+      choices: null,
+      help: '',
+      unit: null,
+      order: 0
+    }
+  ],
   screens: [],
   caps: [],
   choices: { dividends: ['reinvest', 'cash', 'distribute'] }
@@ -274,6 +287,7 @@ function tabFor(id: string): Tab {
 }
 
 beforeEach(() => {
+  useModellingDefaults.setState({ assumptions: {} })
   calls = { saved: [], previewed: [], backtested: [], overviews: [] }
   served = FRESH
   runs = []
@@ -483,6 +497,18 @@ describe('define → preview → backtest (BU-27 acceptance)', () => {
     // no preset chosen is a plain run, with no vehicle at all.
     expect(calls.backtested[0]?.body).not.toHaveProperty('strategy')
     expect(calls.backtested[0]?.body).not.toHaveProperty('vehicle')
+  })
+
+  it('starts a new backtest from the app’s own modelling assumptions (BU-272)', async () => {
+    useModellingDefaults.setState({ assumptions: { cash_rate: '0.03' } })
+    mount(<BacktestView tab={tabFor('bt')} subject={STRATEGY.id} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Run backtest' }))
+
+    await waitFor(() => {
+      expect(calls.backtested).toHaveLength(1)
+    })
+    expect(calls.backtested[0]?.body).toMatchObject({ modelling_assumptions: { cash_rate: 0.03 } })
   })
 
   it('leaves a blank date out of the body rather than inventing one', async () => {

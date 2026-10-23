@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron'
 import {
+  EDIT_COMMANDS,
   ENGINE_CHANGED,
   MAXIMIZE_CHANGED,
   UPDATE_CHANGED,
@@ -96,6 +97,14 @@ export function registerIpcHandlers(
         ? await dialog.showMessageBox(message)
         : await dialog.showMessageBox(window, message)
     return answer.response === 0
+  })
+
+  handle('edit:command', (event, command) => {
+    // Checked, not trusted: the channel is typed, but a renderer is still
+    // the other side of a process boundary.
+    if (!EDIT_COMMANDS.includes(command)) return undefined
+    event.sender[command]()
+    return undefined
   })
 
   handle('engine:restart', () => {

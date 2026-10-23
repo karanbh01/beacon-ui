@@ -155,7 +155,16 @@ export function PeriodSection({ setup, onChange, options }: SectionProps): React
             setAssumptions(false)
           }}
         >
-          <AssumptionsForm setup={setup} onChange={onChange} options={options} />
+          <AssumptionsForm
+            values={setup.assumptions}
+            onChange={(name, value) => {
+              onChange((current) => ({
+                ...current,
+                assumptions: { ...current.assumptions, [name]: value }
+              }))
+            }}
+            options={options}
+          />
         </Dialog>
       )}
     </Section>

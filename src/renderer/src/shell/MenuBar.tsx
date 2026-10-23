@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
-import type { EngineStatus } from '@shared/ipc'
+import { EDIT_COMMANDS, type EditCommand, type EngineStatus } from '@shared/ipc'
 import { AiAgentsIcon, DataSourcesIcon, LogoBetaIcon, WindowFormatIcon } from '../icons/generated'
 import { layoutFor, SINGLE_PANE, useChrome } from '../state/chrome'
 import { presetsFor, usePresets } from '../state/presets'
@@ -14,11 +14,14 @@ import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
 import type { SourcesStart } from './DataSourcesDialog'
 import { DataSourcesPanel } from './chrome/DataSourcesPanel'
+import { useEditTarget } from './chrome/editTarget'
 import { LayoutMenu } from './chrome/LayoutMenu'
+import { PresetPicker } from './chrome/PresetPicker'
 import { MenuDropdown } from './chrome/MenuDropdown'
 import { buildMenus, type MenuAction } from './chrome/menuModel'
 import { HOME_PAGE_ID } from './pages'
 import type { ViewOption } from './viewRegistry'
+import { ModellingAssumptionsDialog } from './ModellingAssumptionsDialog'
 import { WindowControls } from './WindowControls'
 import { HoldingColumnsDialog } from '../views/shared/HoldingColumnsDialog'
 import './MenuBar.css'
@@ -111,6 +114,8 @@ export function MenuBar({
 }: MenuBarProps): ReactElement {
   const [panel, setPanel] = useState<OpenPanel>('none')
   const [choosingColumns, setChoosingColumns] = useState(false)
+  const [settingAssumptions, setSettingAssumptions] = useState(false)
+  const [pickingPreset, setPickingPreset] = useState(false)
   /** Which top-level menu is open, by label. Only one at a time (BU-76). */
   const [menu, setMenu] = useState<string | undefined>(undefined)
   const bar = useRef<HTMLElement>(null)
@@ -188,6 +193,39 @@ export function MenuBar({
 
   const generate = useGenerateData()
   const refreshStore = useRefreshStore()
+  const restoreEditTarget = useEditTarget()
+
+  // Both halves, or it is not a reset: a single pane still holding six tabs
+  // is the arrangement you were trying to get out of.
+  const resetWindow = (): void => {
+    setLayout(page, SINGLE_PANE.id)
+    resetPage(page)
+  }
+
+  /*
+   * View's two shortcuts (BU-274, BU-275), taken before anything else sees
+   * them: Electron's default menu binds Ctrl+Shift+R to Force Reload, and a
+   * keydown the page has prevented is not passed on to it.
+   */
+  const shortcuts = useRef({ arrangeable, resetWindow })
+  shortcuts.current = { arrangeable, resetWindow }
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.altKey) return
+      if (event.code === 'KeyR') {
+        event.preventDefault()
+        if (shortcuts.current.arrangeable) shortcuts.current.resetWindow()
+      } else if (event.code === 'KeyP') {
+        event.preventDefault()
+        setMenu(undefined)
+        setPickingPreset(true)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [])
 
   const runMenu = (action: MenuAction): void => {
     if (action === 'theme-light') theme.setPreference('light')
@@ -202,12 +240,19 @@ export function MenuBar({
     else if (action === 'data-preferences') onDataPreferences?.()
     else if (action === 'holding-columns') setChoosingColumns(true)
     else if (action === 'refresh-engine') void window.beacon?.engine.restart()
-    else if (action === 'layout-reset') {
-      // Both halves, or it is not a reset: a single pane still holding six
-      // tabs is the arrangement you were trying to get out of.
-      setLayout(page, SINGLE_PANE.id)
-      resetPage(page)
-    } else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
+    else if (action === 'modelling-assumptions') setSettingAssumptions(true)
+    else if (action === 'preset-picker') setPickingPreset(true)
+    else if (action === 'layout-reset') resetWindow()
+    else if (action.startsWith('edit-')) runEdit(action.slice('edit-'.length))
+    else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
+  }
+
+  /** Back to the field or selection the menu was opened over, then the command. */
+  const runEdit = (command: string): void => {
+    if (!isEditCommand(command)) return
+    setMenu(undefined)
+    restoreEditTarget()
+    void window.beacon?.edit(command)
   }
 
   return (
@@ -332,6 +377,23 @@ export function MenuBar({
         <span className="menu-bar-rule" />
         <WindowControls />
       </div>
+      {settingAssumptions && (
+        <ModellingAssumptionsDialog
+          onClose={() => {
+            setSettingAssumptions(false)
+          }}
+        />
+      )}
+      {pickingPreset && (
+        <PresetPicker
+          arrangeable={arrangeable}
+          presets={presets}
+          onApplyPreset={applyPreset}
+          onClose={() => {
+            setPickingPreset(false)
+          }}
+        />
+      )}
       {choosingColumns && (
         <HoldingColumnsDialog
           onClose={() => {
@@ -341,4 +403,8 @@ export function MenuBar({
       )}
     </header>
   )
+}
+
+function isEditCommand(command: string): command is EditCommand {
+  return (EDIT_COMMANDS as readonly string[]).includes(command)
 }

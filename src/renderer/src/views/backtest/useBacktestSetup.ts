@@ -1,4 +1,5 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react'
+import { useModellingDefaults } from '../../state/modellingDefaults'
 import { useTabState } from '../../state/tabMemory'
 import { useRunResult } from '../shared/beaconQueries'
 import type { BacktestOptions } from '../shared/strategyDocuments'
@@ -30,13 +31,13 @@ export function useBacktestSetup(
   options: BacktestOptions | undefined
 ): BacktestSetupState {
   const latest = useRunResult(strategyId)
+  // A new backtest starts from the app's own assumptions (BU-272); a run's
+  // record keeps the ones it ran with, below.
+  const defaults = useModellingDefaults((state) => state.assumptions)
+  const fresh: BacktestSetup = { ...DEFAULT_SETUP, assumptions: defaults }
   // The tab's own, so a form half filled in is still there after a look at
   // another tab (Karan, 0.2.1); per strategy, as one's flows are not another's.
-  const [setup, setSetup] = useTabState<BacktestSetup>(
-    tabId,
-    `backtest-setup:${strategyId}`,
-    DEFAULT_SETUP
-  )
+  const [setup, setSetup] = useTabState<BacktestSetup>(tabId, `backtest-setup:${strategyId}`, fresh)
   const [origin, setOrigin] = useTabState<SetupOrigin>(
     tabId,
     `backtest-origin:${strategyId}`,
@@ -61,7 +62,7 @@ export function useBacktestSetup(
     origin,
     startAfresh: () => {
       setOrigin('edited')
-      setSetup(DEFAULT_SETUP)
+      setSetup(fresh)
     }
   }
 }

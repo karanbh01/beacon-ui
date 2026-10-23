@@ -1,3 +1,4 @@
+import type { EditCommand } from '@shared/ipc'
 import { LAYOUT_OPTIONS } from '../../state/chrome'
 import { MENUS } from '../pages'
 
@@ -26,6 +27,9 @@ export type MenuAction =
   | 'data-preferences'
   | 'holding-columns'
   | 'refresh-engine'
+  | 'modelling-assumptions'
+  | 'preset-picker'
+  | `edit-${EditCommand}`
   | 'open-data-folder'
   | 'import-data'
   | `preset-apply-${string}`
@@ -106,12 +110,15 @@ export function buildMenus(context: MenuContext): Menu[] {
       soon('Save', 'Ctrl+S'),
       { ...soon('Export…'), separatorBefore: true }
     ],
+    // Chromium's own commands on whatever had focus (BU-273). Always
+    // enabled, as a native Edit menu's are: what can be undone or pasted is
+    // the field's to know, not the menu's.
     Edit: [
-      soon('Undo', 'Ctrl+Z'),
-      soon('Redo', 'Ctrl+Y'),
-      { ...soon('Cut', 'Ctrl+X'), separatorBefore: true },
-      soon('Copy', 'Ctrl+C'),
-      soon('Paste', 'Ctrl+V')
+      { label: 'Undo', hint: 'Ctrl+Z', action: 'edit-undo', enabled: true },
+      { label: 'Redo', hint: 'Ctrl+Y', action: 'edit-redo', enabled: true },
+      { label: 'Cut', hint: 'Ctrl+X', action: 'edit-cut', enabled: true, separatorBefore: true },
+      { label: 'Copy', hint: 'Ctrl+C', action: 'edit-copy', enabled: true },
+      { label: 'Paste', hint: 'Ctrl+V', action: 'edit-paste', enabled: true }
     ],
     View: [
       {
@@ -152,8 +159,17 @@ export function buildMenus(context: MenuContext): Menu[] {
           checked: context.layout === option.id
         }))
       },
+      // The page's presets at a glance, centred (BU-275). Enabled on Home
+      // too, where it says why there is nothing to choose.
+      {
+        label: 'Presets…',
+        hint: 'Ctrl+Shift+P',
+        action: 'preset-picker',
+        enabled: true
+      },
       {
         label: 'Reset window',
+        hint: 'Ctrl+Shift+R',
         action: 'layout-reset',
         enabled: arrangeable
       },
@@ -245,6 +261,13 @@ export function buildMenus(context: MenuContext): Menu[] {
         label: 'Refresh Engine',
         action: 'refresh-engine',
         enabled: context.engineStarted ?? false
+      },
+      // The defaults every new backtest starts from (BU-272).
+      {
+        label: 'Modelling assumptions…',
+        action: 'modelling-assumptions',
+        enabled: true,
+        separatorBefore: true
       },
       { ...soon('Run backtest…'), separatorBefore: true },
       ...(context.releaseBuild === true ? [] : [soon('Run optimisation…'), soon('Risk model…')])

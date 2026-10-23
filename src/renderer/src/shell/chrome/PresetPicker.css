@@ -1,0 +1,40 @@
+/*
+ * The presets pop-up (BU-275): the dropdown surface, centred over
+ * the dialog backdrop, sized to a list rather than to a form.
+ */
+.layout-picker {
+  width: 320px;
+  max-height: min(520px, 80vh);
+  padding-block: 10px;
+  overflow-y: auto;
+}
+
+.layout-picker-heading {
+  padding: 4px 12px;
+}
+
+/* The name, then its code at the end, as a menu row reads its shortcut. */
+.layout-picker-row {
+  justify-content: flex-start;
+  cursor: pointer;
+}
+
+.layout-picker-row .popover-row-meta {
+  margin-left: auto;
+}
+
+.layout-picker-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layout-picker-row[aria-selected='true'] {
+  background: var(--sidebar-active-bg);
+}
+
+.layout-picker-empty {
+  margin: 0;
+  padding: 4px 12px;
+  color: var(--text-muted);
+}

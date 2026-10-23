@@ -169,6 +169,15 @@ export interface IpcContract {
     request: { title: string; message: string; detail?: string; confirmLabel?: string }
     response: boolean
   }
+  /**
+   * One of Chromium's own editing commands, on whatever has focus (BU-273).
+   * The renderer cannot paste for itself: `execCommand('paste')` is refused
+   * to a page, while the window's webContents can.
+   */
+  'edit:command': {
+    request: EditCommand
+    response: undefined
+  }
   /** Force a restart, e.g. from a footer action. */
   'engine:restart': {
     request: undefined
@@ -303,6 +312,10 @@ export const UPDATE_CHANGED = 'update:changed'
  */
 export const RELEASE_BUILD_ARG = '--beacon-release-build'
 
+/** The Edit menu's commands, as webContents names them. */
+export const EDIT_COMMANDS = ['undo', 'redo', 'cut', 'copy', 'paste'] as const
+export type EditCommand = (typeof EDIT_COMMANDS)[number]
+
 /** The surface preload publishes on `window.beacon`. */
 export interface BeaconBridge {
   appInfo: () => Promise<AppInfo>
@@ -320,6 +333,8 @@ export interface BeaconBridge {
     /** Returns an unsubscribe function. */
     onChange: (listener: (state: EngineState) => void) => () => void
   }
+  /** Run an Edit menu command on what has focus (BU-273). */
+  edit: (command: EditCommand) => Promise<void>
   /** Ask before something unreversible; true means go ahead (BU-144). */
   confirm: (request: {
     title: string

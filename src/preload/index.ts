@@ -34,6 +34,7 @@ const bridge: BeaconBridge = {
       }
     }
   },
+  edit: (command) => ipcRenderer.invoke('edit:command', command) as Promise<void>,
   confirm: (request) => ipcRenderer.invoke('dialog:confirm', request) as Promise<boolean>,
   update: {
     state: () => ipcRenderer.invoke('update:state') as Promise<UpdateState>,

@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react'
 import { ParamField } from '../index-definition/ParamField'
 import { fieldValue, type ParameterSpec } from '../index-definition/ruleCatalogue'
-import type { SectionProps } from './fields'
+import type { BacktestOptions } from '../shared/strategyDocuments'
+import type { Values } from './setup'
 
 /**
  * What the run takes as given, grouped by what each is about (Karan,
@@ -40,7 +41,17 @@ const LABELS: Record<string, string> = {
   withholding_tax_rate: 'Dividend withholding tax'
 }
 
-export function AssumptionsForm({ setup, onChange, options }: SectionProps): ReactElement {
+export interface AssumptionsFormProps {
+  values: Values
+  onChange: (name: string, value: string) => void
+  options: BacktestOptions | undefined
+}
+
+/**
+ * The assumptions, for one backtest or for the whole app (BU-272): the same
+ * form either way, so the defaults read exactly as the run's own do.
+ */
+export function AssumptionsForm({ values, onChange, options }: AssumptionsFormProps): ReactElement {
   const params = options?.modelling_assumptions ?? []
   const known = new Set(GROUPS.flatMap((group) => group.names))
   const others = params.filter((param) => !known.has(param.name))
@@ -49,12 +60,9 @@ export function AssumptionsForm({ setup, onChange, options }: SectionProps): Rea
     <ParamField
       key={param.name}
       param={{ ...param, label: LABELS[param.name] ?? param.label }}
-      value={setup.assumptions[param.name] ?? fieldValue(param, {})}
+      value={values[param.name] ?? fieldValue(param, {})}
       onChange={(next) => {
-        onChange((current) => ({
-          ...current,
-          assumptions: { ...current.assumptions, [param.name]: next }
-        }))
+        onChange(param.name, next)
       }}
     />
   )
