@@ -89,6 +89,13 @@ describe('rendering the active view', () => {
     expect(screen.getByText(/Nothing open here yet/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New tab' })).toBeInTheDocument()
   })
+
+  it('draws a blank screen over it, and no longer counts the views (BU-279)', () => {
+    const { container } = render(<PaneHost page="reports" />)
+
+    expect(container.querySelector('[data-hairline="screen"] svg')).not.toBeNull()
+    expect(screen.getByText(/Nothing open here yet/)).not.toHaveTextContent(/available/)
+  })
 })
 
 describe('per-page tab sets (BU-17 acceptance)', () => {

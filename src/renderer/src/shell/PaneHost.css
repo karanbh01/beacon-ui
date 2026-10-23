@@ -99,23 +99,16 @@
 
 /*
  * Since BU-59 this is a first-run state rather than an error, so it is given
- * room and a name instead of a one-line report that nothing is here.
+ * room and a name instead of a one-line report that nothing is here. Laid out
+ * as every view's empty state is, figure over message in the middle of the
+ * pane (BU-279); the pane body is a block, so it takes the height itself.
  */
-.pane-empty {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-width: 48ch;
-  padding-top: 8px;
+.pane-body > .pane-empty {
+  min-height: 100%;
 }
 
 .pane-empty-title {
-  margin: 0;
-  color: var(--text-muted);
-}
-
-.pane-empty-body {
-  margin: 0;
+  margin: 8px 0 2px;
   color: var(--text-muted);
 }
 

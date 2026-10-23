@@ -6,6 +6,7 @@ import {
   type DragEvent,
   type ReactElement
 } from 'react'
+import { EmptyFigure } from '../components/EmptyFigure/EmptyFigure'
 import { Tab } from '../components/Tab/Tab'
 import { TabBar } from '../components/Tab/TabBar'
 import { carriesTab, paneDropTarget, TAB_MIME, type DropTarget } from '../components/Tab/dragTab'
@@ -232,11 +233,13 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
            * zero. A pane that loses its last tab lands back here rather than
            * collapsing the layout under the user.
            */
-          <div className="pane-empty">
+          <div className="view-empty pane-empty">
+            {/* A blank screen, pulled down and waiting (BU-279). */}
+            <EmptyFigure kind="screen" />
             <p className="pane-empty-title type-section-label">{pageLabel(page)}</p>
-            <p className="pane-empty-body type-11">
+            <p className="view-empty-message type-11">
               Nothing open here yet. Use <span className="pane-empty-key">+</span> in the tab strip
-              to open a view — {options.length} available on this page.
+              to open a view.
             </p>
           </div>
         ) : (

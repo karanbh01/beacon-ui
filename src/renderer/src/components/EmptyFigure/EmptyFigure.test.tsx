@@ -9,7 +9,8 @@ const KINDS: readonly FigureKind[] = [
   'sieve',
   'drawer',
   'cardindex',
-  'binders'
+  'binders',
+  'screen'
 ]
 
 describe('EmptyFigure (BU-231)', () => {

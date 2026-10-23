@@ -6,6 +6,7 @@ import calendar from './kit/calendar'
 import cardindex from './kit/cardindex'
 import level from './kit/level'
 import recorder from './kit/recorder'
+import screen from './kit/screen'
 import ticker from './kit/ticker'
 
 /**
@@ -30,6 +31,8 @@ export type FigureKind =
   | 'cardindex'
   /** Asked for by name, and not there. */
   | 'binders'
+  /** A window with no view open in it: a blank screen, pulled down (BU-279). */
+  | 'screen'
 
 /**
  * Home's guide cards, one figure each (Karan, 2026-10-20): what the guide
@@ -49,12 +52,13 @@ export interface MountedFigure {
 
 /** Drawn for Beacon on Hairline's figure kit; see kit/ for where they came from. */
 const KIT: Readonly<
-  Record<'ticker' | 'calendar' | 'cardindex' | 'binders' | GuideFigureKind, KitFigure>
+  Record<'ticker' | 'calendar' | 'cardindex' | 'binders' | 'screen' | GuideFigureKind, KitFigure>
 > = {
   ticker,
   calendar,
   cardindex,
   binders,
+  screen,
   blocks,
   recorder,
   level
