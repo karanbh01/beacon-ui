@@ -323,6 +323,7 @@ export function MenuBar({
         {...(onOpenIndex === undefined ? {} : { onOpenIndex })}
         {...(onApplyPreset === undefined ? {} : { onApplyPreset })}
         {...(onCreateIndex === undefined ? {} : { onCreateIndex })}
+        page={page}
       />
 
       <div className="menu-bar-cluster">

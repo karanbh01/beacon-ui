@@ -198,6 +198,41 @@
 }
 
 /* Glass only once open; closed, the field row's own fill is the whole box. */
+/*
+ * Seek mode (BU-285): the field's border in the seek yellow, so it is plain
+ * that typing now picks out controls in a window rather than searching.
+ */
+.menu-bar-search-surface-seeking {
+  border-color: var(--seek);
+  box-shadow: 0 0 0 1px var(--seek);
+}
+
+/* How many controls the typed name found, at the field's end. */
+.menu-bar-search-found {
+  flex: none;
+  align-self: center;
+  padding-inline: 8px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/*
+ * The controls seek mode found: dashed seek yellow on each one's own border,
+ * solid on the one Enter takes (Karan). Drawn inward, over the border line
+ * rather than round it: a ring outside grew a bigger box than the button,
+ * and inside a segmented bar, which clips what spills out, only its sides
+ * showed. Outlines, so nothing moves under them.
+ */
+[data-seek='match'] {
+  outline: 1px dashed var(--seek);
+  outline-offset: -1px;
+}
+
+[data-seek='current'] {
+  outline: 2px solid var(--seek);
+  outline-offset: -2px;
+}
+
 .menu-bar-search-surface-open {
   background: var(--glass);
   box-shadow: var(--dropdown-surface-shadow);

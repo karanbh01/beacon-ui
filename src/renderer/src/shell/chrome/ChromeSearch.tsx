@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react'
 import { ChevronIcon } from '../../icons/generated'
 import { useTypeahead } from '../../components/Typeahead/useTypeahead'
 import { usePresets } from '../../state/presets'
+import { useSearchFocus } from '../../state/searchFocus'
 import { recentTabs } from '../../state/tabs.logic'
 import { useWorkspace } from '../../state/tabs.store'
 import { useIdentifierSearch } from '../../views/shared/useIdentifierSearch'
@@ -10,6 +11,8 @@ import { allViews, type ViewOption } from '../viewRegistry'
 import { firstWord, recentRows, searchRows, type SearchRow } from './searchResults'
 import { usePaletteIndices } from './usePaletteIndices'
 import { viewShips } from '../release'
+import { HOME_PAGE_ID } from '../pages'
+import { useSeekMode } from './useSeekMode'
 
 export interface ChromeSearchProps {
   onSubmit?: (query: string) => void
@@ -32,6 +35,8 @@ export interface ChromeSearchProps {
    */
   onApplyPreset?: (id: string, subject?: string) => void
   onCreateIndex?: (name: string) => void
+  /** The page showing, whose current window seek mode steers (BU-285). */
+  page?: string
 }
 
 /**
@@ -48,7 +53,8 @@ export function ChromeSearch({
   onOpenView,
   onOpenIndex,
   onApplyPreset,
-  onCreateIndex
+  onCreateIndex,
+  page = HOME_PAGE_ID
 }: ChromeSearchProps): ReactElement {
   const [query, setQuery] = useState('')
   /**
@@ -60,6 +66,15 @@ export function ChromeSearch({
    */
   const [focused, setFocused] = useState(false)
   const input = useRef<HTMLInputElement>(null)
+  const seek = useSeekMode(page, () => input.current)
+
+  // Ctrl+K lands here, with whatever was typed selected (BU-284).
+  const asked = useSearchFocus((state) => state.asked)
+  useEffect(() => {
+    if (asked === 0) return
+    input.current?.focus()
+    input.current?.select()
+  }, [asked])
 
   const tabs = useWorkspace((state) => state.tabs)
   /*
@@ -122,7 +137,8 @@ export function ChromeSearch({
     }
   })
 
-  const open = typeahead.open
+  // Seek mode puts the dropdown away: what is typed is a control's name now.
+  const open = typeahead.open && !seek.seeking
 
   /*
    * Tab finishes what is highlighted, in the field (BU-122).
@@ -135,6 +151,28 @@ export function ChromeSearch({
   const completion = (): string | undefined => (rows[typeahead.active] ?? rows[0])?.complete
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    // Alt on its own turns seek mode on and off (BU-285).
+    if (event.key === 'Alt' && !event.ctrlKey && !event.shiftKey && !event.metaKey) {
+      event.preventDefault()
+      if (event.repeat) return
+      if (seek.seeking) seek.stop()
+      else {
+        typeahead.close()
+        seek.start()
+      }
+      return
+    }
+    if (seek.seeking) {
+      if (seek.onKeyDown(event)) event.preventDefault()
+      return
+    }
+    // Escape leaves the search bar, its dropdown with it (Karan).
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      typeahead.close()
+      input.current?.blur()
+      return
+    }
     if (event.key === 'Tab' && !event.shiftKey && open) {
       const filled = completion()
       if (filled !== undefined && filled !== query) {
@@ -167,7 +205,15 @@ export function ChromeSearch({
         above a full-width rule. Opening the search grows this box downwards
         rather than hanging a second box off the bottom of it.
       */}
-      <div className={`menu-bar-search-surface${open ? ' menu-bar-search-surface-open' : ''}`}>
+      <div
+        className={[
+          'menu-bar-search-surface',
+          open && 'menu-bar-search-surface-open',
+          seek.seeking && 'menu-bar-search-surface-seeking'
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
         <div className="menu-bar-search-row">
           <input
             ref={input}
@@ -190,8 +236,15 @@ export function ChromeSearch({
              */
             autoComplete="off"
 
-            value={query}
+            placeholder={
+              seek.seeking ? 'Type the name of a button in this window' : 'Search (Ctrl+K)'
+            }
+            value={seek.seeking ? seek.text : query}
             onChange={(event) => {
+              if (seek.seeking) {
+                seek.setText(event.target.value)
+                return
+              }
               setQuery(event.target.value)
               typeahead.onInput()
             }}
@@ -201,8 +254,15 @@ export function ChromeSearch({
             }}
             onBlur={() => {
               setFocused(false)
+              seek.stop()
             }}
           />
+
+          {seek.seeking && seek.text.trim() !== '' && (
+            <span className="menu-bar-search-found type-11" aria-live="polite">
+              {seek.found === 0 ? 'No match' : `${String(seek.found)} found`}
+            </span>
+          )}
 
           {/* The chevron section on the field's right edge — 81:69 when
               closed, 147:17 when open. Inside the field, not out in the

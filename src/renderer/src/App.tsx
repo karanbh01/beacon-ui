@@ -26,6 +26,7 @@ import type { ViewOption } from './shell/viewRegistry'
 import { useBackgroundWork } from './api/work'
 import { assistantShips } from './shell/release'
 import { DataPreferencesDialog } from './shell/DataPreferencesDialog'
+import { FindBar } from './shell/find/FindBar'
 
 type BridgeState = { status: 'pending' } | { status: 'ok'; info: AppInfo } | { status: 'failed' }
 
@@ -283,6 +284,9 @@ function AppBody(): ReactElement {
           }}
         />
       )}
+
+      {/* Ctrl+F's find bar, over the windows (BU-283). */}
+      <FindBar />
 
       {editingPreferences && (
         <DataPreferencesDialog

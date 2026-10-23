@@ -1,11 +1,13 @@
 /* Figma 266:2830. */
 
 .segmented {
+  --segmented-radius: 4px;
+
   display: inline-flex;
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--segmented-radius);
   overflow: hidden;
 }
 
@@ -21,6 +23,22 @@
   border: 0;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/*
+ * The end segments round their outer corners to match the bar's, inside its
+ * 1px border. The bar clips them anyway; this is for what is drawn ON them,
+ * a focus ring or seek mode's outline (Karan), which follows the segment's
+ * own corners and otherwise squared off the bar's rounded ends.
+ */
+.segment:first-child {
+  border-start-start-radius: calc(var(--segmented-radius) - 1px);
+  border-end-start-radius: calc(var(--segmented-radius) - 1px);
+}
+
+.segment:last-child {
+  border-start-end-radius: calc(var(--segmented-radius) - 1px);
+  border-end-end-radius: calc(var(--segmented-radius) - 1px);
 }
 
 .segment-active {

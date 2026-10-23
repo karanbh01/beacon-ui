@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useCurrentPane } from '../state/currentPane'
+import { useFind } from '../state/find'
+import { useSearchFocus } from '../state/searchFocus'
 import { activeTab, tabsForPane } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { paneInDirection, type Direction } from './paneGrid'
@@ -26,6 +28,7 @@ import {
  * - Alt+Left/Right: the current tab, one place along its window.
  * - Alt+Shift+arrows: the current tab, into the window that way.
  * - Ctrl+T, Ctrl+W, Ctrl+Shift+T: a new tab, closing one, the last closed back.
+ * - Ctrl+F: find in the open windows. Ctrl+K: the search bar.
  *
  * Windows had Ctrl+Left/Right once, which left Ctrl+Down meaning the next
  * section in a layout whose windows were stacked (Karan). Plain Shift+arrows
@@ -33,7 +36,7 @@ import {
  *
  * The arrows are not taken while typing: in a field, Ctrl and Shift with them
  * move the caret and select text, and that is what they should go on doing.
- * Ctrl+T and Ctrl+W are, as in a browser, since they edit nothing. Nothing is
+ * Ctrl+T, Ctrl+W, Ctrl+F and Ctrl+K are, as in a browser, since they edit nothing. Nothing is
  * taken over a dialog or an open menu, which own the keyboard while up.
  */
 export function useNavigationKeys(page: string, goTo: (page: string) => void): void {
@@ -50,7 +53,7 @@ export function useNavigationKeys(page: string, goTo: (page: string) => void): v
       if (closesWindow(event)) event.preventDefault()
       if (somethingOpen()) return
 
-      if (tabKey(event, at)) {
+      if (tabKey(event, at) || findKey(event)) {
         event.preventDefault()
         return
       }
@@ -85,6 +88,20 @@ function tabKey(event: KeyboardEvent, page: string): boolean {
   if (event.code === 'KeyT') return event.shiftKey ? reopenLastTab() : newTabHere(page)
   if (event.shiftKey) return false
   if (event.code === 'KeyW' || event.key === 'F4') return closeTabHere(page)
+  return false
+}
+
+/** Ctrl+F finds in the windows (BU-283); Ctrl+K goes to the search bar (BU-284). */
+function findKey(event: KeyboardEvent): boolean {
+  if (!event.ctrlKey || event.altKey || event.shiftKey) return false
+  if (event.code === 'KeyF') {
+    useFind.getState().show()
+    return true
+  }
+  if (event.code === 'KeyK') {
+    useSearchFocus.getState().ask()
+    return true
+  }
   return false
 }
 

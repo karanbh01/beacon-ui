@@ -1,0 +1,79 @@
+/*
+ * Ctrl+F's bar (BU-283): the dropdown surface, under the menu bar at the
+ * right, over the windows as a browser's find bar sits over a page.
+ */
+.find-bar {
+  position: fixed;
+  top: 70px;
+  right: 16px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 4px 6px 4px 10px;
+}
+
+.find-bar-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.find-bar-count {
+  flex: none;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.find-bar-button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font: inherit;
+  font-size: 16px;
+  color: var(--chrome-icon);
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.find-bar-button:hover:not(:disabled),
+.find-bar-button:focus-visible {
+  color: var(--text-primary);
+  background: var(--sidebar-active-bg);
+  outline: none;
+}
+
+.find-bar-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The chevron points down; turned over, it is the way back up. */
+.find-bar-previous svg {
+  transform: rotate(180deg);
+}
+
+/* Every match a light wash of the seek yellow; the one stepped to, full. */
+::highlight(beacon-find) {
+  background-color: color-mix(in srgb, var(--seek) 35%, transparent);
+}
+
+::highlight(beacon-find-current) {
+  color: var(--text-primary);
+  background-color: color-mix(in srgb, var(--seek) 80%, transparent);
+}

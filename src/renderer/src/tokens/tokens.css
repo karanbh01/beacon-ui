@@ -29,6 +29,7 @@
   --series-2: #7d4fb8;
   --series-3: #b5701a;
   --glass: #e9d9c6a6;
+  --seek: #c99a0e;
 }
 
 :root[data-theme='light'] {
@@ -60,6 +61,7 @@
   --series-2: #7d4fb8;
   --series-3: #b5701a;
   --glass: #e9d9c6a6;
+  --seek: #c99a0e;
 }
 
 :root[data-theme='dark'] {
@@ -91,4 +93,5 @@
   --series-2: #b98fd9;
   --series-3: #e8a33d;
   --glass: #1e1e1ea6;
+  --seek: #e8c547;
 }
