@@ -57,3 +57,18 @@ test('Ctrl+Shift+P lists the page’s presets, and applies the one chosen', asyn
   await expect(picker).toHaveCount(0)
   await expect(window.locator('[data-pane="1"]')).toBeVisible()
 })
+
+test('Edit → New tab opens the + menu ready for Enter, and Close tab closes it again', async ({
+  window
+}) => {
+  await openPage(window, 'Data Explorer')
+
+  await window.getByRole('button', { name: 'Edit', exact: true }).click()
+  await window.getByRole('menuitem', { name: /New tab/ }).click()
+  await window.keyboard.press('Enter')
+  await expect(window.locator('.tab-select')).toHaveCount(1)
+
+  await window.getByRole('button', { name: 'Edit', exact: true }).click()
+  await window.getByRole('menuitem', { name: /Close tab/ }).click()
+  await expect(window.locator('.tab-select')).toHaveCount(0)
+})

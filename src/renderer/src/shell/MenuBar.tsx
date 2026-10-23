@@ -9,6 +9,8 @@ import {
   useRefreshStore,
   useServedStore
 } from '../views/shared/storeQueries'
+import { currentPane, useCurrentPane } from '../state/currentPane'
+import { activeTab } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { useTheme } from '../state/theme'
 import { ChromeSearch } from './chrome/ChromeSearch'
@@ -22,6 +24,7 @@ import { buildMenus, type MenuAction } from './chrome/menuModel'
 import { HOME_PAGE_ID } from './pages'
 import type { ViewOption } from './viewRegistry'
 import { ModellingAssumptionsDialog } from './ModellingAssumptionsDialog'
+import { closeTabHere, newTabHere, pagePanes, reopenLastTab } from './tabActions'
 import { WindowControls } from './WindowControls'
 import { HoldingColumnsDialog } from '../views/shared/HoldingColumnsDialog'
 import './MenuBar.css'
@@ -125,6 +128,16 @@ export function MenuBar({
   const saved = usePresets((state) => state.presets)
   const applyPreset = usePresets((state) => state.apply)
   const resetPage = useWorkspace((state) => state.resetPage)
+  // What Edit's tab items can act on (BU-282): the current window's tab, and
+  // whether anything has been closed to bring back.
+  const chosenPane = useCurrentPane((state) => state.byPage[page])
+  const paneCount = pagePanes(page).length
+  const canClose = useWorkspace((state) => {
+    if (paneCount === 0) return false
+    const pane = currentPane(chosenPane, state, page, paneCount)
+    return activeTab(state, page, pane, paneCount) !== undefined
+  })
+  const canReopen = useWorkspace((state) => state.closed.length > 0)
 
   // Only this page's, since a preset names views by kind and the kinds a page
   // can open are its own.
@@ -159,7 +172,8 @@ export function MenuBar({
     arrangeable,
     refreshable,
     releaseBuild: isReleaseBuild(),
-    engineStarted: engine !== 'idle'
+    engineStarted: engine !== 'idle',
+    tabs: { canOpen: paneCount > 0, canClose, canReopen }
   })
 
   /*
@@ -243,6 +257,9 @@ export function MenuBar({
     else if (action === 'modelling-assumptions') setSettingAssumptions(true)
     else if (action === 'preset-picker') setPickingPreset(true)
     else if (action === 'layout-reset') resetWindow()
+    else if (action === 'tab-new') newTabHere(page)
+    else if (action === 'tab-close') closeTabHere(page)
+    else if (action === 'tab-reopen') reopenLastTab()
     else if (action.startsWith('edit-')) runEdit(action.slice('edit-'.length))
     else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
   }

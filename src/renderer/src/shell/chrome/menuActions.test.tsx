@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WithQueries } from '../../../../test/queries'
 import { useChrome } from '../../state/chrome'
+import { useCurrentPane } from '../../state/currentPane'
 import { useModellingDefaults } from '../../state/modellingDefaults'
 import { usePresets, type Preset } from '../../state/presets'
 import { useWorkspace } from '../../state/tabs.store'
@@ -185,5 +186,72 @@ describe('the modelling assumptions for the whole app (BU-272)', () => {
     setAssumption('cash_rate', '0.03')
     reset()
     expect(useModellingDefaults.getState().assumptions).toEqual({})
+  })
+})
+
+describe('the tab items in Edit (BU-282)', () => {
+  const openPrices = (id: string): void => {
+    useWorkspace.getState().openTab({
+      id,
+      page: 'data-explorer',
+      pane: 0,
+      viewKind: 'prices',
+      archetype: 'query',
+      title: 'Prices'
+    })
+  }
+
+  beforeEach(() => {
+    useWorkspace.getState().reset()
+    useCurrentPane.setState({ byPage: {}, pulse: undefined, newTab: undefined })
+  })
+
+  it('offers all three with their shortcuts', async () => {
+    openPrices('a')
+    bar()
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
+
+    for (const [label, hint] of [
+      ['New tab', 'Ctrl+T'],
+      ['Close tab', 'Ctrl+W'],
+      ['Reopen closed tab', 'Ctrl+Shift+T']
+    ] as const) {
+      expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toHaveTextContent(hint)
+    }
+  })
+
+  it('closes the current window’s tab, then brings it back', async () => {
+    openPrices('a')
+    bar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('menuitem', { name: /Reopen closed tab/ })).toBeDisabled()
+    await userEvent.click(screen.getByRole('menuitem', { name: /Close tab/ }))
+    expect(useWorkspace.getState().tabs).toHaveLength(0)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('menuitem', { name: /Close tab/ })).toBeDisabled()
+    await userEvent.click(screen.getByRole('menuitem', { name: /Reopen closed tab/ }))
+    expect(useWorkspace.getState().tabs.map((tab) => tab.id)).toEqual(['a'])
+  })
+
+  it('asks the current window for a new tab', async () => {
+    bar()
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /New tab/ }))
+
+    expect(useCurrentPane.getState().newTab).toMatchObject({ page: 'data-explorer', pane: 0 })
+  })
+
+  it('has nothing to open or close on Home, which has no windows', async () => {
+    render(
+      <WithQueries>
+        <MenuBar engine="connected" page="home" />
+      </WithQueries>
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
+
+    expect(screen.getByRole('menuitem', { name: /New tab/ })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: /Close tab/ })).toBeDisabled()
   })
 })

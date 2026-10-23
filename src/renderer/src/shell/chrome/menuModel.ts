@@ -29,6 +29,9 @@ export type MenuAction =
   | 'refresh-engine'
   | 'modelling-assumptions'
   | 'preset-picker'
+  | 'tab-new'
+  | 'tab-close'
+  | 'tab-reopen'
   | `edit-${EditCommand}`
   | 'open-data-folder'
   | 'import-data'
@@ -92,6 +95,11 @@ export interface MenuContext {
   releaseBuild?: boolean
   /** Whether the engine has been started, so Refresh Engine has one to restart. */
   engineStarted?: boolean
+  /**
+   * What Edit's tab items can do on this page (BU-282): open one in the
+   * current window, close the one showing there, bring back the last closed.
+   */
+  tabs?: { canOpen: boolean; canClose: boolean; canReopen: boolean }
 }
 
 /**
@@ -118,7 +126,28 @@ export function buildMenus(context: MenuContext): Menu[] {
       { label: 'Redo', hint: 'Ctrl+Y', action: 'edit-redo', enabled: true },
       { label: 'Cut', hint: 'Ctrl+X', action: 'edit-cut', enabled: true, separatorBefore: true },
       { label: 'Copy', hint: 'Ctrl+C', action: 'edit-copy', enabled: true },
-      { label: 'Paste', hint: 'Ctrl+V', action: 'edit-paste', enabled: true }
+      { label: 'Paste', hint: 'Ctrl+V', action: 'edit-paste', enabled: true },
+      // The tab shortcuts, where they can be found (BU-282), acting on the
+      // current window as the keys do.
+      {
+        label: 'New tab',
+        hint: 'Ctrl+T',
+        action: 'tab-new',
+        enabled: context.tabs?.canOpen ?? false,
+        separatorBefore: true
+      },
+      {
+        label: 'Close tab',
+        hint: 'Ctrl+W',
+        action: 'tab-close',
+        enabled: context.tabs?.canClose ?? false
+      },
+      {
+        label: 'Reopen closed tab',
+        hint: 'Ctrl+Shift+T',
+        action: 'tab-reopen',
+        enabled: context.tabs?.canReopen ?? false
+      }
     ],
     View: [
       {
