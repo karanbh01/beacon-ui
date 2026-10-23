@@ -6,6 +6,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-10-23
+
+The app from the keyboard: menus that work, shortcuts for sections, windows and tabs, find, and a way to press buttons by typing their names.
+
+### Added
+
+- Analysis → Modelling assumptions… sets the assumptions every new backtest starts with. A backtest can still change them for its own run.
+- The Edit menu works: Undo, Redo, Cut, Copy and Paste, and New tab, Close tab and Reopen closed tab.
+- View → Presets… (Ctrl+Shift+P) lists the page's presets in a small pop-up. Choose one to apply it.
+- Moving around from the keyboard. Ctrl+Up and Ctrl+Down change section. Ctrl+Left and Ctrl+Right change tab. Ctrl+Shift with an arrow moves to the window that way, which pulses so you can see where you are.
+- Tabs from the keyboard. Ctrl+T opens one, Ctrl+W closes it and Ctrl+Shift+T brings it back. Alt+Left and Alt+Right move a tab along its window, and Alt+Shift with an arrow moves it to another window.
+- Ctrl+F finds text across the open windows and steps through the matches.
+- Ctrl+K goes to the search bar. Escape leaves it.
+- Seek mode: press Alt in the search bar, then type the name of a button in the current window to pick it out, and Enter to press it.
+- An empty window shows a blank projector screen.
+
+### Changed
+
+- View → Reset window has a shortcut, Ctrl+Shift+R.
+- An empty window's message no longer counts the views you could open.
+
 ## [0.2.4] - 2026-10-22
 
 py-beacon 0.9.7 inside: dividends counted from their ex-date, a cash band for strategies, and futures held in whole contracts.
