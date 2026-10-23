@@ -28,6 +28,14 @@ export function NewTabMenu({ open, onClose, options, onChoose }: NewTabMenuProps
     if (open) setActive(0)
   }, [open])
 
+  // The highlighted row has the focus, so Enter takes it: Ctrl+T opens this
+  // menu from the keyboard, and a highlight Enter could not reach would be
+  // only a picture of a choice (BU-280).
+  useEffect(() => {
+    if (!open) return
+    list.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')[active]?.focus()
+  }, [open, active])
+
   const choosable = options.filter((option) => option.unavailable === undefined)
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {

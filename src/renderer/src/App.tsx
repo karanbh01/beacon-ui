@@ -7,6 +7,7 @@ import { useDataAge } from './api/useHealth'
 import { AssistantPanel } from './assistant/AssistantPanel'
 import { MockTranscript } from './assistant/transcript'
 import { AppShell } from './shell/AppShell'
+import { useNavigationKeys } from './shell/navigationKeys'
 import { PaneHost } from './shell/PaneHost'
 import { DataSourcesDialog, type SourcesStart } from './shell/DataSourcesDialog'
 import { PresetDialog } from './shell/PresetDialog'
@@ -151,6 +152,9 @@ function AppBody(): ReactElement {
     }
     void load()
   }, [])
+
+  // Ctrl+arrows between sections and windows, Shift+arrows between tabs.
+  useNavigationKeys(page, setPage)
 
   // beacon-ui's own version, distinct from py-beacon's which the engine reports.
   const appVersion = bridge.status === 'ok' ? bridge.info.version : undefined

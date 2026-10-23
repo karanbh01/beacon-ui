@@ -79,6 +79,58 @@
 }
 
 /*
+ * Where the keyboard just moved to (BU-277): a round wash of the accent that
+ * grows out from the middle of the window and fades as it spreads, so it
+ * reads as a pulse (Karan). An overlay, as the drop affordance is, so nothing
+ * in the pane moves or repaints under it, and clipped to the pane so the
+ * ring never spills into its neighbour.
+ */
+.pane-pulse {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Square and wide enough to cover a tall pane as well as a wide one. */
+.pane-pulse::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 260%;
+  aspect-ratio: 1;
+  content: '';
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent) 14%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 7%, transparent) 30%,
+    transparent 60%
+  );
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.15);
+  animation: pane-pulse 650ms ease-out;
+}
+
+@keyframes pane-pulse {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.15);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pane-pulse::before {
+    animation-duration: 1ms;
+  }
+}
+
+/*
  * The pane's inset lives here, not on .app-shell-pane: every page frame puts
  * `pane-content` flush at 58,96 and its `pane-header` at 24,20 inside that.
  * The tab bar above must reach the sidebar; the content below must not.

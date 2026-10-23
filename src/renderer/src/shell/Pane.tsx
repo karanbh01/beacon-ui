@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useState,
   type ComponentType,
@@ -10,6 +11,7 @@ import { EmptyFigure } from '../components/EmptyFigure/EmptyFigure'
 import { Tab } from '../components/Tab/Tab'
 import { TabBar } from '../components/Tab/TabBar'
 import { carriesTab, paneDropTarget, TAB_MIME, type DropTarget } from '../components/Tab/dragTab'
+import { useCurrentPane } from '../state/currentPane'
 import { activeTab, resolveSubject, tabsForPage, tabsForPane } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { chipFor } from './chips'
@@ -69,6 +71,18 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
    * jsdom does not, so a guard built on it would be untestable here.
    */
   const depth = useRef(0)
+  const choose = useCurrentPane((current) => current.choose)
+  // When the keyboard last moved here (BU-277), so the pulse replays each time.
+  const pulse = useCurrentPane((current) =>
+    current.pulse?.page === page && current.pulse.pane === index ? current.pulse.at : undefined
+  )
+  // Ctrl+T asking this window for a new tab (BU-280): the + menu, opened.
+  const newTab = useCurrentPane((current) =>
+    current.newTab?.page === page && current.newTab.pane === index ? current.newTab.at : undefined
+  )
+  useEffect(() => {
+    if (newTab !== undefined) setMenuOpen(true)
+  }, [newTab])
 
   const tabs = tabsForPane(state, page, index, paneCount)
   const active = activeTab(state, page, index, paneCount)
@@ -131,6 +145,10 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
       style={style}
       data-pane={index}
       data-dropping={drop !== undefined}
+      // A click anywhere in a window makes it the one Ctrl+Left/Right act on.
+      onPointerDown={() => {
+        choose(page, index)
+      }}
       onDragEnter={(event) => {
         if (carriesTab([...event.dataTransfer.types])) depth.current += 1
       }}
@@ -141,6 +159,7 @@ export function Pane({ page, index, paneCount, style }: PaneProps): ReactElement
       }}
       onDrop={onDrop}
     >
+      {pulse !== undefined && <span key={pulse} className="pane-pulse" aria-hidden="true" />}
       <TabBar
         activeIndex={tabs.findIndex((tab) => tab.id === active?.id)}
         onNewTab={() => {

@@ -96,3 +96,53 @@ export function layoutById(id: string): LayoutOption {
 export function panesFor(layoutId: string): readonly LayoutPane[] {
   return layoutById(layoutId).panes
 }
+
+export type Direction = 'up' | 'down' | 'left' | 'right'
+
+/**
+ * The pane beside `from` in a direction (BU-277), as the layout draws them:
+ * one lying wholly that way and sharing some of its span across, the nearest
+ * first, then the one most in line with it. Undefined at the edge — a move
+ * with a direction does not wrap round to the far side.
+ */
+export function paneInDirection(
+  panes: readonly LayoutPane[],
+  from: number,
+  direction: Direction
+): number | undefined {
+  const here = panes[from]
+  if (here === undefined) return undefined
+  const across = direction === 'left' || direction === 'right' ? spanY : spanX
+
+  let best: { index: number; gap: number; offset: number } | undefined
+  panes.forEach((pane, index) => {
+    if (index === from || !overlaps(across(here), across(pane))) return
+    const gap = gapTo(here, pane, direction)
+    if (gap === undefined) return
+    const offset = Math.abs(centre(across(here)) - centre(across(pane)))
+    const nearer =
+      best === undefined || gap < best.gap || (gap === best.gap && offset < best.offset)
+    if (nearer) best = { index, gap, offset }
+  })
+  return best?.index
+}
+
+type Span = readonly [number, number]
+
+const spanX = (pane: LayoutPane): Span => [pane.x, pane.x + pane.w]
+const spanY = (pane: LayoutPane): Span => [pane.y, pane.y + pane.h]
+const centre = ([start, end]: Span): number => (start + end) / 2
+const overlaps = (a: Span, b: Span): boolean => a[0] < b[1] && b[0] < a[1]
+
+/** How far `to` lies beyond `from` that way, or undefined when it does not. */
+function gapTo(from: LayoutPane, to: LayoutPane, direction: Direction): number | undefined {
+  const gap =
+    direction === 'right'
+      ? to.x - (from.x + from.w)
+      : direction === 'left'
+        ? from.x - (to.x + to.w)
+        : direction === 'down'
+          ? to.y - (from.y + from.h)
+          : from.y - (to.y + to.h)
+  return gap >= 0 ? gap : undefined
+}
