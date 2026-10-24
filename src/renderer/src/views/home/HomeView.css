@@ -134,7 +134,59 @@
   flex-direction: column;
   gap: 36.1px;
   flex: 0 1 663px;
+  align-self: stretch;
   min-width: 0;
+}
+
+/*
+ * The timeline takes the column's height and no more (BU-287): a zero basis,
+ * so its rows never push Home taller than the pane, and it scrolls within
+ * it, with no scrollbar drawn, since Home has none (Karan).
+ */
+.home-activity {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* A section's title, with the button that shows its whole list (Karan). */
+.home-label-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.home-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.home-expand:hover,
+.home-expand:focus-visible {
+  color: var(--text-primary);
+  background: var(--sidebar-active-bg);
+  outline: none;
+}
+
+/*
+ * The whole list in its pop-up: plain, and scrolling inside the pop-up, with
+ * room between the durations and the scrollbar (Karan).
+ */
+.home-whole-list {
+  max-height: min(70vh, 640px);
+  padding-right: 12px;
+  overflow-y: auto;
 }
 
 /*
@@ -167,21 +219,24 @@
   min-height: 0;
 }
 
-.home-changelog-fitted {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
 .home-section {
   display: flex;
   flex-direction: column;
 }
 
 /* 16px SemiBold in text-muted (73:2, reset to the UI face by BU-98). */
-.home-label {
+/*
+ * Home's section titles in the banner's face, unbolded (Karan): Home reads
+ * as one page in Playfair, where the rest of the app keeps its UI labels.
+ * Two classes, as type.css loads after this sheet and would win a tie.
+ */
+.home-label.type-section-label {
   margin: 0;
-  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+  /* A touch stronger than muted (Karan): halfway to secondary, either theme. */
+  color: color-mix(in srgb, var(--text-muted), var(--text-secondary));
 }
 
 /* ---- Quickstart (76:6) ---------------------------------------------- */
@@ -225,70 +280,6 @@
 }
 
 /* ---- Recent Activity (73:185) ---------------------------------------- */
-
-.home-activity-rows {
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.home-activity-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 2px 0;
-  border-bottom: 0.5px solid var(--divider);
-}
-
-/* 73:208 — the last row carries no rule, so the list does not look cut off. */
-.home-activity-row:last-child {
-  border-bottom: 0;
-}
-
-.home-activity-label {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-  padding: 0;
-  font: inherit;
-  text-align: left;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-
-.home-activity-label:disabled {
-  cursor: default;
-}
-
-.home-activity-label:not(:disabled):hover .home-activity-name {
-  text-decoration: underline;
-}
-
-.home-activity-label:focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.home-activity-name {
-  overflow: hidden;
-  font-family: var(--font-ui);
-  font-size: 13px;
-  color: var(--text-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-activity-when {
-  flex: none;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
 .home-activity-empty {
   max-width: 44ch;
   margin: 6px 0 0;
@@ -299,34 +290,6 @@
 }
 
 /* ---- Changelog (40:295) ---------------------------------------------- */
-
-/*
- * Both products' releases (BU-219), the newest few on Home and the rest in
- * a pop-up (Karan, 2026-10-19). The list ran down to Guides and scrolled
- * inside, which made Home's right column a long page of its own.
- */
-.home-changelog-foot {
-  padding-top: 8px;
-}
-
-.home-changelog-more {
-  padding: 0;
-  border: 0;
-  background: none;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  color: var(--accent);
-  cursor: pointer;
-}
-
-.home-changelog-more:hover {
-  text-decoration: underline;
-}
-
-.home-changelog-more:focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: 2px;
-}
 
 .home-changelog-entry {
   margin-top: 6px;

@@ -106,8 +106,9 @@
 }
 
 /*
- * Home's header card only (Karan, 2026-10-19): the website's card-title
- * face, so the app's front page reads as the site's landing cards do.
+ * Home's header card and section titles (Karan, 2026-10-19 and 10-24): the
+ * website's card-title face, so the app's front page reads as the site's
+ * landing cards do.
  */
 @font-face {
   font-family: 'Playfair Display';

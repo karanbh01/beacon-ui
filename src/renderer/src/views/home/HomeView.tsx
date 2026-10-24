@@ -12,7 +12,10 @@ import { GUIDES, QUICKSTART, formatHomeDate } from './homeContent'
 import { GuideFigure } from './GuideFigure'
 import { HomeBanner } from './HomeBanner'
 import { ReleaseList, type ReleaseListProps } from './ReleaseList'
-import { RecentActivity, type Activity } from './RecentActivity'
+import type { ActivityEntry, ActivityTarget } from './ActivityTimeline'
+import { EdgeScroll } from './EdgeScroll'
+import { ExpandButton } from './ExpandButton'
+import { RecentActivity } from './RecentActivity'
 import './HomeView.css'
 import { pageShips } from '../../shell/release'
 
@@ -27,9 +30,12 @@ const GLYPHS: Record<string, (props: IconProps) => ReactElement> = {
 export interface HomeViewProps {
   /** Passed in rather than read off the clock, so this renders on a fixed day. */
   today: Date
-  activity: readonly Activity[]
+  activity: readonly ActivityEntry[]
+  /** The time the activity is measured from, for "2h ago". */
+  now?: number
   onQuickstart: (page: string, tab: string) => void
-  onOpenActivity?: (id: string) => void
+  /** Where an activity's pop-up led (BU-287). */
+  onOpenActivity?: (target: ActivityTarget) => void
   /** The app's and the engine's versions, for the changelog's `current`. */
   running?: ReleaseListProps['running']
   /** The running engine's own releases, once it answers (BU-221). */
@@ -47,6 +53,7 @@ export interface HomeViewProps {
 export function HomeView({
   today,
   activity,
+  now = today.getTime(),
   onQuickstart,
   onOpenActivity,
   running,
@@ -66,6 +73,7 @@ export function HomeView({
         <div className="home-main">
           <RecentActivity
             activity={activity}
+            now={now}
             {...(onOpenActivity === undefined ? {} : { onOpen: onOpenActivity })}
           />
         </div>
@@ -73,23 +81,18 @@ export function HomeView({
         <div className="home-side">
           <Quickstart onQuickstart={onQuickstart} />
           <section className="home-section home-changelog">
-            <h2 className="type-section-label home-label">Changelog</h2>
-            <ReleaseList
-              running={running ?? {}}
-              engine={engineChangelog}
-              fit
-              footer={
-                <button
-                  type="button"
-                  className="home-changelog-more"
-                  onClick={() => {
-                    setChangelogOpen(true)
-                  }}
-                >
-                  Full changelog
-                </button>
-              }
-            />
+            <div className="home-label-row">
+              <h2 className="type-section-label home-label">Changelog</h2>
+              <ExpandButton
+                label="Full changelog"
+                onClick={() => {
+                  setChangelogOpen(true)
+                }}
+              />
+            </div>
+            <EdgeScroll rows=".home-changelog-head, .home-changelog-date, .home-changelog-heading, .home-changelog-notes li">
+              <ReleaseList running={running ?? {}} engine={engineChangelog} latestFirst />
+            </EdgeScroll>
           </section>
         </div>
       </div>
@@ -102,7 +105,9 @@ export function HomeView({
             setChangelogOpen(false)
           }}
         >
-          <ReleaseList running={running ?? {}} engine={engineChangelog} />
+          <div className="home-whole-list">
+            <ReleaseList running={running ?? {}} engine={engineChangelog} />
+          </div>
         </Dialog>
       )}
 

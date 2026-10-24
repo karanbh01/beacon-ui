@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useJobs } from '../../api/jobs'
+import { asEvent } from '../../api/jobSync'
+import { recordDocument } from '../../state/activityLog'
 import type { components } from '@shared/api.generated'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
@@ -69,7 +72,8 @@ export function useSaveStrategy() {
             body: document
           })
     },
-    onSuccess: () => {
+    onSuccess: (_result, { document, isNew }) => {
+      recordDocument('strategy', document.id, isNew ? 'created' : 'saved')
       void queries.invalidateQueries({ queryKey: keys.strategy.strategies() })
       void queries.invalidateQueries({ queryKey: ['strategy', 'document'] })
     }
@@ -99,7 +103,8 @@ export function useDeleteStrategy() {
         params: { strategy_id: strategyId }
       })
     },
-    onSuccess: () => {
+    onSuccess: (_result, strategyId) => {
+      recordDocument('strategy', strategyId, 'deleted')
       void queries.invalidateQueries({ queryKey: keys.strategy.all() })
       void queries.invalidateQueries({ queryKey: keys.beacon.all() })
     }
@@ -161,6 +166,11 @@ export function useRunStrategyBacktest() {
         params: { strategy_id: strategyId },
         body
       })
+    },
+    // The job as the engine took it, so the tray and Home's activity have it
+    // at once (BU-287), whether or not a feed event follows.
+    onSuccess: (job) => {
+      useJobs.getState().apply(asEvent(job))
     }
   })
 }

@@ -12,17 +12,17 @@ import { PaneHost } from './shell/PaneHost'
 import { DataSourcesDialog, type SourcesStart } from './shell/DataSourcesDialog'
 import { PresetDialog } from './shell/PresetDialog'
 import { PresetSaved } from './shell/PresetSaved'
-import { useJobs } from './api/jobs'
 import { HomeView } from './views/home/HomeView'
 import { useEngineChangelog } from './views/shared/queries'
-import { activityRows } from './views/home/activityRows'
+import { inOrder, startJobRecorder } from './views/home/jobActivity'
+import { useActivityLog } from './state/activityLog'
 import { useEngine } from './state/engine'
 import { useTheme } from './state/theme'
 import { runUpdateAction, useUpdate } from './state/update'
 import { usePresets, type Preset } from './state/presets'
 import { useWorkspace } from './state/tabs.store'
 import { registerPlaceholderViews } from './views/register'
-import type { ViewOption } from './shell/viewRegistry'
+import { allViews, type ViewOption } from './shell/viewRegistry'
 import { useBackgroundWork } from './api/work'
 import { assistantShips } from './shell/release'
 import { DataPreferencesDialog } from './shell/DataPreferencesDialog'
@@ -77,7 +77,7 @@ function AppBody(): ReactElement {
   const changelog = useEngineChangelog()
   const selectTab = useWorkspace((state) => state.selectTab)
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
-  const jobs = useJobs((state) => state.jobs)
+  const logged = useActivityLog((state) => state.entries)
   const applyPreset = usePresets((state) => state.apply)
   const presets = usePresets((state) => state.presets)
 
@@ -153,6 +153,9 @@ function AppBody(): ReactElement {
     }
     void load()
   }, [])
+
+  // Every job the app watches goes into Home's activity log (BU-287).
+  useEffect(() => startJobRecorder(), [])
 
   // Ctrl+arrows between sections and windows, Shift+arrows between tabs.
   useNavigationKeys(page, setPage)
@@ -257,7 +260,12 @@ function AppBody(): ReactElement {
           today={today}
           running={{ app: appVersion, engine: engine.version }}
           engineChangelog={changelog.data?.entries}
-          activity={activityRows(jobs, today.getTime())}
+          activity={inOrder(logged)}
+          now={Date.now()}
+          onOpenActivity={(target) => {
+            const view = allViews().find((option) => option.viewKind === target.viewKind)
+            if (view !== undefined) openView(view, target.subject)
+          }}
           onQuickstart={(target, tab) => {
             setPage(target)
             selectTab(tab)

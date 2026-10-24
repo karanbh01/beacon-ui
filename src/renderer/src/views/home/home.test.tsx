@@ -3,10 +3,34 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { TrackedJob } from '@/api/jobs'
 import { HomeView } from './HomeView'
-import { activityRows, relativeTime } from './activityRows'
+import type { ActivityEntry } from './ActivityTimeline'
+import { relativeTime } from './activityRows'
+import { useActivityLog, recordDocument } from '@/state/activityLog'
+import { backtestOpens, followJob, formatDuration, inOrder, titleOfJob } from './jobActivity'
 import { QUICKSTART, formatHomeDate } from './homeContent'
 
 const TODAY = new Date('2026-07-16T12:00:00Z')
+
+const ACTIVITY: ActivityEntry[] = [
+  {
+    id: 'bt',
+    title: 'Backtest of TECH10',
+    at: TODAY.getTime() - 2 * 3_600_000,
+    status: 'done',
+    detail: '43s',
+    steps: [
+      { label: 'Calculated the index', detail: '7s' },
+      { label: 'Simulated it', detail: '18s' }
+    ],
+    opens: backtestOpens('TECH10')
+  },
+  {
+    id: 'gen',
+    title: 'Synthetic data generated',
+    at: TODAY.getTime() - 26 * 3_600_000,
+    status: 'done'
+  }
+]
 
 function job(over: Partial<TrackedJob> & { jobId: string }): TrackedJob {
   return { kind: 'calculate', status: 'succeeded', progress: 1, message: '', heardAt: 0, ...over }
@@ -31,62 +55,85 @@ describe('relativeTime', () => {
   })
 })
 
-describe('activityRows', () => {
+describe('the activity log (BU-287)', () => {
   const now = TODAY.getTime()
 
-  it('says nothing when nothing has run', () => {
-    expect(activityRows({}, now)).toEqual([])
+  it('follows a job: each new message a step, the one before it timed as it ends', () => {
+    const running = (message: string, progress: number) =>
+      job({ jobId: 'b', kind: 'backtest:TECH10', status: 'running', progress, message })
+
+    let entry = followJob(undefined, running('Calculating the index', 0.05), now)
+    entry = followJob(entry, running('Calculating the index', 0.2), now + 3_000)
+    entry = followJob(entry, running('Simulating it', 0.5), now + 7_000)
+
+    expect(entry).toMatchObject({ title: 'Backtest of TECH10', status: 'running', detail: '50%' })
+    expect(entry.steps?.map((step) => [step.label, step.detail])).toEqual([
+      ['Calculating the index', '7s'],
+      ['Simulating it', undefined]
+    ])
+
+    const done = followJob(
+      entry,
+      job({
+        jobId: 'b',
+        kind: 'backtest:TECH10',
+        settledAt: now + 43_000,
+        message: 'Simulating it'
+      }),
+      now + 43_000
+    )
+    expect(done).toMatchObject({ status: 'done', detail: '43s' })
+    expect(done.steps?.at(-1)?.detail).toBe('36s')
+    expect(done.opens?.map((choice) => choice.label)).toEqual(['Details', 'Overview', 'Holdings'])
   })
 
-  it('puts running jobs first, whatever their age', () => {
-    // Something in flight is the reason you looked; a job that finished two
-    // minutes ago is not more interesting than one still going.
-    const rows = activityRows(
-      {
-        old: job({ jobId: 'old', settledAt: now - 60_000, message: 'TECH10 calculation' }),
-        live: job({ jobId: 'live', status: 'running', progress: 0.62, message: 'Price fetch' })
-      },
+  it('marks a failure on the step it happened in, in the engine’s words', () => {
+    const failed = followJob(
+      undefined,
+      job({
+        jobId: 'x',
+        kind: 'generate:synthetic',
+        status: 'failed',
+        settledAt: now,
+        message: 'Saving',
+        error: { code: 'DATA_ERROR', message: 'No room on the disk' }
+      }),
       now
     )
-
-    expect(rows.map((r) => r.id)).toEqual(['live', 'old'])
-    expect(rows[0]).toMatchObject({ status: 'running', detail: '62%' })
+    expect(failed).toMatchObject({ status: 'failed', detail: 'Failed' })
+    expect(failed.steps?.at(-1)).toMatchObject({ label: 'No room on the disk', failed: true })
   })
 
-  it('orders settled jobs newest first', () => {
-    const rows = activityRows(
-      {
-        a: job({ jobId: 'a', settledAt: now - 3 * 3_600_000 }),
-        b: job({ jobId: 'b', settledAt: now - 1 * 3_600_000 }),
-        c: job({ jobId: 'c', settledAt: now - 2 * 3_600_000 })
-      },
-      now
-    )
-
-    expect(rows.map((r) => r.id)).toEqual(['b', 'c', 'a'])
+  it('names jobs in words, running and done', () => {
+    expect(titleOfJob('generate:synthetic', true)).toBe('Generating synthetic data')
+    expect(titleOfJob('generate:synthetic', false)).toBe('Synthetic data generated')
+    expect(titleOfJob('something:new', false)).toBe('Something new')
+    expect(formatDuration(64_000)).toBe('1m 04s')
+    expect(formatDuration(7_500_000)).toBe('2h 05m')
   })
 
-  it('maps a failure to the failed pill', () => {
-    const rows = activityRows(
-      { x: job({ jobId: 'x', status: 'failed', settledAt: now - 60_000 }) },
-      now
-    )
-    expect(rows[0]?.status).toBe('failed')
+  it('records a document saved, and what it opens; a deleted one opens nothing', () => {
+    useActivityLog.setState({ entries: [] })
+    recordDocument('index', 'TECH10', 'created', now)
+    recordDocument('index', 'OLD', 'deleted', now + 1)
+
+    const [deleted, created] = useActivityLog.getState().entries
+    expect(created).toMatchObject({ title: 'Index definition TECH10 created' })
+    expect(created?.opens?.map((choice) => choice.label)).toEqual([
+      'Definition',
+      'Constituent preview'
+    ])
+    expect(deleted?.title).toBe('Index definition OLD deleted')
+    expect(deleted?.opens).toBeUndefined()
   })
 
-  it('falls back to the job kind when there is no message', () => {
-    const rows = activityRows({ x: job({ jobId: 'x', settledAt: now, message: '' }) }, now)
-    expect(rows[0]?.label).toBe('calculate')
-  })
-
-  it('caps the list so it stays scannable', () => {
-    const many = Object.fromEntries(
-      Array.from({ length: 9 }, (_, i) => [
-        `j${String(i)}`,
-        job({ jobId: `j${String(i)}`, settledAt: now - i * 1000 })
-      ])
-    )
-    expect(activityRows(many, now)).toHaveLength(4)
+  it('puts running first, then newest first', () => {
+    const entries = inOrder([
+      { id: 'old', title: 'old', at: now - 3_600_000, status: 'done' },
+      { id: 'live', title: 'live', at: now - 7_200_000, status: 'running' },
+      { id: 'new', title: 'new', at: now - 60_000, status: 'done' }
+    ])
+    expect(entries.map((entry) => entry.id)).toEqual(['live', 'new', 'old'])
   })
 })
 
@@ -141,27 +188,52 @@ describe('HomeView', () => {
     expect(screen.queryByText('done')).toBeNull()
   })
 
-  it('renders activity with its pill once there is any', () => {
+  it('draws activity as a timeline: a filled dot for what opens, hollow for its steps', () => {
+    const { container } = render(
+      <HomeView
+        {...props}
+        onQuickstart={vi.fn()}
+        activity={ACTIVITY}
+        now={TODAY.getTime()}
+        onOpenActivity={vi.fn()}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: 'Backtest of TECH10' })).toBeInTheDocument()
+    expect(screen.getByText('Simulated it')).toBeInTheDocument()
+    expect(screen.getByText('2h ago')).toBeInTheDocument()
+    // Two activities, one with somewhere to go; the other and both steps are hollow.
+    expect(container.querySelectorAll('.timeline-dot:not(.timeline-dot-hollow)')).toHaveLength(1)
+    expect(container.querySelectorAll('.timeline-dot-hollow')).toHaveLength(3)
+    expect(screen.queryByText(/Nothing has run yet/)).toBeNull()
+  })
+
+  it('opens where an activity leads from its pop-up', async () => {
+    const onOpenActivity = vi.fn()
     render(
       <HomeView
         {...props}
         onQuickstart={vi.fn()}
-        activity={[
-          { id: 'a', label: 'TECH10 calculation', when: '2h ago', status: 'done' },
-          {
-            id: 'b',
-            label: 'Price fetch · 512 assets',
-            when: 'running',
-            status: 'running',
-            detail: '62%'
-          }
-        ]}
+        activity={ACTIVITY}
+        now={TODAY.getTime()}
+        onOpenActivity={onOpenActivity}
       />
     )
 
-    expect(screen.getByText('TECH10 calculation')).toBeInTheDocument()
-    expect(screen.getByText('62%')).toBeInTheDocument()
-    expect(screen.queryByText(/Nothing has run yet/)).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Backtest of TECH10' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Holdings' }))
+
+    expect(onOpenActivity).toHaveBeenCalledWith({ viewKind: 'weights', subject: 'TECH10' })
+  })
+
+  it('shows the whole timeline in a pop-up from the button by its title', async () => {
+    render(<HomeView {...props} onQuickstart={vi.fn()} activity={ACTIVITY} now={TODAY.getTime()} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'All recent activity' }))
+    const whole = screen.getByRole('dialog', { name: 'Recent Activity' })
+    expect(within(whole).getByText('Synthetic data generated')).toBeInTheDocument()
+    // Plain: no blurred edges in the pop-up.
+    expect(whole.querySelector('.edge-scroll')).toBeNull()
   })
 
   it("leads with each product's newest release, and has the rest in a pop-up", () => {

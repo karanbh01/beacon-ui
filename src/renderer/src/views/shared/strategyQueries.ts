@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { recordDocument } from '../../state/activityLog'
 import type { Suggestion } from '../../components/TickerField/suggestions'
 import type { components } from '@shared/api.generated'
 import { parseRun } from '@shared/backtestRun'
@@ -110,7 +111,8 @@ export function useCreateUniverse() {
       // could reasonably change to `live`.
       return client.universes.create({ ...body, mode: 'frozen' })
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      recordDocument('universe', result.id, 'created')
       void queries.invalidateQueries({ queryKey: keys.strategy.universes() })
     }
   })
@@ -131,7 +133,8 @@ export function useDeleteIndex() {
       if (client === null) throw new Error('No engine')
       return client.indices.remove(id)
     },
-    onSuccess: () => {
+    onSuccess: (_result, id) => {
+      recordDocument('index', id, 'deleted')
       // The list AND anything read off that index: its overview, its
       // weights, its comparison rows. Invalidating the branch is cheaper to
       // reason about than naming them.
@@ -156,7 +159,8 @@ export function useDeleteUniverse() {
       if (client === null) throw new Error('No engine')
       return client.universes.remove(id)
     },
-    onSuccess: () => {
+    onSuccess: (_result, id) => {
+      recordDocument('universe', id, 'deleted')
       void queries.invalidateQueries({ queryKey: keys.strategy.universes() })
     }
   })
@@ -181,6 +185,7 @@ export function useSaveUniverse() {
       return client.universes.update(id, body)
     },
     onSuccess: (_result, variables) => {
+      recordDocument('universe', variables.id, 'saved')
       void queries.invalidateQueries({ queryKey: keys.strategy.universes() })
       void queries.invalidateQueries({
         queryKey: keys.strategy.universeMembers(variables.id)
@@ -348,7 +353,8 @@ export function useSaveIndex() {
       if (client === null) throw new Error('No engine')
       return isNew ? client.indices.create(document) : client.indices.save(document.id, document)
     },
-    onSuccess: (result) => {
+    onSuccess: (result, { isNew }) => {
+      recordDocument('index', result.index.id, isNew ? 'created' : 'saved')
       // Write the saved document into the cache rather than refetching it.
       // The editor's dirty flag compares the draft against this entry, so a
       // refetch round trip would leave the tab showing "unsaved changes" for

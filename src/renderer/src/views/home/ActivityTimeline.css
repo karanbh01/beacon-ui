@@ -1,0 +1,196 @@
+@import '../../tokens/surface.css';
+
+/*
+ * Recent Activity as a timeline (BU-287): when, the rail, what, and how long,
+ * on a grid every row shares so the dots and the times stand in columns. One
+ * thin line runs down the rail behind the dots.
+ */
+.timeline {
+  --timeline-when: 62px;
+  --timeline-rail: 18px;
+  --timeline-dot: 7px;
+  --timeline-gap: 10px;
+
+  --timeline-row: 20px;
+  /* Steps sit close under their activity (Karan), and the next activity a
+     little further off, so each reads as one group. */
+  --timeline-step-row: 15px;
+  --timeline-space: 18px;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * The rail: one 1px line, drawn by each entry over its own rows and the space
+ * after them, so it runs on unbroken. It starts at the first dot and stops at
+ * the last entry's last dot.
+ */
+.timeline-entry {
+  position: relative;
+  padding-bottom: var(--timeline-space);
+}
+
+.timeline-entry::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--timeline-when) + var(--timeline-gap) + var(--timeline-rail) / 2 - 0.5px);
+  width: 1px;
+  content: '';
+  background: var(--border);
+}
+
+.timeline-entry:first-child::before {
+  top: calc(var(--timeline-row) / 2);
+}
+
+.timeline-entry:last-child::before {
+  bottom: calc(var(--timeline-space) + var(--timeline-row) / 2);
+}
+
+.timeline-entry:last-child:has(.timeline-steps)::before {
+  bottom: calc(var(--timeline-space) + var(--timeline-step-row) / 2);
+}
+
+.timeline-entry,
+.timeline-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Only the steps' list: an entry keeps its space below, set above. */
+.timeline-steps {
+  padding: 0;
+}
+
+.timeline-row {
+  display: grid;
+  grid-template-columns: var(--timeline-when) var(--timeline-rail) minmax(0, 1fr) auto;
+  gap: 0 var(--timeline-gap);
+  align-items: center;
+  min-height: var(--timeline-row);
+}
+
+.timeline-when {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* A dot on the rail: filled when it leads somewhere, hollow when it does not. */
+.timeline-dot {
+  position: relative;
+  z-index: 1;
+  justify-self: center;
+  width: var(--timeline-dot);
+  height: var(--timeline-dot);
+  background: var(--text-primary);
+  border-radius: 50%;
+}
+
+.timeline-dot-hollow {
+  background: var(--canvas);
+  border: 1px solid var(--text-muted);
+}
+
+.timeline-running > .timeline-row .timeline-dot {
+  background: var(--working);
+  border-color: var(--working);
+}
+
+.timeline-failed > .timeline-row .timeline-dot {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.timeline-body {
+  position: relative;
+  min-width: 0;
+}
+
+.timeline-title {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+}
+
+.timeline-title-link {
+  cursor: pointer;
+}
+
+.timeline-title-link:hover,
+.timeline-title-link[aria-expanded='true'] {
+  text-decoration: underline;
+}
+
+.timeline-title-link:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/*
+ * Where it leads: the app's dropdown list, under the title, frosted as the
+ * search bar's dropdown is (Karan) so the timeline shows softly through it.
+ */
+/* Two classes, to win over the dropdown surface's opaque ground. */
+.dropdown-surface.timeline-opens {
+  /* Placed on the page, under its title: the timeline scrolls (top, left set inline). */
+  position: fixed;
+  z-index: 60;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--glass);
+  backdrop-filter: blur(6px);
+}
+
+.timeline-detail {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.timeline-failed > .timeline-row .timeline-detail,
+.timeline-step-failed .timeline-step-label,
+.timeline-step-failed .timeline-detail {
+  color: var(--danger);
+}
+
+.timeline-step {
+  min-height: var(--timeline-step-row);
+}
+
+/* A step's time, as small as its words. */
+.timeline-step .timeline-detail {
+  font-size: 10px;
+}
+
+.timeline-step-label {
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

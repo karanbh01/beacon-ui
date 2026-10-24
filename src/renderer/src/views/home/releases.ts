@@ -129,11 +129,6 @@ export function latestFirst(releases: readonly Release[]): Release[] {
   ]
 }
 
-/** How many releases `latestFirst` puts first: one per product. */
-export function latestCount(releases: readonly Release[]): number {
-  return new Set(releases.filter((r) => r.version !== 'unreleased').map((r) => r.product)).size
-}
-
 /** Unreleased sorts above every dated release. */
 function dateOf(release: Release): string {
   return release.date ?? '9999-99-99'

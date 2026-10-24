@@ -1,0 +1,80 @@
+/*
+ * A Home list that scrolls within its room (EdgeScroll): a zero basis, so
+ * its rows never push Home taller than the pane, and no scrollbar drawn,
+ * since Home has none (Karan).
+ */
+.edge-scroll {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.edge-scroller {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.edge-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * An edge with more beyond it blurs softly into the ground (Karan): a strip
+ * that frosts what scrolls under it and fades out towards the list, shown
+ * only while there is something that way to scroll to.
+ */
+.edge-scroll-edge {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: 28px;
+  pointer-events: none;
+  opacity: 0;
+  backdrop-filter: blur(2px);
+  transition: opacity 160ms ease;
+}
+
+.edge-scroll-top {
+  top: 0;
+  background: linear-gradient(to bottom, var(--canvas), transparent);
+  mask-image: linear-gradient(to bottom, black 30%, transparent);
+}
+
+.edge-scroll-bottom {
+  bottom: 0;
+  background: linear-gradient(to top, var(--canvas), transparent);
+  mask-image: linear-gradient(to top, black 30%, transparent);
+}
+
+.edge-scroll[data-more-above='true'] .edge-scroll-top,
+.edge-scroll[data-more-below='true'] .edge-scroll-bottom {
+  opacity: 1;
+}
+
+/* A row drawing back shrinks from its start, so text keeps its left edge. */
+.edge-scroller [style*='scale'] {
+  transform-origin: left center;
+}
+
+/*
+ * A timeline row's parts each shrink to their own anchor: the time towards
+ * the rail, the dot about itself, the words from their start and the
+ * duration from the right, so nothing drifts sideways.
+ */
+.edge-scroller .timeline-row > .timeline-when,
+.edge-scroller .timeline-row > .timeline-detail {
+  transform-origin: right center;
+}
+
+.edge-scroller .timeline-row > .timeline-dot {
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-scroll-edge {
+    transition: none;
+  }
+}

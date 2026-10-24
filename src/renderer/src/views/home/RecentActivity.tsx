@@ -1,57 +1,69 @@
-import type { ReactElement } from 'react'
-import { StatusPill, type PillStatus } from '@/components/Badge/Badge'
-
-export interface Activity {
-  id: string
-  label: string
-  /** "2h ago", "yesterday", "running" — relative, as the frame has it. */
-  when: string
-  status: PillStatus
-  /** Pill text; the percentage for a running job, otherwise the status word. */
-  detail?: string
-}
+import { useState, type ReactElement } from 'react'
+import { Dialog } from '@/components/Dialog/Dialog'
+import { ActivityTimeline, type ActivityEntry, type ActivityTarget } from './ActivityTimeline'
+import { EdgeScroll } from './EdgeScroll'
+import { ExpandButton } from './ExpandButton'
 
 export interface RecentActivityProps {
-  activity: readonly Activity[]
-  onOpen?: (id: string) => void
+  activity: readonly ActivityEntry[]
+  now: number
+  onOpen?: (target: ActivityTarget) => void
 }
 
 /**
- * Figma 73:185. Rows 663 wide, a 0.5px divider under each but the last.
+ * Home's Recent Activity, as a timeline (BU-287, Karan). It scrolls within
+ * the room Home gives it, its edges blurring and its rows drawing back as
+ * they near one; the expand button beside the title shows it whole, as a
+ * plain list in a pop-up.
  *
- * The one section of Home with a live source. It shows nothing rather than
- * placeholder rows when there is no history — a first run has genuinely done
- * nothing, and inventing four finished jobs would be a lie the user cannot
- * check.
+ * It shows nothing rather than placeholder rows when there is no history: a
+ * first run has genuinely done nothing, and inventing finished jobs would be
+ * a lie the user cannot check.
  */
-export function RecentActivity({ activity, onOpen }: RecentActivityProps): ReactElement {
+export function RecentActivity({ activity, now, onOpen }: RecentActivityProps): ReactElement {
+  const [whole, setWhole] = useState(false)
+  const open = (target: ActivityTarget): void => {
+    setWhole(false)
+    onOpen?.(target)
+  }
+  const handlers = onOpen === undefined ? {} : { onOpen: open }
+
   return (
     <section className="home-section home-activity">
-      <h2 className="type-section-label home-label">Recent Activity</h2>
+      <div className="home-label-row">
+        <h2 className="type-section-label home-label">Recent Activity</h2>
+        {activity.length > 0 && (
+          <ExpandButton
+            label="All recent activity"
+            onClick={() => {
+              setWhole(true)
+            }}
+          />
+        )}
+      </div>
 
       {activity.length === 0 ? (
         <p className="home-activity-empty">
           Nothing has run yet. Anything you calculate, backtest or fetch shows up here.
         </p>
       ) : (
-        <ul className="home-activity-rows">
-          {activity.map((item) => (
-            <li key={item.id} className="home-activity-row">
-              <button
-                type="button"
-                className="home-activity-label"
-                onClick={() => {
-                  onOpen?.(item.id)
-                }}
-                disabled={onOpen === undefined}
-              >
-                <span className="home-activity-name">{item.label}</span>
-                <span className="home-activity-when">{item.when}</span>
-              </button>
-              <StatusPill status={item.status}>{item.detail ?? item.status}</StatusPill>
-            </li>
-          ))}
-        </ul>
+        <EdgeScroll rows=".timeline-row" byParts text=".timeline-title, .timeline-step-label">
+          <ActivityTimeline entries={activity} now={now} {...handlers} />
+        </EdgeScroll>
+      )}
+
+      {whole && (
+        <Dialog
+          title="Recent Activity"
+          width={640}
+          onClose={() => {
+            setWhole(false)
+          }}
+        >
+          <div className="home-whole-list">
+            <ActivityTimeline entries={activity} now={now} {...handlers} />
+          </div>
+        </Dialog>
       )}
     </section>
   )
