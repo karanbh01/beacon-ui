@@ -6,6 +6,7 @@ import { HomeView } from './HomeView'
 import type { ActivityEntry } from './ActivityTimeline'
 import { relativeTime } from './activityRows'
 import { useActivityLog, recordDocument } from '@/state/activityLog'
+import { stepOf } from './jobSteps'
 import { backtestOpens, followJob, formatDuration, inOrder, titleOfJob } from './jobActivity'
 import { QUICKSTART, formatHomeDate } from './homeContent'
 
@@ -19,14 +20,14 @@ const ACTIVITY: ActivityEntry[] = [
     status: 'done',
     detail: '43s',
     steps: [
-      { label: 'Calculated the index', detail: '7s' },
-      { label: 'Simulated it', detail: '18s' }
+      { label: 'Calculated TECH10 index', detail: '7s' },
+      { label: 'Simulated TECH10', detail: '18s' }
     ],
     opens: backtestOpens('TECH10')
   },
   {
     id: 'gen',
-    title: 'Synthetic data generated',
+    title: 'Store SYNTH-10Y generated',
     at: TODAY.getTime() - 26 * 3_600_000,
     status: 'done'
   }
@@ -58,33 +59,56 @@ describe('relativeTime', () => {
 describe('the activity log (BU-287)', () => {
   const now = TODAY.getTime()
 
-  it('follows a job: each new message a step, the one before it timed as it ends', () => {
+  it('follows a job: each step its messages name, the one before timed as it ends', () => {
     const running = (message: string, progress: number) =>
       job({ jobId: 'b', kind: 'backtest:TECH10', status: 'running', progress, message })
 
-    let entry = followJob(undefined, running('Calculating the index', 0.05), now)
-    entry = followJob(entry, running('Calculating the index', 0.2), now + 3_000)
-    entry = followJob(entry, running('Simulating it', 0.5), now + 7_000)
+    // The opening summary is no step; the daily messages are one.
+    let entry = followJob(
+      undefined,
+      running('Calculating the index, tracking the index and simulating it.', 0.05),
+      now
+    )
+    entry = followJob(entry, running("Calculating the index 'TECH10'", 0.1), now + 1_000)
+    entry = followJob(entry, running('Simulating 2024-03-01, day 1 of 500', 0.2), now + 8_000)
+    entry = followJob(entry, running('Simulating 2024-03-04, day 2 of 500', 0.5), now + 9_000)
 
     expect(entry).toMatchObject({ title: 'Backtest of TECH10', status: 'running', detail: '50%' })
-    expect(entry.steps?.map((step) => [step.label, step.detail])).toEqual([
-      ['Calculating the index', '7s'],
-      ['Simulating it', undefined]
+    expect(entry.steps?.map((step) => [step.label, step.doing, step.detail])).toEqual([
+      ['Calculated TECH10 index', 'Calculating TECH10 index', '7s'],
+      ['Simulated TECH10', 'Simulating TECH10', undefined]
     ])
 
     const done = followJob(
       entry,
-      job({
-        jobId: 'b',
-        kind: 'backtest:TECH10',
-        settledAt: now + 43_000,
-        message: 'Simulating it'
-      }),
+      job({ jobId: 'b', kind: 'backtest:TECH10', settledAt: now + 43_000, message: 'Complete.' }),
       now + 43_000
     )
     expect(done).toMatchObject({ status: 'done', detail: '43s' })
-    expect(done.steps?.at(-1)?.detail).toBe('36s')
+    expect(done.steps).toHaveLength(2)
+    expect(done.steps?.at(-1)?.detail).toBe('35s')
     expect(done.opens?.map((choice) => choice.label)).toEqual(['Details', 'Overview', 'Holdings'])
+  })
+
+  it('logs steps objectively, with what they are of (Karan)', () => {
+    const done = (message: string, subject = 'TECH10') => stepOf(message, subject)?.done
+    expect(done("Calculating the index 'EU-VALUE'")).toBe('Calculated EU-VALUE index')
+    expect(done("Building the strategy's weights")).toBe('Built TECH10 weights')
+    expect(done("Comparing against benchmark 'EU-VALUE'.")).toBe('Compared with EU-VALUE')
+    expect(done('Assembling results.')).toBe('Assembled results')
+    expect(done('Assembling the result.')).toBe('Assembled results')
+    expect(done('Saving the record.')).toBe('Saved TECH10 record')
+    expect(done('Estimating the risk model.')).toBe('Estimated risk model')
+    expect(done('Solving.')).toBe('Solved optimisation')
+    expect(done('Loading prices for 1 identifier(s).')).toBe('Loaded prices for 1 identifier')
+    expect(done('Fetched CMP001 (3/120)')).toBe('Fetched prices for 120 identifiers')
+    expect(done("Reading 'SYNTH-10Y'")).toBe('Read store SYNTH-10Y')
+    expect(done('Saving the store', 'SYNTH-10Y')).toBe('Saved store SYNTH-10Y')
+    expect(done('Building prices and corporate actions')).toBe('Built prices and corporate actions')
+    expect(done('Writing profiles')).toBe('Wrote profiles')
+    expect(done('Carrying on exchange rates')).toBe('Extended exchange rates')
+    expect(done('Serving the new data')).toBe('Served new data')
+    expect(done('Done')).toBeUndefined()
   })
 
   it('marks a failure on the step it happened in, in the engine’s words', () => {
@@ -105,8 +129,8 @@ describe('the activity log (BU-287)', () => {
   })
 
   it('names jobs in words, running and done', () => {
-    expect(titleOfJob('generate:synthetic', true)).toBe('Generating synthetic data')
-    expect(titleOfJob('generate:synthetic', false)).toBe('Synthetic data generated')
+    expect(titleOfJob('generate:SYNTH-10Y', true)).toBe('Generating store SYNTH-10Y')
+    expect(titleOfJob('generate:SYNTH-10Y', false)).toBe('Store SYNTH-10Y generated')
     expect(titleOfJob('something:new', false)).toBe('Something new')
     expect(formatDuration(64_000)).toBe('1m 04s')
     expect(formatDuration(7_500_000)).toBe('2h 05m')
@@ -200,12 +224,17 @@ describe('HomeView', () => {
     )
 
     expect(screen.getByRole('button', { name: 'Backtest of TECH10' })).toBeInTheDocument()
-    expect(screen.getByText('Simulated it')).toBeInTheDocument()
+    expect(screen.getByText('Simulated TECH10')).toBeInTheDocument()
     expect(screen.getByText('2h ago')).toBeInTheDocument()
     // Two activities, one with somewhere to go; the other and both steps are hollow.
     expect(container.querySelectorAll('.timeline-dot:not(.timeline-dot-hollow)')).toHaveLength(1)
     expect(container.querySelectorAll('.timeline-dot-hollow')).toHaveLength(3)
     expect(screen.queryByText(/Nothing has run yet/)).toBeNull()
+    // Steps newest first, as the activities are.
+    const steps = [...container.querySelectorAll('.timeline-step-label')].map(
+      (step) => step.textContent
+    )
+    expect(steps).toEqual(['Simulated TECH10', 'Calculated TECH10 index'])
   })
 
   it('opens where an activity leads from its pop-up', async () => {
@@ -231,7 +260,7 @@ describe('HomeView', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'All recent activity' }))
     const whole = screen.getByRole('dialog', { name: 'Recent Activity' })
-    expect(within(whole).getByText('Synthetic data generated')).toBeInTheDocument()
+    expect(within(whole).getByText('Store SYNTH-10Y generated')).toBeInTheDocument()
     // Plain: no blurred edges in the pop-up.
     expect(whole.querySelector('.edge-scroll')).toBeNull()
   })

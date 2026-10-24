@@ -117,15 +117,21 @@ function Entry({
         {entry.detail !== undefined && <span className="timeline-detail">{entry.detail}</span>}
       </div>
       {entry.steps !== undefined && entry.steps.length > 0 && (
+        // Newest first, as the activities are (Karan): the log keeps steps in
+        // the order they came, which is how each is timed.
         <ol className="timeline-steps">
-          {entry.steps.map((step, at) => (
+          {[...entry.steps].reverse().map((step, at) => (
             <li
               key={`${step.label}-${String(at)}`}
               className={`timeline-row timeline-step${step.failed === true ? ' timeline-step-failed' : ''}`}
             >
               <span className="timeline-when" />
               <span className="timeline-dot timeline-dot-hollow" aria-hidden="true" />
-              <span className="timeline-step-label">{step.label}</span>
+              <span className="timeline-step-label">
+                {entry.status === 'running' && at === 0 && step.doing !== undefined
+                  ? step.doing
+                  : step.label}
+              </span>
               {step.detail !== undefined && <span className="timeline-detail">{step.detail}</span>}
             </li>
           ))}

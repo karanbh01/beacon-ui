@@ -9,7 +9,10 @@ export interface ActivityTarget {
 
 /** One stage of an activity, drawn as a hollow dot under it. */
 export interface ActivityStep {
+  /** As logged, once done: "Simulated TECH10". */
   label: string
+  /** While it is the step under way: "Simulating TECH10". */
+  doing?: string
   /** "12s", or why it failed. */
   detail?: string
   failed?: boolean

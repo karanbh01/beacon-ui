@@ -1,5 +1,6 @@
 import { useJobs, type TrackedJob } from '@/api/jobs'
 import { useActivityLog, type ActivityEntry, type ActivityStep } from '@/state/activityLog'
+import { stepOf } from './jobSteps'
 
 /** A backtest leads to its setup, its Overview and its holdings. */
 export function backtestOpens(strategyId: string): NonNullable<ActivityEntry['opens']> {
@@ -14,9 +15,9 @@ export function backtestOpens(strategyId: string): NonNullable<ActivityEntry['op
 const TITLES: Record<string, (subject: string) => [running: string, done: string]> = {
   backtest: (id) => [`Backtest of ${id}`, `Backtest of ${id}`],
   optimise: () => ['Optimising', 'Optimisation'],
-  generate: () => ['Generating synthetic data', 'Synthetic data generated'],
-  load: () => ['Loading a data store', 'Data store loaded'],
-  refresh: () => ['Refreshing data', 'Data refreshed'],
+  generate: (id) => [`Generating store ${id}`, `Store ${id} generated`],
+  load: (id) => [`Loading store ${id}`, `Store ${id} loaded`],
+  refresh: (id) => [`Refreshing store ${id}`, `Store ${id} refreshed`],
   render: () => ['Rendering a report', 'Report rendered'],
   risk: (id) => [`Estimating risk model ${id}`, `Risk model ${id} estimated`]
 }
@@ -56,8 +57,9 @@ export function inOrder(entries: readonly ActivityEntry[]): ActivityEntry[] {
 
 /**
  * The next state of a job's timeline entry, from the job as the engine last
- * described it (BU-287). Each new message is a step, and the step before it
- * is timed as it ends; a settled job is timed whole and leads where it can.
+ * described it (BU-287). Each new step its messages name is added, and the
+ * step before it is timed as it ends; a settled job is timed whole and leads
+ * where it can.
  */
 export function followJob(
   previous: ActivityEntry | undefined,
@@ -98,10 +100,10 @@ function nextSteps(
       ? step
       : { ...step, detail: formatDuration(now - step.at) }
 
-  const said = job.status === 'failed' ? (job.error?.message ?? job.message) : job.message
-  if (said !== '' && said !== last?.label) {
+  const step = stepOfJob(job)
+  if (step !== undefined && step.label !== last?.label) {
     if (last !== undefined) out[out.length - 1] = ended(last)
-    out.push({ label: said, at: now })
+    out.push({ ...step, at: now })
   }
   if (status === 'running') return out
   // Settled: the last step ends here, and a failure is its doing.
@@ -110,6 +112,14 @@ function nextSteps(
     out[out.length - 1] = { ...ended(final), ...(status === 'failed' ? { failed: true } : {}) }
   }
   return out
+}
+
+/** The step a job's last message names; a failure is told in the engine's own words. */
+function stepOfJob(job: TrackedJob): Omit<ActivityStep, 'at'> | undefined {
+  if (job.status === 'failed' && job.error !== undefined) return { label: job.error.message }
+  const subject = job.kind.split(':')[1] ?? ''
+  const step = stepOf(job.message, subject)
+  return step === undefined ? undefined : { label: step.done, doing: step.doing }
 }
 
 /**
