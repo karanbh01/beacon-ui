@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useShortcuts } from '../../state/shortcuts'
 import { clashesOf, comboOf, SHORTCUT_ACTIONS, shortcutOf, shortcutText } from './catalogue'
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog'
+import { actionOfKey } from './keymap'
 
 /** Settings → Keyboard shortcuts (Karan): what each action is on, and changing it. */
 const row = (action: string): HTMLElement => {
@@ -85,6 +86,20 @@ describe('keyboard shortcuts', () => {
     await record('New tab', '{Control>}c{/Control}')
     expect(screen.getByText('Used by Copy, which cannot be changed.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save the shortcut for New tab' })).toBeDisabled()
+  })
+
+  it('moves the seeks with Go to search, and leaves them none when it has none', () => {
+    const seek = SHORTCUT_ACTIONS.find((action) => action.id === 'seek')
+    if (seek === undefined) throw new Error('no seek')
+    expect(shortcutText(shortcutOf({ search: [['Ctrl', 'J']] }, seek))).toBe('Ctrl+J, Alt')
+    expect(shortcutOf({ search: [] }, seek)).toEqual([])
+    expect(actionOfKey({ key: 'k', ctrlKey: true, altKey: false, shiftKey: false })).toBe('search')
+    expect(
+      actionOfKey(
+        { key: 'k', ctrlKey: true, altKey: false, shiftKey: false },
+        { search: [['Ctrl', 'J']] }
+      )
+    ).toBeUndefined()
   })
 
   it('stops listening on Escape without closing the pop-up', async () => {

@@ -30,7 +30,9 @@ import { HoldingColumnsDialog } from '../views/shared/HoldingColumnsDialog'
 import './MenuBar.css'
 import { assistantShips, isReleaseBuild } from './release'
 import { useSearchFocus } from '../state/searchFocus'
+import { useShortcuts } from '../state/shortcuts'
 import { KeyboardShortcutsDialog } from './shortcuts/KeyboardShortcutsDialog'
+import { actionOfKey, leftToField } from './shortcuts/keymap'
 
 export interface MenuBarProps {
   onSearch?: (query: string) => void
@@ -169,6 +171,7 @@ export function MenuBar({
   const arrangeable = page !== HOME_PAGE_ID
   const served = useServedStore()
   const refreshable = served !== undefined && refreshOf(served).available
+  const assignedKeys = useShortcuts((state) => state.assigned)
   const menus = buildMenus({
     theme: theme.preference,
     layout,
@@ -176,7 +179,8 @@ export function MenuBar({
     refreshable,
     releaseBuild: isReleaseBuild(),
     engineStarted: engine !== 'idle',
-    tabs: { canOpen: paneCount > 0, canClose, canReopen }
+    tabs: { canOpen: paneCount > 0, canClose, canReopen },
+    shortcuts: assignedKeys
   })
 
   /*
@@ -222,22 +226,28 @@ export function MenuBar({
   /*
    * View's two shortcuts (BU-274, BU-275), taken before anything else sees
    * them: Electron's default menu binds Ctrl+Shift+R to Force Reload, and a
-   * keydown the page has prevented is not passed on to it.
+   * keydown the page has prevented is not passed on to it. Their keys are
+   * Settings' (BU-291).
    */
   const shortcuts = useRef({ arrangeable, resetWindow })
   shortcuts.current = { arrangeable, resetWindow }
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.altKey) return
       // Pressed to be recorded as a new shortcut, not to be acted on.
       if (event.target instanceof Element && event.target.closest('.shortcut-recorder')) return
-      if (event.code === 'KeyR') {
+      const action = actionOfKey(event)
+      if (action !== undefined && leftToField(event)) return
+      if (action === 'window-reset') {
         event.preventDefault()
         if (shortcuts.current.arrangeable) shortcuts.current.resetWindow()
-      } else if (event.code === 'KeyP') {
+      } else if (action === 'presets') {
         event.preventDefault()
         setMenu(undefined)
         setPickingPreset(true)
+      } else if (action === undefined && forceReloads(event)) {
+        // Never a reload, even with Reset window on other keys. One that is
+        // now another action's is that action's to take.
+        event.preventDefault()
       }
     }
     document.addEventListener('keydown', onKeyDown, true)
@@ -440,4 +450,9 @@ export function MenuBar({
 
 function isEditCommand(command: string): command is EditCommand {
   return (EDIT_COMMANDS as readonly string[]).includes(command)
+}
+
+/** Ctrl+Shift+R, which Electron's default menu takes as Force Reload. */
+function forceReloads(event: KeyboardEvent): boolean {
+  return event.ctrlKey && event.shiftKey && !event.altKey && event.code === 'KeyR'
 }

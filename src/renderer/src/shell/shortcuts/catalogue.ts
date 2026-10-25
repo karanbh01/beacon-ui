@@ -14,6 +14,11 @@ export interface ShortcutAction {
   keys: Shortcut
   /** Not the app's to change: Chromium's own editing commands. */
   fixed?: boolean
+  /**
+   * Starts with another action's shortcut, and moves with it: seek is Go to
+   * search's keys, then Alt, wherever Go to search is.
+   */
+  follows?: string
 }
 
 const combo = (text: string): KeyCombo => text.split('+')
@@ -89,12 +94,13 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
   },
   { id: 'find', group: 'Finding', label: 'Find in windows', keys: keys('Ctrl+F') },
   { id: 'search', group: 'Finding', label: 'Go to search', keys: keys('Ctrl+K') },
-  { id: 'seek', group: 'Finding', label: 'Seek', keys: keys('Ctrl+K', 'Alt') },
+  { id: 'seek', group: 'Finding', label: 'Seek', keys: keys('Ctrl+K', 'Alt'), follows: 'search' },
   {
     id: 'seek-held',
     group: 'Finding',
     label: 'Persistent seek',
-    keys: keys('Ctrl+K', 'Alt', 'Alt')
+    keys: keys('Ctrl+K', 'Alt', 'Alt'),
+    follows: 'search'
   },
   { id: 'presets', group: 'Windows', label: 'Presets', keys: keys('Ctrl+Shift+P') },
   { id: 'window-reset', group: 'Windows', label: 'Reset window', keys: keys('Ctrl+Shift+R') },
@@ -102,7 +108,9 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
   { id: 'redo', group: 'Editing', label: 'Redo', keys: keys('Ctrl+Y'), fixed: true },
   { id: 'cut', group: 'Editing', label: 'Cut', keys: keys('Ctrl+X'), fixed: true },
   { id: 'copy', group: 'Editing', label: 'Copy', keys: keys('Ctrl+C'), fixed: true },
-  { id: 'paste', group: 'Editing', label: 'Paste', keys: keys('Ctrl+V'), fixed: true }
+  { id: 'paste', group: 'Editing', label: 'Paste', keys: keys('Ctrl+V'), fixed: true },
+  // Fixed so no action can take it from every text field.
+  { id: 'select-all', group: 'Editing', label: 'Select all', keys: keys('Ctrl+A'), fixed: true }
 ]
 
 /** The groups, in the order the list shows them. */
@@ -177,7 +185,16 @@ export function namesOf(actions: readonly ShortcutAction[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}`
 }
 
-/** An action's shortcut: the one assigned, else its own. */
+/**
+ * An action's shortcut: the one assigned, else its own. One that follows
+ * another takes that one's keys for its first step, and has none when that
+ * one has none.
+ */
 export function shortcutOf(assigned: Record<string, Shortcut>, action: ShortcutAction): Shortcut {
-  return assigned[action.id] ?? action.keys
+  const own = assigned[action.id]
+  if (own !== undefined) return own
+  const lead = SHORTCUT_ACTIONS.find((other) => other.id === action.follows)
+  if (lead === undefined) return action.keys
+  const first = shortcutOf(assigned, lead)
+  return first.length === 0 ? [] : [...first, ...action.keys.slice(1)]
 }

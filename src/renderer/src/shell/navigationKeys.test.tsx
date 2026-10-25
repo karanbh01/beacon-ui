@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useChrome } from '../state/chrome'
 import { useCurrentPane } from '../state/currentPane'
+import { useShortcuts } from '../state/shortcuts'
 import { activeTab, tabsForPane } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { useNavigationKeys } from './navigationKeys'
@@ -59,9 +60,10 @@ function selected(pane: number): string | undefined {
 
 beforeEach(() => {
   localStorage.clear()
+  useShortcuts.setState({ assigned: {} })
   useWorkspace.getState().reset()
   useChrome.setState({ layoutByPage: { [PAGE]: 'columns' }, splits: {} })
-  useCurrentPane.setState({ byPage: {}, pulse: undefined })
+  useCurrentPane.setState({ byPage: {}, pulse: undefined, newTab: undefined })
   clearViews()
   registerView('prices', () => <p>prices</p>, { page: PAGE, title: 'Prices', archetype: 'query' })
 })
@@ -318,5 +320,32 @@ describe('Alt+arrows carry the tab (BU-281)', () => {
 
     press('ArrowRight', { altKey: true })
     expect(order(0)).toEqual(['a', 'b'])
+  })
+})
+
+describe('the keys Settings gives them (BU-291)', () => {
+  it('moves an action to its new keys, and off its old ones', () => {
+    useShortcuts.getState().assign('section-down', [['Ctrl', 'J']])
+    render(<Workspace start="home" />)
+
+    press('ArrowDown', { ctrlKey: true })
+    expect(screen.getByTestId('page')).toHaveTextContent('home')
+    press('j', { ctrlKey: true })
+    expect(screen.getByTestId('page')).toHaveTextContent('data-explorer')
+  })
+
+  it('leaves a key a field would type to the field', () => {
+    useShortcuts.getState().assign('section-down', [['J']])
+    render(<Workspace start="home" />)
+
+    screen.getByLabelText('A field').focus()
+    press('j', {})
+    expect(screen.getByTestId('page')).toHaveTextContent('home')
+
+    act(() => {
+      screen.getByLabelText('A field').blur()
+    })
+    press('j', {})
+    expect(screen.getByTestId('page')).toHaveTextContent('data-explorer')
   })
 })

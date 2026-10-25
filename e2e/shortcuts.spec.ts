@@ -40,3 +40,39 @@ test('records a shortcut without acting on it, saves it and resets it', async ({
   await window.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
 })
+
+test('a shortcut saved in Settings is the one that works, and the menu says so (BU-291)', async ({
+  app,
+  window
+}) => {
+  await openPage(window, 'Data Explorer')
+  await window.getByRole('button', { name: 'Settings' }).click()
+  await window.getByRole('menuitem', { name: /Keyboard shortcuts/ }).click()
+  const dialog = window.getByRole('dialog', { name: 'Keyboard shortcuts' })
+  await dialog.getByRole('button', { name: 'New shortcut for New tab' }).click()
+  await window.keyboard.press('Control+Shift+N')
+  await dialog.getByRole('button', { name: 'Save the shortcut for New tab' }).click()
+  // Close tab gives Ctrl+W up for Ctrl+Shift+W.
+  await dialog.getByRole('button', { name: 'New shortcut for Close tab' }).click()
+  await window.keyboard.press('Control+Shift+W')
+  await dialog.getByRole('button', { name: 'Save the shortcut for Close tab' }).click()
+  await dialog.getByRole('button', { name: 'Done' }).click()
+
+  // The old keys do nothing now, and the new ones open the + menu.
+  await window.keyboard.press('Control+T')
+  await expect(window.getByRole('menu')).toHaveCount(0)
+  await window.keyboard.press('Control+Shift+N')
+  await expect(window.getByRole('menu')).toBeVisible()
+  await window.keyboard.press('Enter')
+  await expect(window.locator('.tab-select')).toHaveCount(1)
+
+  // Ctrl+W is nothing's now, and still never closes the window.
+  await window.keyboard.press('Control+W')
+  await expect(window.locator('.tab-select')).toHaveCount(1)
+  expect(app.windows().some((page) => !page.isClosed())).toBe(true)
+  await window.keyboard.press('Control+Shift+W')
+  await expect(window.locator('.tab-select')).toHaveCount(0)
+
+  await window.getByRole('button', { name: 'Edit' }).click()
+  await expect(window.getByRole('menuitem', { name: /New tab/ })).toContainText('Ctrl+Shift+N')
+})

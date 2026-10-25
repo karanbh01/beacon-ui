@@ -5,6 +5,7 @@ import { useSearchFocus } from '../state/searchFocus'
 import { activeTab, tabsForPane } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { paneInDirection, type Direction } from './paneGrid'
+import { actionOfKey, leftToField } from './shortcuts/keymap'
 import { GUIDES_PAGE, HOME_PAGE_ID, SIDEBAR_PAGES } from './pages'
 import { pageShips } from './release'
 import {
@@ -34,10 +35,14 @@ import {
  * section in a layout whose windows were stacked (Karan). Plain Shift+arrows
  * stay free for extending a selection, as they do everywhere.
  *
- * The arrows are not taken while typing: in a field, Ctrl and Shift with them
- * move the caret and select text, and that is what they should go on doing.
- * Ctrl+T, Ctrl+W, Ctrl+F and Ctrl+K are, as in a browser, since they edit nothing. Nothing is
- * taken over a dialog or an open menu, which own the keyboard while up.
+ * The keys are Settings' (BU-291): each press is looked up as the action
+ * whose shortcut it now is, so the list above is the defaults.
+ *
+ * A shortcut a field would use itself is not taken while typing: in a field,
+ * Ctrl and Shift with the arrows move the caret and select text, and keys
+ * without Ctrl type. Ctrl+T, Ctrl+W, Ctrl+F and Ctrl+K are, as in a browser,
+ * since they edit nothing. Nothing is taken over a dialog or an open menu,
+ * which own the keyboard while up.
  */
 export function useNavigationKeys(page: string, goTo: (page: string) => void): void {
   const latest = useRef({ page, goTo })
@@ -53,14 +58,18 @@ export function useNavigationKeys(page: string, goTo: (page: string) => void): v
       if (closesWindow(event)) event.preventDefault()
       if (somethingOpen()) return
 
-      if (tabKey(event, at) || findKey(event)) {
-        event.preventDefault()
+      // Ctrl+F4 closes a tab as Ctrl+W does, as in a browser.
+      if (event.ctrlKey && !event.altKey && event.key === 'F4') {
+        closeTabHere(at)
         return
       }
-
-      const direction = DIRECTIONS[event.key]
-      if (direction === undefined || typing(event.target)) return
-      if (arrowKey(event, direction, at, go)) event.preventDefault()
+      const action = actionOfKey(event)
+      const run = action === undefined ? undefined : ACTIONS[action]
+      if (run === undefined) return
+      if (leftToField(event)) return
+      // The key is the action's, whether or not it had anything to act on.
+      event.preventDefault()
+      run(at, go)
     }
 
     document.addEventListener('keydown', onKeyDown)
@@ -70,58 +79,49 @@ export function useNavigationKeys(page: string, goTo: (page: string) => void): v
   }, [])
 }
 
-const DIRECTIONS: Record<string, Direction | undefined> = {
-  ArrowUp: 'up',
-  ArrowDown: 'down',
-  ArrowLeft: 'left',
-  ArrowRight: 'right'
+type Run = (page: string, goTo: (page: string) => void) => void
+
+/** What each action does, by its id in the shortcut catalogue. */
+const ACTIONS: Record<string, Run | undefined> = {
+  'section-up': (page, goTo) => nextSection(page, -1, goTo),
+  'section-down': (page, goTo) => nextSection(page, 1, goTo),
+  'tab-previous': (page) => nextTab(page, -1),
+  'tab-next': (page) => nextTab(page, 1),
+  'window-left': (page) => windowTowards(page, 'left'),
+  'window-right': (page) => windowTowards(page, 'right'),
+  'window-up': (page) => windowTowards(page, 'up'),
+  'window-down': (page) => windowTowards(page, 'down'),
+  'tab-new': (page) => newTabHere(page),
+  'tab-close': (page) => closeTabHere(page),
+  'tab-reopen': () => reopenLastTab(),
+  'tab-move-left': (page) => shiftTab(page, -1),
+  'tab-move-right': (page) => shiftTab(page, 1),
+  'tab-carry-left': (page) => carryTab(page, 'left'),
+  'tab-carry-right': (page) => carryTab(page, 'right'),
+  'tab-carry-up': (page) => carryTab(page, 'up'),
+  'tab-carry-down': (page) => carryTab(page, 'down'),
+  // Ctrl+F finds in the windows (BU-283); Ctrl+K goes to the search bar (BU-284).
+  find: () => {
+    useFind.getState().show()
+  },
+  search: () => {
+    useSearchFocus.getState().ask()
+  },
+  // Only when given a key of their own: by default they are search's, then Alt.
+  seek: () => {
+    useSearchFocus.getState().ask('once')
+  },
+  'seek-held': () => {
+    useSearchFocus.getState().ask('held')
+  }
 }
 
-/** Ctrl+W or Ctrl+F4. Alt+F4 is Windows' own, and left to it. */
+/**
+ * Ctrl+W or Ctrl+F4, whatever they now do: Electron's default menu closes
+ * the whole window on them, which is never wanted. Alt+F4 is Windows' own.
+ */
 function closesWindow(event: KeyboardEvent): boolean {
   return event.ctrlKey && !event.altKey && (event.code === 'KeyW' || event.key === 'F4')
-}
-
-/** Ctrl+T, Ctrl+W (or Ctrl+F4) and Ctrl+Shift+T: whether one was used. */
-function tabKey(event: KeyboardEvent, page: string): boolean {
-  if (!event.ctrlKey || event.altKey) return false
-  if (event.code === 'KeyT') return event.shiftKey ? reopenLastTab() : newTabHere(page)
-  if (event.shiftKey) return false
-  if (event.code === 'KeyW' || event.key === 'F4') return closeTabHere(page)
-  return false
-}
-
-/** Ctrl+F finds in the windows (BU-283); Ctrl+K goes to the search bar (BU-284). */
-function findKey(event: KeyboardEvent): boolean {
-  if (!event.ctrlKey || event.altKey || event.shiftKey) return false
-  if (event.code === 'KeyF') {
-    useFind.getState().show()
-    return true
-  }
-  if (event.code === 'KeyK') {
-    useSearchFocus.getState().ask()
-    return true
-  }
-  return false
-}
-
-/** The arrows with Ctrl or Alt, Shift taking the bigger step: whether one was used. */
-function arrowKey(
-  event: KeyboardEvent,
-  direction: Direction,
-  page: string,
-  goTo: (page: string) => void
-): boolean {
-  const by = direction === 'up' || direction === 'left' ? -1 : 1
-  const across = direction === 'left' || direction === 'right'
-
-  if (event.altKey && !event.ctrlKey) {
-    if (event.shiftKey) return carryTab(page, direction)
-    return across && shiftTab(page, by)
-  }
-  if (!event.ctrlKey) return false
-  if (event.shiftKey) return windowTowards(page, direction)
-  return across ? nextTab(page, by) : nextSection(page, by, goTo)
 }
 
 /**
@@ -170,16 +170,6 @@ function nextTab(page: string, by: 1 | -1): boolean {
 
 function wrap(index: number, length: number): number {
   return ((index % length) + length) % length
-}
-
-function typing(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    target.isContentEditable
-  )
 }
 
 function somethingOpen(): boolean {

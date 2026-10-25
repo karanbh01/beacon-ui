@@ -1,6 +1,8 @@
 import type { EditCommand } from '@shared/ipc'
 import { LAYOUT_OPTIONS } from '../../state/chrome'
 import { MENUS } from '../pages'
+import type { Shortcut } from '../../state/shortcuts'
+import { hintOf } from '../shortcuts/keymap'
 
 /**
  * What the nine menu-bar menus contain (BU-76).
@@ -103,6 +105,14 @@ export interface MenuContext {
    * current window, close the one showing there, bring back the last closed.
    */
   tabs?: { canOpen: boolean; canClose: boolean; canReopen: boolean }
+  /** The shortcuts assigned in Settings, so each item shows the key that works (BU-291). */
+  shortcuts?: Record<string, Shortcut>
+}
+
+/** An item's shortcut as Settings has it, or no hint when it has none. */
+function keysOf(context: MenuContext, id: string): { hint?: string } {
+  const hint = hintOf(id, context.shortcuts ?? {})
+  return hint === undefined ? {} : { hint }
 }
 
 /**
@@ -134,20 +144,20 @@ export function buildMenus(context: MenuContext): Menu[] {
       // current window as the keys do.
       {
         label: 'New tab',
-        hint: 'Ctrl+T',
+        ...keysOf(context, 'tab-new'),
         action: 'tab-new',
         enabled: context.tabs?.canOpen ?? false,
         separatorBefore: true
       },
       {
         label: 'Close tab',
-        hint: 'Ctrl+W',
+        ...keysOf(context, 'tab-close'),
         action: 'tab-close',
         enabled: context.tabs?.canClose ?? false
       },
       {
         label: 'Reopen closed tab',
-        hint: 'Ctrl+Shift+T',
+        ...keysOf(context, 'tab-reopen'),
         action: 'tab-reopen',
         enabled: context.tabs?.canReopen ?? false
       },
@@ -155,12 +165,17 @@ export function buildMenus(context: MenuContext): Menu[] {
       // and Alt again to hold it.
       {
         label: 'Seek',
-        hint: 'Ctrl+K, Alt',
+        ...keysOf(context, 'seek'),
         action: 'seek-once',
         enabled: true,
         separatorBefore: true
       },
-      { label: 'Persistent seek', hint: 'Ctrl+K, Alt, Alt', action: 'seek-held', enabled: true }
+      {
+        label: 'Persistent seek',
+        ...keysOf(context, 'seek-held'),
+        action: 'seek-held',
+        enabled: true
+      }
     ],
     View: [
       {
@@ -205,13 +220,13 @@ export function buildMenus(context: MenuContext): Menu[] {
       // too, where it says why there is nothing to choose.
       {
         label: 'Presets…',
-        hint: 'Ctrl+Shift+P',
+        ...keysOf(context, 'presets'),
         action: 'preset-picker',
         enabled: true
       },
       {
         label: 'Reset window',
-        hint: 'Ctrl+Shift+R',
+        ...keysOf(context, 'window-reset'),
         action: 'layout-reset',
         enabled: arrangeable
       },

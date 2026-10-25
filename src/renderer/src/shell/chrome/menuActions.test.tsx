@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WithQueries } from '../../../../test/queries'
 import { useChrome } from '../../state/chrome'
 import { useCurrentPane } from '../../state/currentPane'
+import { useShortcuts } from '../../state/shortcuts'
 import { useModellingDefaults } from '../../state/modellingDefaults'
 import { usePresets, type Preset } from '../../state/presets'
 import { useWorkspace } from '../../state/tabs.store'
@@ -261,6 +262,15 @@ describe('the tab items in Edit (BU-282)', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: /^Seek/ }))
     expect(document.querySelector('.menu-bar-search-surface-seeking')).not.toBeNull()
     expect(document.querySelector('.menu-bar-search-surface-held')).toBeNull()
+  })
+
+  it('shows the keys Settings gave an item (BU-291)', async () => {
+    useShortcuts.setState({ assigned: { 'tab-new': [['Ctrl', 'Shift', 'N']] } })
+    openPrices('a')
+    bar()
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('menuitem', { name: /New tab/ })).toHaveTextContent('Ctrl+Shift+N')
+    useShortcuts.setState({ assigned: {} })
   })
 
   it('has nothing to open or close on Home, which has no windows', async () => {
