@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-10-25
+
+Recent Activity as a timeline, seek that reaches anything you can click, and keyboard shortcuts you can change.
+
+### Added
+
+- Home's Recent Activity is a timeline of what the app has done: each backtest, data job and save, newest first, with its steps and how long each took. Click an activity to open where it leads, such as a backtest's Overview or Holdings.
+- Recent Activity and the Changelog scroll within Home, and the icon beside each title shows the whole list.
+- Press Alt twice in the search bar to stay in seek mode: each button you press leaves it on, ready for the next. Escape ends it.
+- Edit → Seek and Edit → Persistent seek.
+- Settings → Keyboard shortcuts… lists every shortcut, each key drawn as a keycap. Click beside one and press new keys to change it. A shortcut already in use says what uses it, and saving takes it from them. Reset puts the original back.
+
+### Changed
+
+- Seek reaches anything you can click in the window, including Home's activity and the chart's settings. A dropdown can be found by the value it shows, such as Daily or Unadjusted, and opens when pressed.
+- Ctrl+Up and Ctrl+Down go through Home and Guides as well as the sections, in the order the sidebar shows them.
+- Home's section titles are in the same typeface as its banner.
+
 ## [0.2.5] - 2026-10-23
 
 The app from the keyboard: menus that work, shortcuts for sections, windows and tabs, find, and a way to press buttons by typing their names.
