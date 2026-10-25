@@ -5,7 +5,7 @@ import { useSearchFocus } from '../state/searchFocus'
 import { activeTab, tabsForPane } from '../state/tabs.logic'
 import { useWorkspace } from '../state/tabs.store'
 import { paneInDirection, type Direction } from './paneGrid'
-import { SIDEBAR_PAGES } from './pages'
+import { GUIDES_PAGE, HOME_PAGE_ID, SIDEBAR_PAGES } from './pages'
 import { pageShips } from './release'
 import {
   carryTab,
@@ -22,7 +22,7 @@ import {
  * has one job: Ctrl moves where you are, Alt carries the tab you are on, and
  * Shift with either takes the bigger step, from tabs to windows.
  *
- * - Ctrl+Up/Down: the sidebar's sections, Strategy Builder up to Optimiser.
+ * - Ctrl+Up/Down: Home and the sidebar's sections, in the order drawn.
  * - Ctrl+Left/Right: the tabs in the current window.
  * - Ctrl+Shift+arrows: the window that way, as the layout draws them.
  * - Alt+Left/Right: the current tab, one place along its window.
@@ -124,10 +124,17 @@ function arrowKey(
   return across ? nextTab(page, by) : nextSection(page, by, goTo)
 }
 
-/** One section up or down the sidebar, wrapping; from Home, to the first or last. */
+/**
+ * One section up or down, wrapping. Home is the first, as its mark is at the
+ * sidebar's top, and Guides the last, at its foot (Karan): the order drawn.
+ */
 function nextSection(page: string, by: 1 | -1, goTo: (page: string) => void): boolean {
-  const sections = SIDEBAR_PAGES.filter((entry) => pageShips(entry.id)).map((entry) => entry.id)
-  if (sections.length === 0) return false
+  const sections = [
+    HOME_PAGE_ID,
+    ...[...SIDEBAR_PAGES, GUIDES_PAGE]
+      .filter((entry) => pageShips(entry.id))
+      .map((entry) => entry.id)
+  ]
   const at = sections.indexOf(page)
   const next = at === -1 ? (by === 1 ? 0 : sections.length - 1) : wrap(at + by, sections.length)
   const target = sections[next]

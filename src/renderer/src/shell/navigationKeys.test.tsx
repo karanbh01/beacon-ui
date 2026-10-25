@@ -82,13 +82,20 @@ describe('Ctrl+Up and Ctrl+Down (BU-276)', () => {
     expect(screen.getByTestId('page')).toHaveTextContent('derivatives')
   })
 
-  it('wrap at the ends, and leave Home for the first section', () => {
+  it('run from Home to Guides, as the sidebar draws them, and wrap at the ends (Karan)', () => {
     render(<Workspace start="home" />)
 
     press('ArrowDown', { ctrlKey: true })
     expect(screen.getByTestId('page')).toHaveTextContent('data-explorer')
     press('ArrowUp', { ctrlKey: true })
+    expect(screen.getByTestId('page')).toHaveTextContent('home')
+    press('ArrowUp', { ctrlKey: true })
+    expect(screen.getByTestId('page')).toHaveTextContent('guides')
+    press('ArrowUp', { ctrlKey: true })
     expect(screen.getByTestId('page')).toHaveTextContent('reports')
+    press('ArrowDown', { ctrlKey: true })
+    press('ArrowDown', { ctrlKey: true })
+    expect(screen.getByTestId('page')).toHaveTextContent('home')
   })
 
   it('leave a field’s own Ctrl+arrows alone', () => {
