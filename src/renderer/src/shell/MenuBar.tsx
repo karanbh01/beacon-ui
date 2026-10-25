@@ -30,6 +30,7 @@ import { HoldingColumnsDialog } from '../views/shared/HoldingColumnsDialog'
 import './MenuBar.css'
 import { assistantShips, isReleaseBuild } from './release'
 import { useSearchFocus } from '../state/searchFocus'
+import { KeyboardShortcutsDialog } from './shortcuts/KeyboardShortcutsDialog'
 
 export interface MenuBarProps {
   onSearch?: (query: string) => void
@@ -120,6 +121,7 @@ export function MenuBar({
   const [choosingColumns, setChoosingColumns] = useState(false)
   const [settingAssumptions, setSettingAssumptions] = useState(false)
   const [pickingPreset, setPickingPreset] = useState(false)
+  const [showingShortcuts, setShowingShortcuts] = useState(false)
   /** Which top-level menu is open, by label. Only one at a time (BU-76). */
   const [menu, setMenu] = useState<string | undefined>(undefined)
   const bar = useRef<HTMLElement>(null)
@@ -227,6 +229,8 @@ export function MenuBar({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.altKey) return
+      // Pressed to be recorded as a new shortcut, not to be acted on.
+      if (event.target instanceof Element && event.target.closest('.shortcut-recorder')) return
       if (event.code === 'KeyR') {
         event.preventDefault()
         if (shortcuts.current.arrangeable) shortcuts.current.resetWindow()
@@ -263,6 +267,7 @@ export function MenuBar({
     else if (action === 'tab-reopen') reopenLastTab()
     else if (action === 'seek-once') useSearchFocus.getState().ask('once')
     else if (action === 'seek-held') useSearchFocus.getState().ask('held')
+    else if (action === 'keyboard-shortcuts') setShowingShortcuts(true)
     else if (action.startsWith('edit-')) runEdit(action.slice('edit-'.length))
     else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
   }
@@ -402,6 +407,13 @@ export function MenuBar({
         <ModellingAssumptionsDialog
           onClose={() => {
             setSettingAssumptions(false)
+          }}
+        />
+      )}
+      {showingShortcuts && (
+        <KeyboardShortcutsDialog
+          onClose={() => {
+            setShowingShortcuts(false)
           }}
         />
       )}

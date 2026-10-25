@@ -34,6 +34,7 @@ export type MenuAction =
   | 'tab-reopen'
   | 'seek-once'
   | 'seek-held'
+  | 'keyboard-shortcuts'
   | `edit-${EditCommand}`
   | 'open-data-folder'
   | 'import-data'
@@ -327,7 +328,11 @@ export function buildMenus(context: MenuContext): Menu[] {
       }
     ],
     Portfolio: [soon('New portfolio…'), soon('Rebalance…'), soon('Attribution…')],
-    Settings: [soon('Preferences…'), soon('Data directory…'), soon('Keyboard shortcuts…')],
+    Settings: [
+      soon('Preferences…'),
+      soon('Data directory…'),
+      { label: 'Keyboard shortcuts…', action: 'keyboard-shortcuts', enabled: true }
+    ],
     Help: [soon('Documentation'), soon('Release notes'), soon('About Beacon')]
   }
 

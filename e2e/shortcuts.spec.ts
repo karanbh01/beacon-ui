@@ -1,0 +1,42 @@
+import { expect, openPage, test } from './fixtures'
+
+/**
+ * Settings → Keyboard shortcuts (BU-290). Only the app can show that keys
+ * pressed to be recorded reach the recorder and nothing else: Ctrl+Shift+P
+ * is taken before anything sees it, and Ctrl+T opens a tab.
+ */
+test('records a shortcut without acting on it, saves it and resets it', async ({ window }) => {
+  await openPage(window, 'Beacon View')
+  const tabs = await window.getByRole('tab').count()
+
+  await window.getByRole('button', { name: 'Settings' }).click()
+  await window.getByRole('menuitem', { name: /Keyboard shortcuts/ }).click()
+  const dialog = window.getByRole('dialog', { name: 'Keyboard shortcuts' })
+  await expect(dialog).toBeVisible()
+
+  await dialog.getByRole('button', { name: 'New shortcut for Presets' }).click()
+  await window.keyboard.press('Control+Shift+P')
+  await expect(window.getByRole('dialog', { name: 'Presets' })).toHaveCount(0)
+
+  await dialog.getByRole('button', { name: 'New shortcut for New tab' }).click()
+  await window.keyboard.press('Control+T')
+  await expect(window.getByRole('tab')).toHaveCount(tabs)
+  await expect(dialog.getByText('Used by New tab')).toHaveCount(0)
+
+  // Ctrl+T is New tab's own, so there is nothing to save; Ctrl+Shift+N is new.
+  await expect(dialog.getByRole('button', { name: 'Save the shortcut for New tab' })).toBeDisabled()
+  await dialog.getByRole('button', { name: 'New shortcut for New tab' }).click()
+  await window.keyboard.press('Control+Shift+N')
+  await dialog.getByRole('button', { name: 'Save the shortcut for New tab' }).click()
+  await expect(dialog.getByRole('img', { name: 'Ctrl+Shift+N' })).toHaveCount(1)
+
+  await dialog.getByRole('button', { name: 'Reset the shortcut for New tab' }).click()
+  await expect(dialog.getByRole('img', { name: 'Ctrl+Shift+N' })).toHaveCount(0)
+
+  // Escape stops listening first, and only then closes the pop-up.
+  await dialog.getByRole('button', { name: 'New shortcut for New tab' }).click()
+  await window.keyboard.press('Escape')
+  await expect(dialog).toBeVisible()
+  await window.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+})

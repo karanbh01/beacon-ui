@@ -1,0 +1,65 @@
+/*
+ * A low-profile keycap (Karan): the top a touch off the ground, the skirt
+ * darker than the top and the shadow darker still, in both themes. On the
+ * light ground the ink deepens a shade; on the dark one the top lifts.
+ */
+.keycap {
+  --keycap-top-high: color-mix(in srgb, var(--canvas), var(--text-primary) 2%);
+  --keycap-top-low: color-mix(in srgb, var(--canvas), var(--text-primary) 7%);
+  --keycap-side: color-mix(in srgb, var(--canvas), var(--text-primary) 17%);
+  --keycap-edge: var(--chrome-border);
+  --keycap-shadow: color-mix(in srgb, var(--text-primary) 22%, transparent);
+
+  flex: none;
+  overflow: visible;
+}
+
+:root[data-theme='dark'] .keycap {
+  --keycap-top-high: color-mix(in srgb, var(--canvas), var(--text-primary) 16%);
+  --keycap-top-low: color-mix(in srgb, var(--canvas), var(--text-primary) 11%);
+  --keycap-side: color-mix(in srgb, var(--canvas), var(--text-primary) 5%);
+  --keycap-shadow: var(--glass);
+}
+
+.keycap-dish-high {
+  stop-color: var(--keycap-top-high);
+}
+
+.keycap-dish-low {
+  stop-color: var(--keycap-top-low);
+}
+
+.keycap-shadow {
+  fill: var(--keycap-shadow);
+}
+
+.keycap-body {
+  fill: var(--keycap-side);
+  stroke: var(--keycap-edge);
+  stroke-width: 1;
+}
+
+.keycap-legend {
+  fill: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  font-weight: 500;
+}
+
+.key-shortcut {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.key-shortcut-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.key-shortcut-then {
+  margin-right: 3px;
+  color: var(--text-muted);
+}

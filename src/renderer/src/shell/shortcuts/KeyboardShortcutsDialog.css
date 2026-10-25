@@ -1,0 +1,99 @@
+/*
+ * The shortcuts as one list on the pop-up's ground, under bare group labels,
+ * no boxes round them. Four columns: the action, its keys, a new shortcut,
+ * and its Save.
+ */
+.shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.shortcuts-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 236px 196px 128px;
+  column-gap: 12px;
+  align-items: center;
+  min-height: 34px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.shortcuts-head {
+  min-height: 0;
+  padding-bottom: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.shortcuts-action {
+  color: var(--text-primary);
+}
+
+/* A Save with nothing to save reads as text, so the one that can be pressed stands out. */
+.shortcuts-row .btn:disabled {
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.shortcuts-new {
+  display: flex;
+  padding-block: 4px;
+}
+
+.shortcuts-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.shortcuts-none,
+.shortcuts-fixed {
+  color: var(--text-muted);
+}
+
+/*
+ * A shortcut that can be taken warns; one that cannot is refused. On its own
+ * line, from the shortcut to the row's end, so it is one line long.
+ */
+.shortcuts-clash {
+  grid-column: 2 / -1;
+  margin-top: -4px;
+  padding-bottom: 6px;
+  color: var(--working);
+}
+
+.shortcuts-clash-blocked {
+  color: var(--danger);
+}
+
+/* Where a new shortcut is pressed: a field's box, that listens once clicked. */
+.shortcut-recorder {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 30px;
+  padding: 2px 8px;
+  font: inherit;
+  color: var(--text-muted);
+  text-align: left;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.shortcut-recorder:hover {
+  border-color: var(--chrome-border);
+}
+
+.shortcut-recorder-listening,
+.shortcut-recorder:focus-visible {
+  border-style: solid;
+  border-color: var(--accent);
+  outline: none;
+}
+
+.shortcut-recorder-listening .shortcut-recorder-prompt {
+  color: var(--accent);
+}
