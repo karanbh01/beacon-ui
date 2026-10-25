@@ -3,20 +3,29 @@
  * and how well a typed name fits it.
  */
 
-/** Anything a person could press or type into. */
+/** Anything a person could press or type into (Karan: anything clickable in the window). */
 const CONTROLS = [
   'button',
   'a[href]',
   'input:not([type="hidden"])',
   'select',
   'textarea',
+  // A release in the Changelog opens to its notes.
+  'summary',
   '[role="button"]',
+  '[role="link"]',
   '[role="tab"]',
   '[role="radio"]',
   '[role="checkbox"]',
+  '[role="switch"]',
   '[role="option"]',
   '[role="menuitem"]',
-  '[role="combobox"]'
+  '[role="menuitemradio"]',
+  '[role="menuitemcheckbox"]',
+  '[role="treeitem"]',
+  '[role="combobox"]',
+  // A table row that can be chosen says whether it is (Table).
+  '[role="row"][aria-selected]'
 ].join(', ')
 
 export interface SeekTarget {
@@ -26,16 +35,24 @@ export interface SeekTarget {
   fit: number
 }
 
-/** The window's controls whose name holds `query`, best fit first, then in reading order. */
-export function seekTargets(window: ParentNode, query: string): SeekTarget[] {
+/**
+ * The controls in `within` whose names hold `query`, best fit first, then in
+ * reading order. Several places are read as one, in the order given.
+ */
+export function seekTargets(
+  within: ParentNode | readonly ParentNode[],
+  query: string
+): SeekTarget[] {
   const needle = squash(query)
   if (needle === '') return []
+  const places: readonly ParentNode[] = 'querySelectorAll' in within ? [within] : within
   const found: SeekTarget[] = []
-  for (const element of window.querySelectorAll<HTMLElement>(CONTROLS)) {
-    if (!usable(element)) continue
-    const label = labelOf(element)
-    const fit = fitOf(squash(label), needle)
-    if (fit !== undefined) found.push({ element, label, fit })
+  for (const place of places) {
+    for (const element of place.querySelectorAll<HTMLElement>(CONTROLS)) {
+      if (!usable(element)) continue
+      const best = bestName(namesOf(element), needle)
+      if (best !== undefined) found.push({ element, ...best })
+    }
   }
   // Stable, so equal fits keep the order they are read in.
   return found.sort((a, b) => a.fit - b.fit)
@@ -43,13 +60,34 @@ export function seekTargets(window: ParentNode, query: string): SeekTarget[] {
 
 /** What a control is called: its accessible label, else its visible words. */
 export function labelOf(element: HTMLElement): string {
-  const named = element.getAttribute('aria-label')
-  if (named !== null && named.trim() !== '') return named.trim()
+  return namesOf(element)[0] ?? ''
+}
+
+/**
+ * Every name a control goes by. A dropdown is labelled by its field,
+ * "Prices", and shows its value, "Unadjusted": either should find it (Karan).
+ */
+function namesOf(element: HTMLElement): string[] {
   const field = element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
-  const labelled = field ? element.labels?.[0]?.textContent : undefined
-  if (labelled != null && labelled.trim() !== '') return labelled.trim()
-  if (field && element.placeholder !== '') return element.placeholder
-  return element.textContent.replace(/\s+/g, ' ').trim()
+  const names = [
+    element.getAttribute('aria-label'),
+    field ? element.labels?.[0]?.textContent : undefined,
+    field ? element.placeholder : undefined,
+    element.textContent.replace(/\s+/g, ' ')
+  ]
+  return [...new Set(names.map((name) => name?.trim() ?? '').filter((name) => name !== ''))]
+}
+
+function bestName(
+  names: readonly string[],
+  needle: string
+): { label: string; fit: number } | undefined {
+  let best: { label: string; fit: number } | undefined
+  for (const label of names) {
+    const fit = fitOf(squash(label), needle)
+    if (fit !== undefined && (best === undefined || fit < best.fit)) best = { label, fit }
+  }
+  return best
 }
 
 /** How a name fits what was typed, or undefined when it does not hold it. */
@@ -70,12 +108,15 @@ function usable(element: HTMLElement): boolean {
   return typeof element.checkVisibility !== 'function' || element.checkVisibility()
 }
 
-/** A field takes the caret; anything else is pressed. */
+/**
+ * A field takes the caret; anything else is pressed. A dropdown drawn as a
+ * button is pressed too, which opens it.
+ */
 export function takesTyping(element: HTMLElement): boolean {
   return (
     element instanceof HTMLTextAreaElement ||
     element instanceof HTMLSelectElement ||
-    element.getAttribute('role') === 'combobox' ||
+    (element.getAttribute('role') === 'combobox' && !(element instanceof HTMLButtonElement)) ||
     (element instanceof HTMLInputElement &&
       !['button', 'submit', 'reset', 'checkbox', 'radio'].includes(element.type))
   )

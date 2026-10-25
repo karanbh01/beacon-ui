@@ -68,12 +68,20 @@ export function ChromeSearch({
   const input = useRef<HTMLInputElement>(null)
   const seek = useSeekMode(page, () => input.current)
 
-  // Ctrl+K lands here, with whatever was typed selected (BU-284).
+  // Ctrl+K lands here, with whatever was typed selected (BU-284); Edit's
+  // seek items land seeking (BU-288).
   const asked = useSearchFocus((state) => state.asked)
   useEffect(() => {
     if (asked === 0) return
     input.current?.focus()
     input.current?.select()
+    const arriving = useSearchFocus.getState().seek
+    if (arriving === undefined) return
+    seek.start()
+    if (arriving === 'held') seek.hold()
+    // `seek` is a new object each render; depending on it would start seeking
+    // again on every one. Only a new request should.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asked])
 
   const tabs = useWorkspace((state) => state.tabs)
@@ -151,11 +159,12 @@ export function ChromeSearch({
   const completion = (): string | undefined => (rows[typeahead.active] ?? rows[0])?.complete
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    // Alt on its own turns seek mode on and off (BU-285).
+    // Alt on its own seeks once, then holds it, then stops (BU-285, Karan).
     if (event.key === 'Alt' && !event.ctrlKey && !event.shiftKey && !event.metaKey) {
       event.preventDefault()
       if (event.repeat) return
-      if (seek.seeking) seek.stop()
+      if (seek.held) seek.stop()
+      else if (seek.seeking) seek.hold()
       else {
         typeahead.close()
         seek.start()
@@ -209,7 +218,8 @@ export function ChromeSearch({
         className={[
           'menu-bar-search-surface',
           open && 'menu-bar-search-surface-open',
-          seek.seeking && 'menu-bar-search-surface-seeking'
+          seek.seeking && 'menu-bar-search-surface-seeking',
+          seek.held && 'menu-bar-search-surface-held'
         ]
           .filter(Boolean)
           .join(' ')}
@@ -237,7 +247,11 @@ export function ChromeSearch({
             autoComplete="off"
 
             placeholder={
-              seek.seeking ? 'Type the name of a button in this window' : 'Search (Ctrl+K)'
+              seek.held
+                ? 'Type a button’s name. Esc to stop'
+                : seek.seeking
+                  ? 'Type the name of a button in this window'
+                  : 'Search (Ctrl+K)'
             }
             value={seek.seeking ? seek.text : query}
             onChange={(event) => {

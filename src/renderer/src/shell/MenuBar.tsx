@@ -29,6 +29,7 @@ import { WindowControls } from './WindowControls'
 import { HoldingColumnsDialog } from '../views/shared/HoldingColumnsDialog'
 import './MenuBar.css'
 import { assistantShips, isReleaseBuild } from './release'
+import { useSearchFocus } from '../state/searchFocus'
 
 export interface MenuBarProps {
   onSearch?: (query: string) => void
@@ -260,6 +261,8 @@ export function MenuBar({
     else if (action === 'tab-new') newTabHere(page)
     else if (action === 'tab-close') closeTabHere(page)
     else if (action === 'tab-reopen') reopenLastTab()
+    else if (action === 'seek-once') useSearchFocus.getState().ask('once')
+    else if (action === 'seek-held') useSearchFocus.getState().ask('held')
     else if (action.startsWith('edit-')) runEdit(action.slice('edit-'.length))
     else if (action.startsWith('layout-')) setLayout(page, action.slice('layout-'.length))
   }

@@ -243,6 +243,26 @@ describe('the tab items in Edit (BU-282)', () => {
     expect(useCurrentPane.getState().newTab).toMatchObject({ page: 'data-explorer', pane: 0 })
   })
 
+  it('offers seek and persistent seek, each landing in the search bar seeking (BU-288)', async () => {
+    openPrices('a')
+    bar()
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('menuitem', { name: /^Seek/ })).toHaveTextContent('Ctrl+K, Alt')
+    expect(screen.getByRole('menuitem', { name: /^Persistent seek/ })).toHaveTextContent(
+      'Ctrl+K, Alt, Alt'
+    )
+
+    await userEvent.click(screen.getByRole('menuitem', { name: /^Persistent seek/ }))
+    expect(screen.getByRole('combobox', { name: 'Search' })).toHaveFocus()
+    expect(document.querySelector('.menu-bar-search-surface-held')).not.toBeNull()
+
+    await userEvent.keyboard('{Escape}')
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /^Seek/ }))
+    expect(document.querySelector('.menu-bar-search-surface-seeking')).not.toBeNull()
+    expect(document.querySelector('.menu-bar-search-surface-held')).toBeNull()
+  })
+
   it('has nothing to open or close on Home, which has no windows', async () => {
     render(
       <WithQueries>

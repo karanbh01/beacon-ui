@@ -21,6 +21,8 @@ import { FindBar } from './FindBar'
  */
 const PAGE = 'data-explorer'
 const run = vi.fn()
+const openPrices = vi.fn()
+const chooseRow = vi.fn()
 
 function Setup(): ReactElement {
   return (
@@ -37,6 +39,16 @@ function Setup(): ReactElement {
       <button type="button" disabled>
         Run later
       </button>
+      {/* As Select draws one: named by its field, showing its value. */}
+      <button type="button" role="combobox" aria-label="Prices" onClick={openPrices}>
+        Unadjusted
+      </button>
+      <details>
+        <summary>py-beacon v0.9.7</summary>
+      </details>
+      <div role="row" aria-selected={false} onClick={chooseRow}>
+        CMP042
+      </div>
     </div>
   )
 }
@@ -56,6 +68,8 @@ function App(): ReactElement {
 beforeEach(() => {
   localStorage.clear()
   run.mockClear()
+  openPrices.mockClear()
+  chooseRow.mockClear()
   useWorkspace.getState().reset()
   useChrome.setState({ layoutByPage: { [PAGE]: 'single' }, splits: {} })
   useCurrentPane.setState({ byPage: {}, pulse: undefined, newTab: undefined })
@@ -186,13 +200,54 @@ describe('seek mode (BU-285)', () => {
     expect(screen.getByRole('textbox', { name: 'Start' })).toHaveFocus()
   })
 
-  it('goes back to searching on Escape or Alt, taking its marks with it', async () => {
+  it('reaches a dropdown by the value it shows, and opens it rather than typing in it', async () => {
+    render(<App />)
+    await userEvent.click(search())
+    await userEvent.keyboard('{Alt}unadj{Enter}')
+
+    expect(openPrices).toHaveBeenCalledTimes(1)
+    expect(search()).toHaveFocus()
+  })
+
+  it('reaches a release to open and a row to choose', () => {
+    render(<App />)
+    const window = document.querySelector('.pane-body')
+    if (window === null) throw new Error('no window')
+
+    expect(seekTargets(window, 'py-beacon').map((target) => target.label)).toEqual([
+      'py-beacon v0.9.7'
+    ])
+    expect(seekTargets(window, 'cmp042').map((target) => target.label)).toEqual(['CMP042'])
+  })
+
+  it('holds on a second Alt: a press leaves it seeking, ready for the next name', async () => {
+    render(<App />)
+    await userEvent.click(search())
+    await userEvent.keyboard('{Alt}{Alt}')
+    expect(document.querySelector('.menu-bar-search-surface-held')).not.toBeNull()
+
+    await userEvent.keyboard('run{Enter}')
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('.menu-bar-search-surface-held')).not.toBeNull()
+    expect(search()).toHaveValue('')
+
+    await userEvent.keyboard('cmp{Enter}')
+    expect(chooseRow).toHaveBeenCalledTimes(1)
+
+    await userEvent.keyboard('{Escape}')
+    expect(document.querySelector('.menu-bar-search-surface-seeking')).toBeNull()
+    act(() => {
+      search().blur()
+    })
+  })
+
+  it('goes back to searching on Escape or a third Alt, taking its marks with it', async () => {
     render(<App />)
     await userEvent.click(search())
     await userEvent.keyboard('{Alt}run')
     expect(document.querySelector('[data-seek]')).not.toBeNull()
 
-    await userEvent.keyboard('{Alt}')
+    await userEvent.keyboard('{Alt}{Alt}')
     expect(document.querySelector('[data-seek]')).toBeNull()
     expect(document.querySelector('.menu-bar-search-surface-seeking')).toBeNull()
 

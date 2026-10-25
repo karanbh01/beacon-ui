@@ -32,6 +32,8 @@ export type MenuAction =
   | 'tab-new'
   | 'tab-close'
   | 'tab-reopen'
+  | 'seek-once'
+  | 'seek-held'
   | `edit-${EditCommand}`
   | 'open-data-folder'
   | 'import-data'
@@ -147,7 +149,17 @@ export function buildMenus(context: MenuContext): Menu[] {
         hint: 'Ctrl+Shift+T',
         action: 'tab-reopen',
         enabled: context.tabs?.canReopen ?? false
-      }
+      },
+      // Seek mode, where it can be found (BU-288): Alt in the search bar,
+      // and Alt again to hold it.
+      {
+        label: 'Seek',
+        hint: 'Ctrl+K, Alt',
+        action: 'seek-once',
+        enabled: true,
+        separatorBefore: true
+      },
+      { label: 'Persistent seek', hint: 'Ctrl+K, Alt, Alt', action: 'seek-held', enabled: true }
     ],
     View: [
       {

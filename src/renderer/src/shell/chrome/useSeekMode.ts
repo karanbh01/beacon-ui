@@ -8,10 +8,14 @@ const MARK = 'data-seek'
 
 export interface SeekMode {
   seeking: boolean
+  /** Held: pressing a control leaves seek mode on, until Escape (Karan). */
+  held: boolean
   text: string
   /** How many controls the text found, for the field to say. */
   found: number
   start: () => void
+  /** From seeking once to seeking until Escape. */
+  hold: () => void
   stop: () => void
   setText: (text: string) => void
   /** The field's keys while seeking; true when it used the key. */
@@ -22,11 +26,15 @@ export interface SeekMode {
  * Seek mode (BU-285, Karan): Alt in the search bar turns it into a way of
  * pressing what is in the current window. What is typed picks out the
  * controls whose names hold it; ↑/↓ or Tab step between them; Enter presses
- * the chosen one, or puts the caret in it when it is a field. Escape or Alt
- * again goes back to searching.
+ * the chosen one, or puts the caret in it when it is a field.
+ *
+ * Alt a second time holds it (Karan): a press leaves it on, ready for the
+ * next name, so a run of controls can be pressed one after another. Escape
+ * goes back to searching from either; a third Alt does too.
  */
 export function useSeekMode(page: string, field: () => HTMLInputElement | null): SeekMode {
-  const [seeking, setSeeking] = useState(false)
+  const [mode, setMode] = useState<'off' | 'once' | 'held'>('off')
+  const seeking = mode !== 'off'
   const [text, setText] = useState('')
   const [index, setIndex] = useState(0)
   const [targets, setTargets] = useState<SeekTarget[]>([])
@@ -35,8 +43,7 @@ export function useSeekMode(page: string, field: () => HTMLInputElement | null):
   // Find again as the text changes; a new text starts at its best fit.
   useEffect(() => {
     if (!seeking) return
-    const root = currentWindow(page)
-    setTargets(root === null ? [] : seekTargets(root, text))
+    setTargets(seekTargets(seekPlaces(page), text))
     setIndex(0)
   }, [seeking, text, page])
 
@@ -60,13 +67,17 @@ export function useSeekMode(page: string, field: () => HTMLInputElement | null):
   )
 
   const stop = (): void => {
-    setSeeking(false)
+    setMode('off')
     setText('')
     setTargets([])
   }
 
+  const hold = (): void => {
+    setMode('held')
+  }
+
   const start = (): void => {
-    setSeeking(true)
+    setMode('once')
     setText('')
     // Show which window is being steered, as moving to it would.
     const at = here(page)
@@ -80,7 +91,8 @@ export function useSeekMode(page: string, field: () => HTMLInputElement | null):
    */
   const press = (): void => {
     const target = targets[index]?.element
-    stop()
+    if (mode === 'held') setText('')
+    else stop()
     if (target === undefined) return
     if (takesTyping(target)) {
       field()?.blur()
@@ -113,14 +125,38 @@ export function useSeekMode(page: string, field: () => HTMLInputElement | null):
     return false
   }
 
-  return { seeking, text, found: targets.length, start, stop, setText, onKeyDown }
+  return {
+    seeking,
+    held: mode === 'held',
+    text,
+    found: targets.length,
+    start,
+    hold,
+    stop,
+    setText,
+    onKeyDown
+  }
 }
 
-/** The body of the page's current window, where seeking looks. */
-function currentWindow(page: string): Element | null {
+/**
+ * Where seeking looks. An open dialog has the keyboard, so only it. Otherwise
+ * the current window, or the whole page when it has no windows, as Home has
+ * not; and any menu open over it, as an activity's is on Home (Karan).
+ */
+function seekPlaces(page: string): Element[] {
+  const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]')
+  const dialog = dialogs[dialogs.length - 1]
+  if (dialog !== undefined) return [dialog]
+
   const at = here(page)
-  if (at === undefined) return null
-  return document.querySelector(`.pane-host [data-pane="${String(at.pane)}"] .pane-body`)
+  const window =
+    at === undefined
+      ? document.querySelector('.app-shell-pane')
+      : document.querySelector(`.pane-host [data-pane="${String(at.pane)}"] .pane-body`)
+  const menus = document.querySelectorAll(
+    'body > [role="menu"], body > [role="listbox"], body > .dropdown-surface'
+  )
+  return [...(window === null ? [] : [window]), ...menus]
 }
 
 function unmark(elements: readonly HTMLElement[]): void {

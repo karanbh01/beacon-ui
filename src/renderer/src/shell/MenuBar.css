@@ -207,6 +207,11 @@
   box-shadow: 0 0 0 1px var(--seek);
 }
 
+/* Held until Escape (Karan): the field itself takes a little of the yellow. */
+.menu-bar-search-surface-held .menu-bar-search-row {
+  background: color-mix(in srgb, var(--seek) 14%, var(--chrome-search-bg));
+}
+
 /* How many controls the typed name found, at the field's end. */
 .menu-bar-search-found {
   flex: none;
@@ -229,6 +234,25 @@
 }
 
 [data-seek='current'] {
+  outline: 2px solid var(--seek);
+  outline-offset: -2px;
+}
+
+/*
+ * A control drawn inside a field box has no box of its own: the field's is
+ * the rectangle, and the control is only its words. So the mark goes on the
+ * field's box (Karan: the dropdown's text was outlined, not the dropdown).
+ */
+.field-box [data-seek] {
+  outline: none;
+}
+
+.field-box:has([data-seek='match']) {
+  outline: 1px dashed var(--seek);
+  outline-offset: -1px;
+}
+
+.field-box:has([data-seek='current']) {
   outline: 2px solid var(--seek);
   outline-offset: -2px;
 }
