@@ -1,0 +1,218 @@
+/* Summary's left column (BU-294): names, then holdings and style side by side, then the figures. */
+.summary-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.summary-profile-pair {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 32px;
+}
+
+.summary-profile-none {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* Backtest, index and benchmark: each name large, under a small label (Karan, 2026-11-19). */
+.summary-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.summary-title-label {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* The names are the titles; what each one is sits small above it. */
+.summary-title-value {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* The grey wash every shaded figure here fades into, so it sits on the pane. */
+.summary-profile {
+  --summary-ground: color-mix(in srgb, var(--text-muted) 18%, transparent);
+}
+
+/* Holdings on one line: its title, then the bar with its ends under it. */
+.holdings-line {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.holdings-line .section-title {
+  padding-top: 1px;
+}
+
+.holdings-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  outline: none;
+  cursor: default;
+}
+
+.holdings-bar-track {
+  position: relative;
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.holdings-bar-count {
+  flex: 1;
+  background: color-mix(in srgb, var(--accent) var(--held, 0%), var(--summary-ground));
+}
+
+/* Inside the bar's height, so it never runs past it. */
+.holdings-bar-latest {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--text-primary);
+}
+
+.holdings-bar-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Morningstar's nine cells, size down and style across. */
+.style-box {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 6px;
+}
+
+.style-box-heads {
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  font-size: 9px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.style-box-sides {
+  display: grid;
+  grid-template-rows: repeat(3, 48px);
+  align-items: center;
+  font-size: 9px;
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.style-box-plot {
+  display: flex;
+  outline: none;
+}
+
+.style-box-plot svg {
+  display: block;
+}
+
+.style-box-outline {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+}
+
+.style-box-fund {
+  fill: var(--text-primary);
+  stroke: var(--canvas);
+  stroke-width: 1.5;
+}
+
+.style-box-index {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 1.5;
+}
+
+.style-box-legend {
+  display: flex;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.style-box-legend span {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Nothing under the colour: an empty part of the box is the pane itself (Karan, 2026-11-19). */
+.style-box-ground {
+  fill: none;
+}
+
+.style-box-glow-core {
+  stop-color: var(--accent);
+  stop-opacity: 1;
+}
+
+.style-box-glow-edge {
+  stop-color: var(--accent);
+  stop-opacity: 0;
+}
+
+/* The cells, faintly, so a reader can tell which one the colour is in. */
+.style-box-guide {
+  stroke: color-mix(in srgb, var(--text-muted) 25%, transparent);
+  stroke-width: 0.5;
+}
+
+/* The strip's figures, three to a row. */
+.headline-statistics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+/* Beside the style box: the classification, then the fundamentals. */
+.style-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 24px;
+  min-width: 0;
+}
+
+.style-profile-class {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.style-profile-name {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.style-profile-index {
+  color: var(--text-muted);
+}

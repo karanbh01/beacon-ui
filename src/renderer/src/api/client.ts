@@ -1,4 +1,5 @@
 import type { paths } from '@shared/api.generated'
+import type { AnalysisOptions, AnalyticsAnswer, ByColumnTable } from './analytics'
 import { GENERATED_AGAINST } from '@shared/apiVersion'
 import { ApiError, NetworkError, toApiError } from './errors'
 
@@ -358,6 +359,12 @@ export interface BeaconClient {
     /** The catalogue that makes a real methodology form possible (#43). */
     ruleTypes: (signal?: AbortSignal) => Promise<ResponseOf<'/indices/rule-types'>>
   }
+  /** py-beacon 0.10.0's analytics (BN-398), typed by hand until the spec has them. */
+  analytics: {
+    options: (signal?: AbortSignal) => Promise<AnalysisOptions>
+    forStrategy: (strategyId: string, signal?: AbortSignal) => Promise<AnalyticsAnswer>
+    table: (strategyId: string, name: string, signal?: AbortSignal) => Promise<ByColumnTable>
+  }
   reports: {
     templates: (signal?: AbortSignal) => Promise<ResponseOf<'/reports/templates'>>
     template: (
@@ -480,6 +487,22 @@ export function createClient(options: ClientOptions): BeaconClient {
    * than a flag on `get` so no caller can accidentally ask for bytes and hand
    * them to something expecting a typed object.
    */
+  /** A path the generated client does not know yet, as JSON (BN-398's analytics). */
+  async function getUntyped<T>(path: string, signal?: AbortSignal): Promise<T> {
+    let response: Response
+    try {
+      response = await fetchImpl(`${base}${path}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        ...(signal === undefined ? {} : { signal })
+      })
+    } catch (cause) {
+      throw new NetworkError('Could not reach the Beacon engine.', { cause })
+    }
+
+    if (!response.ok) throw await toApiError(response)
+    return (await response.json()) as T
+  }
+
   async function downloadBytes(path: string, signal?: AbortSignal): Promise<Uint8Array> {
     let response: Response
     try {
@@ -612,6 +635,19 @@ export function createClient(options: ClientOptions): BeaconClient {
         }),
       ruleTypes: (signal) =>
         get('/indices/rule-types', { ...(signal === undefined ? {} : { signal }) })
+    },
+    analytics: {
+      options: (signal) => getUntyped<AnalysisOptions>('/analysis/options', signal),
+      forStrategy: (strategyId, signal) =>
+        getUntyped<AnalyticsAnswer>(
+          `/strategies/${encodeURIComponent(strategyId)}/analytics`,
+          signal
+        ),
+      table: (strategyId, name, signal) =>
+        getUntyped<ByColumnTable>(
+          `/strategies/${encodeURIComponent(strategyId)}/tables/${encodeURIComponent(name)}`,
+          signal
+        )
     },
     reports: {
       templates: (signal) =>

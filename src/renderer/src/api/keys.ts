@@ -90,6 +90,10 @@ export const keys = {
 
   beacon: {
     all: () => ['beacon'] as const,
+    /** The analytics catalogue (BN-400): fixed for the life of an engine. */
+    analysisOptions: () => ['beacon', 'analysis-options'] as const,
+    analytics: (strategyId: string) => ['beacon', 'analytics', strategyId] as const,
+    table: (strategyId: string, name: string) => ['beacon', 'table', strategyId, name] as const,
     overview: (strategyId: string, asof?: string) =>
       ['beacon', 'overview', strategyId, asof] as const,
     weights: (strategyId: string, asof?: string) =>

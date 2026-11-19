@@ -1,0 +1,62 @@
+/*
+ * A report face (BN-398): sections on the pane under bare labels, no boxes
+ * round them, as every form and table here sits (Karan).
+ */
+.report-face {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.report-face-head {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.report-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-table-name {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.report-figure.positive {
+  color: var(--success);
+}
+
+.report-figure.negative {
+  color: var(--danger);
+}
+
+/* Why a figure is not there, in its own place, quietly. */
+.report-missing {
+  margin: 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.report-rolling {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-rolling-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-rolling-note {
+  color: var(--text-muted);
+}

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RunResult } from '../shared/beaconQueries'
 import { comparatorsOf } from './comparators'
-import { summaryRows } from './summaryRows'
 
 const own = {
   total_return: 0.04,
@@ -65,21 +64,5 @@ describe('what a strategy is compared with (Karan, 2026-10-18)', () => {
       index: undefined,
       benchmark: { id: 'TECH10' }
     })
-  })
-
-  it('shows the engine’s figures, and only those (BN-323)', () => {
-    const metrics = { total_return: 0.06, volatility: 0.12 } as Parameters<typeof summaryRows>[0]
-    const rows = summaryRows(metrics, comparatorsOf(run('index', true)))
-
-    expect(rows.find((row) => row.key === 'return')).toMatchObject({
-      strategy: '+6.00%',
-      index: '+4.00%',
-      vsIndex: '+2.00%',
-      benchmark: '+4.00%',
-      vsBenchmark: '+2.00%'
-    })
-    // No relative volatility from the engine, so none is made up here.
-    expect(rows.find((row) => row.key === 'volatility')?.vsIndex).toBe('—')
-    expect(rows.find((row) => row.key === 'information')?.vsBenchmark).toBe('0.33')
   })
 })

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { analysisOptions, analyticsFor, tradesTable } from './stubAnalytics'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Duplex } from 'node:stream'
 import backtestOptions from './data/backtest-options.json'
@@ -2097,6 +2098,21 @@ function body(url: URL): unknown {
     return strategy === undefined
       ? notFound(`strategy '${id}'`, 'DocumentStore')
       : storedRow(strategy, indexIds)
+  }
+
+  // py-beacon 0.10.0's analytics (BN-398, BN-400), in stubAnalytics.ts.
+  if (path === '/analysis/options') return analysisOptions()
+  if (/^\/strategies\/[^/]+\/analytics$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    return analyticsFor(run, runLines(run))
+  }
+  if (/^\/strategies\/[^/]+\/tables\/[^/]+$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const name = path.split('/')[4] ?? ''
+    if (name !== 'trades') return notFound(`table '${name}'`, 'JobStore')
+    return tradesTable(runLines(run))
   }
 
   if (/^\/strategies\/[^/]+\/overview$/.test(path)) {

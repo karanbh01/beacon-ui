@@ -37,7 +37,12 @@ test('summary draws the run, the index beside it, and the engine’s figures', a
   await openOverview(window, 'TECH10')
 
   const view = window.locator('.index-overview-view')
-  await expect(view.getByText('TOTAL RETURN', { exact: true })).toBeVisible()
+  // What the backtest is, then its holdings, style and headline figures (BU-294).
+  await expect(view.locator('.summary-title-label')).toHaveText(['Backtest', 'Index', 'Benchmark'])
+  await expect(view.locator('.holdings-bar-track')).toBeVisible()
+  await expect(view.locator('.style-box-plot svg')).toBeVisible()
+  await expect(view).toContainText('Headline statistics')
+  await expect(view.getByText('Total return', { exact: true }).first()).toBeVisible()
   await expect(window.locator('.level-chart').first()).toBeVisible()
 
   // The strategy's line, its index's, and the run's benchmark.
@@ -45,10 +50,11 @@ test('summary draws the run, the index beside it, and the engine’s figures', a
   await expect(window.locator('.level-chart-legend').first()).toContainText('benchmark')
   await expect(view).toContainText('latest run, captured 3d ago')
 
-  // Every figure is py-beacon's: the strategy's, and against index and benchmark.
+  // Every figure is py-beacon's, by trailing period, and against the comparators.
   await expect(view).toContainText('Summary statistics')
-  await expect(view).toContainText('Sharpe ratio')
-  await expect(view).toContainText('Rel. Performance')
+  await expect(view.locator('.summary-table')).toContainText('Sharpe ratio')
+  await expect(view.locator('.summary-table')).toContainText('Tracking difference')
+  await expect(view.locator('.summary-table')).toContainText('SI')
 })
 
 test('a strategy never run says so, and offers to back-test it', async ({ window }) => {

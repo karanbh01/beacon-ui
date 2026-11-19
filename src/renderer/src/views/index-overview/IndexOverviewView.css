@@ -52,6 +52,42 @@
   max-width: 100%;
 }
 
+/*
+ * Summary's whole face is as wide as the wider of its grid and its period
+ * table (Karan, 2026-11-19). The chart takes no width of its own (contain),
+ * so the grid's own width sets it.
+ */
+.summary-face {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.summary-grid > .level-chart-block {
+  contain: inline-size;
+}
+
+/*
+ * Summary (BU-294): the backtest and its figures on the left, the chart with
+ * its drawdown and flows on the right, the period table under both.
+ */
+.summary-grid {
+  display: grid;
+  /* The chart 700px wide (Karan, 2026-11-19), narrower only in a narrow pane. */
+  grid-template-columns: 480px minmax(0, 700px);
+  width: 1204px;
+  max-width: 100%;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Summary's periods run across the pane, so its table takes the width it needs (BU-294). */
+.overview-stats.summary-table {
+  width: fit-content;
+}
+
 .overview-note {
   margin: 0;
   padding: 8px 12px;
