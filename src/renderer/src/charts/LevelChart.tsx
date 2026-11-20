@@ -24,6 +24,8 @@ export interface Series {
   points: readonly Point[]
   /** Its colour, when not its place in the palette: a benchmark is text-secondary. */
   tone?: Tone
+  /** Its axis in short money, 899.0M rather than 899000000.00: assets under management. */
+  compact?: boolean
 }
 
 /**
@@ -213,7 +215,8 @@ export function LevelChart({
     const drawn = series.map((line, index) => {
       const api = created.addSeries(LineSeries, {
         ...lineOptions(mode, index),
-        ...(line.tone === undefined ? {} : { color: toneColor(mode, line.tone) })
+        ...(line.tone === undefined ? {} : { color: toneColor(mode, line.tone) }),
+        ...(line.compact === true ? { priceFormat: { type: 'volume' as const } } : {})
       })
       api.setData(toLineData(line.points))
       return api
@@ -272,7 +275,7 @@ export function LevelChart({
         api,
         label: series[index]?.label ?? '',
         colour: series[index] === undefined ? '' : colourOf(mode, series[index], index),
-        format: plainFigure
+        format: series[index]?.compact === true ? compactFigure : plainFigure
       })),
       ...drawnStudies.map((api, index) => {
         const study = studies?.[index]
@@ -524,6 +527,15 @@ interface EndLabel {
   text: string
 }
 
+/** A compact line's figure as its axis reads it: 898,979,030 as 899.0M. */
+function compactFigure(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+  }).format(value)
+}
+
 /**
  * Where each line ends, in the chart's own coordinates: the time axis for
  * x (offset by the left price scale) and the series' scale for y. A line
@@ -550,10 +562,13 @@ function endLabels(
         y,
         textY: y,
         colour: colourOf(mode, line, index),
-        text: last.value.toLocaleString('en-US', {
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 1
-        })
+        text:
+          line.compact === true
+            ? compactFigure(last.value)
+            : last.value.toLocaleString('en-US', {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1
+              })
       }
     ]
   })
