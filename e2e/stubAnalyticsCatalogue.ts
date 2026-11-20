@@ -97,6 +97,7 @@ style_positions|Style box positions|Portfolio|table|-|portfolio|-
 style_classification|Style classification|Portfolio|table|-|portfolio|-
 holdings_distribution|Days at each holdings count|Portfolio|table|-|portfolio|-
 group_weights|Group weights|Portfolio|table|-|portfolio|-
+group_exposures|Sector and country weights|Portfolio|table|-|portfolio|-
 characteristics|Characteristics|Portfolio|table|-|portfolio|-
 one_way_turnover|One-way turnover|Trading and costs|figures|fraction|portfolio|-
 two_way_turnover|Two-way turnover|Trading and costs|figures|fraction|portfolio|-
@@ -173,7 +174,7 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   ],
   // Provisional: the cell each book's weighted centre falls in, Morningstar's "Large blend".
   style_classification: [
-    { ...col('book', 'Book'), labels: { fund: 'Fund', index: 'Index' } },
+    { ...col('book', 'Book'), labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' } },
     { ...col('size', 'Size'), labels: { large: 'Large', mid: 'Mid', small: 'Small' } },
     { ...col('style', 'Style'), labels: { value: 'Value', blend: 'Blend', growth: 'Growth' } },
     col('size_centre', 'Size centre'),
@@ -186,14 +187,24 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
     col('size', 'Size position'),
     col('style', 'Style position'),
     col('fund', 'Fund', 'fraction'),
-    col('index', 'Index', 'fraction')
+    col('index', 'Index', 'fraction'),
+    col('benchmark', 'Benchmark', 'fraction')
+  ],
+  // Provisional: each book's latest weight in each sector and each country.
+  group_exposures: [
+    { ...col('grouping', 'Grouping'), labels: { sector: 'Sector', country: 'Country' } },
+    col('group', 'Group'),
+    col('fund', 'Fund', 'fraction'),
+    col('index', 'Index', 'fraction'),
+    col('benchmark', 'Benchmark', 'fraction')
   ],
   // Provisional: the weight in each size and style cell, Morningstar's grid.
   style_box: [
     { ...col('size', 'Size'), labels: { large: 'Large', mid: 'Mid', small: 'Small' } },
     { ...col('style', 'Style'), labels: { value: 'Value', blend: 'Blend', growth: 'Growth' } },
     col('fund', 'Fund', 'fraction'),
-    col('index', 'Index', 'fraction')
+    col('index', 'Index', 'fraction'),
+    col('benchmark', 'Benchmark', 'fraction')
   ],
   trailing_statistics: [
     col('period', 'Period'),

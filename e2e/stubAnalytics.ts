@@ -449,12 +449,16 @@ interface Placed {
   style: number
   fund: number
   index: number
+  benchmark: number
 }
+
+type Book = 'fund' | 'index' | 'benchmark'
 
 /**
  * Each name's place in the style box and its weight in each book: the
  * index's by size, the fund's leaning towards the cells the run's key
- * favours and holding most but not all of the index's names.
+ * favours and holding most but not all of the index's names, and a
+ * benchmark's leaning to value, as TECH10's EU-VALUE does.
  */
 function stylePositions(run: string): Placed[] {
   const lean = between(`${run}/lean`, 0.4, 2.4)
@@ -467,23 +471,93 @@ function stylePositions(run: string): Placed[] {
     const fund = held
       ? (index * between(`${run}/${name}/tilt`, 0.4, 1.6)) / (1 + Math.abs(style - lean))
       : 0
-    return { name, size, style, fund, index }
+    const benchmark = Math.exp(-0.6 * size) / (1 + style)
+    return { name, size, style, fund, index, benchmark }
   })
-  const total = (book: 'fund' | 'index'): number =>
-    placed.reduce((sum, entry) => sum + entry[book], 0) || 1
+  const total = (book: Book): number => placed.reduce((sum, entry) => sum + entry[book], 0) || 1
   const fundTotal = total('fund')
   const indexTotal = total('index')
+  const benchmarkTotal = total('benchmark')
   return placed.map((entry) => ({
     ...entry,
     fund: entry.fund / fundTotal,
-    index: entry.index / indexTotal
+    index: entry.index / indexTotal,
+    benchmark: entry.benchmark / benchmarkTotal
   }))
 }
 
 const cellOf = (position: number): number => Math.min(2, Math.floor(position))
 
+const GICS_SECTORS = [
+  'Information technology',
+  'Financials',
+  'Health care',
+  'Consumer discretionary',
+  'Communication services',
+  'Industrials',
+  'Consumer staples',
+  'Energy',
+  'Utilities',
+  'Real estate',
+  'Materials'
+]
+const COUNTRIES = [
+  'United States',
+  'Japan',
+  'United Kingdom',
+  'Canada',
+  'France',
+  'Switzerland',
+  'Germany',
+  'Australia',
+  'Netherlands',
+  'Sweden',
+  'Denmark',
+  'Italy',
+  'Spain',
+  'Hong Kong',
+  'Singapore',
+  'Belgium'
+]
+
+/**
+ * Each group's latest weight in the fund, the index and any benchmark,
+ * heavier towards the top of the list as real sector and country weights
+ * are, sorted by the index's weight as py-beacon sorts them. The fund's
+ * weights are of its NAV, so its cash is a group of its own and each book
+ * sums to one (py-beacon, 2026-11-20).
+ */
+function groupWeights(
+  run: string,
+  grouping: string,
+  groups: string[],
+  benchmarked: boolean
+): (string | number | null)[][] {
+  const book = (name: string): number[] => {
+    const raw = groups.map(
+      (group, at) => between(`${run}/${grouping}/${group}/${name}`, 0.4, 1.6) / (at + 1) ** 1.3
+    )
+    const total = raw.reduce((sum, value) => sum + value, 0)
+    return raw.map((value) => value / total)
+  }
+  const cash = between(`${run}/cash`, 0.005, 0.03)
+  const fund = book('fund').map((weight) => weight * (1 - cash))
+  const index = book('index')
+  const benchmark = book('benchmark')
+  const held = groups
+    .map((group, at) => [
+      grouping,
+      group,
+      fund[at] ?? 0,
+      index[at] ?? 0,
+      benchmarked ? (benchmark[at] ?? 0) : null
+    ])
+    .sort((one, other) => Number(other[3]) - Number(one[3]))
+  return [...held, [grouping, 'Cash', cash, 0, benchmarked ? 0 : null]]
+}
+
 /** A book's weight in each of the nine cells, size by size. */
-function cellWeights(run: string, book: 'fund' | 'index'): number[] {
+function cellWeights(run: string, book: Book): number[] {
   const cells = Array.from({ length: 9 }, () => 0)
   for (const entry of stylePositions(run)) {
     const at = cellOf(entry.size) * 3 + cellOf(entry.style)
@@ -496,7 +570,7 @@ function cellWeights(run: string, book: 'fund' | 'index'): number[] {
  * A book's weighted centre and the cell it falls in, as py-beacon works it
  * out: the placed names only, their weights rescaled to sum to one.
  */
-function centreCell(run: string, book: 'fund' | 'index'): [string, string, number, number] {
+function centreCell(run: string, book: Book): [string, string, number, number] {
   const placed = stylePositions(run).filter((entry) => entry[book] > 0)
   const total = placed.reduce((sum, entry) => sum + entry[book], 0) || 1
   let size = 0
@@ -517,7 +591,16 @@ function holdingsSpan(run: string): [number, number, number] {
 }
 
 /** The provisional portfolio tables (BU-294): holdings over the run, and the style box. */
-function portfolioTable(id: string, run: string): (string | number | null)[][] | undefined {
+/**
+ * The provisional portfolio tables. A benchmark's column is null for a run
+ * without one, as py-beacon leaves a book it did not measure.
+ */
+function portfolioTable(
+  id: string,
+  run: string,
+  benchmarked: boolean
+): (string | number | null)[][] | undefined {
+  const ifBenchmarked = (value: number): number | null => (benchmarked ? value : null)
   if (id === 'holdings_range') {
     const [least, most, index] = holdingsSpan(run)
     const latest = Math.round(between(`${run}/latest`, least, most))
@@ -540,7 +623,8 @@ function portfolioTable(id: string, run: string): (string | number | null)[][] |
   if (id === 'style_classification') {
     return [
       ['fund', ...centreCell(run, 'fund')],
-      ['index', ...centreCell(run, 'index')]
+      ['index', ...centreCell(run, 'index')],
+      ...(benchmarked ? [['benchmark', ...centreCell(run, 'benchmark')]] : [])
     ]
   }
   if (id === 'characteristics') {
@@ -561,18 +645,27 @@ function portfolioTable(id: string, run: string): (string | number | null)[][] |
       entry.size,
       entry.style,
       entry.fund,
-      entry.index
+      entry.index,
+      ifBenchmarked(entry.benchmark)
     ])
+  }
+  if (id === 'group_exposures') {
+    return [
+      ...groupWeights(run, 'sector', GICS_SECTORS, benchmarked),
+      ...groupWeights(run, 'country', COUNTRIES, benchmarked)
+    ]
   }
   if (id === 'style_box') {
     const fund = cellWeights(run, 'fund')
     const index = cellWeights(run, 'index')
+    const benchmark = cellWeights(run, 'benchmark')
     return SIZES.flatMap((size, row) =>
       STYLES.map((style, column) => [
         size,
         style,
         fund[row * 3 + column] ?? 0,
-        index[row * 3 + column] ?? 0
+        index[row * 3 + column] ?? 0,
+        ifBenchmarked(benchmark[row * 3 + column] ?? 0)
       ])
     )
   }
@@ -647,7 +740,7 @@ const nan = (row: number[]): (number | null)[] =>
 
 function tableOf(statistic: StubStatistic, run: string, lines: Lines, years: string[]): unknown {
   const columns = statistic.columns ?? []
-  const portfolio = portfolioTable(statistic.id, run)
+  const portfolio = portfolioTable(statistic.id, run, lines.benchmark !== undefined)
   if (portfolio !== undefined) {
     return {
       index: portfolio.map((_, at) => at),
