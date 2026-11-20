@@ -39,6 +39,9 @@ test('summary draws the run, the index beside it, and the engine’s figures', a
   const view = window.locator('.index-overview-view')
   // What the backtest is, then its holdings, style and headline figures (BU-294).
   await expect(view.locator('.summary-title-label')).toHaveText(['Backtest', 'Index', 'Benchmark'])
+  // How risky it is beside its names: rating across, tracking band up (Karan, 2026-11-20).
+  await expect(view.locator('.risk-box-plot svg')).toBeVisible()
+  await expect(view.locator('.risk-box-sides')).toContainText('Unconstrained')
   await expect(view.locator('.holdings-bar-track')).toBeVisible()
   await expect(view.locator('.style-box-plot svg')).toBeVisible()
   await expect(view).toContainText('Headline statistics')

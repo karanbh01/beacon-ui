@@ -5,6 +5,7 @@ import { useAnalysisOptions, useAnalytics } from '../shared/analyticsQueries'
 import type { Comparators } from './comparators'
 import { Exposures } from './Exposures'
 import { HoldingsBar } from './HoldingsBar'
+import { RiskBox } from './RiskBox'
 import { StyleBox } from './StyleBox'
 import { StyleProfile } from './StyleProfile'
 import './SummaryProfile.css'
@@ -39,10 +40,18 @@ export function SummaryProfile({
 
   return (
     <div className="summary-profile">
-      <div className="summary-titles">
-        <Title label="Backtest" value={name} />
-        <Title label="Index" value={indexId ?? '—'} />
-        <Title label="Benchmark" value={comparators.benchmark?.id ?? 'None'} />
+      {/* The names, and beside them how risky the strategy is (Karan, 2026-11-20). */}
+      <div className="summary-head">
+        <div className="summary-titles">
+          <Title label="Backtest" value={name} />
+          <Title label="Index" value={indexId ?? '—'} />
+          <Title label="Benchmark" value={comparators.benchmark?.id ?? 'None'} />
+        </div>
+        <RiskBox
+          rating={frameOf(answer, 'risk_rating')}
+          distribution={frameOf(answer, 'risk_distribution')}
+          spec={specOf('risk_rating')}
+        />
       </div>
 
       <HoldingsBar

@@ -17,6 +17,58 @@
   color: var(--text-muted);
 }
 
+/* The titles, and the risk box at the column's right edge beside them. */
+.summary-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+/*
+ * The risk box (Karan, 2026-11-20): ratings across, tracking bands up, in
+ * the style box's outline, glow and circle, with no lines inside.
+ */
+.risk-box {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 6px;
+}
+
+.risk-box-heads {
+  display: grid;
+  grid-template-columns: repeat(7, 16px);
+  font-size: 9px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.risk-box-sides {
+  display: grid;
+  grid-template-rows: repeat(4, 14px);
+  align-items: center;
+  font-size: 9px;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.risk-box-plot {
+  display: flex;
+  outline: none;
+}
+
+.risk-box-plot svg {
+  display: block;
+}
+
+.risk-box-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
 /* Backtest, index and benchmark: each name large, under a small label (Karan, 2026-11-19). */
 .summary-titles {
   display: flex;
