@@ -396,7 +396,8 @@ function trailing(line: Line): number[] {
 function measuredTable(
   id: string,
   lines: Lines,
-  years: string[]
+  years: string[],
+  run: string
 ): (string | number | null)[][] | undefined {
   const books = (values: (line: Line) => number[]): number[][] => {
     const fund = values(lines.strategy)
@@ -416,6 +417,8 @@ function measuredTable(
     return books(trailing).map((row, at) => [labels[at] ?? '', ...nan(row)])
   }
   if (id === 'trailing_statistics') return trailingStatistics(lines)
+  if (id === 'risk_rating') return riskRating(lines, run)
+  if (id === 'risk_distribution') return riskDistribution(lines, run)
   if (id === 'trade_counts') {
     const trades = tradesOf(lines)
     const buys = trades.filter((trade) => trade.side === 'buy').length
@@ -719,6 +722,75 @@ function portfolioTable(
   return undefined
 }
 
+/** The factsheet risk scale's volatility bounds: a 1 below the first, a 7 above the last. */
+const RISK_BOUNDS = [0.005, 0.02, 0.05, 0.1, 0.15, 0.25]
+/** Tracking error's bounds between the four bands, passive to unconstrained. */
+const TRACKING_BOUNDS = [0.005, 0.02, 0.05]
+const TRACKING_BANDS = ['passive', 'enhanced', 'active', 'unconstrained']
+
+const ratingOf = (volatility: number): number =>
+  1 + RISK_BOUNDS.filter((bound) => volatility >= bound).length
+const bandOf = (trackingError: number): string =>
+  TRACKING_BANDS[TRACKING_BOUNDS.filter((bound) => trackingError >= bound).length] ?? 'passive'
+
+/*
+ * The stub's lines are drawn apart for the charts to be legible, so their
+ * tracking error is far above any real tracker's. The risk box takes a
+ * tracker's instead: about 1.2% a year, wandering from window to window,
+ * so TECH10's strategies read mid risk and Enhanced, as Karan expects
+ * (2026-11-20).
+ */
+const trackingFor = (run: string, key: string): number => between(`${run}/te/${key}`, 0.004, 0.024)
+
+/**
+ * Each portfolio's rating, the fund's band too, as py-beacon gives them
+ * (BN-428): the index and any benchmark have a rating and no band. A bound
+ * exactly met takes the higher rating or band.
+ */
+function riskRating(lines: Lines, run: string): (string | number | null)[][] {
+  const volatility = own(lines.strategy).volatility ?? 0
+  const trackingError = between(`${run}/te`, 0.009, 0.016)
+  const comparators: [string, Line | undefined][] = [
+    ['index', lines.index],
+    ['benchmark', lines.benchmark]
+  ]
+  return [
+    ['fund', ratingOf(volatility), bandOf(trackingError), volatility, trackingError],
+    ...comparators.flatMap(([book, line]) => {
+      if (line === undefined) return []
+      const theirs = own(line).volatility ?? 0
+      return [[book, ratingOf(theirs), null, theirs, null]]
+    })
+  ]
+}
+
+/** The fund's days in each rating and band on rolling one-year figures; the first year has none. */
+function riskDistribution(lines: Lines, run: string): (string | number)[][] {
+  const window = 252
+  const counts = new Map<string, number>()
+  for (let end = window; end < lines.strategy.data.length; end++) {
+    const cut = (line: Line): Line => ({
+      index: line.index.slice(end - window, end + 1),
+      data: line.data.slice(end - window, end + 1)
+    })
+    const fund = cut(lines.strategy)
+    // A month's windows share a tracking error, so the bands change in runs, not daily.
+    const trackingError = trackingFor(run, String(Math.floor(end / 21)))
+    const key = `${String(ratingOf(own(fund).volatility ?? 0))}|${bandOf(trackingError)}`
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  const total = [...counts.values()].reduce((sum, days) => sum + days, 0) || 1
+  return [...counts]
+    .map(([key, days]): [number, string, number, number] => {
+      const [rating, band] = key.split('|')
+      return [Number(rating), band ?? 'passive', days, days / total]
+    })
+    .sort(
+      (one, other) =>
+        one[0] - other[0] || TRACKING_BANDS.indexOf(one[1]) - TRACKING_BANDS.indexOf(other[1])
+    )
+}
+
 /** The trading days each period looks back, or the whole run for since inception. */
 const PERIODS: [string, number | 'mtd' | 'qtd' | 'ytd' | 'all'][] = [
   ['1M', 21],
@@ -809,7 +881,7 @@ function tableOf(statistic: StubStatistic, run: string, lines: Lines, years: str
       data: portfolio
     }
   }
-  const measured = measuredTable(statistic.id, lines, years)
+  const measured = measuredTable(statistic.id, lines, years, run)
   if (measured !== undefined) {
     return {
       index: measured.map((_, at) => at),

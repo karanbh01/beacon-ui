@@ -92,6 +92,8 @@ crisis_summary|Crisis summary|Crises and regimes|table|-|performance|-
 regime_figures|Regime figures|Crises and regimes|table|-|performance|-
 holdings_count|Holdings count|Portfolio|figures|count|portfolio|-
 holdings_range|Holdings over the run|Portfolio|table|-|portfolio|-
+risk_rating|Risk rating and tracking band|Risk|table|-|performance|-
+risk_distribution|Days at each risk rating and tracking band|Risk|table|-|performance|-
 style_box|Style box|Portfolio|table|-|portfolio|-
 style_positions|Style box positions|Portfolio|table|-|portfolio|-
 style_classification|Style classification|Portfolio|table|-|portfolio|-
@@ -204,6 +206,43 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
     col('fund', 'Fund', 'fraction'),
     col('index', 'Index', 'fraction'),
     col('benchmark', 'Benchmark', 'fraction')
+  ],
+  // py-beacon a83a9b3 (BN-428): the 1 to 7 risk rating from annualised
+  // volatility, and the tracking band from tracking error against the tracked
+  // comparator; the index and benchmark rows have no band.
+  risk_rating: [
+    {
+      ...col('book', 'Portfolio'),
+      labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
+    },
+    col('rating', 'Risk rating'),
+    {
+      ...col('band', 'Tracking band'),
+      labels: {
+        passive: 'Passive',
+        enhanced: 'Enhanced',
+        active: 'Active',
+        unconstrained: 'Unconstrained'
+      }
+    },
+    col('volatility', 'Volatility', 'fraction'),
+    col('tracking_error', 'Tracking error', 'fraction')
+  ],
+  // py-beacon a83a9b3 (BN-428): the fund's days at each rating and band, on
+  // rolling one-year daily figures, by rating then band.
+  risk_distribution: [
+    col('rating', 'Risk rating'),
+    {
+      ...col('band', 'Tracking band'),
+      labels: {
+        passive: 'Passive',
+        enhanced: 'Enhanced',
+        active: 'Active',
+        unconstrained: 'Unconstrained'
+      }
+    },
+    col('days', 'Days', 'count'),
+    col('share', 'Share of days', 'fraction')
   ],
   // Provisional: each book's latest weight in each sector and each country.
   group_exposures: [
