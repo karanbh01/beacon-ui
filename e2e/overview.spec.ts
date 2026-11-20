@@ -93,7 +93,7 @@ test('implementation reads what the fund did that the index did not', async ({ w
   await view.locator('[role="row"][aria-expanded="true"]').click()
   await expect(detail).toHaveCount(0)
   // Each rebalance's counts and cash, charted beside the table.
-  await expect(view.locator('.rebalance-chart-bar')).not.toHaveCount(0)
+  await expect(view.locator('.stacked-bars-bar')).not.toHaveCount(0)
   // The derivatives side by side, each named by its legend, its record under it.
   await expect(view).toContainText('Index futures')
   await expect(view).toContainText('Futures exposure, % of NAV')
@@ -107,11 +107,16 @@ test('flows and AUM reads the money in, out, and each class', async ({ window })
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Flows & AUM' }).click()
 
+  // The assets and the flows charted on the left, their tables on the right
+  // (Karan, 2026-11-20); no figures strip and no NAV chart.
   const view = window.locator('.index-overview-view')
-  await expect(view.getByText('NAV PER UNIT', { exact: true })).toBeVisible()
-  await expect(view).toContainText('Flows')
-  await expect(view).toContainText('Share classes')
+  await expect(view.getByText('NAV PER UNIT', { exact: true })).toHaveCount(0)
+  await expect(view).toContainText('Assets under management')
+  await expect(view).toContainText('AUM, USD')
+  await expect(view.locator('.stacked-bars-bar')).not.toHaveCount(0)
+  await expect(view).toContainText('AUM by share class')
   await expect(view).toContainText('EUR · hedged')
+  await expect(view).toContainText('Paid to the fund')
 })
 
 test('statistics detail buckets returns, and the period control changes them', async ({

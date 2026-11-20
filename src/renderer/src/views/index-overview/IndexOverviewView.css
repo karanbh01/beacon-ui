@@ -156,46 +156,6 @@
   align-self: flex-end;
 }
 
-.rebalance-chart {
-  position: relative;
-  min-width: 0;
-}
-
-.rebalance-chart svg {
-  display: block;
-  font-family: var(--font-data);
-  font-weight: 300;
-}
-
-.rebalance-chart-legend {
-  display: flex;
-  justify-content: flex-end;
-  gap: 14px;
-  color: var(--text-secondary);
-}
-
-.rebalance-chart-legend > span {
-  display: inline-flex;
-  gap: 5px;
-  align-items: center;
-}
-
-.rebalance-chart-swatch {
-  width: 8px;
-  height: 8px;
-}
-
-.rebalance-chart-bar {
-  cursor: pointer;
-}
-
-/* The hover's figures, centred over the bar, in the column tips' glass. */
-.header-tip.rebalance-chart-tip {
-  position: absolute;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
 .implementation-chevron {
   color: var(--text-muted);
   transition: transform 120ms ease;
@@ -209,4 +169,92 @@
   .implementation-chevron {
     transition: none;
   }
+}
+
+/*
+ * Flows & AUM (Karan, 2026-11-20): two rows, each a chart 580 wide (narrower
+ * only in a narrow pane) beside its table.
+ */
+.flows-aum {
+  display: grid;
+  grid-template-columns: minmax(0, 580px) minmax(0, 1fr);
+  gap: 24px 32px;
+  align-items: start;
+}
+
+.flows-aum-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/*
+ * The flows ledger level with the flows chart: down by a section's heading
+ * (its 24px row and the 10px under it), as it has none of its own.
+ */
+.flows-aum-ledger {
+  padding-top: 34px;
+  min-width: 0;
+}
+
+/*
+ * Over the AUM table: a bar per currency, its classes stacked in it, no
+ * axes. As wide as the table under it, which sets the section's width.
+ */
+.flows-aum-side > .section {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.aum-currencies {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+  contain: inline-size;
+}
+
+.aum-currency {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.aum-currency-name {
+  color: var(--text-secondary);
+}
+
+/* Thick, so the bridge reads at a glance (Karan, 2026-11-20). */
+.aum-currency-track {
+  position: relative;
+  height: 40px;
+}
+
+/* Placed along the track from the totals before it, as a bridge's step is. */
+.aum-currency-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: grid;
+}
+
+.aum-currency-part {
+  display: flex;
+  min-width: 0;
+  outline: none;
+}
+
+.aum-currency-fill {
+  flex: 1;
+}
+
+/* A hedged class: its colour under diagonal stripes of the ground. */
+.aum-currency-hedged {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 5px,
+    color-mix(in srgb, var(--canvas) 45%, transparent) 5px 8px
+  );
 }
