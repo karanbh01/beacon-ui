@@ -3,8 +3,12 @@ import './EdgeScroll.css'
 
 export interface EdgeScrollProps {
   children: ReactNode
-  /** What counts as a row, for the depth effect. */
-  rows: string
+  /**
+   * What counts as a row, for the depth effect; without it the edges blur
+   * and the rows keep their size, as Summary's exposures do (Karan,
+   * 2026-11-20).
+   */
+  rows?: string
   /**
    * Scale each child of a row about its own anchor (set in the stylesheet)
    * rather than the row whole: for rows laid out in columns, where scaling
@@ -99,13 +103,13 @@ function useMoreBeyond(scroller: { current: HTMLDivElement | null }): {
  */
 function useEdgeDepth(
   scroller: { current: HTMLDivElement | null },
-  rows: string,
+  rows: string | undefined,
   byParts: boolean,
   text: string | undefined
 ): void {
   useEffect(() => {
     const box = scroller.current
-    if (box === null) return undefined
+    if (box === null || rows === undefined) return undefined
     const sizes = new WeakMap<Element, number>()
     const sizeOf = (row: Element): number => {
       const known = sizes.get(row)
