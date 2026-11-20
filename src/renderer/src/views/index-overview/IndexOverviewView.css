@@ -116,3 +116,97 @@
   padding: 8px 12px;
   color: var(--text-muted);
 }
+
+/*
+ * Implementation's derivatives, side by side (Karan, 2026-11-20): each chart
+ * with its record under it, two to a row.
+ */
+.implementation-derivatives {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 32px;
+  align-items: start;
+}
+
+/* The width each chart takes, not its widest table's. */
+.implementation-derivatives > .section {
+  contain: inline-size;
+}
+
+/*
+ * The rebalances table at its own width, and beside it, in the room left,
+ * their counts and cash charted (Karan, 2026-11-20).
+ */
+.implementation-rebalances {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+/* Under an opened rebalance: the switch between its lists, at the right (Karan, 2026-11-20), then the list. */
+.rebalance-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.rebalance-detail > .segmented {
+  align-self: flex-end;
+}
+
+.rebalance-chart {
+  position: relative;
+  min-width: 0;
+}
+
+.rebalance-chart svg {
+  display: block;
+  font-family: var(--font-data);
+  font-weight: 300;
+}
+
+.rebalance-chart-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  color: var(--text-secondary);
+}
+
+.rebalance-chart-legend > span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.rebalance-chart-swatch {
+  width: 8px;
+  height: 8px;
+}
+
+.rebalance-chart-bar {
+  cursor: pointer;
+}
+
+/* The hover's figures, centred over the bar, in the column tips' glass. */
+.header-tip.rebalance-chart-tip {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.implementation-chevron {
+  color: var(--text-muted);
+  transition: transform 120ms ease;
+}
+
+.implementation-chevron-open {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .implementation-chevron {
+    transition: none;
+  }
+}

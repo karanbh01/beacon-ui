@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fillRatio, stepRows } from './implementationRows'
+import { fillRatio, rebalanceNames, stepRows } from './implementationRows'
 
 const LABELS: Record<string, string> = {
   MinimumPriceScreen: 'Minimum price',
@@ -76,5 +76,27 @@ describe('a rebalance as the implementation carried it out', () => {
     }
     expect(fillRatio(order)).toBe(0.25)
     expect(fillRatio({ ...order, requested_quantity: 0 })).toBeUndefined()
+  })
+})
+
+describe('the names under a rebalance (Karan, 2026-11-20)', () => {
+  it('lists the removed by screen and the capped deepest cut first', () => {
+    const names = rebalanceNames(
+      {
+        date: '2023-01-20',
+        removed: { CMPF: 'MinimumPriceScreen', CMPA: 'ExclusionScreen' },
+        capped: { CMPE: 0.03, CMPK: 0.03 },
+        cash_weight: 0.02
+      },
+      { date: '2023-01-20', weights: { CMPE: 0.05, CMPK: 0.1 }, redistributed: 0 },
+      labelOf
+    )
+
+    expect(names.removed).toEqual([
+      { id: 'CMPA', screen: 'Exclusions' },
+      { id: 'CMPF', screen: 'Minimum price' }
+    ])
+    expect(names.capped.map((name) => name.id)).toEqual(['CMPK', 'CMPE'])
+    expect(names.capped[0]).toEqual({ id: 'CMPK', index: 0.1, capped: 0.03 })
   })
 })

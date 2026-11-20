@@ -74,15 +74,31 @@ test('implementation reads what the fund did that the index did not', async ({ w
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Implementation' }).click()
 
-  // A captured run with screens, a cap, an execution limit and futures on
-  // its cash buffer: each record is a table of its own.
+  // A captured run with screens, a cap, an execution limit, futures on its
+  // cash buffer and a hedged class.
   const view = window.locator('.index-overview-view')
   await expect(view.getByText('NAMES REMOVED')).toBeVisible()
   await expect(view).toContainText('Rebalances')
   await expect(view).toContainText('Minimum price')
-  await expect(view).toContainText(/Unfilled orders · \d+/)
-  await expect(view).toContainText('execution limit')
+  // A rebalance's removed, capped and unfilled names open under it, one list
+  // at a time, and close again (Karan, 2026-11-20).
+  await expect(view).not.toContainText('execution limit')
+  await view.locator('[role="row"][aria-expanded="false"]').first().click()
+  const detail = view.locator('.tbl-expanded')
+  await expect(detail).toContainText('Minimum price')
+  await detail.getByRole('radio', { name: /^Capped \d+$/ }).click()
+  await expect(detail).toContainText('Capped at')
+  await detail.getByRole('radio', { name: /^Unfilled \d+$/ }).click()
+  await expect(detail).toContainText('execution limit')
+  await view.locator('[role="row"][aria-expanded="true"]').click()
+  await expect(detail).toHaveCount(0)
+  // Each rebalance's counts and cash, charted beside the table.
+  await expect(view.locator('.rebalance-chart-bar')).not.toHaveCount(0)
+  // The derivatives side by side, each named by its legend, its record under it.
   await expect(view).toContainText('Index futures')
+  await expect(view).toContainText('Futures exposure, % of NAV')
+  await expect(view).toContainText('Share-class hedges')
+  await expect(view).toContainText('Back to band')
   // A run with complete data has no stale marks, and says nothing of them.
   await expect(view).not.toContainText('Priced from an earlier session')
 })
