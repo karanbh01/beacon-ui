@@ -17,6 +17,10 @@
   margin-bottom: 14px;
 }
 
+.level-chart-footer {
+  margin-top: 10px;
+}
+
 .level-chart {
   position: relative;
   width: 100%;

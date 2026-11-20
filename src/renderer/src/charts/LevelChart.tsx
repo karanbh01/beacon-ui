@@ -139,6 +139,13 @@ export interface LevelChartProps {
   note?: string
   /** Shown over the chart, starting where the price axis's line does. */
   header?: ReactNode
+  /** Shown under the chart and its notes, on the same line: a table of what it plots. */
+  footer?: ReactNode
+  /**
+   * A legend even for one line, to name what it is where there is no
+   * title doing it (Karan, 2026-11-20).
+   */
+  legend?: boolean
   /**
    * A reference level on the price scale, behind the lines: 100 for a
    * rebased chart, as py-beacon draws it, in the border colour.
@@ -167,6 +174,8 @@ export function LevelChart({
   height = 420,
   note,
   header,
+  footer,
+  legend = false,
   reference
 }: LevelChartProps): ReactElement {
   const host = useRef<HTMLDivElement>(null)
@@ -409,8 +418,8 @@ export function LevelChart({
         </div>
       )}
       <div className="level-chart" style={filling ? undefined : { height }}>
-        {/* A legend only where there is more than one line to tell apart. */}
-        {keys > 1 && (
+        {/* A legend where there is more than one line to tell apart, or when asked for. */}
+        {(keys > 1 || legend) && (
           <div
             className="level-chart-legend"
             style={{ right: axes.right + END_GUTTER + LEGEND_INSET }}
@@ -488,6 +497,11 @@ export function LevelChart({
         </div>
       </div>
       {note !== undefined && <p className="level-chart-notes">Notes: {sentence(note)}</p>}
+      {footer !== undefined && (
+        <div className="level-chart-footer" style={{ paddingLeft: axes.left }}>
+          {footer}
+        </div>
+      )}
     </div>
   )
 }
