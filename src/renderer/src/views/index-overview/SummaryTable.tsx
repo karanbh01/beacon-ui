@@ -7,6 +7,7 @@ import { Table, type Column } from '../../components/Table/Table'
 import { useAnalysisOptions, useAnalytics } from '../shared/analyticsQueries'
 import { formatValue, isSigned, toneOf } from '../shared/report/analyticsFormat'
 import { ReportFace } from '../shared/report/ReportFace'
+import { useComparators } from './comparators'
 
 /** The periods across, shortest first and since inception last (Karan, 2026-11-06). */
 const PERIODS = ['1M', '3M', 'YTD', '1Y', '3Y', '5Y', 'inception']
@@ -43,6 +44,7 @@ interface Row {
 export function SummaryTable({ strategyId }: { strategyId: string }): ReactElement | null {
   const options = useAnalysisOptions()
   const analytics = useAnalytics(strategyId)
+  const { benchmarkIsIndex } = useComparators(strategyId)
   const [everything, setEverything] = useState(false)
 
   const answer = analytics.data?.status === 'computed' ? analytics.data.analytics : undefined
@@ -71,7 +73,11 @@ export function SummaryTable({ strategyId }: { strategyId: string }): ReactEleme
         </Button>
       }
     >
-      <Table columns={columnsOf(books, options.data)} rows={rows} getRowId={(row) => row.id} />
+      <Table
+        columns={columnsOf(books, options.data, benchmarkIsIndex)}
+        rows={rows}
+        getRowId={(row) => row.id}
+      />
       {everything && (
         <Dialog
           title="All statistics"
@@ -111,7 +117,14 @@ function rowsOf(frame: TableFrame, options: AnalysisOptions): Row[] {
   return [...byId.values()]
 }
 
-function columnsOf(books: readonly string[], options: AnalysisOptions): Column<Row>[] {
+function columnsOf(
+  books: readonly string[],
+  options: AnalysisOptions,
+  benchmarkIsIndex: boolean
+): Column<Row>[] {
+  // The index that is also the benchmark, short enough for the column (Karan, 2026-11-20).
+  const headerOf = (book: string): string =>
+    book === 'index' && benchmarkIsIndex ? 'Index/BM' : (options.names.book?.[book] ?? book)
   return [
     {
       key: 'statistic',
@@ -123,7 +136,7 @@ function columnsOf(books: readonly string[], options: AnalysisOptions): Column<R
     ...PERIODS.flatMap((period) =>
       books.map((book): Column<Row> => ({
         key: `${period}-${book}`,
-        header: options.names.book?.[book] ?? book,
+        header: headerOf(book),
         group: PERIOD_LABELS[period] ?? period,
         // As narrow as a figure like -12.34% needs (Karan, 2026-11-19).
         width: 54,

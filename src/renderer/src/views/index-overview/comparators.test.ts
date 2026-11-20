@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RunResult } from '../shared/beaconQueries'
-import { comparatorsOf } from './comparators'
+import { comparatorsOf, namedComparators } from './comparators'
 
 const own = {
   total_return: 0.04,
@@ -64,5 +64,16 @@ describe('what a strategy is compared with (Karan, 2026-10-18)', () => {
       index: undefined,
       benchmark: { id: 'TECH10' }
     })
+  })
+
+  it('names a benchmark that is the index once, as both (Karan, 2026-11-20)', () => {
+    const roles = (kind: string, benchmark: boolean): string[] =>
+      namedComparators(comparatorsOf(run(kind, benchmark))).map(
+        (named) => `${named.comparator.id} ${named.role}`
+      )
+    expect(roles('active', false)).toEqual(['TECH10 both'])
+    expect(roles('active', true)).toEqual(['EU-VALUE benchmark'])
+    expect(roles('index_tracking', true)).toEqual(['TECH10 index', 'EU-VALUE benchmark'])
+    expect(roles('index', false)).toEqual(['TECH10 index'])
   })
 })

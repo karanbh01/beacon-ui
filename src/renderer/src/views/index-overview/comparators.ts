@@ -24,6 +24,17 @@ export interface Comparators {
   kind: string
   index: Comparator | undefined
   benchmark: Comparator | undefined
+  /** The benchmark is the index itself: one series, named once on Summary. */
+  benchmarkIsIndex: boolean
+}
+
+/** Who a series stands for: the index, the benchmark, or both when they are one. */
+export type ComparatorRole = 'index' | 'benchmark' | 'both'
+
+export const ROLE_NAMES: Record<ComparatorRole, string> = {
+  index: 'Index',
+  benchmark: 'Benchmark',
+  both: 'Index/benchmark'
 }
 
 /**
@@ -41,8 +52,35 @@ export function comparatorsOf(run: RunResult | undefined): Comparators {
   const index = comparatorOf(run?.comparisons?.index)
   const external = comparatorOf(run?.comparisons?.benchmark)
 
-  if (kind === 'active') return { kind, index: undefined, benchmark: external ?? index }
-  return { kind, index, benchmark: external }
+  const same = external !== undefined && external.id === index?.id
+  if (kind === 'active') {
+    return {
+      kind,
+      index: undefined,
+      benchmark: external ?? index,
+      benchmarkIsIndex: index !== undefined && (external === undefined || same)
+    }
+  }
+  return { kind, index, benchmark: external, benchmarkIsIndex: same }
+}
+
+/**
+ * Each series a strategy is measured on, named once (Karan, 2026-11-20): a
+ * benchmark that is the index itself is "index/benchmark" in the figures,
+ * the chart and the markers alike, not two names for one line.
+ */
+export function namedComparators(
+  comparators: Comparators
+): { comparator: Comparator; role: ComparatorRole }[] {
+  const { index, benchmark } = comparators
+  if (comparators.benchmarkIsIndex) {
+    const shared = index ?? benchmark
+    return shared === undefined ? [] : [{ comparator: shared, role: 'both' }]
+  }
+  return [
+    ...(index === undefined ? [] : [{ comparator: index, role: 'index' as const }]),
+    ...(benchmark === undefined ? [] : [{ comparator: benchmark, role: 'benchmark' as const }])
+  ]
 }
 
 export function useComparators(strategyId: string): Comparators & { isPending: boolean } {
