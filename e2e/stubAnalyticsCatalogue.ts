@@ -146,6 +146,17 @@ implementation_breakdown|Implementation breakdown|Attribution|table|-|attributio
 `
 
 const col = (name: string, label: string, unit: string | null = null) => ({ name, label, unit })
+const BOOK_NAMES = { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
+/** Each characteristic's code, its label after the book's name, and its unit. */
+const CHARACTERISTICS: [string, string, string][] = [
+  ['MARKET_CAP', 'market cap', 'money'],
+  ['PE_RATIO', 'P/E', 'ratio'],
+  ['PB_RATIO', 'P/B', 'ratio'],
+  ['DIVIDEND_YIELD', 'dividend yield', 'fraction'],
+  // py-beacon 6fc7292 (BN-426): a year's growth, the weighted mean.
+  ['EPS_GROWTH', 'earnings growth', 'fraction'],
+  ['SALES_GROWTH', 'sales growth', 'fraction']
+]
 const BOOK_COLUMNS = [
   col('fund', 'Fund', 'fraction'),
   col('index', 'Index', 'fraction'),
@@ -162,9 +173,10 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   // Provisional (asked of py-beacon for BU-294): the fewest and most names
   // held at any rebalance, and the latest, with the index's.
   holdings_range: [
-    col('measure', 'Measure'),
+    { ...col('measure', 'Measure'), labels: { least: 'Fewest', most: 'Most', latest: 'Latest' } },
     col('fund', 'Fund', 'count'),
-    col('index', 'Index', 'count')
+    col('index', 'Index', 'count'),
+    col('benchmark', 'Benchmark', 'count')
   ],
   // Provisional: how many days the fund held each number of names.
   holdings_distribution: [
@@ -174,7 +186,10 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   ],
   // Provisional: the cell each book's weighted centre falls in, Morningstar's "Large blend".
   style_classification: [
-    { ...col('book', 'Book'), labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' } },
+    {
+      ...col('book', 'Portfolio'),
+      labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
+    },
     { ...col('size', 'Size'), labels: { large: 'Large', mid: 'Mid', small: 'Small' } },
     { ...col('style', 'Style'), labels: { value: 'Value', blend: 'Blend', growth: 'Growth' } },
     col('size_centre', 'Size centre'),
@@ -192,7 +207,7 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   ],
   // Provisional: each book's latest weight in each sector and each country.
   group_exposures: [
-    { ...col('grouping', 'Grouping'), labels: { sector: 'Sector', country: 'Country' } },
+    { ...col('grouping', 'Grouped by'), labels: { sector: 'Sector', country: 'Country' } },
     col('group', 'Group'),
     col('fund', 'Fund', 'fraction'),
     col('index', 'Index', 'fraction'),
@@ -206,9 +221,37 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
     col('index', 'Index', 'fraction'),
     col('benchmark', 'Benchmark', 'fraction')
   ],
+  // py-beacon 25efb21 (BN-422): a unit per row, as the books mix returns and a ratio.
   trailing_statistics: [
-    col('period', 'Period'),
-    col('statistic', 'Statistic'),
+    {
+      ...col('period', 'Period'),
+      labels: {
+        '1M': '1 month',
+        '3M': '3 months',
+        '6M': '6 months',
+        '1Y': '1 year',
+        '3Y': '3 years',
+        '5Y': '5 years',
+        '10Y': '10 years',
+        MTD: 'Month to date',
+        QTD: 'Quarter to date',
+        YTD: 'Year to date',
+        inception: 'Since inception'
+      }
+    },
+    {
+      ...col('statistic', 'Statistic'),
+      labels: {
+        total_return: 'Total return',
+        annualised_return: 'Annualised return (CAGR)',
+        volatility: 'Volatility',
+        max_drawdown: 'Maximum drawdown',
+        sharpe_ratio: 'Sharpe ratio',
+        tracking_difference: 'Tracking difference',
+        tracking_error: 'Tracking error'
+      }
+    },
+    { ...col('unit', 'Unit'), labels: { fraction: 'Fraction', ratio: 'Ratio' } },
     col('fund', 'Fund'),
     col('index', 'Index'),
     col('benchmark', 'Benchmark')
@@ -294,11 +337,12 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
     col('index', 'Index', 'fraction'),
     col('active', 'Active', 'fraction')
   ],
-  characteristics: [
-    col('measure', 'Characteristic'),
-    col('fund', 'Fund', 'ratio'),
-    col('index', 'Index', 'ratio')
-  ],
+  // py-beacon 1f7cc52 (BN-425): a row per rebalance, a column per book and figure.
+  characteristics: (['fund', 'index', 'benchmark'] as const).flatMap((book) =>
+    CHARACTERISTICS.map(([code, label, unit]) =>
+      col(`${book}/${code}`, `${BOOK_NAMES[book]} ${label}`, unit)
+    )
+  ),
   trade_counts: [col('measure', 'Measure'), col('value', 'Count', 'count')],
   costs_by_kind: [
     col('kind', 'Cost'),

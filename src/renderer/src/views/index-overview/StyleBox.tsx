@@ -10,6 +10,14 @@ const CELL = 48
 const SPREAD = CELL * 0.6
 const SIDE = CELL * 3
 
+/*
+ * Where a position is drawn. py-beacon does not clip positions (Karan,
+ * BN-427): a name over $1tn sits above 0 and one under $100m below 3, so
+ * the drawing pins them to the box's edge while every figure keeps the true
+ * value.
+ */
+const pinned = (position: number): number => Math.min(3, Math.max(0, position))
+
 type Weights = number[][]
 
 /**
@@ -92,8 +100,8 @@ export function StyleBox({
               .map((entry) => (
                 <circle
                   key={entry.name}
-                  cx={entry.style * CELL}
-                  cy={entry.size * CELL}
+                  cx={pinned(entry.style) * CELL}
+                  cy={pinned(entry.size) * CELL}
                   r={SPREAD}
                   fill="url(#style-box-glow)"
                   opacity={Math.min(1, (entry.fund / heaviest) * 0.9)}
@@ -214,7 +222,7 @@ function centreOf(
   const size = row?.[frame.columns.indexOf('size_centre')]
   const style = row?.[frame.columns.indexOf('style_centre')]
   if (typeof size !== 'number' || typeof style !== 'number') return undefined
-  return { x: style * CELL, y: size * CELL }
+  return { x: pinned(style) * CELL, y: pinned(size) * CELL }
 }
 
 function StyleTip({

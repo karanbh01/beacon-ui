@@ -14,23 +14,22 @@ const PERIODS = ['1M', '3M', 'YTD', '1Y', '3Y', '5Y', 'inception']
 const PERIOD_LABELS: Record<string, string> = { inception: 'SI' }
 const BOOKS = ['fund', 'index', 'benchmark']
 
-/*
- * Provisional: the statistics-by-period table as the stub stands it in,
- * until py-beacon names its own (asked for BU-294).
- */
+/** py-beacon's statistics by trailing period (BN-422, 0.10.1). */
 const SOURCE = 'trailing_statistics'
 
 /*
- * The one row the stub's catalogue has under another id (it names the
- * whole-run figure `cagr`). Provisional with the table.
+ * A row signed although the stub's catalogue has no statistic of its id:
+ * it names the whole-run figure `cagr`, py-beacon `annualised_return`.
  */
-const ROWS: Record<string, { label: string; unit: Unit }> = {
-  annualised_return: { label: 'Annualised return (CAGR)', unit: 'fraction' }
-}
+const SIGNED_ROWS = new Set(['annualised_return'])
 
 interface Row {
   id: string
-  spec: StatisticSpec | undefined
+  /** The table's own label for the statistic, from its catalogue column. */
+  label: string
+  /** Each row's unit, as the books mix returns and a ratio (BN-422). */
+  unit: Unit | null | undefined
+  signed: boolean
   /** Figure by period, then by book. Missing or null shows as a dash. */
   values: Record<string, Record<string, number | null>>
 }
@@ -97,15 +96,14 @@ export function SummaryTable({ strategyId }: { strategyId: string }): ReactEleme
 /** The frame's rows, one per period and statistic, folded into a row per statistic. */
 function rowsOf(frame: TableFrame, options: AnalysisOptions): Row[] {
   const at = (name: string): number => frame.columns.indexOf(name)
+  const labels = options.statistics
+    .find((statistic) => statistic.id === SOURCE)
+    ?.columns?.find((column) => column.name === 'statistic')?.labels
   const byId = new Map<string, Row>()
   for (const cells of frame.data) {
     const period = String(cells[at('period')] ?? '')
     const id = String(cells[at('statistic')] ?? '')
-    const row = byId.get(id) ?? {
-      id,
-      spec: options.statistics.find((statistic) => statistic.id === id),
-      values: {}
-    }
+    const row = byId.get(id) ?? newRow(id, cells[at('unit')], labels, options)
     row.values[period] = Object.fromEntries(
       BOOKS.map((book) => {
         const cell = cells[at(book)]
@@ -115,6 +113,25 @@ function rowsOf(frame: TableFrame, options: AnalysisOptions): Row[] {
     byId.set(id, row)
   }
   return [...byId.values()]
+}
+
+function newRow(
+  id: string,
+  unit: unknown,
+  labels: Record<string, string> | undefined,
+  options: AnalysisOptions
+): Row {
+  const spec: StatisticSpec | undefined = options.statistics.find(
+    (statistic) => statistic.id === id
+  )
+  return {
+    id,
+    label: labels?.[id] ?? spec?.label ?? id,
+    // A row's unit is one of these two (BN-422); the statistic's own if a row has none.
+    unit: unit === 'fraction' || unit === 'ratio' ? unit : spec?.unit,
+    signed: SIGNED_ROWS.has(id) || (spec !== undefined && isSigned(spec)),
+    values: {}
+  }
 }
 
 function columnsOf(
@@ -131,7 +148,7 @@ function columnsOf(
       header: 'Statistic',
       width: 170,
       rowName: true,
-      render: (row) => ROWS[row.id]?.label ?? row.spec?.label ?? row.id
+      render: (row) => row.label
     },
     ...PERIODS.flatMap((period) =>
       books.map((book): Column<Row> => ({
@@ -150,9 +167,8 @@ function columnsOf(
 
 function figure(row: Row, period: string, book: string): ReactElement {
   const value = row.values[period]?.[book]
-  const unit = ROWS[row.id]?.unit ?? row.spec?.unit
-  const signed = row.id in ROWS || (row.spec !== undefined && isSigned(row.spec))
-  const tone = signed ? toneOf(value, unit) : ''
+  const unit = row.unit
+  const tone = row.signed ? toneOf(value, unit) : ''
   return (
     <span className={`report-figure ${tone}`}>
       {formatValue(value, unit, unit === 'fraction' ? 4 : 2)}

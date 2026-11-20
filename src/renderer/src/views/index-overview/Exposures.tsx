@@ -37,7 +37,16 @@ export function Exposures({
   frame: TableFrame | undefined
   benchmarkIsIndex: boolean
 }): ReactElement {
-  const [grouping, setGrouping] = useState<Grouping>('sector')
+  const [chosen, setGrouping] = useState<Grouping>('sector')
+  // Only the groupings the run kept a field for (py-beacon BN-424 leaves the other out).
+  const offered = GROUPINGS.filter(
+    (option) =>
+      frame?.data.some((cells) => cells[frame.columns.indexOf('grouping')] === option.value) ??
+      false
+  )
+  const grouping = offered.some((option) => option.value === chosen)
+    ? chosen
+    : (offered[0]?.value ?? chosen)
   const rows = frame === undefined ? [] : exposuresOf(frame, grouping, benchmarkIsIndex)
   // Against the heaviest weight in any book, so the largest bar nearly fills the width.
   const widest =
@@ -48,12 +57,14 @@ export function Exposures({
       title="Exposures"
       className="exposures"
       aside={
-        <SegmentedControl
-          segments={GROUPINGS}
-          value={grouping}
-          onChange={setGrouping}
-          label="Exposures by"
-        />
+        offered.length > 1 ? (
+          <SegmentedControl
+            segments={offered}
+            value={grouping}
+            onChange={setGrouping}
+            label="Exposures by"
+          />
+        ) : undefined
       }
     >
       {frame === undefined ? (

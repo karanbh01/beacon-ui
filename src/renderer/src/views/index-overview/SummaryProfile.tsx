@@ -64,6 +64,7 @@ export function SummaryProfile({
           classification={frameOf(answer, 'style_classification')}
           classificationSpec={specOf('style_classification')}
           fundamentals={frameOf(answer, 'characteristics')}
+          fundamentalsSpec={specOf('characteristics')}
           currency={currency}
         />
       </div>

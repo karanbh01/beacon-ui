@@ -556,6 +556,63 @@ function groupWeights(
   return [...held, [grouping, 'Cash', cash, 0, benchmarked ? 0 : null]]
 }
 
+/**
+ * Each book's characteristics at each of three rebalances, the latest last,
+ * as py-beacon lays them out (BN-425, BN-426): fund, index and benchmark,
+ * each with market cap in whole units of the run's currency, the ratios in
+ * times, and the yield and a year's earnings and sales growth as fractions.
+ * A run without a benchmark has nulls in its columns.
+ */
+function characteristics(run: string, benchmarked: boolean): (number | null)[][] {
+  const near = (key: string, low: number, high: number): number =>
+    Math.round(between(`${run}/${key}`, low, high) * 100) / 100
+  const books: [string, [number, number][]][] = [
+    [
+      'fund',
+      [
+        [90, 400],
+        [16, 30],
+        [2, 6],
+        [0.8, 2.6],
+        [4, 18],
+        [3, 12]
+      ]
+    ],
+    [
+      'index',
+      [
+        [180, 260],
+        [18, 24],
+        [3, 4.5],
+        [1.2, 1.8],
+        [5, 12],
+        [4, 9]
+      ]
+    ],
+    [
+      'benchmark',
+      [
+        [60, 120],
+        [10, 15],
+        [1.2, 2],
+        [2.5, 4],
+        [1, 6],
+        [1, 5]
+      ]
+    ]
+  ]
+  const scale = [1e9, 1, 1, 0.01, 0.01, 0.01]
+  return [0, 1, 2].map((rebalance) =>
+    books.flatMap(([book, ranges]) =>
+      ranges.map(([low, high], at) =>
+        book === 'benchmark' && !benchmarked
+          ? null
+          : near(`${book}/${String(at)}/${String(rebalance)}`, low, high) * (scale[at] ?? 1)
+      )
+    )
+  )
+}
+
 /** A book's weight in each of the nine cells, size by size. */
 function cellWeights(run: string, book: Book): number[] {
   const cells = Array.from({ length: 9 }, () => 0)
@@ -604,10 +661,11 @@ function portfolioTable(
   if (id === 'holdings_range') {
     const [least, most, index] = holdingsSpan(run)
     const latest = Math.round(between(`${run}/latest`, least, most))
+    const benchmark = ifBenchmarked(40)
     return [
-      ['least', least, index],
-      ['most', most, index],
-      ['latest', latest, index]
+      ['least', least, index, benchmark],
+      ['most', most, index, benchmark],
+      ['latest', latest, index, benchmark]
     ]
   }
   if (id === 'holdings_distribution') {
@@ -627,18 +685,7 @@ function portfolioTable(
       ...(benchmarked ? [['benchmark', ...centreCell(run, 'benchmark')]] : [])
     ]
   }
-  if (id === 'characteristics') {
-    const near = (key: string, low: number, high: number): number =>
-      Math.round(between(`${run}/${key}`, low, high) * 100) / 100
-    // py-beacon's codes and units: cap in whole units of the run's currency,
-    // the ratios in times, the yield a fraction.
-    return [
-      ['MARKET_CAP', near('cap', 90, 400) * 1e9, near('cap-index', 180, 260) * 1e9],
-      ['PE_RATIO', near('pe', 16, 30), near('pe-index', 18, 24)],
-      ['PB_RATIO', near('pb', 2, 6), near('pb-index', 3, 4.5)],
-      ['DIVIDEND_YIELD', near('dy', 0.8, 2.6) / 100, near('dy-index', 1.2, 1.8) / 100]
-    ]
-  }
+  if (id === 'characteristics') return characteristics(run, benchmarked)
   if (id === 'style_positions') {
     return stylePositions(run).map((entry) => [
       entry.name,
@@ -673,15 +720,21 @@ function portfolioTable(
 }
 
 /** The trading days each period looks back, or the whole run for since inception. */
-const PERIODS: [string, number | 'ytd' | 'all'][] = [
+const PERIODS: [string, number | 'mtd' | 'qtd' | 'ytd' | 'all'][] = [
   ['1M', 21],
   ['3M', 63],
-  ['YTD', 'ytd'],
+  ['6M', 126],
   ['1Y', 252],
   ['3Y', 756],
   ['5Y', 1260],
+  ['10Y', 2520],
+  ['MTD', 'mtd'],
+  ['QTD', 'qtd'],
+  ['YTD', 'ytd'],
   ['inception', 'all']
 ]
+/** Periods too short for a Sharpe ratio (Karan, BN-422): those cells are null. */
+const NO_SHARPE = ['1M', '3M', 'MTD', 'QTD', 'YTD']
 /** Each row's statistic, and the whole-run figure it is worked out as over the period. */
 const OWN_ROWS: [string, string][] = [
   ['total_return', 'total_return'],
@@ -702,15 +755,20 @@ const RELATIVE_ROWS: [string, string][] = [
  */
 function trailingStatistics(lines: Lines): (string | number | null)[][] {
   const end = lines.strategy.data.length - 1
-  const year = (lines.strategy.index[end] ?? '').slice(0, 4)
+  const last = lines.strategy.index[end] ?? ''
+  const month = Number(last.slice(5, 7))
+  // The day before the first on or after a boundary: a to-date window's base.
+  const since = (boundary: string): number =>
+    Math.max(0, lines.strategy.index.findIndex((date) => date >= boundary) - 1)
+  const quarter = String(month - ((month - 1) % 3)).padStart(2, '0')
+  const starts = {
+    mtd: since(last.slice(0, 7)),
+    qtd: since(`${last.slice(0, 4)}-${quarter}`),
+    ytd: since(last.slice(0, 4))
+  }
   const rows: (string | number | null)[][] = []
   for (const [period, days] of PERIODS) {
-    const from =
-      days === 'all'
-        ? 0
-        : days === 'ytd'
-          ? Math.max(0, lines.strategy.index.findIndex((date) => date.startsWith(year)) - 1)
-          : end - days
+    const from = days === 'all' ? 0 : typeof days === 'number' ? end - days : starts[days]
     const cut = (line: Line | undefined): Line | undefined =>
       line === undefined || from < 0
         ? undefined
@@ -721,15 +779,18 @@ function trailingStatistics(lines: Lines): (string | number | null)[][] {
     // Annualised only beyond a year, as trailing_returns has it.
     const overAYear = (fund?.data.length ?? 0) > 260
     for (const [statistic, figure] of OWN_ROWS) {
-      const shown = statistic !== 'annualised_return' || overAYear
+      const shown =
+        (statistic !== 'annualised_return' || overAYear) &&
+        !(statistic === 'sharpe_ratio' && NO_SHARPE.includes(period))
       const of = (line: Line | undefined): number | null =>
         line === undefined || !shown ? null : (own(line)[figure] ?? null)
-      rows.push([period, statistic, of(fund), of(index), of(benchmark)])
+      const unit = statistic === 'sharpe_ratio' ? 'ratio' : 'fraction'
+      rows.push([period, statistic, unit, of(fund), of(index), of(benchmark)])
     }
     for (const [statistic, figure] of RELATIVE_ROWS) {
       const vs = (line: Line | undefined): number | null =>
         fund === undefined || line === undefined ? null : (against(fund, line)[figure] ?? null)
-      rows.push([period, statistic, null, vs(index), vs(benchmark)])
+      rows.push([period, statistic, 'fraction', null, vs(index), vs(benchmark)])
     }
   }
   return rows
