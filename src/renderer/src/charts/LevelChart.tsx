@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import {
   LineSeries,
   LineStyle,
@@ -137,6 +137,8 @@ export interface LevelChartProps {
   height?: number | 'fill'
   /** Shown under the chart as py-beacon's "Notes:" line. */
   note?: string
+  /** Shown over the chart, starting where the price axis's line does. */
+  header?: ReactNode
   /**
    * A reference level on the price scale, behind the lines: 100 for a
    * rebased chart, as py-beacon draws it, in the border colour.
@@ -164,6 +166,7 @@ export function LevelChart({
   overlay,
   height = 420,
   note,
+  header,
   reference
 }: LevelChartProps): ReactElement {
   const host = useRef<HTMLDivElement>(null)
@@ -395,6 +398,16 @@ export function LevelChart({
 
   return (
     <div className={filling ? 'level-chart-block level-chart-filling' : 'level-chart-block'}>
+      {/*
+        On the axis's line rather than the block's edge, so what sits over the
+        plot lines up with it (Karan, 2026-11-20). The axis is as wide as its
+        labels, so this follows the measured width.
+      */}
+      {header !== undefined && (
+        <div className="level-chart-header" style={{ paddingLeft: axes.left }}>
+          {header}
+        </div>
+      )}
       <div className="level-chart" style={filling ? undefined : { height }}>
         {/* A legend only where there is more than one line to tell apart. */}
         {keys > 1 && (

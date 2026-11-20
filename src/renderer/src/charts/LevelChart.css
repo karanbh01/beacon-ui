@@ -13,6 +13,10 @@
   min-width: 320px;
 }
 
+.level-chart-header {
+  margin-bottom: 14px;
+}
+
 .level-chart {
   position: relative;
   width: 100%;
