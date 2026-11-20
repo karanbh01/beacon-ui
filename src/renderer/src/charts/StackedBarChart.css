@@ -1,0 +1,42 @@
+/* Stacked bars by category: the d3 half of ADR-0002, as the frontier is. */
+
+.stacked-bars {
+  position: relative;
+  min-width: 0;
+}
+
+.stacked-bars svg {
+  display: block;
+  /* py-beacon's plotting face: Light for ticks and labels. */
+  font-family: var(--font-data);
+  font-weight: 300;
+}
+
+.stacked-bars-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  color: var(--text-secondary);
+}
+
+.stacked-bars-legend > span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.stacked-bars-swatch {
+  width: 8px;
+  height: 8px;
+}
+
+.stacked-bars-open {
+  cursor: pointer;
+}
+
+/* The hover's figures, centred over the bar, in the column tips' glass. */
+.header-tip.stacked-bars-tip {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

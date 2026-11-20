@@ -167,3 +167,11 @@ export function weightRows(
     capped: cappedSet.has(ticker)
   }))
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** "2023-04-21" as "Apr 23": a bar's date on a chart's axis. */
+export function shortMonth(date: string): string {
+  const month = MONTHS[Number(date.slice(5, 7)) - 1] ?? ''
+  return `${month} ${date.slice(2, 4)}`
+}
