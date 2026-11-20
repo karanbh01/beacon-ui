@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactElement, ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { HeaderTip } from './HeaderTip'
@@ -83,6 +83,14 @@ export interface TableProps<T> {
   /** Full-row wash, never a chip or border highlight (taxonomy 5). */
   selectedId?: string
   onSelectRow?: (row: T) => void
+  /**
+   * A row's detail, drawn under it while it is the expanded one: a
+   * rebalance's unfilled orders under it (Karan, 2026-11-20). Nothing is
+   * drawn for a row whose detail is undefined. A virtualised table, whose
+   * rows have one fixed height, draws none.
+   */
+  expandedId?: string
+  renderExpanded?: (row: T) => ReactNode
   /** Top-divided, Medium. Cells render from the same column defs. */
   totalRow?: Partial<Record<string, ReactNode>>
   /** Caps the body and turns on scrolling. Omit to render at full height. */
@@ -244,6 +252,8 @@ export function Table<T>({
   getRowId,
   selectedId,
   onSelectRow,
+  expandedId,
+  renderExpanded,
   totalRow,
   maxBodyHeight,
   fillHeight = false,
@@ -372,6 +382,20 @@ export function Table<T>({
 
   const renderRow = (row: T, offset?: number): ReactElement => {
     const id = getRowId(row)
+    const detail = offset === undefined && id === expandedId ? renderExpanded?.(row) : undefined
+    const line = renderLine(row, id, offset)
+    if (detail === undefined) return line
+    return (
+      <Fragment key={id}>
+        {line}
+        <div className="tbl-expanded" role="row" style={rowFloor}>
+          {detail}
+        </div>
+      </Fragment>
+    )
+  }
+
+  const renderLine = (row: T, id: string, offset: number | undefined): ReactElement => {
     const selected = id === selectedId
     const classes = [
       'tbl-row',
@@ -387,6 +411,7 @@ export function Table<T>({
         className={classes}
         role="row"
         aria-selected={onSelectRow === undefined ? undefined : selected}
+        aria-expanded={renderExpanded === undefined ? undefined : id === expandedId}
         onClick={
           onSelectRow === undefined
             ? undefined

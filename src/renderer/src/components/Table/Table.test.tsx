@@ -85,6 +85,27 @@ describe('selection', () => {
   })
 })
 
+describe('an expanded row (Karan, 2026-11-20)', () => {
+  const first = CONSTITUENTS[0]?.ticker ?? ''
+  const detail = (row: { ticker: string }) =>
+    row.ticker === first ? <p>{`Orders for ${row.ticker}`}</p> : undefined
+
+  it('draws its detail under it and under no other row', () => {
+    const { container } = renderWeights({ expandedId: first, renderExpanded: detail })
+
+    expect(screen.getByText(`Orders for ${first}`)).toBeInTheDocument()
+    expect(container.querySelectorAll('.tbl-expanded')).toHaveLength(1)
+    expect(container.querySelectorAll('[aria-expanded="true"]')).toHaveLength(1)
+  })
+
+  it('draws nothing while no row is expanded', () => {
+    const { container } = renderWeights({ renderExpanded: detail })
+
+    expect(container.querySelectorAll('.tbl-expanded')).toHaveLength(0)
+    expect(container.querySelectorAll('[aria-expanded="false"]')).toHaveLength(CONSTITUENTS.length)
+  })
+})
+
 describe('virtualisation', () => {
   it('renders every row below the threshold', () => {
     const rows = syntheticConstituents(VIRTUALIZE_ABOVE)

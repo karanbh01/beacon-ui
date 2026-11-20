@@ -168,6 +168,25 @@
   cursor: pointer;
 }
 
+/*
+ * An expanded row's detail, edge to edge under it, so a table opened there
+ * reads as part of this one rather than a table set inside it (Karan,
+ * 2026-11-20).
+ */
+.tbl-expanded {
+  padding-bottom: 8px;
+}
+
+/* A table opened under a row: ruled in the row dividers' colour, and set in italic (Karan, 2026-11-20). */
+.tbl-expanded .tbl {
+  font-style: italic;
+}
+
+.tbl-expanded .tbl-head,
+.tbl-expanded .tbl-body {
+  border-bottom-color: var(--divider);
+}
+
 /* Selection is a full-row wash — never a chip, never a border highlight (taxonomy 5). */
 .tbl-selected {
   background: var(--sidebar-active-bg);
