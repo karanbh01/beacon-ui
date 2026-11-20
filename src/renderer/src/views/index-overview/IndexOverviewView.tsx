@@ -1,10 +1,11 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import { Button } from '../../components/Button/Button'
+import { Calculating } from '../../components/Calculating/Calculating'
 import { PaneHeader } from '../../components/PaneHeader/PaneHeader'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
-import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { isAbsent, useBacktestRecords, useOverview } from '../shared/beaconQueries'
 import { describeSkipped } from '../shared/pickers'
 import { useStrategyCatalogue } from '../shared/strategyDocuments'
@@ -57,23 +58,15 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
   const [comparators, setComparators] = useState<string[]>([])
 
   /*
-   * The header's line, and what the catalogue could not read (BN-174).
+   * What the catalogue could not read (BN-174), on the header's line.
    *
    * The query bar suggests from that catalogue, so a skipped strategy is one
    * a reader cannot reach and cannot see is missing — the bar looks the
-   * same either way. Silent at zero, which is the ordinary case.
+   * same either way. Silent at zero, which is the ordinary case. The run's
+   * name and index are not repeated here: Summary's titles carry them
+   * (Karan, 2026-11-20).
    */
-  const meta = useMemo(() => {
-    const parts: string[] = []
-    if (overview.data !== undefined) {
-      parts.push(
-        `${overview.data.name} · ${overview.data.index_id} · ${String(overview.data.observations)} observations`
-      )
-    }
-    const short = describeSkipped(catalogue.skipped)
-    if (short !== undefined) parts.push(short)
-    return parts.length === 0 ? undefined : parts.join(' · ')
-  }, [overview.data, catalogue.skipped])
+  const meta = useMemo(() => describeSkipped(catalogue.skipped), [catalogue.skipped])
 
   /*
    * What it can be measured against: other strategies with a run. The
@@ -150,7 +143,10 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
       {strategyId === '' && (
         <ViewEmpty figure="ticker">Choose a strategy to see how its latest run did.</ViewEmpty>
       )}
-      {overview.isPending && strategyId !== '' && <ViewLoading what={strategyId} />}
+      {/* The orb, as the other views wait (Karan, 2026-11-20), however briefly. */}
+      {overview.isPending && strategyId !== '' && (
+        <Calculating label="Loading" subject={strategyId} />
+      )}
       {noRun && (
         <ViewEmpty figure="plot">
           {strategyId} has no run yet. Backtest it to see one here.

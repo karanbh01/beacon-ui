@@ -1,12 +1,13 @@
 import { useMemo, type ReactElement } from 'react'
 import type { components } from '@shared/api.generated'
 import { LevelChart, type ChartEvent } from '../../charts/LevelChart'
+import { Calculating } from '../../components/Calculating/Calculating'
 import { Section } from '../../components/Section/Section'
 import { Stat, StatStrip } from '../../components/Stat/Stat'
 import { Table, type Column } from '../../components/Table/Table'
 import { useThemeMode } from '../../state/theme'
 import type { ThemeMode } from '../../tokens/tokens'
-import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { isAbsent, useRunResult, type RunResult } from '../shared/beaconQueries'
 import { fromFraction, percent, toPoints } from '../shared/indexMetrics'
 import { CompactMoney, Count } from '../shared/LargeNumber'
@@ -53,7 +54,7 @@ export function Implementation({ strategyId }: { strategyId: string }): ReactEle
     [result.data, labelOf]
   )
 
-  if (result.isPending) return <ViewLoading what="the run" />
+  if (result.isPending) return <Calculating label="Loading" subject="the run" />
   if (result.isError) {
     return isAbsent(result.error) ? (
       <ViewEmpty figure="drawer">

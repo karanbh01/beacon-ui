@@ -2,12 +2,13 @@ import { useMemo, type ReactElement } from 'react'
 import type { components } from '@shared/api.generated'
 import { LevelChart } from '../../charts/LevelChart'
 import type { Point } from '../../charts/transform'
+import { Calculating } from '../../components/Calculating/Calculating'
 import { Section } from '../../components/Section/Section'
 import { Stat, StatStrip } from '../../components/Stat/Stat'
 import { SummaryLine } from '../../components/SummaryLine/SummaryLine'
 import { Table, type Column } from '../../components/Table/Table'
 import { useThemeMode } from '../../state/theme'
-import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { isAbsent, useRunResult, type RunResult } from '../shared/beaconQueries'
 import { fromFraction, lastValue, percent, signedPercent, toPoints } from '../shared/indexMetrics'
 import { CompactMoney } from '../shared/LargeNumber'
@@ -31,7 +32,7 @@ export function FlowsAum({ strategyId }: { strategyId: string }): ReactElement {
   const nav = useMemo(() => toPoints(result.data?.nav_per_unit), [result.data])
   const aum = useMemo(() => assets(result.data), [result.data])
 
-  if (result.isPending) return <ViewLoading what="the run" />
+  if (result.isPending) return <Calculating label="Loading" subject="the run" />
   if (result.isError) {
     return isAbsent(result.error) ? (
       <ViewEmpty figure="drawer">This strategy has no run with fund detail yet.</ViewEmpty>
