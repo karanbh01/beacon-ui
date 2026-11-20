@@ -1,10 +1,14 @@
 import { useMemo, type ReactElement } from 'react'
+import { Section } from '../../components/Section/Section'
 import { LevelChart, type Series } from '../../charts/LevelChart'
+import { Calculating } from '../../components/Calculating/Calculating'
 import { useThemeMode } from '../../state/theme'
 import { relativeTime } from '../home/activityRows'
+import { useAnalysisOptions, useAnalytics } from '../shared/analyticsQueries'
 import { isAbsent, useBacktestRecord, useOverview, useRunResult } from '../shared/beaconQueries'
 import { fromFraction, signedPercent, toPoints } from '../shared/indexMetrics'
-import { useComparators, type Comparators } from './comparators'
+import { namedComparators, useComparators, type Comparators } from './comparators'
+import { HeadlineStatistics } from './HeadlineStatistics'
 import { describeNarrowing } from './narrowing'
 import { SummaryProfile } from './SummaryProfile'
 import { SummaryTable } from './SummaryTable'
@@ -31,6 +35,8 @@ export function Summary({ strategyId }: SummaryProps): ReactElement {
   const level = useMemo(() => toPoints(overview.data?.level), [overview.data])
   const narrowed = describeNarrowing(stored.data?.index?.target?.calendar_coverage)
   const result = useRunResult(strategyId)
+  const analytics = useAnalytics(strategyId)
+  const options = useAnalysisOptions()
   // The run's own drawdown series (a fraction), in the chart's percent.
   const underwater = useMemo(
     () =>
@@ -45,6 +51,21 @@ export function Summary({ strategyId }: SummaryProps): ReactElement {
   const recorded = result.data?.settings?.index_id
   const indexId = typeof recorded === 'string' ? recorded : undefined
 
+  // Over the chart, on its axis's line (Karan, 2026-11-20).
+  const headline = (
+    <Section title="Headline statistics">
+      <HeadlineStatistics
+        comparators={comparators}
+        figures={{
+          total: fromFraction(metrics?.total_return),
+          cagr: fromFraction(metrics?.annualised_return),
+          volatility: fromFraction(metrics?.volatility),
+          drawdown: fromFraction(metrics?.max_drawdown)
+        }}
+      />
+    </Section>
+  )
+
   /** How old the stored run is, when the engine stamped it (BN-162). */
   const captured = useMemo(() => {
     const at = stored.data?.run_at
@@ -52,6 +73,15 @@ export function Summary({ strategyId }: SummaryProps): ReactElement {
     const when = Date.parse(at)
     return Number.isNaN(when) ? undefined : relativeTime(when, Date.now())
   }, [stored.data])
+
+  /*
+   * The orb until the run and its analytics are in, as the other views wait
+   * (Karan, 2026-11-20). Drawn sooner, the face flashes "Not worked out"
+   * where figures are only on their way.
+   */
+  if (result.isPending || analytics.isPending || options.isPending) {
+    return <Calculating label="Loading" subject={strategyId} />
+  }
 
   return (
     <div className="summary-face">
@@ -62,42 +92,41 @@ export function Summary({ strategyId }: SummaryProps): ReactElement {
           indexId={indexId}
           currency={result.data?.currency ?? ''}
           comparators={comparators}
-          figures={{
-            total: fromFraction(metrics?.total_return),
-            cagr: fromFraction(metrics?.annualised_return),
-            volatility: fromFraction(metrics?.volatility),
-            drawdown: fromFraction(metrics?.max_drawdown)
-          }}
         />
 
-        {level.length > 0 && (
-          <LevelChart
-            mode={mode}
-            series={[
-              { label: overview.data?.name ?? strategyId, points: level },
-              // Only the comparators this strategy has: an absent line is
-              // not a flat one.
-              ...comparatorSeries(comparators)
-            ]}
-            panels={[
-              {
-                // py-beacon's performance chart: a red drawdown area under the
-                // level.
-                label: `Drawdown · max ${signedPercent(fromFraction(metrics?.max_drawdown))}`,
-                series: [{ points: underwater, kind: 'area', tone: 'negative' }],
-                share: 2,
-                format: (value) => `${value.toFixed(2)}%`
-              }
-            ]}
-            // "from", not "base": `start` is where the level series begins,
-            // which is not the document's base date (BU-189).
-            note={`from ${overview.data?.start ?? '—'} · ${String(overview.data?.rebalances ?? 0)} rebalances`}
-            // The price and the drawdown at the height they had beside the flows,
-            // which are left to Flows & AUM (Karan, 2026-11-19).
-            height={420}
-            reference={100}
-          />
-        )}
+        <div className="summary-chart-column">
+          {level.length === 0 && headline}
+          {level.length > 0 && (
+            <LevelChart
+              header={headline}
+              mode={mode}
+              series={[
+                { label: overview.data?.name ?? strategyId, points: level },
+                // Only the comparators this strategy has: an absent line is
+                // not a flat one.
+                ...comparatorSeries(comparators)
+              ]}
+              panels={[
+                {
+                  // py-beacon's performance chart: a red drawdown area under the
+                  // level.
+                  label: `Drawdown · max ${signedPercent(fromFraction(metrics?.max_drawdown))}`,
+                  series: [{ points: underwater, kind: 'area', tone: 'negative' }],
+                  // The drawdown a little deeper than its default share (Karan, 2026-11-19).
+                  share: 2.2,
+                  format: (value) => `${value.toFixed(2)}%`
+                }
+              ]}
+              // "from", not "base": `start` is where the level series begins,
+              // which is not the document's base date (BU-189).
+              note={`from ${overview.data?.start ?? '—'} · ${String(overview.data?.rebalances ?? 0)} rebalances`}
+              // The price and the drawdown at the height they had beside the flows,
+              // which are left to Flows & AUM, less 25px (Karan, 2026-11-19).
+              height={395}
+              reference={100}
+            />
+          )}
+        </div>
       </div>
 
       <SummaryTable strategyId={strategyId} />
@@ -130,19 +159,16 @@ export function Summary({ strategyId }: SummaryProps): ReactElement {
 }
 
 function comparatorSeries(comparators: Comparators): Series[] {
-  return [
-    ...(comparators.index === undefined || comparators.index.points.length === 0
-      ? []
-      : [{ label: comparators.index.id, points: comparators.index.points }]),
-    ...(comparators.benchmark === undefined || comparators.benchmark.points.length === 0
-      ? []
-      : [
-          // A benchmark in py-beacon's benchmark ink, text-secondary.
+  return namedComparators(comparators)
+    .filter(({ comparator }) => comparator.points.length > 0)
+    .map(({ comparator, role }) =>
+      role === 'index'
+        ? { label: comparator.id, points: comparator.points }
+        : // A benchmark in py-beacon's benchmark ink, text-secondary.
           {
-            label: `${comparators.benchmark.id} · benchmark`,
-            points: comparators.benchmark.points,
+            label: `${comparator.id} · ${role === 'both' ? 'index/benchmark' : 'benchmark'}`,
+            points: comparator.points,
             tone: 'benchmark' as const
           }
-        ])
-  ]
+    )
 }

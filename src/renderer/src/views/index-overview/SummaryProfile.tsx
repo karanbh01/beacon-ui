@@ -1,10 +1,9 @@
 import type { ReactElement } from 'react'
 import type { Analytics, StatisticSpec, TableFrame } from '../../api/analytics'
 import { Section } from '../../components/Section/Section'
-import { Stat } from '../../components/Stat/Stat'
 import { useAnalysisOptions, useAnalytics } from '../shared/analyticsQueries'
-import { fromFraction, percent, signedPercent, tone } from '../shared/indexMetrics'
 import type { Comparators } from './comparators'
+import { Exposures } from './Exposures'
 import { HoldingsBar } from './HoldingsBar'
 import { StyleBox } from './StyleBox'
 import { StyleProfile } from './StyleProfile'
@@ -18,18 +17,11 @@ export interface SummaryProfileProps {
   /** The run's own currency. */
   currency: string
   comparators: Comparators
-  /** The run's own figures, in percent. */
-  figures: {
-    total: number | undefined
-    cagr: number | undefined
-    volatility: number | undefined
-    drawdown: number | undefined
-  }
 }
 
 /**
- * Summary's left column (BU-294): what the backtest is, what it holds and
- * how it did, beside the chart that shows it. The holdings range and the
+ * Summary's left column (BU-294): what the backtest is and what it holds,
+ * beside the figures and the chart that show how it did. The holdings range and the
  * style box are provisional tables until py-beacon names its own.
  */
 export function SummaryProfile({
@@ -37,8 +29,7 @@ export function SummaryProfile({
   name,
   indexId,
   currency,
-  comparators,
-  figures
+  comparators
 }: SummaryProfileProps): ReactElement {
   const options = useAnalysisOptions()
   const analytics = useAnalytics(strategyId)
@@ -66,6 +57,7 @@ export function SummaryProfile({
             positions={frameOf(answer, 'style_positions')}
             classification={frameOf(answer, 'style_classification')}
             spec={specOf('style_box')}
+            benchmarkIsIndex={comparators.benchmarkIsIndex}
           />
         </Section>
         <StyleProfile
@@ -76,9 +68,10 @@ export function SummaryProfile({
         />
       </div>
 
-      <Section title="Headline statistics">
-        <HeadlineStatistics comparators={comparators} figures={figures} />
-      </Section>
+      <Exposures
+        frame={frameOf(answer, 'group_exposures')}
+        benchmarkIsIndex={comparators.benchmarkIsIndex}
+      />
     </div>
   )
 }
@@ -96,44 +89,4 @@ function Title({ label, value }: { label: string; value: string }): ReactElement
 function frameOf(answer: Analytics | undefined, id: string): TableFrame | undefined {
   const value = answer?.statistics[id]
   return value?.kind === 'table' ? value.point : undefined
-}
-
-/**
- * The figures the strip carried, as the strip drew them (a name over a
- * larger figure), three to a row (Karan, 2026-11-19): the run's return, each
- * comparator's and the gap to it, then risk.
- */
-function HeadlineStatistics({
-  comparators,
-  figures
-}: Pick<SummaryProfileProps, 'comparators' | 'figures'>): ReactElement {
-  const against = (label: string, comparator: Comparators['index']): ReactElement[] => {
-    if (comparator === undefined) return []
-    const theirs = fromFraction(comparator.own.total_return)
-    const lead = fromFraction(comparator.relative.relative_return)
-    return [
-      <Stat
-        key={`${label}-return`}
-        label={`${label} return`}
-        value={signedPercent(theirs)}
-        tone={tone(theirs)}
-      />,
-      <Stat
-        key={`${label}-lead`}
-        label={`Against the ${label.toLowerCase()}`}
-        value={signedPercent(lead, 2)}
-        tone={tone(lead)}
-      />
-    ]
-  }
-  return (
-    <div className="headline-statistics">
-      <Stat label="Total return" value={signedPercent(figures.total)} tone={tone(figures.total)} />
-      {against('Index', comparators.index)}
-      {against('Benchmark', comparators.benchmark)}
-      <Stat label="CAGR" value={percent(figures.cagr)} />
-      <Stat label="Volatility" value={percent(figures.volatility)} />
-      <Stat label="Max drawdown" value={signedPercent(figures.drawdown)} tone="negative" />
-    </div>
-  )
 }

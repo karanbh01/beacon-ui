@@ -65,19 +65,42 @@
   max-width: 100%;
 }
 
-.summary-grid > .level-chart-block {
+/*
+ * The headline figures over the chart (Karan, 2026-11-20). Contained so the
+ * chart takes the column's width rather than widening it.
+ */
+/* The left column runs as tall as the chart's, which its exposures list fills. */
+.summary-grid > .summary-profile {
+  align-self: stretch;
+}
+
+.summary-chart-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
   contain: inline-size;
 }
 
+.headline-statistics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.headline-statistics-wide {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 /*
- * Summary (BU-294): the backtest and its figures on the left, the chart with
- * its drawdown and flows on the right, the period table under both.
+ * Summary (BU-294): the backtest and what it holds on the left, its headline
+ * figures and the chart on the right, the period table under both.
  */
 .summary-grid {
   display: grid;
-  /* The chart 700px wide (Karan, 2026-11-19), narrower only in a narrow pane. */
-  grid-template-columns: 480px minmax(0, 700px);
-  width: 1204px;
+  /* The chart 685px wide (Karan, 2026-11-19), narrower only in a narrow pane. */
+  grid-template-columns: 480px minmax(0, 685px);
+  width: 1189px;
   max-width: 100%;
   gap: 24px;
   align-items: start;

@@ -17,13 +17,15 @@ type Weights = number[][]
  * the pane's grey to the accent by where the fund's weight sits, name by
  * name, so it reads as where the money is rather than as nine numbers. A circle
  * marks the fund's centre and a diamond the index's; the weights are in the
- * hover popup (Karan, 2026-11-19).
+ * hover popup (Karan, 2026-11-19). A benchmark other than the index is an X;
+ * one that is the index shares its diamond (Karan, 2026-11-20).
  */
 export function StyleBox({
   frame,
   positions,
   classification,
-  spec
+  spec,
+  benchmarkIsIndex
 }: {
   frame: TableFrame | undefined
   /** Each held name's place and weight; the shading follows these when there are any. */
@@ -31,6 +33,7 @@ export function StyleBox({
   /** Each book's cell and weighted centre, where its marker sits. */
   classification: TableFrame | undefined
   spec: StatisticSpec | undefined
+  benchmarkIsIndex: boolean
 }): ReactElement {
   if (frame === undefined) return <p className="summary-profile-none type-11">Not worked out</p>
   const labelOf = (column: string, code: string): string =>
@@ -41,6 +44,7 @@ export function StyleBox({
   const heaviest = Math.max(...names.map((entry) => entry.fund), 0.0001)
   const mine = centreOf(classification, 'fund')
   const theirs = centreOf(classification, 'index')
+  const benchmark = benchmarkIsIndex ? undefined : centreOf(classification, 'benchmark')
 
   return (
     <div className="style-box">
@@ -57,7 +61,14 @@ export function StyleBox({
       </div>
       <HoverTip
         className="style-box-plot"
-        tip={<StyleTip fund={fund} index={index} labelOf={labelOf} />}
+        tip={
+          <StyleTip
+            fund={fund}
+            index={index}
+            benchmark={benchmark === undefined ? undefined : weightsOf(frame, 'benchmark')}
+            labelOf={labelOf}
+          />
+        }
       >
         <svg width={SIDE} height={SIDE} role="img" aria-label="Style box">
           <defs>
@@ -104,6 +115,7 @@ export function StyleBox({
               transform={`rotate(45 ${String(theirs.x)} ${String(theirs.y)})`}
             />
           )}
+          {benchmark !== undefined && <BenchmarkMark x={benchmark.x} y={benchmark.y} half={4.5} />}
           {mine !== undefined && (
             <circle className="style-box-fund" cx={mine.x} cy={mine.y} r={5.5} />
           )}
@@ -128,10 +140,36 @@ export function StyleBox({
               transform="rotate(45 5 5)"
             />
           </svg>
-          Index
+          {benchmarkIsIndex ? 'Index/benchmark' : 'Index'}
         </span>
+        {benchmark !== undefined && (
+          <span>
+            <svg width={10} height={10} aria-hidden="true">
+              <BenchmarkMark x={5} y={5} half={3.5} />
+            </svg>
+            Benchmark
+          </span>
+        )}
       </div>
     </div>
+  )
+}
+
+/** A benchmark other than the index: an X, drawn about its centre. */
+export function BenchmarkMark({
+  x,
+  y,
+  half
+}: {
+  x: number
+  y: number
+  half: number
+}): ReactElement {
+  return (
+    <path
+      className="style-box-benchmark"
+      d={`M${String(x - half)} ${String(y - half)}L${String(x + half)} ${String(y + half)}M${String(x + half)} ${String(y - half)}L${String(x - half)} ${String(y + half)}`}
+    />
   )
 }
 
@@ -182,12 +220,17 @@ function centreOf(
 function StyleTip({
   fund,
   index,
+  benchmark,
   labelOf
 }: {
   fund: Weights
   index: Weights
+  /** Only for a benchmark other than the index. */
+  benchmark: Weights | undefined
   labelOf: (column: string, code: string) => string
 }): ReactElement {
+  const share = (weights: Weights, r: number, c: number): string =>
+    percent((weights[r]?.[c] ?? 0) * 100, 1)
   return (
     <>
       <div className="header-tip-title">Weight by size and style</div>
@@ -198,7 +241,8 @@ function StyleTip({
               {`${labelOf('size', size)} ${labelOf('style', style).toLowerCase()}`}
             </dt>,
             <dd key={`${size}-${style}-value`}>
-              {`${percent((fund[r]?.[c] ?? 0) * 100, 1)} fund · ${percent((index[r]?.[c] ?? 0) * 100, 1)} index`}
+              {`${share(fund, r, c)} fund · ${share(index, r, c)} index`}
+              {benchmark !== undefined && ` · ${share(benchmark, r, c)} benchmark`}
             </dd>
           ])
         )}
