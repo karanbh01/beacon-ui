@@ -5,6 +5,7 @@ import {
   CATALOGUE_UNAVAILABLE,
   type StubStatistic
 } from './stubAnalyticsCatalogue'
+import { riskFigures, riskTable } from './stubRisk'
 
 /**
  * py-beacon 0.10.0's analytics as the stub answers them (BN-398, BN-400):
@@ -15,11 +16,11 @@ import {
  * review needs of them.
  */
 
-interface Line {
+export interface Line {
   index: string[]
   data: number[]
 }
-interface Lines {
+export interface Lines {
   strategy: Line
   index: Line
   benchmark: Line | undefined
@@ -251,6 +252,8 @@ function figuresOf(statistic: StubStatistic, run: string, lines: Lines): Record<
       guess(statistic, `${run}/${statistic.id}`)
     return { active: figure }
   }
+  const risk = riskFigures(statistic.id, lines)
+  if (risk !== undefined) return risk
   if (statistic.figure_names !== undefined) {
     const out: Record<string, number> = {}
     if (statistic.id === 'factor_betas') {
@@ -918,6 +921,19 @@ export function analyticsFor(run: { strategyId: string }, lines: Lines): unknown
     const missing = unavailableOf(statistic.id)
     if (missing !== undefined) {
       unavailable[statistic.id] = missing
+      continue
+    }
+    const risk = riskTable(statistic.id, lines, run.strategyId)
+    if (risk !== undefined) {
+      // A book the run lacks has no column (py-beacon d817ec8).
+      const columns = (statistic.columns ?? [])
+        .map((column) => column.name)
+        .filter((name) => lines.benchmark !== undefined || name !== 'benchmark')
+      statistics[statistic.id] = {
+        kind: 'table',
+        point: { index: risk.rows.map((_, at) => at), columns, data: risk.rows },
+        ...(risk.summary === undefined ? {} : { summary: risk.summary })
+      }
       continue
     }
     if (statistic.kind === 'table') {

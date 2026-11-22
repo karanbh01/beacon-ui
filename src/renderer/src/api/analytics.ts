@@ -15,7 +15,8 @@ export type Level = 'core' | 'extended'
 export interface TableFrame {
   index: (string | number)[]
   columns: string[]
-  data: (string | number | null)[][]
+  /** A flag column carries booleans: whether a name was in the index at the end, say. */
+  data: (string | number | boolean | null)[][]
 }
 
 export interface ColumnSpec {
@@ -80,7 +81,13 @@ export interface RollingFigures {
 
 export type StatisticValue =
   | { kind: 'figures'; point: Record<string, number | null>; rolling?: RollingFigures }
-  | { kind: 'table'; point: TableFrame; rolling?: RollingFigures }
+  | {
+      kind: 'table'
+      point: TableFrame
+      rolling?: RollingFigures
+      /** A few figures about the table as a whole: how many names were measured, say (BN-429). */
+      summary?: Record<string, string | number | boolean | null>
+    }
   | { kind: 'series'; point: { index: string[]; name: string; data: (number | null)[] } }
 
 export interface Analytics {

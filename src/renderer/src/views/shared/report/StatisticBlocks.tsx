@@ -127,7 +127,7 @@ export function StatisticTable({
   const specs = item.spec.columns ?? []
   const signed = isSigned(item.spec)
   const rows = (frame?.data ?? []).map((cells, at) => ({ at, cells }))
-  const columns: Column<{ at: number; cells: (string | number | null)[] }>[] = (
+  const columns: Column<{ at: number; cells: (string | number | boolean | null)[] }>[] = (
     frame?.columns ?? []
   ).map((name, position) => {
     const spec = specs.find((candidate) => candidate.name === name)

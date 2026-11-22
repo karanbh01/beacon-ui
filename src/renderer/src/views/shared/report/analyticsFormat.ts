@@ -8,6 +8,7 @@ import type { AnalysisOptions, StatisticSpec, Unit } from '../../../api/analytic
  */
 export function formatValue(value: unknown, unit: Unit | null | undefined, decimals = 2): string {
   if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (typeof value === 'string') return value
   if (typeof value !== 'number') return '—'
   if (!Number.isFinite(value)) return '—'

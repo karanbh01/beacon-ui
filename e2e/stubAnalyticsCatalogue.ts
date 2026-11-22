@@ -56,6 +56,7 @@ excess_kurtosis|Excess kurtosis|Distribution|figures|ratio|performance|L
 tail_ratio|Tail ratio|Distribution|figures|ratio|performance|M
 serial_correlation|Serial correlation|Distribution|figures|ratio|performance|L
 return_histogram|Return histogram|Distribution|table|-|performance|-
+return_distribution|Return distribution|Distribution|table|-|performance|-
 bootstrap_ranges|Bootstrap ranges|Distribution|table|-|performance|-
 sharpe_ratio|Sharpe ratio|Risk-adjusted|figures|ratio|performance|L
 sortino_ratio|Sortino ratio|Risk-adjusted|figures|ratio|performance|L
@@ -89,6 +90,7 @@ td_by_year|Tracking difference by year|Relative|table|-|performance|-
 rolling_outcomes|Rolling outcomes|Rolling|table|-|performance|-
 crisis_returns|Crisis returns|Crises and regimes|table|-|performance|-
 crisis_summary|Crisis summary|Crises and regimes|table|-|performance|-
+crisis_paths|Crisis paths|Crises and regimes|table|-|performance|-
 regime_figures|Regime figures|Crises and regimes|table|-|performance|-
 holdings_count|Holdings count|Portfolio|figures|count|portfolio|-
 holdings_range|Holdings over the run|Portfolio|table|-|portfolio|-
@@ -125,6 +127,12 @@ factor_betas|Factor betas|Factors|figures|ratio|risk|M
 value_at_risk|Value at risk|Value at risk|figures|fraction|risk|M
 expected_shortfall|Expected shortfall|Value at risk|figures|fraction|risk|H
 stress_windows|Stress windows|Value at risk|table|-|risk|-
+member_risk_return|Risk and return of every member|risk|table|fraction|risk|-
+portfolio_risk_return|Risk and return of each portfolio|risk|table|fraction|risk|-
+efficient_frontier|Efficient frontier in hindsight|risk|table|fraction|risk|-
+market_correlations|Correlation with markets|Correlation|table|ratio|risk|-
+rolling_correlations|Rolling correlation with markets|Correlation|table|ratio|risk|-
+market_volatility|Volatility range with markets|Correlation|table|fraction|risk|-
 expected_risk|Expected volatility and tracking error|Risk contributions|table|-|risk|-
 risk_contributions|Risk contributions|Risk contributions|table|-|risk|-
 measured_contributions|Measured contributions|Risk contributions|table|-|risk|H
@@ -149,6 +157,31 @@ implementation_breakdown|Implementation breakdown|Attribution|table|-|attributio
 
 const col = (name: string, label: string, unit: string | null = null) => ({ name, label, unit })
 const BOOK_NAMES = { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
+/** The correlation tables' series: the books, then the provisional market stand-ins. */
+const SERIES_LABELS: Record<string, string> = {
+  fund: 'Fund',
+  index: 'Index',
+  benchmark: 'Benchmark',
+  ACWI: 'Global equity',
+  SPY: 'US equity',
+  EEM: 'Emerging markets',
+  AGG: 'US bonds',
+  TLT: 'Long Treasuries',
+  GLD: 'Gold',
+  UUP: 'US dollar'
+}
+const SERIES_CODES = [
+  'fund',
+  'index',
+  'benchmark',
+  'ACWI',
+  'SPY',
+  'EEM',
+  'AGG',
+  'TLT',
+  'GLD',
+  'UUP'
+]
 /** Each characteristic's code, its label after the book's name, and its unit. */
 const CHARACTERISTICS: [string, string, string][] = [
   ['MARKET_CAP', 'market cap', 'money'],
@@ -357,11 +390,95 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
     col('median', 'Median', 'fraction'),
     col('best', 'Best', 'fraction')
   ],
+  // py-beacon d817ec8 (BN-431): the named crises, each with a status.
   crisis_returns: [
+    col('name', 'Crisis'),
+    col('start', 'Start', 'date'),
+    col('end', 'End', 'date'),
+    col('days', 'Days', 'days'),
+    col('fund', 'Fund', 'fraction'),
+    col('comparator', 'Comparator', 'fraction'),
+    col('outperformance', 'Outperformance', 'fraction'),
+    col('fund_drawdown', "Fund's drawdown", 'fraction'),
+    col('comparator_drawdown', "Comparator's drawdown", 'fraction'),
+    col('beta', 'Beta', 'ratio'),
+    col('alpha', 'Alpha', 'fraction'),
+    col('recovery_days', 'Days to recover', 'days'),
+    col('recovery_date', 'Recovered', 'date'),
+    {
+      ...col('status', 'Status'),
+      labels: {
+        covered: 'Covered',
+        partial: 'Partly covered',
+        before_run: 'Before the run',
+        after_run: 'After the run'
+      }
+    }
+  ],
+  crisis_paths: [
     col('crisis', 'Crisis'),
+    col('date', 'Date', 'date'),
+    {
+      ...col('book', 'Portfolio'),
+      labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
+    },
+    col('level', 'Level'),
+    { ...col('phase', 'Phase'), labels: { crisis: 'Crisis', after: 'After' } }
+  ],
+  // py-beacon d817ec8 (BN-429, BN-430).
+  member_risk_return: [
+    col('name', 'Name'),
+    col('return', 'Return', 'fraction'),
+    col('volatility', 'Volatility', 'fraction'),
+    col('observations', 'Periods', 'count'),
+    col('first', 'First', 'date'),
+    col('last', 'Last', 'date'),
+    col('in_index_at_end', 'In the index at the end'),
+    col('fund_weight', 'Fund weight', 'fraction'),
+    col('index_weight', 'Index weight', 'fraction')
+  ],
+  portfolio_risk_return: [
+    {
+      ...col('book', 'Portfolio'),
+      labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
+    },
+    col('return', 'Return', 'fraction'),
+    col('volatility', 'Volatility', 'fraction'),
+    col('observations', 'Periods', 'count'),
+    col('first', 'First', 'date'),
+    col('last', 'Last', 'date')
+  ],
+  efficient_frontier: [
+    col('volatility', 'Volatility', 'fraction'),
+    col('return', 'Return', 'fraction'),
+    col('minimum_variance', 'Minimum variance')
+  ],
+  return_distribution: [
+    col('low', 'From', 'fraction'),
+    col('high', 'To', 'fraction'),
     col('fund', 'Fund', 'fraction'),
     col('index', 'Index', 'fraction'),
-    col('active', 'Active', 'fraction')
+    col('benchmark', 'Benchmark', 'fraction'),
+    col('normal', 'Normal', 'fraction')
+  ],
+  // Provisional: the fund, its comparators and the market series against each
+  // other, until the store holds market series (Karan's call which).
+  market_correlations: [
+    { ...col('series', 'Series'), labels: SERIES_LABELS },
+    ...SERIES_CODES.map((code) => col(code, SERIES_LABELS[code] ?? code, 'ratio'))
+  ],
+  // Provisional: the fund against each over a trailing year, a point a week.
+  rolling_correlations: [
+    col('date', 'Date', 'date'),
+    ...SERIES_CODES.slice(1).map((code) => col(code, SERIES_LABELS[code] ?? code, 'ratio'))
+  ],
+  // Provisional: each series' lowest, highest and latest volatility over a
+  // trailing year, through the run (Karan, 2026-11-22).
+  market_volatility: [
+    { ...col('series', 'Series'), labels: SERIES_LABELS },
+    col('low', 'Lowest', 'fraction'),
+    col('high', 'Highest', 'fraction'),
+    col('latest', 'Latest', 'fraction')
   ],
   crisis_summary: [col('measure', 'Measure'), col('fund', 'Fund', 'fraction')],
   regime_figures: [
@@ -518,7 +635,7 @@ export const CATALOGUE_STATISTICS: StubStatistic[] = STATISTICS.trim()
       rolling,
       ...(columns === undefined ? {} : { columns }),
       ...(id === 'value_at_risk' || id === 'expected_shortfall'
-        ? { figure_names: ['method', 'confidence', 'horizon'] }
+        ? { figure_names: ['method', 'level', 'horizon'] }
         : {}),
       ...(id === 'factor_betas' ? { figure_names: ['factor'] } : {}),
       ...(category === 'Relative' ? { relative: true } : {})
