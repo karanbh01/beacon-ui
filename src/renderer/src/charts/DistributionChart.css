@@ -1,0 +1,104 @@
+/* The return distribution: the d3 half of ADR-0002, as the frontier is. */
+
+.distribution {
+  position: relative;
+  min-width: 0;
+}
+
+.distribution svg {
+  display: block;
+  /* py-beacon's plotting face: Light for ticks and labels. */
+  font-family: var(--font-data);
+  font-weight: 300;
+}
+
+.distribution-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 14px;
+  color: var(--text-secondary);
+}
+
+.distribution-legend > span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.distribution-swatch {
+  width: 8px;
+  height: 8px;
+}
+
+.distribution-swatch-fund {
+  background: var(--accent);
+}
+
+/* An outline's swatch is a short rule in its colour. */
+.distribution-swatch-line {
+  width: 12px;
+  height: 0;
+  border-top: 1.5px solid;
+}
+
+.distribution-swatch-normal {
+  width: 12px;
+  height: 0;
+  border-top: 1.5px dashed var(--text-muted);
+}
+
+.distribution-swatch-var {
+  width: 0;
+  height: 10px;
+  border-left: 1.5px solid var(--danger);
+}
+
+.distribution-swatch-es {
+  width: 0;
+  height: 10px;
+  border-left: 1.5px dashed var(--danger);
+}
+
+.distribution-bar {
+  fill: var(--accent);
+  pointer-events: none;
+}
+
+/* Beyond the VaR line: the days the measure is about. */
+.distribution-tail {
+  fill: var(--danger);
+}
+
+.distribution-outline {
+  fill: none;
+  stroke-width: 1.25;
+  pointer-events: none;
+}
+
+.distribution-normal {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.25;
+  stroke-dasharray: 3 2;
+  pointer-events: none;
+}
+
+.distribution-var {
+  stroke: var(--danger);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.distribution-es {
+  stroke: var(--danger);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  pointer-events: none;
+}
+
+.header-tip.distribution-tip {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

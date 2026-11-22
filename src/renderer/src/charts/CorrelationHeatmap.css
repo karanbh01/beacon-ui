@@ -1,5 +1,10 @@
 /* Figma 347:11024. Square cells, tickers down the left and across the top. */
 
+/* The tip's frame: the grid scrolls inside it, the tip sits over it. */
+.heatmap-block {
+  position: relative;
+}
+
 .heatmap {
   overflow-x: auto;
   max-width: 100%;
@@ -50,4 +55,69 @@
 /* A pair with no overlapping history is absent, not zero-correlated. */
 .heatmap-empty {
   background: var(--divider);
+}
+
+/* A head that picks its column: a plain label until hovered, underlined while picked. */
+.heatmap-pick {
+  padding: 0 0 4px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-underline-offset: 3px;
+}
+
+.heatmap-pick:hover {
+  color: var(--accent);
+}
+
+.heatmap-picked {
+  text-decoration: underline 1.5px var(--accent);
+}
+
+.heatmap-pick:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Colour alone: cell against cell, square-cornered so the grid reads as one block. */
+.heatmap-bare {
+  row-gap: 0;
+  column-gap: 0;
+}
+
+.heatmap-bare .heatmap-cell {
+  border-radius: 0;
+}
+
+.heatmap-bare .heatmap-head {
+  padding-bottom: 6px;
+}
+
+/* The hovered pair's figure, over the cell, in the column tips' glass. */
+.header-tip.heatmap-tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 4px));
+  white-space: nowrap;
+}
+
+/*
+ * The blended field under a bare matrix's clear cells. Out of the flow and
+ * filling its grid area, so its own square shape does not set the rows'
+ * height; the cells lie over it to take the pointer.
+ */
+.heatmap-bare {
+  position: relative;
+}
+
+.heatmap-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: auto;
+}
+
+.heatmap-bare .heatmap-cell {
+  position: relative;
+  z-index: 1;
 }

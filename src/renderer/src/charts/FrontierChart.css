@@ -16,3 +16,42 @@
 .frontier-cml {
   pointer-events: none;
 }
+
+/* Room for the hover, which is placed against the plot. */
+.frontier-chart-block {
+  position: relative;
+}
+
+/* A run's members (BN-429): faint, and the fund's own holdings stronger. */
+.frontier-member {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.frontier-held {
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+/* The style box's marks, so the fund, index and benchmark read the same everywhere. */
+.frontier-fund {
+  fill: var(--text-primary);
+  stroke: var(--canvas);
+  stroke-width: 1.5;
+}
+
+.frontier-index,
+.frontier-benchmark {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 1.5;
+}
+
+.frontier-benchmark {
+  stroke-linecap: round;
+}
+
+.header-tip.frontier-tip {
+  position: absolute;
+  transform: translate(12px, -50%);
+}

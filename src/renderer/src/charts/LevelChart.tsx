@@ -10,7 +10,15 @@ import {
 } from 'lightweight-charts'
 import { COLORS, type ThemeMode } from '../tokens/tokens'
 import { chartOptions, lineOptions, seriesColor } from './theme'
-import { addOverlay, addPane, colourOf, sentence, toMarkers, toneColor } from './chartSeries'
+import {
+  addOverlay,
+  addPane,
+  addShade,
+  colourOf,
+  sentence,
+  toMarkers,
+  toneColor
+} from './chartSeries'
 import { toLineData, toTime, type Point } from './transform'
 import { ChartReadout } from './ChartReadout'
 import { plainFigure, useReadout, type ReadoutEntry } from './readout'
@@ -153,6 +161,12 @@ export interface LevelChartProps {
    * rebased chart, as py-beacon draws it, in the border colour.
    */
   reference?: number
+  /**
+   * A stretch of dates shaded behind the lines, from the first date to the
+   * last, both inclusive: a crisis inside the months around it (Karan,
+   * 2026-11-21).
+   */
+  shade?: { from: string; to: string }
 }
 
 /**
@@ -178,7 +192,8 @@ export function LevelChart({
   header,
   footer,
   legend = false,
-  reference
+  reference,
+  shade
 }: LevelChartProps): ReactElement {
   const host = useRef<HTMLDivElement>(null)
   const chart = useRef<IChartApi | null>(null)
@@ -268,6 +283,8 @@ export function LevelChart({
 
     const overlaid =
       overlay === undefined ? undefined : addOverlay(created, overlay, mode, drawn.length)
+    const shaded =
+      shade === undefined ? undefined : addShade(created, series[0]?.points, shade, mode)
 
     // What the hover popup lists, in the legend's order and then the panels'.
     readable.current = [
@@ -334,13 +351,14 @@ export function LevelChart({
       for (const api of [...drawn, ...drawnStudies, ...drawnPanels.flat()]) {
         created.removeSeries(api)
       }
+      if (shaded !== undefined) created.removeSeries(shaded)
       if (overlaid !== undefined) {
         created.removeSeries(overlaid)
         // The axis exists for that one series, so it goes with it.
         created.applyOptions({ rightPriceScale: { visible: false } })
       }
     }
-  }, [series, panels, studies, events, overlay, mode, reference])
+  }, [series, panels, studies, events, overlay, mode, reference, shade])
 
   /*
    * What the overlays are placed from: the axes' widths, each pane's box and

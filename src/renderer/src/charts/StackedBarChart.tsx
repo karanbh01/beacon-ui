@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { useMemo, useRef, useState, type ReactElement } from 'react'
 import { AxisBottom, AxisLeft } from '@visx/axis'
 import { Group } from '@visx/group'
 import { scaleBand, scaleLinear } from '@visx/scale'
 import { COLORS, type ThemeMode } from '../tokens/tokens'
 import '../components/Table/HeaderTip.css'
+import { useWidth } from './useWidth'
 import './StackedBarChart.css'
 
 /** One stacked part of every bar, with its legend name and colour. */
@@ -241,22 +242,4 @@ function TipRow({ name, value }: { name: string; value: string }): ReactElement 
       <dd>{value}</dd>
     </>
   )
-}
-
-/** The element's width, kept as it resizes. */
-function useWidth(host: { current: HTMLDivElement | null }): number {
-  const [width, setWidth] = useState(0)
-  useEffect(() => {
-    const element = host.current
-    if (element === null) return undefined
-    const watcher = new ResizeObserver(() => {
-      setWidth(element.clientWidth)
-    })
-    watcher.observe(element)
-    setWidth(element.clientWidth)
-    return () => {
-      watcher.disconnect()
-    }
-  }, [host])
-  return width
 }

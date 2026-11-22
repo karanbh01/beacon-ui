@@ -12,7 +12,7 @@ import {
 import { COLORS, type ThemeMode } from '../tokens/tokens'
 import type { ChartEvent, Overlay, PaneSeries, Series, SubPanel, Tone } from './LevelChart'
 import { histogramOptions, lineOptions, seriesColor, withAlpha } from './theme'
-import { toHistogramData, toLineData, toTime } from './transform'
+import { toHistogramData, toLineData, toTime, type Point } from './transform'
 
 /*
  * What LevelChart adds to its chart, kept apart from the component: the
@@ -194,4 +194,34 @@ function addGuides(api: ISeriesApi<SeriesType>, entry: PaneSeries, mode: ThemeMo
       axisLabelVisible: false
     })
   }
+}
+
+/**
+ * The shaded stretch: an area filled to the top of a scale of its own, over
+ * the first line's dates inside it, faint enough to read the lines through.
+ * Not in the readout or the legend: it marks when, not a value.
+ */
+export function addShade(
+  chart: IChartApi,
+  points: readonly Point[] | undefined,
+  shade: { from: string; to: string },
+  mode: ThemeMode
+): ISeriesApi<'Area'> | undefined {
+  if (points === undefined) return undefined
+  const inside = points.filter((point) => point.date >= shade.from && point.date <= shade.to)
+  const fill = withAlpha(COLORS[mode]['text-muted'], 0.16)
+  const api = chart.addSeries(AreaSeries, {
+    priceScaleId: 'shade',
+    topColor: fill,
+    bottomColor: fill,
+    lineVisible: false,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false,
+    // Nought to one whatever the data, so the area reaches the top of the pane.
+    autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } })
+  })
+  chart.priceScale('shade').applyOptions({ visible: false, scaleMargins: { top: 0, bottom: 0 } })
+  api.setData(toLineData(inside.map((point) => ({ date: point.date, value: 1 }))))
+  return api
 }
