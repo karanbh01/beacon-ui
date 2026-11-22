@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, openPage, openView, test, choose } from './fixtures'
+import { expect, openPage, openView, test } from './fixtures'
 
 /**
  * The Overview's faces (BU-176): a stored strategy's latest run since
@@ -154,57 +154,55 @@ test('the run’s index and benchmark each have their own comparison', async ({ 
 })
 
 test('the period choice survives a move between faces', async ({ window }) => {
-  // Period and benchmark are the same question asked on two faces, so the
-  // answer is held above both of them.
+  // The period is held above the faces, so leaving Statistics Detail and
+  // coming back keeps it.
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Statistics Detail' }).click()
   await window.getByRole('radio', { name: 'Quarterly' }).click()
 
   await window.getByRole('radio', { name: 'Risk & Correlation' }).click()
+  await window.getByRole('radio', { name: 'Statistics Detail' }).click()
   await expect(window.getByRole('radio', { name: 'Quarterly' })).toBeChecked()
-  await expect(window.getByText('QUARTERLY RISK')).toBeVisible()
 })
 
-test('risk shows one chart with three series behind a selector', async ({ window }) => {
+test('risk shows the frontier, the crises and the return distribution', async ({ window }) => {
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Risk & Correlation' }).click()
 
   const view = window.locator('.index-overview-view')
-  await expect(view).toContainText('VaR · historical')
-  await expect(view).toContainText('expected shortfall')
+  await expect(window.locator('.frontier-chart')).toBeVisible()
 
-  // One plot, not three stacked down the pane.
-  await expect(window.locator('.level-chart')).toHaveCount(1)
-  // The drawdown first, its note naming the worst of it.
-  await expect(view).toContainText(/Worst −\d/)
+  // The VaR line follows the level picked beside the distribution.
+  const distribution = window.locator('.distribution')
+  await expect(distribution).toContainText(/VaR 95% · \d/)
+  await window.getByRole('radio', { name: '99%' }).click()
+  await expect(distribution).toContainText(/VaR 99% · \d/)
 
-  await choose(window, 'Series', 'volatility')
-  await expect(view).toContainText('60 observations, stamped at the end of each window')
-
-  // Rolling correlation has nothing to correlate against until one is picked,
-  // and says so rather than drawing an empty chart.
-  await choose(window, 'Series', 'correlation')
-  await expect(window.getByText('Choose a strategy to correlate against.')).toBeVisible()
+  // A crisis before the run keeps its row and says so; one the run saw opens to its chart.
+  const crises = window.locator('.crisis-table')
+  await expect(crises).toContainText('Before the run')
+  await expect(view.locator('.crisis-chart')).toHaveCount(0)
+  await crises.locator('[role="row"]', { hasText: 'tariff' }).click()
+  await expect(view.locator('.crisis-chart')).toBeVisible()
 })
 
-test('correlations are against the strategies the reader picks', async ({ window }) => {
+test('a column picked in the matrix is charted in the rolling correlation', async ({ window }) => {
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Risk & Correlation' }).click()
 
-  await expect(
-    window.getByText('Nothing chosen. Correlation needs something to correlate against.')
-  ).toBeVisible()
+  const legend = window.locator('.risk-correlation .level-chart-legend')
+  await expect(legend).toContainText('Global equity (ACWI)')
+  await expect(legend).not.toContainText('Gold')
 
-  await window.getByRole('button', { name: 'Correlate against' }).click()
-  await window.getByRole('checkbox', { name: 'EU-VALUE' }).check()
-  await window.keyboard.press('Escape')
+  const gold = window.getByRole('button', { name: 'GLD', exact: true })
+  await gold.click()
+  await expect(gold).toHaveAttribute('aria-pressed', 'true')
+  await expect(legend).toContainText('Gold (GLD)')
 
-  const correlation = window.locator('section', { hasText: 'Correlation' }).last()
-  await expect(correlation).toContainText('EU-VALUE')
-  // A real number, computed from returns on the dates both series share.
-  await expect(correlation.locator('.tbl-body .tbl-row').first()).toContainText(
-    /[01]\.\d{3}|−0\.\d{3}/
-  )
+  // A volatility range beside each of the matrix's rows.
+  const rows = await window.locator('.heatmap-row-head').count()
+  expect(rows).toBeGreaterThan(0)
+  await expect(window.locator('.volatility-range')).toHaveCount(rows)
 })
 
 test('a window the calendar narrowed says so, and which end', async ({ window }) => {

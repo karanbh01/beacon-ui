@@ -258,3 +258,217 @@
     color-mix(in srgb, var(--canvas) 45%, transparent) 5px 8px
   );
 }
+
+/*
+ * Risk & correlation (Karan, 2026-11-21): a two-by-two, the markets beside
+ * the frontier above, the crises beside the return distribution below.
+ * Summary's width, so the faces line up when a reader moves between them.
+ */
+.risk-face {
+  display: grid;
+  grid-template-columns: minmax(0, 580px) minmax(0, 580px);
+  gap: 32px 29px;
+  align-items: start;
+}
+
+.risk-correlation {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.risk-frontier {
+  min-width: 0;
+}
+
+.risk-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 14px;
+  color: var(--text-secondary);
+}
+
+.risk-legend > span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.risk-legend-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.35;
+}
+
+.risk-legend-held {
+  width: 6px;
+  height: 6px;
+  opacity: 1;
+}
+
+.risk-legend-line {
+  width: 14px;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* A crisis the run never saw: its status runs across the figures it has none of. */
+.crisis-table .tbl-cell:has(> .crisis-status) {
+  overflow: visible;
+}
+
+.crisis-status {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* The chart opened under a crisis, on the table's own edges. */
+.crisis-chart {
+  padding-top: 8px;
+}
+
+/*
+ * The rolling chart's legend above its lines rather than among them: a
+ * correlation near 1 runs along the plot's top edge (Karan, 2026-11-22).
+ */
+.risk-correlation .level-chart-legend {
+  top: -16px;
+}
+
+/*
+ * The matrix and, beside it, each row's volatility range (Karan,
+ * 2026-11-22). Bottoms aligned, so each bar sits on its matrix row whatever
+ * height the heads come to.
+ */
+.risk-matrix {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.volatility-ranges {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 192px;
+}
+
+.volatility-ranges-head {
+  padding-bottom: 6px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: var(--font-data);
+  font-weight: 300;
+}
+
+.volatility-range:focus-visible {
+  outline: 1px solid var(--accent);
+}
+
+/* The rows, and behind them the bands' dividers. */
+.volatility-ranges-plot {
+  position: relative;
+}
+
+/* The scale's own stretch, inset as the rows are, so a divider falls where its volatility does. */
+.volatility-ranges-bands {
+  position: absolute;
+  top: 0;
+  right: 32px;
+  bottom: 0;
+  left: 32px;
+  pointer-events: none;
+}
+
+.volatility-ranges-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Barely there: it marks the bands without competing with the lines (Karan, 2026-11-22). */
+  border-left: 1px dashed color-mix(in srgb, var(--text-muted) 28%, transparent);
+}
+
+/* Under the last row, out of the flow, so the rows stay level with the matrix's. */
+.volatility-ranges-names {
+  top: 100%;
+  bottom: auto;
+  padding-top: 4px;
+  color: var(--text-muted);
+  font-family: var(--font-data);
+  font-weight: 300;
+}
+
+.volatility-ranges-names > span {
+  position: absolute;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* Inset by a figure's width, so the ends written beside a line at either edge fit. */
+.volatility-range-row {
+  position: relative;
+  display: block;
+  margin: 0 32px;
+}
+
+/*
+ * Calm to stormy across the whole scale, each bar its own stretch of it: a
+ * line thinner than the marker on it (Karan, 2026-11-22).
+ */
+.volatility-range-bar {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(to right, var(--accent), var(--working), var(--danger));
+  opacity: 0.9;
+  transform: translateY(-50%);
+}
+
+.volatility-range:hover .volatility-range-bar {
+  opacity: 1;
+}
+
+/* Where it is now: the style box's fund circle. */
+.volatility-range-now {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  z-index: 1;
+  border-radius: 50%;
+  background: var(--text-primary);
+  box-shadow: 0 0 0 1.5px var(--canvas);
+  transform: translate(-50%, -50%);
+}
+
+/* A line's lowest and highest, just clear of its ends and of a circle sitting on one. */
+.volatility-range-end {
+  position: absolute;
+  top: 50%;
+  /* On the pane's colour, so a band's divider passes behind the figure, not through it. */
+  background: var(--canvas);
+  color: var(--text-muted);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+/* The gap to the line outside the figure, so only the figure itself hides a divider. */
+.volatility-range-low {
+  margin-right: 8px;
+}
+
+.volatility-range-high {
+  margin-left: 8px;
+}

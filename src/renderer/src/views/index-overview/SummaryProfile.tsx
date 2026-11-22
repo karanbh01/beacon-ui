@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react'
-import type { Analytics, StatisticSpec, TableFrame } from '../../api/analytics'
+import type { StatisticSpec } from '../../api/analytics'
 import { Section } from '../../components/Section/Section'
 import { useAnalysisOptions, useAnalytics } from '../shared/analyticsQueries'
+import { frameOf } from './analyticsFrames'
 import type { Comparators } from './comparators'
 import { Exposures } from './Exposures'
 import { HoldingsBar } from './HoldingsBar'
@@ -94,9 +95,4 @@ function Title({ label, value }: { label: string; value: string }): ReactElement
       <span className="summary-title-value">{value}</span>
     </div>
   )
-}
-
-function frameOf(answer: Analytics | undefined, id: string): TableFrame | undefined {
-  const value = answer?.statistics[id]
-  return value?.kind === 'table' ? value.point : undefined
 }

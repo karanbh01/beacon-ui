@@ -6,7 +6,7 @@ import { SegmentedControl } from '../../components/SegmentedControl/SegmentedCon
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError } from '../shared/ViewState'
-import { isAbsent, useBacktestRecords, useOverview } from '../shared/beaconQueries'
+import { isAbsent, useOverview } from '../shared/beaconQueries'
 import { describeSkipped } from '../shared/pickers'
 import { useStrategyCatalogue } from '../shared/strategyDocuments'
 import type { Period } from '../shared/periods'
@@ -39,9 +39,8 @@ const FACES: readonly { value: Face; label: string }[] = [
  * Correlation are what a reader asks next.
  *
  * Sub-tabs on a SegmentedControl rather than a second row of Tab chips,
- * which would compete with the real tabs above. The period and the
- * comparators chosen for correlation are held here, so a choice made on one
- * face survives a move to the other.
+ * which would compete with the real tabs above. The period is held
+ * here, so a choice made on one face survives a move to another.
  */
 export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactElement {
   // `pinnedDoc` is still read: a tab saved in a preset while this view was
@@ -49,13 +48,11 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
   const strategyId = subject ?? tab.pinnedDoc ?? ''
   const overview = useOverview(strategyId)
   const catalogue = useStrategyCatalogue()
-  const runs = useBacktestRecords()
   const openOrRetarget = useWorkspace((state) => state.openOrRetarget)
   const setSubject = useWorkspace((state) => state.setSubject)
 
   const [face, setFace] = useState<Face>('summary')
   const [period, setPeriod] = useState<Period>('annual')
-  const [comparators, setComparators] = useState<string[]>([])
 
   /*
    * What the catalogue could not read (BN-174), on the header's line.
@@ -67,17 +64,6 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
    * (Karan, 2026-11-20).
    */
   const meta = useMemo(() => describeSkipped(catalogue.skipped), [catalogue.skipped])
-
-  /*
-   * What it can be measured against: other strategies with a run. The
-   * engine compares runs and nothing else, so a strategy never run is not
-   * a choice, and a strategy correlated with itself is 1.000.
-   */
-  const others = useMemo(
-    () =>
-      (runs.data?.backtests ?? []).map((run) => run.strategy_id).filter((id) => id !== strategyId),
-    [runs.data, strategyId]
-  )
 
   const noRun = overview.isError && isAbsent(overview.error)
 
@@ -155,15 +141,7 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
       {overview.isError && !noRun && <ViewError error={overview.error} />}
 
       {overview.isSuccess && (
-        <OverviewFace
-          face={face}
-          strategyId={strategyId}
-          period={period}
-          onPeriod={setPeriod}
-          comparators={comparators}
-          onComparators={setComparators}
-          others={others}
-        />
+        <OverviewFace face={face} strategyId={strategyId} period={period} onPeriod={setPeriod} />
       )}
     </div>
   )
@@ -174,9 +152,6 @@ interface OverviewFaceProps {
   strategyId: string
   period: Period
   onPeriod: (period: Period) => void
-  comparators: string[]
-  onComparators: (comparators: string[]) => void
-  others: readonly string[]
 }
 
 function OverviewFace({ face, strategyId, ...shared }: OverviewFaceProps): ReactElement {
@@ -194,16 +169,7 @@ function OverviewFace({ face, strategyId, ...shared }: OverviewFaceProps): React
         />
       )
     case 'risk':
-      return (
-        <RiskCorrelation
-          strategyId={strategyId}
-          period={shared.period}
-          onPeriod={shared.onPeriod}
-          benchmarks={shared.comparators}
-          onBenchmarks={shared.onComparators}
-          others={shared.others}
-        />
-      )
+      return <RiskCorrelation strategyId={strategyId} />
     case 'flows':
       return <FlowsAum strategyId={strategyId} />
   }
