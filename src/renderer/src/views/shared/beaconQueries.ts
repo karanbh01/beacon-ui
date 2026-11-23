@@ -3,6 +3,7 @@ import type { components } from '@shared/api.generated'
 import { ApiError } from '../../api/errors'
 import { keys } from '../../api/keys'
 import { useBeacon } from '../../api/queryClient'
+import type { Frequency } from './periods'
 
 export type OverviewView = components['schemas']['OverviewView']
 export type WeightsView = components['schemas']['WeightsView']
@@ -264,7 +265,7 @@ export type ComparisonPayload = components['schemas']['ComparisonPayload']
  * quarter or month. Each period runs from the previous period's close, so
  * they compound to the since-inception figures; 404 until there is a run.
  */
-export function usePeriods(strategyId: string, frequency: 'annual' | 'quarterly' | 'monthly') {
+export function usePeriods(strategyId: string, frequency: Frequency) {
   const client = useBeacon()
 
   return useQuery({
@@ -273,7 +274,9 @@ export function usePeriods(strategyId: string, frequency: 'annual' | 'quarterly'
       if (client === null) throw new Error('No engine')
       return client.get('/strategies/{strategy_id}/periods', {
         params: { strategy_id: strategyId },
-        query: { frequency },
+        // Trailing windows are asked of py-beacon (Karan, 2026-11-23) and not in its
+        // schema yet: the stub serves them, and the engine refuses them until then.
+        query: { frequency: frequency as Exclude<Frequency, 'trailing'> },
         signal
       })
     },

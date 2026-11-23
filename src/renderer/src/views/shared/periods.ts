@@ -17,6 +17,17 @@ export const PERIODS: readonly { value: Period; label: string }[] = [
   { value: 'monthly', label: 'Monthly' }
 ]
 
+/**
+ * Performance's choices (Karan, 2026-11-23): windows ending on the run's
+ * last day, such as the past three months or year, then the calendar periods.
+ */
+export type Frequency = 'trailing' | Period
+
+export const FREQUENCIES: readonly { value: Frequency; label: string }[] = [
+  { value: 'trailing', label: 'Relative' },
+  ...PERIODS
+]
+
 /** Trading days in a year, for annualising a standard deviation. */
 const TRADING_DAYS = 252
 

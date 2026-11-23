@@ -111,6 +111,64 @@
   width: fit-content;
 }
 
+/* Performance's table, its note under it (Karan, 2026-11-23). */
+.performance-face {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The periods shown, between the steps back and forward. */
+/*
+ * The two charts side by side above the table, narrow enough that neither
+ * axis is drawn out (Karan, 2026-11-23): the regression near square, so a
+ * day's move reads the same across as up.
+ */
+.performance-charts {
+  display: grid;
+  grid-template-columns: minmax(0, 528px) minmax(0, 396px);
+  column-gap: 48px;
+  align-items: start;
+}
+
+/* Room for two lines in both legends, so the plots start level and stay put on hover. */
+.performance-charts .grouped-bars-legend,
+.regression-legend {
+  min-height: 30px;
+}
+
+.regression-legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  color: var(--text-secondary);
+}
+
+.regression-legend > span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.regression-legend-line {
+  width: 12px;
+}
+
+.performance-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.performance-range {
+  min-width: 120px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
 .overview-note {
   margin: 0;
   padding: 8px 12px;

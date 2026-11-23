@@ -1176,6 +1176,10 @@ function runFigures(run: { strategyId: string; indexId: string; kind: string }):
   return {
     metrics: {
       ...figuresOf(lines.strategy),
+      // A stand-in: the stub's runs carry no flows to take an investor's IRR of.
+      money_weighted_return: Number(
+        ((figuresOf(lines.strategy).annualised_return ?? 0) - 0.004).toFixed(6)
+      ),
       tracking_error: againstIndex.tracking_error ?? null,
       tracking_difference: againstIndex.relative_return ?? null
     },
@@ -2376,11 +2380,12 @@ function body(url: URL): unknown {
     const run = runOf(path)
     if (isRefusal(run)) return run
     const frequency = url.searchParams.get('frequency') ?? 'annual'
-    if (!['annual', 'quarterly', 'monthly'].includes(frequency)) {
+    // Trailing is asked of py-beacon (Karan, 2026-11-23); the stub serves its guess.
+    if (!['trailing', 'annual', 'quarterly', 'monthly'].includes(frequency)) {
       return refuse(
         422,
         'VALIDATION_ERROR',
-        `frequency must be annual, quarterly or monthly, not '${frequency}'.`
+        `frequency must be trailing, annual, quarterly or monthly, not '${frequency}'.`
       )
     }
     const lines = runLines(run)

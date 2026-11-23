@@ -9,21 +9,22 @@ import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { isAbsent, useOverview } from '../shared/beaconQueries'
 import { describeSkipped } from '../shared/pickers'
 import { useStrategyCatalogue } from '../shared/strategyDocuments'
-import type { Period } from '../shared/periods'
+import type { Frequency } from '../shared/periods'
 import { FlowsAum } from './FlowsAum'
 import { Implementation } from './Implementation'
+import { Performance } from './Performance'
 import { RiskCorrelation } from './RiskCorrelation'
-import { StatisticsDetail } from './StatisticsDetail'
 import { Summary } from './Summary'
 import './IndexOverviewView.css'
 
-type Face = 'summary' | 'implementation' | 'statistics' | 'risk' | 'flows'
+type Face = 'summary' | 'implementation' | 'performance' | 'risk' | 'flows'
 
 // Karan's order: what it did, how it was carried out, then the detail.
 const FACES: readonly { value: Face; label: string }[] = [
   { value: 'summary', label: 'Summary' },
   { value: 'implementation', label: 'Implementation' },
-  { value: 'statistics', label: 'Statistics Detail' },
+  // Statistics Detail until Karan, 2026-11-23.
+  { value: 'performance', label: 'Performance' },
   { value: 'risk', label: 'Risk & Correlation' },
   { value: 'flows', label: 'Flows & AUM' }
 ]
@@ -35,7 +36,7 @@ const FACES: readonly { value: Face; label: string }[] = [
  * View answer from one. Five faces: the Summary is the whole-period read;
  * Implementation and Flows & AUM are what the fund did that the index did
  * not (they were to be tabs of their own, and live here because they are
- * the same run asked different questions); Statistics Detail and Risk &
+ * the same run asked different questions); Performance and Risk &
  * Correlation are what a reader asks next.
  *
  * Sub-tabs on a SegmentedControl rather than a second row of Tab chips,
@@ -52,7 +53,7 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
   const setSubject = useWorkspace((state) => state.setSubject)
 
   const [face, setFace] = useState<Face>('summary')
-  const [period, setPeriod] = useState<Period>('annual')
+  const [period, setPeriod] = useState<Frequency>('annual')
 
   /*
    * What the catalogue could not read (BN-174), on the header's line.
@@ -150,8 +151,8 @@ export function IndexOverviewView({ tab, subject, pane }: ViewProps): ReactEleme
 interface OverviewFaceProps {
   face: Face
   strategyId: string
-  period: Period
-  onPeriod: (period: Period) => void
+  period: Frequency
+  onPeriod: (period: Frequency) => void
 }
 
 function OverviewFace({ face, strategyId, ...shared }: OverviewFaceProps): ReactElement {
@@ -160,13 +161,9 @@ function OverviewFace({ face, strategyId, ...shared }: OverviewFaceProps): React
       return <Summary strategyId={strategyId} />
     case 'implementation':
       return <Implementation strategyId={strategyId} />
-    case 'statistics':
+    case 'performance':
       return (
-        <StatisticsDetail
-          strategyId={strategyId}
-          period={shared.period}
-          onPeriod={shared.onPeriod}
-        />
+        <Performance strategyId={strategyId} period={shared.period} onPeriod={shared.onPeriod} />
       )
     case 'risk':
       return <RiskCorrelation strategyId={strategyId} />

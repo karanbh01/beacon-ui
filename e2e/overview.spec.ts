@@ -27,7 +27,7 @@ test('the faces are in Karan’s order', async ({ window }) => {
   await expect(window.locator('.overview-faces [role="radio"]')).toHaveText([
     'Summary',
     'Implementation',
-    'Statistics Detail',
+    'Performance',
     'Risk & Correlation',
     'Flows & AUM'
   ])
@@ -122,46 +122,95 @@ test('flows and AUM reads the money in, out, and each class', async ({ window })
   await expect(view).toContainText('Paid to the fund')
 })
 
-test('statistics detail buckets returns, and the period control changes them', async ({
+test('performance tables every figure by period, the fund beside what it is measured on', async ({
   window
 }) => {
   await openOverview(window, 'TECH10')
-  await window.getByRole('radio', { name: 'Statistics Detail' }).click()
+  await window.getByRole('radio', { name: 'Performance' }).click()
 
+  // One table, as Summary's: since inception and each year a group of columns.
+  const table = window.locator('.performance-face .tbl')
+  await expect(table).toContainText('SI')
+  await expect(table).toContainText('2025')
+  for (const book of ['Fund', 'Index', 'BM']) await expect(table).toContainText(book)
   const view = window.locator('.index-overview-view')
-  await expect(view).toContainText('Returns')
-  const head = window.locator('.tbl-head').first()
-  await expect(head).toContainText('Since inception')
-  const annual = await head.locator('.tbl-cell').count()
+  await expect(view).not.toContainText('Against the benchmark')
 
-  await window.getByRole('radio', { name: 'Monthly' }).click()
-
-  // Three years of daily levels is three annual columns and about thirty-six
-  // monthly ones: the control changes the question, not just the label.
-  await expect.poll(() => head.locator('.tbl-cell').count()).toBeGreaterThan(annual)
+  // Returns open, the other groups folded until asked for.
+  await expect(table).toContainText('Total return')
+  await expect(table).not.toContainText('Volatility')
+  for (const group of ['Risk-adjusted', 'Tracking', 'Regression']) {
+    await window.getByRole('button', { name: group, exact: true }).click()
+  }
+  for (const label of ['Information ratio', 'Tracking error', 'Sortino ratio', 'Alpha', 'R²']) {
+    await expect(view).toContainText(label)
+  }
 })
 
-test('the run’s index and benchmark each have their own comparison', async ({ window }) => {
+test('relative figures run back from the last day, each window a group of columns', async ({
+  window
+}) => {
   await openOverview(window, 'TECH10')
-  await window.getByRole('radio', { name: 'Statistics Detail' }).click()
+  await window.getByRole('radio', { name: 'Performance' }).click()
+  await window.getByRole('radio', { name: 'Relative' }).click()
 
-  const view = window.locator('.index-overview-view')
-  await expect(view).toContainText('Against the index · TECH10')
-  await expect(view).toContainText('Against the benchmark · EU-VALUE')
-  // An information ratio needs a benchmark, and the run has one.
-  await expect(view).toContainText('Information ratio')
-  await expect(view).toContainText('Tracking error')
+  const groups = window.locator('.performance-face .tbl-group')
+  for (const label of ['SI', '1M', '3M', 'YTD', '1Y']) {
+    await expect(groups.filter({ hasText: new RegExp(`^${label}$`) })).toHaveCount(1)
+  }
+})
+
+test('a month is too short for the ratios, so they are since inception only', async ({
+  window
+}) => {
+  await openOverview(window, 'TECH10')
+  await window.getByRole('radio', { name: 'Performance' }).click()
+  await window.getByRole('button', { name: 'Risk-adjusted', exact: true }).click()
+  const sortino = window.locator('.performance-face [role="row"]', { hasText: 'Sortino ratio' })
+  await expect(sortino).toContainText(/\d\.\d\d.*\d\.\d\d.*\d\.\d\d/)
+
+  await window.getByRole('radio', { name: 'Monthly' }).click()
+  // Figures since inception, then a dash for every month.
+  await expect(sortino).toHaveText(/^Sortino ratio(-?\d+\.\d\d)+—+$/)
+})
+
+test('a period pointed at in the returns is drawn in the regression', async ({ window }) => {
+  await openOverview(window, 'TECH10')
+  await window.getByRole('radio', { name: 'Performance' }).click()
+
+  const legend = window.locator('.regression-legend')
+  await expect(legend).toContainText('Since inception · beta')
+  await expect(legend).not.toContainText('2024')
+  await expect(window.locator('.regression-lit')).toHaveCount(0)
+
+  // The bars for 2024 are the second group of three years.
+  await window.locator('.grouped-bars-open').nth(1).hover()
+  await expect(legend).toContainText('2024 · beta')
+  await expect(window.locator('.regression-lit')).not.toHaveCount(0)
+})
+
+test('months the pane has no room for are a step back', async ({ window }) => {
+  await openOverview(window, 'TECH10')
+  await window.getByRole('radio', { name: 'Performance' }).click()
+  await window.getByRole('radio', { name: 'Monthly' }).click()
+
+  // About thirty-six months: the newest across, the rest earlier, never a sideways scroll.
+  const range = window.locator('.performance-range')
+  const newest = await range.textContent()
+  await window.getByRole('button', { name: 'Earlier' }).click()
+  await expect(range).not.toHaveText(newest ?? '')
+  await window.getByRole('button', { name: 'Later' }).click()
+  await expect(range).toHaveText(newest ?? '')
 })
 
 test('the period choice survives a move between faces', async ({ window }) => {
-  // The period is held above the faces, so leaving Statistics Detail and
-  // coming back keeps it.
+  // The period is held above the faces, so leaving Performance and coming back keeps it.
   await openOverview(window, 'TECH10')
-  await window.getByRole('radio', { name: 'Statistics Detail' }).click()
+  await window.getByRole('radio', { name: 'Performance' }).click()
   await window.getByRole('radio', { name: 'Quarterly' }).click()
 
   await window.getByRole('radio', { name: 'Risk & Correlation' }).click()
-  await window.getByRole('radio', { name: 'Statistics Detail' }).click()
+  await window.getByRole('radio', { name: 'Performance' }).click()
   await expect(window.getByRole('radio', { name: 'Quarterly' })).toBeChecked()
 })
 
