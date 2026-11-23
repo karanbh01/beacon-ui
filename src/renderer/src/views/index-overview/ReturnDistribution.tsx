@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactElement } from 'react'
+import { useMemo, useState, type ReactElement, type ReactNode } from 'react'
 import type { Analytics } from '../../api/analytics'
 import { DistributionChart, type DistributionBin } from '../../charts/DistributionChart'
 import { Section } from '../../components/Section/Section'
@@ -18,16 +18,20 @@ const HEIGHT = 300
 /**
  * The fund's daily returns with value at risk drawn on them (Karan,
  * 2026-11-21; py-beacon BN-430): historical VaR and expected shortfall at
- * the chosen level, over a day, as the histogram is.
+ * the chosen level, over a day, as the histogram is. Its figures go under it,
+ * inside the section, as part of the same answer (Karan, 2026-11-23).
  */
 export function ReturnDistribution({
   answer,
   mode,
-  names
+  names,
+  children
 }: {
   answer: Analytics | undefined
   mode: ThemeMode
   names: { index: string; benchmark: string }
+  /** Under the chart, as part of the section. */
+  children?: ReactNode
 }): ReactElement {
   const [level, setLevel] = useState<Level>('0.95')
   const frame = frameOf(answer, 'return_distribution')
@@ -48,29 +52,24 @@ export function ReturnDistribution({
           {reasonOf(answer, 'return_distribution') ?? 'Not worked out for this run.'}
         </p>
       ) : (
-        <>
-          <DistributionChart
-            bins={bins}
-            mode={mode}
-            height={HEIGHT}
-            valueAtRisk={valueAtRisk}
-            expectedShortfall={shortfall}
-            riskLabels={{
-              valueAtRisk: `VaR ${share} · ${percent(fromLoss(valueAtRisk), 2)}`,
-              expectedShortfall: `Shortfall · ${percent(fromLoss(shortfall), 2)}`
-            }}
-            names={{
-              index: frame.columns.includes('index') ? names.index : undefined,
-              benchmark: frame.columns.includes('benchmark') ? names.benchmark : undefined
-            }}
-            label="Distribution of the fund's daily returns"
-          />
-          <p className="overview-note type-11">
-            Daily returns. On {share} of days the fund lost less than the VaR line; the dashed line
-            is its average loss on the other days.
-          </p>
-        </>
+        <DistributionChart
+          bins={bins}
+          mode={mode}
+          height={HEIGHT}
+          valueAtRisk={valueAtRisk}
+          expectedShortfall={shortfall}
+          riskLabels={{
+            valueAtRisk: `VaR ${share} · ${percent(fromLoss(valueAtRisk), 2)}`,
+            expectedShortfall: `Shortfall · ${percent(fromLoss(shortfall), 2)}`
+          }}
+          names={{
+            index: frame.columns.includes('index') ? names.index : undefined,
+            benchmark: frame.columns.includes('benchmark') ? names.benchmark : undefined
+          }}
+          label="Distribution of the fund's daily returns"
+        />
       )}
+      {children}
     </Section>
   )
 }

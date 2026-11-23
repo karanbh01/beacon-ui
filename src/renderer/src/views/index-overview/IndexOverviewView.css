@@ -299,7 +299,7 @@
  * Into the empty half of the section's head, under its title, so the table
  * sits closer without the title moving (Karan, 2026-11-22).
  */
-.risk-figures {
+.risk-with-figures .risk-figures {
   margin-top: -14px;
 }
 

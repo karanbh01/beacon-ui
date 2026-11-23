@@ -74,6 +74,34 @@
   text-decoration: underline 1.5px var(--accent);
 }
 
+/*
+ * Full names up the columns at an angle, each from its column's middle
+ * (Karan, 2026-11-23). Out of the flow, so the cells keep their width; the
+ * last names run on past the grid, so nothing clips them.
+ */
+.heatmap-tilted {
+  overflow: visible;
+}
+
+.heatmap-tilted .heatmap-head {
+  position: relative;
+  height: 64px;
+  padding: 0;
+}
+
+.heatmap-head-text {
+  position: absolute;
+  bottom: 6px;
+  left: calc(50% - 3px);
+  transform: rotate(-45deg);
+  transform-origin: left bottom;
+}
+
+.heatmap-picked .heatmap-head-text {
+  text-decoration: underline 1.5px var(--accent);
+  text-underline-offset: 3px;
+}
+
 .heatmap-pick:focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: 1px;

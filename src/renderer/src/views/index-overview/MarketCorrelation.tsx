@@ -12,10 +12,10 @@ import { VolatilityRanges, type VolatilityRange } from './VolatilityRanges'
 const FIRST_PICKS = ['index', 'ACWI', 'AGG']
 // 1.2 times its first height (Karan, 2026-11-22).
 const ROLLING_HEIGHT = 264
-const CELL = 34
-/** Shorter than wide (Karan, 2026-11-22): the tickers need the width, not the height. */
+/** Narrower now the names are tilted over the columns rather than across them (Karan, 2026-11-23). */
+const CELL = 30
 const ROW = 24
-/** The books' heads in the matrix, short enough for its cells; markets keep their tickers. */
+/** Each series' key in the matrix: the books' short heads, the markets' tickers. */
 const SHORT: Record<string, string> = { fund: 'Fund', index: 'Index', benchmark: 'BM' }
 
 /**
@@ -111,6 +111,7 @@ export function MarketCorrelation({
             picked={picked.map(headOf)}
             onPick={toggle}
             bare
+            fullNames
           />
           {volatility !== undefined && (
             <VolatilityRanges

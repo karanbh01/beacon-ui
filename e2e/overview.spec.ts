@@ -213,7 +213,7 @@ test('a column picked in the matrix is charted in the rolling correlation', asyn
   await expect(legend).toContainText('Global equity (ACWI)')
   await expect(legend).not.toContainText('Gold')
 
-  const gold = window.getByRole('button', { name: 'GLD', exact: true })
+  const gold = window.getByRole('button', { name: 'Gold', exact: true })
   await gold.click()
   await expect(gold).toHaveAttribute('aria-pressed', 'true')
   await expect(legend).toContainText('Gold (GLD)')

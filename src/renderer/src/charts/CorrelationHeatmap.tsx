@@ -29,6 +29,12 @@ export interface CorrelationHeatmapProps {
    * (Karan, 2026-11-22).
    */
   bare?: boolean
+  /**
+   * Each head the asset's full name rather than its ticker, the columns'
+   * tilted so the cells need not be as wide as the names; the ticker goes to
+   * the hover (Karan, 2026-11-23).
+   */
+  fullNames?: boolean
 }
 
 /**
@@ -47,18 +53,29 @@ export function CorrelationHeatmap({
   names,
   picked = [],
   onPick,
-  bare = false
+  bare = false,
+  fullNames = false
 }: CorrelationHeatmapProps): ReactElement {
   const [hovered, setHovered] = useState<{ row: string; column: string; at: CellAt } | undefined>(
     undefined
   )
+  const headOf = (asset: string): string => (fullNames ? (names?.[asset] ?? asset) : asset)
+  const tipOf = (asset: string): string | undefined =>
+    fullNames ? (headOf(asset) === asset ? undefined : asset) : names?.[asset]
+  const label = (asset: string): ReactElement | string =>
+    fullNames ? <span className="heatmap-head-text">{headOf(asset)}</span> : asset
+
   return (
     <div className="heatmap-block">
-      <div className="heatmap" role="table" aria-label="Correlation matrix">
+      <div
+        className={fullNames ? 'heatmap heatmap-tilted' : 'heatmap'}
+        role="table"
+        aria-label="Correlation matrix"
+      >
         <div
           className={bare ? 'heatmap-grid heatmap-bare' : 'heatmap-grid'}
           style={{
-            gridTemplateColumns: `60px repeat(${String(assets.length)}, ${String(cell)}px)`
+            gridTemplateColumns: `${fullNames ? 'max-content' : '60px'} repeat(${String(assets.length)}, ${String(cell)}px)`
           }}
         >
           <span className="heatmap-corner" style={{ gridArea: '1 / 1' }} />
@@ -77,10 +94,10 @@ export function CorrelationHeatmap({
               <span
                 key={`head-${asset}`}
                 className="heatmap-head type-11"
-                title={names?.[asset]}
+                title={tipOf(asset)}
                 style={{ gridArea: `1 / ${String(column + 2)}` }}
               >
-                {asset}
+                {label(asset)}
               </span>
             ) : (
               <button
@@ -92,13 +109,13 @@ export function CorrelationHeatmap({
                     ? 'heatmap-head heatmap-pick heatmap-picked type-11'
                     : 'heatmap-head heatmap-pick type-11'
                 }
-                title={names?.[asset]}
+                title={tipOf(asset)}
                 aria-pressed={picked.includes(asset)}
                 onClick={() => {
                   onPick(asset)
                 }}
               >
-                {asset}
+                {label(asset)}
               </button>
             )
           )}
@@ -107,8 +124,8 @@ export function CorrelationHeatmap({
             <Row
               key={rowAsset}
               row={row}
-              asset={rowAsset}
-              name={names?.[rowAsset]}
+              asset={headOf(rowAsset)}
+              name={tipOf(rowAsset)}
               values={matrix[row] ?? []}
               cell={rowHeight}
               bare={bare}

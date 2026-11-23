@@ -87,18 +87,15 @@ export function RiskCorrelation({ strategyId }: { strategyId: string }): ReactEl
             />
           </Section>
         </div>
-        {/* The shape the distribution's bars draw, close under it (Karan, 2026-11-22). */}
-        <div className="risk-with-figures">
-          <ReturnDistribution answer={answer} mode={mode} names={names} />
-          <Section title="Shape of returns">
-            <RiskFigures
-              answer={answer}
-              spec={specOf('trailing_risk')}
-              names={names}
-              figures={SHAPE_FIGURES}
-            />
-          </Section>
-        </div>
+        {/* The shape the distribution's bars draw, in its section (Karan, 2026-11-23). */}
+        <ReturnDistribution answer={answer} mode={mode} names={names}>
+          <RiskFigures
+            answer={answer}
+            spec={specOf('trailing_risk')}
+            names={names}
+            figures={SHAPE_FIGURES}
+          />
+        </ReturnDistribution>
       </div>
     </div>
   )
