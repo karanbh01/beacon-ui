@@ -12,8 +12,8 @@ import { percent } from '../shared/indexMetrics'
 import { frameOf, numberOf, reasonOf, recordsOf, textOf, type Cell } from './analyticsFrames'
 import { BenchmarkMark } from './StyleBox'
 
-// Taller than half its first height, short of the whole (Karan, 2026-11-22).
-const HEIGHT = 360
+// Taller than half its first height, short of the whole; 15px off it again (Karan, 2026-11-22).
+const HEIGHT = 345
 const BOOKS = ['fund', 'index', 'benchmark'] as const
 
 /**

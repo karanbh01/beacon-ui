@@ -186,6 +186,25 @@ test('risk shows the frontier, the crises and the return distribution', async ({
   await expect(view.locator('.crisis-chart')).toBeVisible()
 })
 
+test('the risk figures and the shape of returns are tabled by period', async ({ window }) => {
+  await openOverview(window, 'TECH10')
+  await window.getByRole('radio', { name: 'Risk & Correlation' }).click()
+
+  const tables = window.locator('.risk-figures')
+  await expect(tables).toHaveCount(2)
+  const [risk, shape] = [tables.nth(0), tables.nth(1)]
+  for (const period of ['1Y', '3Y', '5Y', 'SI']) await expect(risk).toContainText(period)
+  for (const label of ['Volatility', 'Max drawdown', 'Beta', 'Down capture']) {
+    await expect(risk).toContainText(label)
+  }
+  // Tail ratio is the distribution's, so it sits under that and not under the frontier.
+  await expect(risk).not.toContainText('Tail ratio')
+  for (const label of ['Tail ratio', 'Skew', 'Excess kurtosis']) {
+    await expect(shape).toContainText(label)
+  }
+  await expect(risk.getByRole('columnheader', { name: 'Fund' }).first()).toBeVisible()
+})
+
 test('a column picked in the matrix is charted in the rolling correlation', async ({ window }) => {
   await openOverview(window, 'TECH10')
   await window.getByRole('radio', { name: 'Risk & Correlation' }).click()

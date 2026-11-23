@@ -8,16 +8,32 @@ import { ROLE_NAMES, useComparators } from './comparators'
 import { CrisisPeriods } from './CrisisPeriods'
 import { MarketCorrelation } from './MarketCorrelation'
 import { ReturnDistribution } from './ReturnDistribution'
+import { RiskFigures } from './RiskFigures'
 import { RiskFrontier } from './RiskFrontier'
+
+/** Under the frontier, in this order (Karan, 2026-11-22). */
+const RISK_FIGURES = [
+  'volatility',
+  'max_drawdown',
+  'beta',
+  'downside_deviation',
+  'downside_tracking_error',
+  'up_capture',
+  'down_capture'
+]
+
+/** Under the return distribution: the shape its bars draw (Karan, 2026-11-22). */
+const SHAPE_FIGURES = ['tail_ratio', 'skew', 'excess_kurtosis']
 
 /**
  * Overview → Risk & Correlation (BU-176; laid out again 2026-11-21).
  *
- * Four answers in a two-by-two (Karan, 2026-11-21): above, how the fund moves
- * with the markets beside where it sits among the names it could have held;
- * below, how it came through the crises beside how bad an ordinary bad day
- * is. All of it from the run's analytics, so nothing here is worked out in
- * the app.
+ * Two columns (Karan, 2026-11-21): on the left, how the fund moves with the
+ * markets and how it came through the crises; on the right, where it sits
+ * among the names it could have held, its risk figures, and how bad an
+ * ordinary bad day is. Each column runs on by itself, so the figures under
+ * the frontier do not push the crises down (2026-11-22). All of it from the
+ * run's analytics, so nothing here is worked out in the app.
  */
 export function RiskCorrelation({ strategyId }: { strategyId: string }): ReactElement {
   const mode = useThemeMode()
@@ -45,19 +61,45 @@ export function RiskCorrelation({ strategyId }: { strategyId: string }): ReactEl
 
   return (
     <div className="risk-face">
-      <MarketCorrelation
-        answer={answer}
-        mode={mode}
-        spec={specOf('market_correlations')}
-        indexName={names.index}
-      />
-      <Section title="Efficient frontier">
-        <RiskFrontier answer={answer} mode={mode} names={names} />
-      </Section>
-      <Section title="Crises">
-        <CrisisPeriods answer={answer} mode={mode} names={names} />
-      </Section>
-      <ReturnDistribution answer={answer} mode={mode} names={names} />
+      <div className="risk-column">
+        <MarketCorrelation
+          answer={answer}
+          mode={mode}
+          spec={specOf('market_correlations')}
+          indexName={names.index}
+        />
+        <Section title="Crises">
+          <CrisisPeriods answer={answer} mode={mode} names={names} />
+        </Section>
+      </div>
+      <div className="risk-column">
+        {/* Each chart with its figures close under it, as one answer (Karan, 2026-11-22). */}
+        <div className="risk-with-figures">
+          <Section title="Efficient frontier">
+            <RiskFrontier answer={answer} mode={mode} names={names} />
+          </Section>
+          <Section title="Risk figures">
+            <RiskFigures
+              answer={answer}
+              spec={specOf('trailing_risk')}
+              names={names}
+              figures={RISK_FIGURES}
+            />
+          </Section>
+        </div>
+        {/* The shape the distribution's bars draw, close under it (Karan, 2026-11-22). */}
+        <div className="risk-with-figures">
+          <ReturnDistribution answer={answer} mode={mode} names={names} />
+          <Section title="Shape of returns">
+            <RiskFigures
+              answer={answer}
+              spec={specOf('trailing_risk')}
+              names={names}
+              figures={SHAPE_FIGURES}
+            />
+          </Section>
+        </div>
+      </div>
     </div>
   )
 }

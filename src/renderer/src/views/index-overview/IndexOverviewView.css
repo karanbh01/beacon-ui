@@ -267,7 +267,7 @@
 .risk-face {
   display: grid;
   grid-template-columns: minmax(0, 580px) minmax(0, 580px);
-  gap: 32px 29px;
+  column-gap: 29px;
   align-items: start;
 }
 
@@ -280,6 +280,27 @@
 
 .risk-frontier {
   min-width: 0;
+}
+
+.risk-column {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  min-width: 0;
+}
+
+.risk-with-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/*
+ * Into the empty half of the section's head, under its title, so the table
+ * sits closer without the title moving (Karan, 2026-11-22).
+ */
+.risk-figures {
+  margin-top: -14px;
 }
 
 .risk-legend {

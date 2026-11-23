@@ -133,6 +133,7 @@ efficient_frontier|Efficient frontier in hindsight|risk|table|fraction|risk|-
 market_correlations|Correlation with markets|Correlation|table|ratio|risk|-
 rolling_correlations|Rolling correlation with markets|Correlation|table|ratio|risk|-
 market_volatility|Volatility range with markets|Correlation|table|fraction|risk|-
+trailing_risk|Risk statistics by period|Risk|table|-|risk|-
 expected_risk|Expected volatility and tracking error|Risk contributions|table|-|risk|-
 risk_contributions|Risk contributions|Risk contributions|table|-|risk|-
 measured_contributions|Measured contributions|Risk contributions|table|-|risk|H
@@ -474,6 +475,33 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   ],
   // Provisional: each series' lowest, highest and latest volatility over a
   // trailing year, through the run (Karan, 2026-11-22).
+  // Provisional, shaped as trailing_statistics is: the risk face's figures
+  // over the last 1, 3 and 5 years and since inception (Karan, 2026-11-22).
+  trailing_risk: [
+    {
+      ...col('period', 'Period'),
+      labels: { '1Y': '1 year', '3Y': '3 years', '5Y': '5 years', inception: 'Since inception' }
+    },
+    {
+      ...col('statistic', 'Statistic'),
+      labels: {
+        volatility: 'Volatility',
+        max_drawdown: 'Max drawdown',
+        beta: 'Beta',
+        downside_deviation: 'Downside deviation',
+        downside_tracking_error: 'Downside tracking error',
+        tail_ratio: 'Tail ratio',
+        skew: 'Skew',
+        excess_kurtosis: 'Excess kurtosis',
+        up_capture: 'Up capture',
+        down_capture: 'Down capture'
+      }
+    },
+    { ...col('unit', 'Unit'), labels: { fraction: 'Fraction', ratio: 'Ratio' } },
+    col('fund', 'Fund'),
+    col('index', 'Index'),
+    col('benchmark', 'Benchmark')
+  ],
   market_volatility: [
     { ...col('series', 'Series'), labels: SERIES_LABELS },
     col('low', 'Lowest', 'fraction'),

@@ -417,6 +417,113 @@ function volatilityRows(lines: Lines): Cell[][] {
   })
 }
 
+/** The worst fall from a peak, as a negative fraction. */
+function drawdown(returns: readonly number[]): number {
+  let level = 1
+  let peak = 1
+  let worst = 0
+  for (const value of returns) {
+    level *= 1 + value
+    peak = Math.max(peak, level)
+    worst = Math.min(worst, level / peak - 1)
+  }
+  return worst
+}
+
+/** The mean of ours over the mean of theirs, on the days theirs moved one way. */
+function capture(ours: readonly number[], theirs: readonly number[], up: boolean): number | null {
+  const days = theirs.flatMap((value, at) => ((up ? value > 0 : value < 0) ? [at] : []))
+  const their = mean(days.map((at) => theirs[at] ?? 0))
+  return their === 0 ? null : mean(days.map((at) => ours[at] ?? 0)) / their
+}
+
+const at = (sorted: readonly number[], share: number): number =>
+  sorted[Math.floor((sorted.length - 1) * share)] ?? 0
+
+/** Each book's own figures over a window. */
+const OWN_RISK: Record<string, (returns: readonly number[]) => number | null> = {
+  volatility: (returns) => deviation(returns) * Math.sqrt(252),
+  max_drawdown: drawdown,
+  downside_deviation: (returns) =>
+    Math.sqrt(mean(returns.map((value) => Math.min(0, value) ** 2)) * 252),
+  skew: (returns) => {
+    const centre = mean(returns)
+    const spread = deviation(returns)
+    return spread === 0 ? null : mean(returns.map((value) => (value - centre) ** 3)) / spread ** 3
+  },
+  excess_kurtosis: (returns) => {
+    const centre = mean(returns)
+    const spread = deviation(returns)
+    return spread === 0
+      ? null
+      : mean(returns.map((value) => (value - centre) ** 4)) / spread ** 4 - 3
+  },
+  tail_ratio: (returns) => {
+    const sorted = [...returns].sort((one, other) => one - other)
+    const low = Math.abs(at(sorted, 0.05))
+    return low === 0 ? null : at(sorted, 0.95) / low
+  }
+}
+
+/** The fund's figures against a comparator over a window, under the comparator's column. */
+const AGAINST_RISK: Record<
+  string,
+  (ours: readonly number[], theirs: readonly number[]) => number | null
+> = {
+  beta: (ours, theirs) => (correlation(ours, theirs) * deviation(ours)) / deviation(theirs),
+  downside_tracking_error: (ours, theirs) =>
+    Math.sqrt(mean(ours.map((value, day) => Math.min(0, value - (theirs[day] ?? 0)) ** 2)) * 252),
+  up_capture: (ours, theirs) => capture(ours, theirs, true),
+  down_capture: (ours, theirs) => capture(ours, theirs, false)
+}
+
+/** The own figures that are ratios rather than fractions. */
+const RATIOS = ['skew', 'excess_kurtosis', 'tail_ratio']
+
+const RISK_WINDOWS: [string, number][] = [
+  ['1Y', 252],
+  ['3Y', 756],
+  ['5Y', 1260],
+  ['inception', Infinity]
+]
+
+/**
+ * Provisional, shaped as `trailing_statistics` is: a row a window and
+ * figure, each book's own under its column and the fund's against a
+ * comparator under the comparator's. A window longer than the run is blank.
+ */
+function trailingRiskRows(lines: Lines): Cell[][] {
+  const returns = factorReturns(lines)
+  const length = returns.get('fund')?.length ?? 0
+  const rows: Cell[][] = []
+  // A book the run lacks has no column (py-beacon d817ec8).
+  const books = lines.benchmark === undefined ? ['index'] : ['index', 'benchmark']
+  for (const [period, days] of RISK_WINDOWS) {
+    const window = (book: string): number[] | undefined =>
+      days > length && days !== Infinity
+        ? undefined
+        : returns.get(book)?.slice(-Math.min(days, length))
+    const ours = window('fund')
+    for (const [statistic, read] of Object.entries(OWN_RISK)) {
+      const figure = (book: string): number | null => {
+        const theirs = window(book)
+        return theirs === undefined ? null : read(theirs)
+      }
+      const unit = RATIOS.includes(statistic) ? 'ratio' : 'fraction'
+      rows.push([period, statistic, unit, figure('fund'), ...books.map(figure)])
+    }
+    for (const [statistic, read] of Object.entries(AGAINST_RISK)) {
+      const figure = (book: string): number | null => {
+        const theirs = window(book)
+        return ours === undefined || theirs === undefined ? null : read(ours, theirs)
+      }
+      const unit = statistic === 'downside_tracking_error' ? 'fraction' : 'ratio'
+      rows.push([period, statistic, unit, null, ...books.map(figure)])
+    }
+  }
+  return rows
+}
+
 /** The fund against each series over a trailing year, a point a week. */
 function rollingRows(lines: Lines): Cell[][] {
   const fund = seriesOf(lines)[0]?.[1] ?? []
@@ -459,5 +566,6 @@ export function riskTable(id: string, lines: Lines, run: string): RiskAnswer | u
   if (id === 'market_correlations') return { rows: matrixRows(lines) }
   if (id === 'rolling_correlations') return { rows: rollingRows(lines) }
   if (id === 'market_volatility') return { rows: volatilityRows(lines) }
+  if (id === 'trailing_risk') return { rows: trailingRiskRows(lines) }
   return undefined
 }
