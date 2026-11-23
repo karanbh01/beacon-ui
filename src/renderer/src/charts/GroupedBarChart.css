@@ -1,0 +1,49 @@
+/* Bars side by side by category: the stacked chart's sibling (ADR-0002). */
+
+.grouped-bars {
+  position: relative;
+  min-width: 0;
+}
+
+.grouped-bars svg {
+  display: block;
+  /* py-beacon's plotting face: Light for ticks and labels. */
+  font-family: var(--font-data);
+  font-weight: 300;
+}
+
+.grouped-bars-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-secondary);
+}
+
+/* The names on the right, whatever the row starts with. */
+.grouped-bars-names {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.grouped-bars-names > span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.grouped-bars-swatch {
+  width: 8px;
+  height: 8px;
+}
+
+.grouped-bars-open {
+  cursor: pointer;
+}
+
+/* The hover's figures, centred over the group, in the column tips' glass. */
+.header-tip.grouped-bars-tip {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

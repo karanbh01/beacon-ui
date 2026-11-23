@@ -263,6 +263,92 @@ describe('column groups, as py-beacon heads them (Karan, 2026-10-19)', () => {
   })
 })
 
+describe('row groups (Karan, 2026-11-23)', () => {
+  interface Stat {
+    name: string
+    group: string
+  }
+  const columns = [{ key: 'name', header: '', width: 100, render: (row: Stat) => row.name }]
+  const rows: Stat[] = [
+    { name: 'Total return', group: 'Returns' },
+    { name: 'Best day', group: 'Returns' },
+    { name: 'Volatility', group: 'Risk' },
+    { name: 'Tracking error', group: 'Tracking' }
+  ]
+
+  it('heads each run of rows in a group once, above its first row', () => {
+    const { container } = render(
+      <Table
+        columns={columns}
+        rows={rows}
+        getRowId={(row) => row.name}
+        rowGroup={(row) => row.group}
+      />
+    )
+    const order = [...container.querySelectorAll('.tbl-row-group, .tbl-row')].map((each) =>
+      each.classList.contains('tbl-row-group') ? `# ${each.textContent}` : each.textContent
+    )
+
+    expect(order).toEqual([
+      '# Returns',
+      'Total return',
+      'Best day',
+      '# Risk',
+      'Volatility',
+      '# Tracking',
+      'Tracking error'
+    ])
+  })
+
+  it('folds a group away under its heading, and back', () => {
+    render(
+      <Table
+        columns={columns}
+        rows={rows}
+        getRowId={(row) => row.name}
+        rowGroup={(row) => row.group}
+      />
+    )
+    const returns = screen.getByRole('button', { name: 'Returns' })
+
+    fireEvent.click(returns)
+    expect(returns).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText('Best day')).toBeNull()
+    expect(screen.getByText('Volatility')).toBeInTheDocument()
+
+    fireEvent.click(returns)
+    expect(returns).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Best day')).toBeInTheDocument()
+  })
+
+  it('opens only the groups named open, the rest folded', () => {
+    render(
+      <Table
+        columns={columns}
+        rows={rows}
+        getRowId={(row) => row.name}
+        rowGroup={(row) => row.group}
+        openGroups={['Returns']}
+      />
+    )
+
+    expect(screen.getByText('Best day')).toBeInTheDocument()
+    expect(screen.queryByText('Volatility')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Risk' })).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Risk' }))
+    expect(screen.getByText('Volatility')).toBeInTheDocument()
+  })
+
+  it('heads nothing in a table without them', () => {
+    const { container } = render(
+      <Table columns={columns} rows={rows} getRowId={(row) => row.name} />
+    )
+
+    expect(container.querySelector('.tbl-row-group')).toBeNull()
+  })
+})
+
 describe('a queryable table (Karan, 2026-10-19)', () => {
   interface Name {
     ticker: string

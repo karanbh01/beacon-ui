@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactElement, ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { groupRuns, groupStyle } from './tableGroups'
+import { RowGroups } from './RowGroups'
 import { HeaderTip } from './HeaderTip'
 import { TableMenu } from './TableMenu'
 import {
@@ -91,6 +93,15 @@ export interface TableProps<T> {
    */
   expandedId?: string
   renderExpanded?: (row: T) => ReactNode
+  /**
+   * The heading a row sits under (Karan, 2026-11-23): one is drawn wherever
+   * a row's group differs from the row before it's, so a long table of
+   * figures reads in parts. A heading folds its rows away. A virtualised
+   * table, whose rows have one fixed height, draws none.
+   */
+  rowGroup?: (row: T) => string | undefined
+  /** The groups open at first, the rest folded. Omit to open them all. */
+  openGroups?: readonly string[]
   /** Top-divided, Medium. Cells render from the same column defs. */
   totalRow?: Partial<Record<string, ReactNode>>
   /** Caps the body and turns on scrolling. Omit to render at full height. */
@@ -193,35 +204,6 @@ function cellStyle<T>(column: Column<T>, fill: boolean): CSSProperties {
   }
 }
 
-/** Neighbouring columns under one group heading, or under none. */
-interface GroupRun<T> {
-  key: string
-  label: string | undefined
-  columns: Column<T>[]
-}
-
-function groupRuns<T>(columns: readonly Column<T>[]): GroupRun<T>[] {
-  const runs: GroupRun<T>[] = []
-  for (const column of columns) {
-    const last = runs[runs.length - 1]
-    if (last !== undefined && column.group !== undefined && last.label === column.group) {
-      last.columns.push(column)
-      continue
-    }
-    runs.push({ key: column.key, label: column.group, columns: [column] })
-  }
-  return runs
-}
-
-/** A group heading spans its columns and the gaps between them. */
-function groupStyle<T>(run: GroupRun<T>, fill: boolean): CSSProperties {
-  const gaps = (run.columns.length - 1) * 10
-  const width = run.columns.reduce((sum, column) => sum + column.width, 0) + gaps
-  if (!fill) return { width }
-  const min = run.columns.reduce((sum, column) => sum + (column.minWidth ?? column.width), 0)
-  return { flexGrow: width, flexShrink: 0, flexBasis: width, minWidth: min + gaps }
-}
-
 function cellClasses<T>(column: Column<T>, header = false): string {
   return [
     'tbl-cell',
@@ -254,6 +236,8 @@ export function Table<T>({
   onSelectRow,
   expandedId,
   renderExpanded,
+  rowGroup,
+  openGroups,
   totalRow,
   maxBodyHeight,
   fillHeight = false,
@@ -540,8 +524,17 @@ export function Table<T>({
               return row === undefined ? null : renderRow(row, item.start)
             })}
           </div>
-        ) : (
+        ) : rowGroup === undefined ? (
           rows.map((row) => renderRow(row))
+        ) : (
+          <RowGroups
+            rows={rows}
+            getRowId={getRowId}
+            rowGroup={rowGroup}
+            openGroups={openGroups}
+            renderRow={renderRow}
+            rowFloor={rowFloor}
+          />
         )}
       </div>
 

@@ -35,6 +35,58 @@
   min-width: max-content;
 }
 
+/*
+ * A heading over a run of rows (Karan, 2026-11-23), set as a group of
+ * columns is named: Regular, at the values' size, with a divider rule under
+ * it. Room above it parts it from the group before.
+ */
+.tbl-row-group {
+  display: flex;
+  align-items: flex-end;
+  height: 30px;
+  padding: 0 var(--tbl-end, 4px) 4px 4px;
+  min-width: max-content;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text-primary);
+  box-shadow: inset 0 -1px 0 var(--divider);
+}
+
+.tbl-body > .tbl-row-group:first-child {
+  height: 22px;
+}
+
+/* The heading's whole name folds its rows; the chevron turns to say which way. */
+.tbl-row-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: -4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tbl-row-group-toggle:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.tbl-row-group-chevron {
+  flex: none;
+  color: var(--text-secondary);
+  transition: transform 120ms ease;
+}
+
+.tbl-row-group-toggle[aria-expanded='false'] .tbl-row-group-chevron {
+  transform: rotate(-90deg);
+}
+
 /* A control at the right end of the column names, over the last column's padding. */
 .tbl-head-action {
   position: absolute;

@@ -1,0 +1,26 @@
+/* A fund's daily moves on its comparator's: the d3 half of ADR-0002. */
+
+.regression-chart {
+  position: relative;
+  min-width: 0;
+}
+
+.regression-chart svg {
+  display: block;
+  /* py-beacon's plotting face: Light for ticks and labels. */
+  font-family: var(--font-data);
+  font-weight: 300;
+}
+
+/* Every day faint, so the lines and a picked period's days read over them. */
+.regression-day {
+  opacity: 0.25;
+}
+
+.regression-lit {
+  opacity: 0.9;
+}
+
+.regression-axis-title {
+  font-size: 10px;
+}
