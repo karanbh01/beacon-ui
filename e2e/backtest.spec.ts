@@ -30,7 +30,7 @@ test('with no strategy named it lists the runs, newest first (Karan)', async ({ 
   await openBacktest(window, '')
 
   const runs = window.locator('.backtest-runs')
-  await expect(runs).toContainText('Runs · 4')
+  await expect(runs).toContainText('Runs · 5')
   // Stamped runs date themselves; one py-beacon never stamped (BN-162)
   // says only that it happened.
   await expect(runs.locator('.tbl-row').first()).toContainText('TECH10')

@@ -19,7 +19,7 @@ test('opens on the catalogue of stored strategies', async ({ window }) => {
 
   const view = window.locator('.strategy-view')
   await expect(view.getByRole('button', { name: 'New strategy…' })).toBeVisible()
-  await expect(view.locator('.tbl-row')).toHaveCount(7)
+  await expect(view.locator('.tbl-row')).toHaveCount(8)
   // One whose index is not stored says it cannot run, in the list rather
   // than on its first backtest.
   await expect(view).toContainText("Its index 'NO-UNIVERSE' is not stored.")

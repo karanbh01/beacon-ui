@@ -284,6 +284,26 @@ function from(line: Line, cutoff: string): Line {
   return { index: line.index.slice(at), data: line.data.slice(at) }
 }
 
+/** A year of history or more, as 1Y, 3Y and 5Y have: the windows an annual rate is given for. */
+function yearOrMore(line: Line): boolean {
+  const days = Date.parse(line.index[line.index.length - 1] ?? '') - Date.parse(line.index[0] ?? '')
+  return days / 86_400_000 >= 365
+}
+
+/**
+ * A trailing window's annual rates (Karan, 2026-11-24), asked of py-beacon
+ * with `frequency=trailing`. The money-weighted return is the same stand-in
+ * as the run's: the stub has no flows.
+ */
+function annualOf(own: Record<string, number | null>): Record<string, number | null> {
+  const growth = own.annualised_return ?? null
+  return {
+    annualised_return: growth,
+    calmar_ratio: own.calmar_ratio ?? null,
+    money_weighted_return: growth === null ? null : round(growth - 0.004)
+  }
+}
+
 /** GET /strategies/{id}/periods: PeriodRow per period, oldest (or shortest) first. */
 export function periodsOf(
   strategy: Line,
@@ -315,7 +335,8 @@ export function periodsOf(
         average_gain: own.average_gain,
         average_loss: own.average_loss,
         sortino_ratio: own.sortino_ratio,
-        probabilistic_sharpe_ratio: own.probabilistic_sharpe_ratio
+        probabilistic_sharpe_ratio: own.probabilistic_sharpe_ratio,
+        ...(frequency === 'trailing' && yearOrMore(mine) ? annualOf(own) : {})
       },
       index: against(comparators.index),
       benchmark: against(comparators.benchmark)

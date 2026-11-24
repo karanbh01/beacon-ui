@@ -14,6 +14,7 @@ import {
   relativeOf,
   type Line
 } from './stubFigures'
+import { FUND_LEVEL, MARKET_LEVEL } from './stubMarket'
 import {
   findings as strategyFindings,
   activeStrategy,
@@ -359,6 +360,16 @@ const PRICES = {
  * Not random. A stub that shuffles produces a test that fails one run in
  * ten and cannot be reproduced from the failure.
  */
+/**
+ * A line by its id: the realistic market and the fund on it, or a seeded
+ * wave for every other fixture.
+ */
+function levelOf(id: string): { index: string[]; data: number[] } {
+  if (id === MARKET) return MARKET_LEVEL
+  if (id === QUALITY) return FUND_LEVEL
+  return levelSeries(seedFor(id))
+}
+
 function levelSeries(seed: number, days = 780): { index: string[]; data: number[] } {
   const index: string[] = []
   const data: number[] = []
@@ -844,7 +855,15 @@ const UNREADABLE = 'LEGACY-RUN'
 /** An active strategy with a run, measured against the index it is built on. */
 const ACTIVE = 'TECH10-MINVAR'
 
-const RECORDED = ['TECH10', 'EU-VALUE', UNREADABLE, ACTIVE]
+/**
+ * A market and an active fund on it whose lines move as real ones do
+ * (Karan, 2026-11-23), so a regression of one on the other scatters as a
+ * real run's would. See stubMarket.ts.
+ */
+const MARKET = 'US-MARKET'
+const QUALITY = 'US-QUALITY'
+
+const RECORDED = ['TECH10', 'EU-VALUE', UNREADABLE, ACTIVE, QUALITY]
 
 /** Records py-beacon stamped with a time; the rest predate that (BN-162). */
 const STAMPED = ['TECH10']
@@ -1010,7 +1029,16 @@ function rebalanceDates(today: string, monthly: boolean): string[] {
   return dates
 }
 
-let indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE, CRASHING]
+let indexIds = [
+  'TECH10',
+  'EU-VALUE',
+  OPTIMISED,
+  UNREADABLE,
+  UNPRICED,
+  FX_UNWEIGHTABLE,
+  CRASHING,
+  MARKET
+]
 
 interface StubDerivation {
   parent: string
@@ -1029,7 +1057,16 @@ interface StubDerivation {
 const derivations = new Map<string, StubDerivation>()
 
 function resetIndices(): void {
-  indexIds = ['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, UNPRICED, FX_UNWEIGHTABLE, CRASHING]
+  indexIds = [
+    'TECH10',
+    'EU-VALUE',
+    OPTIMISED,
+    UNREADABLE,
+    UNPRICED,
+    FX_UNWEIGHTABLE,
+    CRASHING,
+    MARKET
+  ]
   derivations.clear()
   derivations.set(OPTIMISED, {
     parent: 'TECH10',
@@ -1059,7 +1096,8 @@ function resetStrategies(): void {
     ...['TECH10', 'EU-VALUE', OPTIMISED, UNREADABLE, EMPTY_UNIVERSE, FX_UNVALUED].map(
       plainStrategy
     ),
-    activeStrategy(ACTIVE, 'TECH10')
+    activeStrategy(ACTIVE, 'TECH10'),
+    { ...activeStrategy(QUALITY, MARKET), name: 'US quality' }
   ]
   ranStrategies.clear()
 }
@@ -1157,8 +1195,8 @@ function runLines(run: { strategyId: string; indexId: string; kind: string }): {
 } {
   return {
     strategy: runLevel(run),
-    index: levelSeries(seedFor(run.indexId)),
-    benchmark: run.strategyId === 'TECH10' ? levelSeries(seedFor('EU-VALUE')) : undefined
+    index: levelOf(run.indexId),
+    benchmark: run.strategyId === 'TECH10' ? levelOf('EU-VALUE') : undefined
   }
 }
 
@@ -1201,7 +1239,7 @@ function runLevel(run: { strategyId: string; indexId: string; kind: string }): {
   index: string[]
   data: number[]
 } {
-  return levelSeries(seedFor(run.kind === 'active' ? run.strategyId : run.indexId))
+  return levelOf(run.kind === 'active' ? run.strategyId : run.indexId)
 }
 
 /**
@@ -1209,7 +1247,7 @@ function runLevel(run: { strategyId: string; indexId: string; kind: string }): {
  * against the run's line, worked out from the two so they cannot disagree.
  */
 function benchmarkOf(indexId: string, run: { index: string[]; data: number[] }): unknown {
-  const level = levelSeries(seedFor(indexId))
+  const level = levelOf(indexId)
   const growth = (data: number[]): number => (data[data.length - 1] ?? 100) / (data[0] ?? 100) - 1
   const returns = (data: number[]): number[] =>
     data.slice(1).map((value, at) => value / (data[at] ?? value) - 1)
@@ -1284,7 +1322,7 @@ function indexDocument(id: string): unknown {
 
   return {
     id,
-    name: 'Beacon US Technology Top 10',
+    name: id === MARKET ? 'Beacon US Large Cap' : 'Beacon US Technology Top 10',
     description: '',
     currency: 'USD',
     base_date: '2019-12-31',
@@ -1772,11 +1810,16 @@ function body(url: URL): unknown {
   if (/^\/indices\/[^/]+\/level$/.test(path)) {
     const indexId = decodeURIComponent(path.split('/')[2] ?? '')
     if (!indexIds.includes(indexId)) return notFound(`index '${indexId}'`, 'DocumentStore')
-    const level = levelSeries(seedFor(indexId))
+    const level = levelOf(indexId)
     const day = (value: string): string => value.slice(0, 10)
     return {
       index_id: indexId,
-      name: indexId === OPTIMISED ? 'TECH10 optimised' : 'Beacon US Technology Top 10',
+      name:
+        indexId === OPTIMISED
+          ? 'TECH10 optimised'
+          : indexId === MARKET
+            ? 'Beacon US Large Cap'
+            : 'Beacon US Technology Top 10',
       currency: 'USD',
       start: day(level.index[0] ?? ''),
       end: day(level.index[level.index.length - 1] ?? ''),
@@ -2172,7 +2215,7 @@ function body(url: URL): unknown {
     const fields = referenceAsked(url)
     if (isRefusal(fields)) return fields
     const rebalanceDates = runResult.rebalances.map((snapshot) => snapshot.date).sort()
-    const level = levelSeries(seedFor(run.indexId))
+    const level = levelOf(run.indexId)
     const asOf = (url.searchParams.get('date') ?? level.index[level.index.length - 1] ?? '').slice(
       0,
       10
@@ -2212,7 +2255,7 @@ function body(url: URL): unknown {
     const indexId = run.indexId
 
     const asof = url.searchParams.get('asof')
-    const level = levelSeries(seedFor(indexId))
+    const level = levelOf(indexId)
     const fields = referenceAsked(url)
     if (isRefusal(fields)) return fields
     const asOf = asof ?? (level.index[level.index.length - 1] ?? '').slice(0, 10)
@@ -2290,7 +2333,7 @@ function body(url: URL): unknown {
 
     const series = ids.map((id) => ({
       id,
-      level: levelSeries(seedFor(strategyFor(id)?.index_id ?? id))
+      level: levelOf(strategyFor(id)?.index_id ?? id)
     }))
     const shared = series
       .map((entry) => new Set(entry.level.index))
@@ -2353,7 +2396,7 @@ function body(url: URL): unknown {
       // its chart. TECH10's run names EU-VALUE as an external benchmark.
       level: { name: 'level', ...runLevel(run) },
       drawdown: { name: 'drawdown', ...drawdownOf(runLevel(run)) },
-      index_level: { name: run.indexId, ...levelSeries(seedFor(run.indexId)) },
+      index_level: { name: run.indexId, ...levelOf(run.indexId) },
       benchmark: run.strategyId === 'TECH10' ? benchmarkOf('EU-VALUE', runLevel(run)) : null,
       // BN-323: the run's own figures and each comparator's, worked out the
       // engine's way from the same lines the chart draws.
@@ -2434,7 +2477,7 @@ function body(url: URL): unknown {
     const run = runOf(path)
     if (isRefusal(run)) return run
     const identifier = decodeURIComponent(path.split('/')[4] ?? '')
-    const level = levelSeries(seedFor(identifier))
+    const level = levelOf(identifier)
     const dates = ['2025-03-21', '2025-06-20', '2025-09-19']
     return {
       strategy_id: run.strategyId,
@@ -2489,7 +2532,7 @@ function body(url: URL): unknown {
      */
     const fields = referenceAsked(url)
     if (isRefusal(fields)) return fields
-    const level = levelSeries(seedFor(identifier))
+    const level = levelOf(identifier)
     const window = 120
     const dates = level.index.slice(-window)
     const levels = level.data.slice(-window)

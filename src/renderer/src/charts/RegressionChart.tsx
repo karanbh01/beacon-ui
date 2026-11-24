@@ -35,13 +35,15 @@ export interface RegressionChartProps {
   yLabel: string
 }
 
-const MARGIN = { top: 8, right: 8, bottom: 36, left: 56 }
+const MARGIN = { top: 8, right: 16, bottom: 36, left: 56 }
+/** The share of days the axes reach; the wildest few run off the edge. */
+const REACHED = 0.995
 
 /**
  * The fund's daily moves on its comparator's, under the fitted lines
- * (Karan, 2026-11-23). Both axes run as far either way from nothing as the
- * largest move, so a small day sits in the middle and neither axis flatters
- * the other. visx, as the frontier is (ADR-0002).
+ * (Karan, 2026-11-23). Both axes run as far either way from nothing as all
+ * but the wildest few moves, so a small day sits in the middle and neither
+ * axis flatters the other. visx, as the frontier is (ADR-0002).
  */
 export function RegressionChart({
   dots,
@@ -60,8 +62,10 @@ export function RegressionChart({
   const innerHeight = Math.max(0, height - MARGIN.top - MARGIN.bottom)
 
   const { x, y, reach } = useMemo(() => {
-    // The largest move either way, so the two axes share one scale.
-    const reach = Math.max(...dots.flatMap((dot) => [Math.abs(dot.x), Math.abs(dot.y)]), 0.01)
+    // Nearly the largest move either way, so the two axes share one scale and
+    // a crash's single day does not squeeze every other into the middle.
+    const sizes = dots.flatMap((dot) => [Math.abs(dot.x), Math.abs(dot.y)]).sort((a, b) => a - b)
+    const reach = Math.max(sizes[Math.floor((sizes.length - 1) * REACHED)] ?? 0, 0.01)
     return {
       reach,
       x: scaleLinear<number>({ domain: [-reach, reach], range: [0, innerWidth], nice: true }),
@@ -107,17 +111,17 @@ export function RegressionChart({
               tickFormat={tick}
               tickLabelProps={() => ({ ...text, textAnchor: 'middle', dy: 6 })}
             />
-            {ordered.map((dot) => (
-              <circle
-                key={dot.key}
-                className={dot.lit ? 'regression-lit' : 'regression-day'}
-                cx={x(dot.x)}
-                cy={y(dot.y)}
-                r={dot.lit ? 2.4 : 1.7}
-                fill={dot.lit ? litColour : token['text-secondary']}
-              />
-            ))}
             <g clipPath={`url(#${clip})`}>
+              {ordered.map((dot) => (
+                <circle
+                  key={dot.key}
+                  className={dot.lit ? 'regression-lit' : 'regression-day'}
+                  cx={x(dot.x)}
+                  cy={y(dot.y)}
+                  r={dot.lit ? 2.4 : 1.7}
+                  fill={dot.lit ? litColour : token['text-secondary']}
+                />
+              ))}
               {lines.map((line) => (
                 <line
                   key={line.key}

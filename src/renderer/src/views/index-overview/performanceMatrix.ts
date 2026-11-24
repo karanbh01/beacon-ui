@@ -99,8 +99,14 @@ interface RowSpec {
   format: (value: number) => string
   /** Its figure for a book; the fund has none of the figures against a comparator. */
   pick: (figures: Figures, book: Book) => Value
-  /** A figure that means nothing over one calendar period, such as a month annualised. */
+  /** A figure that means nothing over one calendar period or trailing window. */
   sinceOnly?: boolean
+  /**
+   * An annual rate: since inception, and in trailing windows of a year or more
+   * (Karan, 2026-11-24). A shorter span annualised would overstate it, and a
+   * calendar year's is its total return again.
+   */
+  annual?: boolean
   /** A ratio a month is too short to measure: since inception only when monthly (Karan, 2026-11-23). */
   sinceOnlyMonthly?: boolean
 }
@@ -131,16 +137,16 @@ const RETURNS: readonly RowSpec[] = [
     signed: true,
     format: signed,
     pick: own('annualised_return'),
-    sinceOnly: true
+    annual: true
   },
   {
     key: 'money-weighted',
     label: 'Money-weighted return',
     signed: true,
     format: signed,
-    // The investors' annual rate, so since inception as the annualised return is.
+    // The investors' annual rate, so shown where the annualised return is.
     pick: fundOnly('money_weighted_return'),
-    sinceOnly: true
+    annual: true
   },
   { key: 'best', label: 'Best day', signed: false, format: plain, pick: own('best_day') },
   { key: 'worst', label: 'Worst day', signed: false, format: plain, pick: own('worst_day') },
@@ -196,8 +202,9 @@ const RISK_ADJUSTED: readonly RowSpec[] = [
     label: 'Calmar ratio',
     signed: false,
     format: ratio,
+    // The annualised return over the drawdown, so shown where that return is.
     pick: own('calmar_ratio'),
-    sinceOnly: true
+    annual: true
   },
   {
     key: 'psr',
@@ -359,10 +366,7 @@ export function performanceMatrix(
   const rows = specs.map(({ group, spec }): PerformanceRow => {
     const values: PerformanceRow['values'] = {}
     for (const column of columns) {
-      // A month is too short for a ratio, a calendar one or the trailing one.
-      const month = frequency === 'monthly' || (frequency === 'trailing' && column.key === '1M')
-      const sinceOnly = spec.sinceOnly === true || (spec.sinceOnlyMonthly === true && month)
-      if (sinceOnly && column.key !== SINCE_INCEPTION) continue
+      if (!shownIn(spec, column, frequency)) continue
       values[column.key] = Object.fromEntries(
         books.flatMap((book) => {
           const figures = column.figures[book]
@@ -383,6 +387,23 @@ export function performanceMatrix(
     // A row with no figure anywhere says nothing.
     rows: rows.filter((row) => Object.values(row.values).some((each) => Object.keys(each).length))
   }
+}
+
+/** Whether a row has a figure in a column at all, whatever the engine sends. */
+function shownIn(spec: RowSpec, column: PerformancePeriod, frequency: Frequency): boolean {
+  if (column.span === undefined) return true
+  if (spec.sinceOnly === true) return false
+  if (spec.annual === true) return frequency === 'trailing' && yearOrMore(column.span)
+  // A month is too short for a ratio, a calendar one or the trailing one.
+  const month = frequency === 'monthly' || (frequency === 'trailing' && column.key === '1M')
+  return !(spec.sinceOnlyMonthly === true && month)
+}
+
+/** A year, less a few days' slack for where the engine puts a window's first close. */
+const YEAR_DAYS = 360
+
+function yearOrMore(span: { start: string; end: string }): boolean {
+  return (Date.parse(span.end) - Date.parse(span.start)) / 86_400_000 >= YEAR_DAYS
 }
 
 function comparison(payload: PeriodComparison | null | undefined): Figures | undefined {
