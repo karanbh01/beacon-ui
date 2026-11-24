@@ -146,6 +146,371 @@
         "title": "AllNode",
         "type": "object"
       },
+      "AnalysisCatalogue": {
+        "description": "Response of `GET /analysis/options`: everything an analysis can be\nasked for, so a client hard-codes none of it.",
+        "properties": {
+          "dropped": {
+            "description": "Statistic ids no longer given.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Dropped",
+            "type": "array"
+          },
+          "names": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "description": "Labels for figure names that are not statistic ids, by dimension: books, methods, confidence levels, horizons, comparators, fields.",
+            "title": "Names",
+            "type": "object"
+          },
+          "renamed": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Statistic ids renamed in this release, old to new.",
+            "title": "Renamed",
+            "type": "object"
+          },
+          "reports": {
+            "description": "Every report, in order.",
+            "items": {
+              "$ref": "#/components/schemas/ReportSpec"
+            },
+            "title": "Reports",
+            "type": "array"
+          },
+          "settings": {
+            "description": "Each section of settings in order, each with its parameters in the shape `GET /backtest/options` describes a backtest's.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Settings",
+            "type": "array"
+          },
+          "statistics": {
+            "description": "Every statistic, in order.",
+            "items": {
+              "$ref": "#/components/schemas/StatisticSpec"
+            },
+            "title": "Statistics",
+            "type": "array"
+          },
+          "tables": {
+            "description": "The large tables a run gives.",
+            "items": {
+              "$ref": "#/components/schemas/TableSpec"
+            },
+            "title": "Tables",
+            "type": "array"
+          },
+          "unavailable": {
+            "description": "Every reason a statistic can be unavailable.",
+            "items": {
+              "$ref": "#/components/schemas/UnavailableSpec"
+            },
+            "title": "Unavailable",
+            "type": "array"
+          }
+        },
+        "required": [
+          "settings",
+          "statistics",
+          "reports",
+          "names",
+          "tables",
+          "unavailable",
+          "renamed",
+          "dropped"
+        ],
+        "title": "AnalysisCatalogue",
+        "type": "object"
+      },
+      "AnalysisRequestSpec": {
+        "additionalProperties": false,
+        "description": "What a run's analysis should give: the reports wanted, each at a\nlevel, with statistics added or taken out, their time views, and every\nchoice the analysis makes. `GET /analysis/options` lists the reports,\nstatistics and settings.",
+        "properties": {
+          "add": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "By report, optional statistics to show, by id.",
+            "title": "Add",
+            "type": "object"
+          },
+          "options": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "description": "Every choice the analysis makes, by section and setting, as `GET /analysis/options` describes them; a setting left out takes its default.",
+            "title": "Options",
+            "type": "object"
+          },
+          "remove": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "By report, included statistics not to show, by id.",
+            "title": "Remove",
+            "type": "object"
+          },
+          "reports": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Each report wanted, by id, with its level: 'core' or 'extended'.",
+            "title": "Reports",
+            "type": "object"
+          },
+          "statistics": {
+            "description": "Statistics wanted outside any report, by id.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Statistics",
+            "type": "array"
+          },
+          "time_views": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "description": "By report, statistic ids with the time view to show them in: 'point', 'rolling' or 'both'.",
+            "title": "Time Views",
+            "type": "object"
+          }
+        },
+        "title": "AnalysisRequestSpec",
+        "type": "object"
+      },
+      "AnalyticsBlock": {
+        "description": "A run's analysis: each statistic once, and each report as a list of\nstatistic ids.",
+        "properties": {
+          "active_against": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The comparator relative and active figures are measured against.",
+            "title": "Active Against"
+          },
+          "groupings": {
+            "description": "The reference fields the run kept for its names, which `options.attribution.grouping` can name.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Groupings",
+            "type": "array"
+          },
+          "reports": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReportSelection"
+            },
+            "description": "Each report asked for, by id.",
+            "title": "Reports",
+            "type": "object"
+          },
+          "request": {
+            "additionalProperties": true,
+            "description": "The request, every default filled in.",
+            "title": "Request",
+            "type": "object"
+          },
+          "statistics": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StatisticValue"
+            },
+            "description": "Each statistic worked out, by id. Labels, units and decimals are in `GET /analysis/options`.",
+            "title": "Statistics",
+            "type": "object"
+          },
+          "tables": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TableRef"
+            },
+            "description": "The run's large tables, by name, read on their own.",
+            "title": "Tables",
+            "type": "object"
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Seconds each part took: 'tables', then 'performance', 'portfolio', 'risk' and 'attribution' as asked for.",
+            "title": "Timings",
+            "type": "object"
+          },
+          "unavailable": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/UnavailableReason"
+            },
+            "description": "Each statistic asked for that the run cannot give, by id.",
+            "title": "Unavailable",
+            "type": "object"
+          }
+        },
+        "required": [
+          "request",
+          "reports",
+          "statistics",
+          "unavailable",
+          "active_against",
+          "timings"
+        ],
+        "title": "AnalyticsBlock",
+        "type": "object"
+      },
+      "AnalyticsJobStatus": {
+        "description": "An `analytics:{strategy_id}` job. `result` is the latest run's analysis,\nwhole: what was kept with it and what was worked out now.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one."
+          },
+          "job_id": {
+            "description": "The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What the job is, e.g. 'backtest'.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "description": "Latest progress message.",
+            "title": "Message",
+            "type": "string"
+          },
+          "progress": {
+            "description": "Fraction complete, 0.0 to 1.0.",
+            "title": "Progress",
+            "type": "number"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalyticsBlock"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present only once the job has succeeded; null otherwise."
+          },
+          "status": {
+            "description": "pending, running, succeeded, failed or cancelled. The last three are terminal.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "progress"
+        ],
+        "title": "AnalyticsJobStatus",
+        "type": "object"
+      },
+      "AnalyticsRerun": {
+        "additionalProperties": false,
+        "description": "Body of `POST /strategies/{strategy_id}/analytics`: the analysis to\ngive of the strategy's latest run, and a name to keep it under.",
+        "properties": {
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisRequestSpec",
+            "description": "What to give: reports, statistics and every choice they make."
+          },
+          "save": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A name to keep this analysis under, read back from `/strategies/{strategy_id}/analyses/{name}`; null keeps none apart from the run's own.",
+            "title": "Save"
+          }
+        },
+        "title": "AnalyticsRerun",
+        "type": "object"
+      },
+      "AnalyticsView": {
+        "description": "Response of `GET /strategies/{strategy_id}/analytics`.",
+        "properties": {
+          "analytics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalyticsBlock"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The run's analysis; null when not computed."
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why it was not computed.",
+            "title": "Reason"
+          },
+          "status": {
+            "description": "'computed', or 'not_computed' for a run made without an analysis, or before 0.10.0, which the analytics rerun gives.",
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "What the stored run says as it opens: that the data store its market inputs came from was deleted, say.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "analytics"
+        ],
+        "title": "AnalyticsView",
+        "type": "object"
+      },
       "AnyNode": {
         "description": "At least one operand must pass: `expressions.core.Any_`.",
         "properties": {
@@ -1023,6 +1388,17 @@
             "title": "Active",
             "type": "array"
           },
+          "analytics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalyticsBlock"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The run's analysis, when one was asked for: each statistic once, each report as a list of statistic ids, and the run's large tables to read on their own."
+          },
           "annual_returns": {
             "additionalProperties": {
               "type": "number"
@@ -1729,6 +2105,77 @@
           "items"
         ],
         "title": "ChangelogSectionView",
+        "type": "object"
+      },
+      "CodedColumn": {
+        "description": "A column of text sent once per distinct value.",
+        "properties": {
+          "codes": {
+            "description": "A row's value, as its position in `values`.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Codes",
+            "type": "array"
+          },
+          "values": {
+            "description": "Each distinct value.",
+            "items": {},
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "values",
+          "codes"
+        ],
+        "title": "CodedColumn",
+        "type": "object"
+      },
+      "ColumnarTable": {
+        "description": "A large table by column: each column a list of values, or, for\nrepeated text, its distinct values and a code a row.",
+        "properties": {
+          "columns": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/CodedColumn"
+                },
+                {
+                  "items": {},
+                  "type": "array"
+                }
+              ]
+            },
+            "description": "Each column by name, in order: a list of values a row, or a coded column.",
+            "title": "Columns",
+            "type": "object"
+          },
+          "constant": {
+            "additionalProperties": true,
+            "description": "Columns the same on every row, each sent once.",
+            "title": "Constant",
+            "type": "object"
+          },
+          "decimals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "The decimals each number column is rounded to.",
+            "title": "Decimals",
+            "type": "object"
+          },
+          "length": {
+            "description": "How many rows it has.",
+            "title": "Length",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "length",
+          "columns"
+        ],
+        "title": "ColumnarTable",
         "type": "object"
       },
       "ComparatorFigures": {
@@ -4376,6 +4823,14 @@
         "title": "GenerateSyntheticRequest",
         "type": "object"
       },
+      "GroupingFields": {
+        "description": "Reference fields to group names by, such as [\"region\", \"sector\"]: each\nname is centred within the group its values put it in.",
+        "items": {
+          "type": "string"
+        },
+        "title": "GroupingFields",
+        "type": "array"
+      },
       "HealthResponse": {
         "description": "Response of `GET /health`.",
         "properties": {
@@ -4457,6 +4912,11 @@
             "title": "Date",
             "type": "string"
           },
+          "kind": {
+            "description": "What it did: 'open', 'roll' (a new month) or 'band' (the hedge ratio left its band).",
+            "title": "Kind",
+            "type": "string"
+          },
           "notional": {
             "description": "The new forward's notional, in the book's currency.",
             "title": "Notional",
@@ -4468,7 +4928,7 @@
             "type": "number"
           },
           "reason": {
-            "description": "'open', 'roll' (a new month) or 'band' (the hedge ratio left its band).",
+            "description": "Why it was made: 'fx hedge'.",
             "title": "Reason",
             "type": "string"
           },
@@ -4481,6 +4941,7 @@
         "required": [
           "date",
           "reason",
+          "kind",
           "notional",
           "rate",
           "settled"
@@ -4929,7 +5390,47 @@
                       }
                     ]
                   },
+                  "cost_per_contract": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "dividend_yield": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "mispricing_bps": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "mispricing_half_life": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "mispricing_seed": {
                     "anyOf": [
                       {
                         "type": "number"
@@ -4943,6 +5444,16 @@
                     "anyOf": [
                       {
                         "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "prices": {
+                    "anyOf": [
+                      {
+                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -4969,6 +5480,26 @@
                       }
                     ]
                   },
+                  "trading_cost_bps": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "underlying": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "whole_contracts": {
                     "type": "boolean"
                   }
@@ -4979,7 +5510,7 @@
                 "type": "null"
               }
             ],
-            "description": "Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps`, `dividend_yield` (null to estimate it), `multiplier` (the value of an index point per contract, 50 by default), `whole_contracts` (true by default) and `band` (how far the exposure may drift from the cash before the futures are resized, as a share of the net assets; 0.0025 by default). Null leaves the cash as cash.",
+            "description": "Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps`, `dividend_yield` (null to estimate it), `multiplier` (the value of an index point per contract, 50 by default), `whole_contracts` (true by default), `band` (how far the exposure may drift from the cash before the futures are resized, as a share of the net assets; 0.0025 by default), `cost_per_contract` (each contract traded, in the book's currency), `trading_cost_bps` (on the notional of each trade between rolls), `underlying` (a market series the futures are on, when not the fund's index), `prices` (a series of the held contract's prices) and the assumed mispricing when there are none: `mispricing_bps` (its standard deviation, 0 by default), `mispricing_half_life` (sessions, 10 by default) and `mispricing_seed`. Null leaves the cash as cash.",
             "title": "Equitise"
           },
           "execution": {
@@ -7985,6 +8516,141 @@
         "title": "ReplicationPayload",
         "type": "object"
       },
+      "ReportEntrySpec": {
+        "description": "One statistic in a report level.",
+        "properties": {
+          "id": {
+            "description": "The statistic's id.",
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "description": "'included' (shown by default) or 'optional' (offered).",
+            "title": "State",
+            "type": "string"
+          },
+          "view": {
+            "description": "Its default time view: 'point', 'rolling' or 'both'.",
+            "title": "View",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "view"
+        ],
+        "title": "ReportEntrySpec",
+        "type": "object"
+      },
+      "ReportLevelSpec": {
+        "description": "A report at one level.",
+        "properties": {
+          "sections": {
+            "description": "Its sections, in reading order.",
+            "items": {
+              "$ref": "#/components/schemas/ReportSectionSpec"
+            },
+            "title": "Sections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sections"
+        ],
+        "title": "ReportLevelSpec",
+        "type": "object"
+      },
+      "ReportSectionSpec": {
+        "description": "A level's statistics of one category, in order.",
+        "properties": {
+          "label": {
+            "description": "The section's heading.",
+            "title": "Label",
+            "type": "string"
+          },
+          "order": {
+            "description": "Its place in the level, ascending.",
+            "title": "Order",
+            "type": "integer"
+          },
+          "statistics": {
+            "description": "Its statistics, in order.",
+            "items": {
+              "$ref": "#/components/schemas/ReportEntrySpec"
+            },
+            "title": "Statistics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label",
+          "order",
+          "statistics"
+        ],
+        "title": "ReportSectionSpec",
+        "type": "object"
+      },
+      "ReportSelection": {
+        "description": "What a report shows, in order.",
+        "properties": {
+          "level": {
+            "description": "The level asked for: 'core' or 'extended'.",
+            "title": "Level",
+            "type": "string"
+          },
+          "statistics": {
+            "description": "Its statistics, in reading order.",
+            "items": {
+              "$ref": "#/components/schemas/StatisticRef"
+            },
+            "title": "Statistics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "level",
+          "statistics"
+        ],
+        "title": "ReportSelection",
+        "type": "object"
+      },
+      "ReportSpec": {
+        "description": "One report, at both levels.",
+        "properties": {
+          "id": {
+            "description": "What requests name it by.",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "description": "Its name, as shown.",
+            "title": "Label",
+            "type": "string"
+          },
+          "levels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReportLevelSpec"
+            },
+            "description": "'core' and 'extended'; each lists its sections in full.",
+            "title": "Levels",
+            "type": "object"
+          },
+          "order": {
+            "description": "Its place among the reports, ascending.",
+            "title": "Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "order",
+          "levels"
+        ],
+        "title": "ReportSpec",
+        "type": "object"
+      },
       "ReportTemplateCollection": {
         "description": "Response of `GET /reports/templates`.",
         "properties": {
@@ -8595,6 +9261,34 @@
         "title": "RollResponse",
         "type": "object"
       },
+      "RollingValue": {
+        "description": "A statistic over each trailing window.",
+        "properties": {
+          "step": {
+            "description": "How often a window ends: 'daily' or 'month_end'.",
+            "title": "Step",
+            "type": "string"
+          },
+          "table": {
+            "additionalProperties": true,
+            "description": "Dates down, the point figure's names across: `{index, columns, data}`, a list of values a row.",
+            "title": "Table",
+            "type": "object"
+          },
+          "window": {
+            "description": "The days each window covers.",
+            "title": "Window",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "window",
+          "step",
+          "table"
+        ],
+        "title": "RollingValue",
+        "type": "object"
+      },
       "RuleSpec": {
         "description": "One rule in the pipeline, addressable by its id.",
         "properties": {
@@ -8649,6 +9343,103 @@
           "weighting"
         ],
         "title": "RuleTypes",
+        "type": "object"
+      },
+      "SavedAnalyses": {
+        "description": "Response of `GET /strategies/{strategy_id}/analyses`.",
+        "properties": {
+          "analyses": {
+            "description": "Every analysis kept with the latest run, newest first.",
+            "items": {
+              "$ref": "#/components/schemas/SavedAnalysis"
+            },
+            "title": "Analyses",
+            "type": "array"
+          }
+        },
+        "required": [
+          "analyses"
+        ],
+        "title": "SavedAnalyses",
+        "type": "object"
+      },
+      "SavedAnalysis": {
+        "description": "One analysis kept by name with a strategy's latest run.",
+        "properties": {
+          "name": {
+            "description": "What it was saved as.",
+            "title": "Name",
+            "type": "string"
+          },
+          "options": {
+            "additionalProperties": true,
+            "description": "The choices it was made with, by section.",
+            "title": "Options",
+            "type": "object"
+          },
+          "reports": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Its reports, by id, with their levels.",
+            "title": "Reports",
+            "type": "object"
+          },
+          "saved_at": {
+            "description": "When, ISO 8601, UTC.",
+            "title": "Saved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "saved_at",
+          "reports",
+          "options"
+        ],
+        "title": "SavedAnalysis",
+        "type": "object"
+      },
+      "SavedAnalysisView": {
+        "description": "Response of `GET /strategies/{strategy_id}/analyses/{name}`.",
+        "properties": {
+          "analytics": {
+            "$ref": "#/components/schemas/AnalyticsBlock",
+            "description": "The analysis."
+          },
+          "name": {
+            "description": "What it was saved as.",
+            "title": "Name",
+            "type": "string"
+          },
+          "options": {
+            "additionalProperties": true,
+            "description": "The choices it was made with, by section.",
+            "title": "Options",
+            "type": "object"
+          },
+          "reports": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Its reports, by id, with their levels.",
+            "title": "Reports",
+            "type": "object"
+          },
+          "saved_at": {
+            "description": "When, ISO 8601, UTC.",
+            "title": "Saved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "saved_at",
+          "reports",
+          "options",
+          "analytics"
+        ],
+        "title": "SavedAnalysisView",
         "type": "object"
       },
       "SavedConstraintSet": {
@@ -9030,6 +9821,13 @@
             "description": "How far the hedge ratio may drift between monthly rolls before the forward is resized, as a fraction. Null resizes only at rolls.",
             "title": "Hedge Band"
           },
+          "hedge_cost_bps": {
+            "default": 0.0,
+            "description": "What trading its forwards costs, in basis points of the notional each trade deals: all of it at a roll, the change at a resize.",
+            "minimum": 0.0,
+            "title": "Hedge Cost Bps",
+            "type": "number"
+          },
           "hedge_ratio": {
             "default": 1.0,
             "description": "The share of its net assets it hedges, as a fraction: 1 for all.",
@@ -9069,6 +9867,14 @@
         ],
         "title": "ShareClassSpec",
         "type": "object"
+      },
+      "SignalWeights": {
+        "description": "A weight for each of the factor's `signals`, in their order: zero or\nmore, not all zero. Leave out for equal weights.",
+        "items": {
+          "type": "number"
+        },
+        "title": "SignalWeights",
+        "type": "array"
       },
       "SkippedCauses": {
         "description": "Why a listing left documents out, one count per cause.\n\nEach cause has its own remedy, so each has its own count and a\ndescription that names it.",
@@ -9114,6 +9920,244 @@
           "value"
         ],
         "title": "StageParam",
+        "type": "object"
+      },
+      "StatisticRef": {
+        "description": "One statistic a report shows, and how.",
+        "properties": {
+          "id": {
+            "description": "The statistic's id, a key of the block's `statistics` or `unavailable`.",
+            "title": "Id",
+            "type": "string"
+          },
+          "view": {
+            "description": "The time view it is shown in: 'point', 'rolling' or 'both'.",
+            "title": "View",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "view"
+        ],
+        "title": "StatisticRef",
+        "type": "object"
+      },
+      "StatisticSpec": {
+        "description": "One statistic, as the catalogue lists it.",
+        "properties": {
+          "category": {
+            "description": "What it is a figure of; reports are sectioned by it.",
+            "title": "Category",
+            "type": "string"
+          },
+          "columns": {
+            "description": "For a table, its columns in order: name, label, unit, and for coded text the label of each value (`labels`, null otherwise).",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "decimals": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How many decimals it is shown to.",
+            "title": "Decimals"
+          },
+          "description": {
+            "description": "One line saying what it measures.",
+            "title": "Description",
+            "type": "string"
+          },
+          "figure_names": {
+            "description": "What its figure names are made of, part by part, each a key of the catalogue's `names`.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Figure Names",
+            "type": "array"
+          },
+          "id": {
+            "description": "What requests and stored choices name it by.",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "'figures', 'series' or 'table'.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "description": "Its name, as shown.",
+            "title": "Label",
+            "type": "string"
+          },
+          "part": {
+            "description": "The analysis that works it out: 'performance', 'portfolio', 'risk' or 'attribution'.",
+            "title": "Part",
+            "type": "string"
+          },
+          "rolling": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What rolling it costs ('light', 'moderate' or 'heavy'); null when it does not roll.",
+            "title": "Rolling"
+          },
+          "settings": {
+            "description": "The settings it reads, as 'section.setting'.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Settings",
+            "type": "array"
+          },
+          "signed": {
+            "description": "Which of its figures are returns or differences, whose sign says better or worse, by the last part of a figure's, a column's or a summary figure's name; '*' for every number; empty for none.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Signed",
+            "type": "array"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How often its windows end unless asked otherwise.",
+            "title": "Step"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What its figures are measured in; null for none.",
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "category",
+          "kind",
+          "part",
+          "description",
+          "unit",
+          "decimals",
+          "rolling",
+          "step",
+          "settings",
+          "figure_names",
+          "columns",
+          "signed"
+        ],
+        "title": "StatisticSpec",
+        "type": "object"
+      },
+      "StatisticValue": {
+        "description": "One statistic's value.",
+        "properties": {
+          "kind": {
+            "description": "'figures' (`point` maps names to numbers, names of several parts joined with '/'), 'series' (`point` is `{index, name, data}`) or 'table' (`point` is `{index, columns, data}`, a list of values a row).",
+            "title": "Kind",
+            "type": "string"
+          },
+          "point": {
+            "description": "Its value over the analysis window, in its kind's shape.",
+            "title": "Point"
+          },
+          "rolling": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RollingValue"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its value over each trailing window, when its time view asks for it."
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a table, the figures that sum it up (its totals, its residual), by name.",
+            "title": "Summary"
+          }
+        },
+        "required": [
+          "kind",
+          "point"
+        ],
+        "title": "StatisticValue",
+        "type": "object"
+      },
+      "StoreForgotten": {
+        "description": "Response of `DELETE /data/stores/{store_id}`: what became of the\nstored runs that read the store's data.",
+        "properties": {
+          "deleted": {
+            "description": "The strategies whose stored runs were deleted with the store (`cascade=true`).",
+            "items": {
+              "type": "string"
+            },
+            "title": "Deleted",
+            "type": "array"
+          },
+          "kept": {
+            "description": "The strategies whose stored runs read the store's data. Their market inputs are kept, and each run says, when opened, that its store was deleted.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Kept",
+            "type": "array"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Said when runs still read the store's data.",
+            "title": "Warning"
+          }
+        },
+        "required": [
+          "kept",
+          "deleted"
+        ],
+        "title": "StoreForgotten",
         "type": "object"
       },
       "StoreProblem": {
@@ -9210,6 +10254,17 @@
         "additionalProperties": false,
         "description": "Body of `POST /strategies/{strategy_id}/backtest`: everything a backtest\nneeds that the stored strategy does not hold.\n\nEvery field past the first five is optional, and a request without them\nruns exactly as one with only the dates, capital and cost does. The\nstrategy and its implementation come from the stored strategy, so a body\ncarrying either is refused.",
         "properties": {
+          "analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisRequestSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the run's analysis should give: reports, statistics and every choice they make. Null for none; the run's analytics can be worked out later."
+          },
           "benchmark": {
             "anyOf": [
               {
@@ -9743,6 +10798,58 @@
         "title": "TablePage",
         "type": "object"
       },
+      "TableRef": {
+        "description": "A large table of the run, read on its own.",
+        "properties": {
+          "path": {
+            "description": "Where to read it: `GET` this path, with `Accept: application/vnd.apache.arrow.stream` for Arrow.",
+            "title": "Path",
+            "type": "string"
+          },
+          "rows": {
+            "description": "How many rows it has.",
+            "title": "Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rows",
+          "path"
+        ],
+        "title": "TableRef",
+        "type": "object"
+      },
+      "TableSpec": {
+        "description": "A large table of a run.",
+        "properties": {
+          "columns": {
+            "description": "Its columns in order: name, label, unit, and for coded text the label of each value.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "label": {
+            "description": "Its name, as shown.",
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "description": "What the tables path names it by.",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "columns"
+        ],
+        "title": "TableSpec",
+        "type": "object"
+      },
       "TermStructureEntry": {
         "description": "One expiry in a term structure.",
         "properties": {
@@ -10190,6 +11297,54 @@
         },
         "title": "TypedSpecs",
         "type": "array"
+      },
+      "UnavailableReason": {
+        "description": "Why a statistic was not worked out for the run.",
+        "properties": {
+          "code": {
+            "description": "A short code, such as 'no_index' or 'no_futures'; `GET /analysis/options` labels each.",
+            "title": "Code",
+            "type": "string"
+          },
+          "reason": {
+            "description": "A sentence saying why, fit to show as it is.",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "reason"
+        ],
+        "title": "UnavailableReason",
+        "type": "object"
+      },
+      "UnavailableSpec": {
+        "description": "One reason a statistic can be unavailable.",
+        "properties": {
+          "code": {
+            "description": "The code a block's `unavailable` gives.",
+            "title": "Code",
+            "type": "string"
+          },
+          "help": {
+            "description": "One line saying what is missing.",
+            "title": "Help",
+            "type": "string"
+          },
+          "label": {
+            "description": "A short name for it.",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "help"
+        ],
+        "title": "UnavailableSpec",
+        "type": "object"
       },
       "UnfilledOrderPayload": {
         "description": "An order the simulation could not execute in full.",
@@ -10912,10 +12067,112 @@
   },
   "info": {
     "title": "Beacon API",
-    "version": "0.9.7"
+    "version": "0.10.0"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/analysis/options": {
+      "get": {
+        "description": "Everything an analysis can be asked for: each section of settings\nwith its defaults, every statistic, every report at both levels,\nlabels for figure names, the large tables a run gives, and every\nreason a statistic can be unavailable.",
+        "operationId": "options_analysis_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisCatalogue"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Options",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
     "/backtest/options": {
       "get": {
         "description": "Everything a backtest request may carry, from the engine.\n\nEach family's types with their fields (the shape\n`/indices/rule-types` uses), the vehicle presets with their resolved\nsettings, the vehicle, market and implementation settings described\nfield by field, the modelling assumptions with the engine's defaults,\nand the closed choices. Reads no data, so it answers on a server with\nnone loaded.",
@@ -13463,7 +14720,7 @@
     },
     "/data/stores/{store_id}": {
       "delete": {
-        "description": "Forget a store.\n\nA folder the user registered is left exactly as it is. A store the\nengine created (`managed`) has its folder deleted too, since nothing\nelse knows it is there.",
+        "description": "Forget a store.\n\nA folder the user registered is left exactly as it is. A store the\nengine created (`managed`) has its folder deleted too, since nothing\nelse knows it is there. The stored runs that read its data keep\ntheir market inputs, and say so when opened; with `cascade`, they\nare deleted too.",
         "operationId": "forget_store_data_stores__store_id__delete",
         "parameters": [
           {
@@ -13476,10 +14733,29 @@
               "title": "Store Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Delete the stored runs that read the store's data too.",
+            "in": "query",
+            "name": "cascade",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Delete the stored runs that read the store's data too.",
+              "title": "Cascade",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
-          "204": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreForgotten"
+                }
+              }
+            },
             "description": "Successful Response"
           },
           "400": {
@@ -17190,6 +18466,9 @@
                       "$ref": "#/components/schemas/RiskModelJobStatus"
                     },
                     {
+                      "$ref": "#/components/schemas/AnalyticsJobStatus"
+                    },
+                    {
                       "$ref": "#/components/schemas/LoadJobStatus"
                     },
                     {
@@ -17326,6 +18605,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/RiskModelJobStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AnalyticsJobStatus"
                     },
                     {
                       "$ref": "#/components/schemas/LoadJobStatus"
@@ -20510,6 +21792,609 @@
         ]
       }
     },
+    "/strategies/{strategy_id}/analyses": {
+      "get": {
+        "description": "Every analysis kept by name with the strategy's latest run, newest\nfirst; a new backtest of the strategy leaves none.",
+        "operationId": "analyses_strategies__strategy_id__analyses_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedAnalyses"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Analyses",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/strategies/{strategy_id}/analyses/{name}": {
+      "delete": {
+        "description": "Remove an analysis kept by name.\n\nRaises:\n    DataNotFoundError: If none is kept under the name.",
+        "operationId": "delete_strategies__strategy_id__analyses__name__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Delete",
+        "tags": [
+          "analysis"
+        ]
+      },
+      "get": {
+        "description": "An analysis kept by name with the strategy's latest run.\n\nRaises:\n    DataNotFoundError: If none is kept under the name.",
+        "operationId": "saved_strategies__strategy_id__analyses__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedAnalysisView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Saved",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/strategies/{strategy_id}/analytics": {
+      "get": {
+        "description": "The analysis of the strategy's latest run, the block its backtest\njob answered with; ``not_computed`` for a run made without one.\n\nRaises:\n    DataNotFoundError: Until the strategy has been backtested.",
+        "operationId": "analytics_strategies__strategy_id__analytics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Analytics",
+        "tags": [
+          "analysis"
+        ]
+      },
+      "post": {
+        "description": "Give an analysis of the strategy's latest run, as a job: with the\nchoices its own analysis was made with, the run's analysis gains\nwhat is asked for and is kept, and only that is worked out; with\nother choices, everything asked for is, kept only under `save`. The\njob's result is the whole analysis.\n\nRaises:\n    DataNotFoundError: Until the strategy has been backtested.",
+        "operationId": "rerun_analytics_strategies__strategy_id__analytics_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AnalyticsRerun"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsJobStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Rerun Analytics",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
     "/strategies/{strategy_id}/assets/{identifier}": {
       "get": {
         "operationId": "asset_strategies__strategy_id__assets__identifier__get",
@@ -21725,6 +23610,131 @@
         "summary": "Result",
         "tags": [
           "backtests"
+        ]
+      }
+    },
+    "/strategies/{strategy_id}/tables/{name}": {
+      "get": {
+        "description": "One of the strategy's latest run's large tables, whole: by\ncolumn, repeated text as its distinct values and a code a row; or\nas Arrow, with ``Accept: application/vnd.apache.arrow.stream``.\n\nRaises:\n    DataNotFoundError: Until the strategy has been backtested, or for\n        a table the run does not give.",
+        "operationId": "table_strategies__strategy_id__tables__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColumnarTable"
+                }
+              },
+              "application/vnd.apache.arrow.stream": {}
+            },
+            "description": "The whole table: by column in JSON, or as an Arrow IPC stream when asked for with `Accept: application/vnd.apache.arrow.stream`."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Table",
+        "tags": [
+          "analysis"
         ]
       }
     },

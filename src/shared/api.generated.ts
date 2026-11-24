@@ -4,6 +4,29 @@
  */
 
 export interface paths {
+    "/analysis/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Options
+         * @description Everything an analysis can be asked for: each section of settings
+         *     with its defaults, every statistic, every report at both levels,
+         *     labels for figure names, the large tables a run gives, and every
+         *     reason a statistic can be unavailable.
+         */
+        get: operations["options_analysis_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/backtest/options": {
         parameters: {
             query?: never;
@@ -359,7 +382,9 @@ export interface paths {
          *
          *     A folder the user registered is left exactly as it is. A store the
          *     engine created (`managed`) has its folder deleted too, since nothing
-         *     else knows it is there.
+         *     else knows it is there. The stored runs that read its data keep
+         *     their market inputs, and say so when opened; with `cascade`, they
+         *     are deleted too.
          */
         delete: operations["forget_store_data_stores__store_id__delete"];
         options?: never;
@@ -1219,6 +1244,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/strategies/{strategy_id}/analyses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Analyses
+         * @description Every analysis kept by name with the strategy's latest run, newest
+         *     first; a new backtest of the strategy leaves none.
+         */
+        get: operations["analyses_strategies__strategy_id__analyses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/analyses/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Saved
+         * @description An analysis kept by name with the strategy's latest run.
+         *
+         *     Raises:
+         *         DataNotFoundError: If none is kept under the name.
+         */
+        get: operations["saved_strategies__strategy_id__analyses__name__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete
+         * @description Remove an analysis kept by name.
+         *
+         *     Raises:
+         *         DataNotFoundError: If none is kept under the name.
+         */
+        delete: operations["delete_strategies__strategy_id__analyses__name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Analytics
+         * @description The analysis of the strategy's latest run, the block its backtest
+         *     job answered with; ``not_computed`` for a run made without one.
+         *
+         *     Raises:
+         *         DataNotFoundError: Until the strategy has been backtested.
+         */
+        get: operations["analytics_strategies__strategy_id__analytics_get"];
+        put?: never;
+        /**
+         * Rerun Analytics
+         * @description Give an analysis of the strategy's latest run, as a job: with the
+         *     choices its own analysis was made with, the run's analysis gains
+         *     what is asked for and is kept, and only that is worked out; with
+         *     other choices, everything asked for is, kept only under `save`. The
+         *     job's result is the whole analysis.
+         *
+         *     Raises:
+         *         DataNotFoundError: Until the strategy has been backtested.
+         */
+        post: operations["rerun_analytics_strategies__strategy_id__analytics_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/strategies/{strategy_id}/assets/{identifier}": {
         parameters: {
             query?: never;
@@ -1415,6 +1526,32 @@ export interface paths {
          *         DataNotFoundError: Until the strategy has been backtested.
          */
         get: operations["result_strategies__strategy_id__result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/strategies/{strategy_id}/tables/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Table
+         * @description One of the strategy's latest run's large tables, whole: by
+         *     column, repeated text as its distinct values and a code a row; or
+         *     as Arrow, with ``Accept: application/vnd.apache.arrow.stream``.
+         *
+         *     Raises:
+         *         DataNotFoundError: Until the strategy has been backtested, or for
+         *             a table the run does not give.
+         */
+        get: operations["table_strategies__strategy_id__tables__name__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1633,6 +1770,247 @@ export interface components {
              * @description The expressions that must all pass.
              */
             operands: components["schemas"]["ExpressionNode"][];
+        };
+        /**
+         * AnalysisCatalogue
+         * @description Response of `GET /analysis/options`: everything an analysis can be
+         *     asked for, so a client hard-codes none of it.
+         */
+        AnalysisCatalogue: {
+            /**
+             * Dropped
+             * @description Statistic ids no longer given.
+             */
+            dropped: string[];
+            /**
+             * Names
+             * @description Labels for figure names that are not statistic ids, by dimension: books, methods, confidence levels, horizons, comparators, fields.
+             */
+            names: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
+            /**
+             * Renamed
+             * @description Statistic ids renamed in this release, old to new.
+             */
+            renamed: {
+                [key: string]: string;
+            };
+            /**
+             * Reports
+             * @description Every report, in order.
+             */
+            reports: components["schemas"]["ReportSpec"][];
+            /**
+             * Settings
+             * @description Each section of settings in order, each with its parameters in the shape `GET /backtest/options` describes a backtest's.
+             */
+            settings: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Statistics
+             * @description Every statistic, in order.
+             */
+            statistics: components["schemas"]["StatisticSpec"][];
+            /**
+             * Tables
+             * @description The large tables a run gives.
+             */
+            tables: components["schemas"]["TableSpec"][];
+            /**
+             * Unavailable
+             * @description Every reason a statistic can be unavailable.
+             */
+            unavailable: components["schemas"]["UnavailableSpec"][];
+        };
+        /**
+         * AnalysisRequestSpec
+         * @description What a run's analysis should give: the reports wanted, each at a
+         *     level, with statistics added or taken out, their time views, and every
+         *     choice the analysis makes. `GET /analysis/options` lists the reports,
+         *     statistics and settings.
+         */
+        AnalysisRequestSpec: {
+            /**
+             * Add
+             * @description By report, optional statistics to show, by id.
+             */
+            add?: {
+                [key: string]: string[];
+            };
+            /**
+             * Options
+             * @description Every choice the analysis makes, by section and setting, as `GET /analysis/options` describes them; a setting left out takes its default.
+             */
+            options?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            };
+            /**
+             * Remove
+             * @description By report, included statistics not to show, by id.
+             */
+            remove?: {
+                [key: string]: string[];
+            };
+            /**
+             * Reports
+             * @description Each report wanted, by id, with its level: 'core' or 'extended'.
+             */
+            reports?: {
+                [key: string]: string;
+            };
+            /**
+             * Statistics
+             * @description Statistics wanted outside any report, by id.
+             */
+            statistics?: string[];
+            /**
+             * Time Views
+             * @description By report, statistic ids with the time view to show them in: 'point', 'rolling' or 'both'.
+             */
+            time_views?: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
+        };
+        /**
+         * AnalyticsBlock
+         * @description A run's analysis: each statistic once, and each report as a list of
+         *     statistic ids.
+         */
+        AnalyticsBlock: {
+            /**
+             * Active Against
+             * @description The comparator relative and active figures are measured against.
+             */
+            active_against: string | null;
+            /**
+             * Groupings
+             * @description The reference fields the run kept for its names, which `options.attribution.grouping` can name.
+             */
+            groupings?: string[];
+            /**
+             * Reports
+             * @description Each report asked for, by id.
+             */
+            reports: {
+                [key: string]: components["schemas"]["ReportSelection"];
+            };
+            /**
+             * Request
+             * @description The request, every default filled in.
+             */
+            request: {
+                [key: string]: unknown;
+            };
+            /**
+             * Statistics
+             * @description Each statistic worked out, by id. Labels, units and decimals are in `GET /analysis/options`.
+             */
+            statistics: {
+                [key: string]: components["schemas"]["StatisticValue"];
+            };
+            /**
+             * Tables
+             * @description The run's large tables, by name, read on their own.
+             */
+            tables?: {
+                [key: string]: components["schemas"]["TableRef"];
+            };
+            /**
+             * Timings
+             * @description Seconds each part took: 'tables', then 'performance', 'portfolio', 'risk' and 'attribution' as asked for.
+             */
+            timings: {
+                [key: string]: number;
+            };
+            /**
+             * Unavailable
+             * @description Each statistic asked for that the run cannot give, by id.
+             */
+            unavailable: {
+                [key: string]: components["schemas"]["UnavailableReason"];
+            };
+        };
+        /**
+         * AnalyticsJobStatus
+         * @description An `analytics:{strategy_id}` job. `result` is the latest run's analysis,
+         *     whole: what was kept with it and what was worked out now.
+         */
+        AnalyticsJobStatus: {
+            /** @description Failure reason, when status is failed; null otherwise. The same `{code, message, detail}` a non-2xx response carries, and the same schema, so a failed job branches on `error.code` exactly as an HTTP error does. A job recorded by an older engine carries UNCLASSIFIED_FAILURE: its message was recorded, its code was not, and the migration does not guess one. */
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /**
+             * Job Id
+             * @description The job's id: poll GET /jobs/{job_id}, or watch it on the event socket.
+             */
+            job_id: string;
+            /**
+             * Kind
+             * @description What the job is, e.g. 'backtest'.
+             */
+            kind: string;
+            /**
+             * Message
+             * @description Latest progress message.
+             * @default
+             */
+            message: string;
+            /**
+             * Progress
+             * @description Fraction complete, 0.0 to 1.0.
+             */
+            progress: number;
+            /** @description Present only once the job has succeeded; null otherwise. */
+            result?: components["schemas"]["AnalyticsBlock"] | null;
+            /**
+             * Status
+             * @description pending, running, succeeded, failed or cancelled. The last three are terminal.
+             */
+            status: string;
+        };
+        /**
+         * AnalyticsRerun
+         * @description Body of `POST /strategies/{strategy_id}/analytics`: the analysis to
+         *     give of the strategy's latest run, and a name to keep it under.
+         */
+        AnalyticsRerun: {
+            /** @description What to give: reports, statistics and every choice they make. */
+            analysis?: components["schemas"]["AnalysisRequestSpec"];
+            /**
+             * Save
+             * @description A name to keep this analysis under, read back from `/strategies/{strategy_id}/analyses/{name}`; null keeps none apart from the run's own.
+             */
+            save?: string | null;
+        };
+        /**
+         * AnalyticsView
+         * @description Response of `GET /strategies/{strategy_id}/analytics`.
+         */
+        AnalyticsView: {
+            /** @description The run's analysis; null when not computed. */
+            analytics: components["schemas"]["AnalyticsBlock"] | null;
+            /**
+             * Reason
+             * @description Why it was not computed.
+             */
+            reason?: string | null;
+            /**
+             * Status
+             * @description 'computed', or 'not_computed' for a run made without an analysis, or before 0.10.0, which the analytics rerun gives.
+             */
+            status: string;
+            /**
+             * Warnings
+             * @description What the stored run says as it opens: that the data store its market inputs came from was deleted, say.
+             */
+            warnings?: string[];
         };
         /**
          * AnyNode
@@ -2124,6 +2502,8 @@ export interface components {
              * @description For an active strategy, what it did at each rebalance. Empty otherwise.
              */
             active?: components["schemas"]["ActiveStepPayload"][];
+            /** @description The run's analysis, when one was asked for: each statistic once, each report as a list of statistic ids, and the run's large tables to read on their own. */
+            analytics?: components["schemas"]["AnalyticsBlock"] | null;
             /**
              * Annual Returns
              * @description Calendar year -> return. Compounds to total_return.
@@ -2554,6 +2934,55 @@ export interface components {
              * @description One change each, as markdown.
              */
             items: string[];
+        };
+        /**
+         * CodedColumn
+         * @description A column of text sent once per distinct value.
+         */
+        CodedColumn: {
+            /**
+             * Codes
+             * @description A row's value, as its position in `values`.
+             */
+            codes: number[];
+            /**
+             * Values
+             * @description Each distinct value.
+             */
+            values: unknown[];
+        };
+        /**
+         * ColumnarTable
+         * @description A large table by column: each column a list of values, or, for
+         *     repeated text, its distinct values and a code a row.
+         */
+        ColumnarTable: {
+            /**
+             * Columns
+             * @description Each column by name, in order: a list of values a row, or a coded column.
+             */
+            columns: {
+                [key: string]: components["schemas"]["CodedColumn"] | unknown[];
+            };
+            /**
+             * Constant
+             * @description Columns the same on every row, each sent once.
+             */
+            constant?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Decimals
+             * @description The decimals each number column is rounded to.
+             */
+            decimals?: {
+                [key: string]: number;
+            };
+            /**
+             * Length
+             * @description How many rows it has.
+             */
+            length: number;
         };
         /**
          * ComparatorFigures
@@ -4122,6 +4551,12 @@ export interface components {
             start?: string | null;
         };
         /**
+         * GroupingFields
+         * @description Reference fields to group names by, such as ["region", "sector"]: each
+         *     name is centred within the group its values put it in.
+         */
+        GroupingFields: string[];
+        /**
          * HealthResponse
          * @description Response of `GET /health`.
          */
@@ -4169,6 +4604,11 @@ export interface components {
              */
             date: string;
             /**
+             * Kind
+             * @description What it did: 'open', 'roll' (a new month) or 'band' (the hedge ratio left its band).
+             */
+            kind: string;
+            /**
              * Notional
              * @description The new forward's notional, in the book's currency.
              */
@@ -4180,7 +4620,7 @@ export interface components {
             rate: number;
             /**
              * Reason
-             * @description 'open', 'roll' (a new month) or 'band' (the hedge ratio left its band).
+             * @description Why it was made: 'fx hedge'.
              */
             reason: string;
             /**
@@ -4450,14 +4890,21 @@ export interface components {
             cash_buffer: number;
             /**
              * Equitise
-             * @description Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps`, `dividend_yield` (null to estimate it), `multiplier` (the value of an index point per contract, 50 by default), `whole_contracts` (true by default) and `band` (how far the exposure may drift from the cash before the futures are resized, as a share of the net assets; 0.0025 by default). Null leaves the cash as cash.
+             * @description Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps`, `dividend_yield` (null to estimate it), `multiplier` (the value of an index point per contract, 50 by default), `whole_contracts` (true by default), `band` (how far the exposure may drift from the cash before the futures are resized, as a share of the net assets; 0.0025 by default), `cost_per_contract` (each contract traded, in the book's currency), `trading_cost_bps` (on the notional of each trade between rolls), `underlying` (a market series the futures are on, when not the fund's index), `prices` (a series of the held contract's prices) and the assumed mispricing when there are none: `mispricing_bps` (its standard deviation, 0 by default), `mispricing_half_life` (sessions, 10 by default) and `mispricing_seed`. Null leaves the cash as cash.
              */
             equitise?: {
                 band?: number | null;
+                cost_per_contract?: number | null;
                 dividend_yield?: number | null;
+                mispricing_bps?: number | null;
+                mispricing_half_life?: number | null;
+                mispricing_seed?: number | null;
                 multiplier?: number | null;
+                prices?: string | null;
                 roll_cost_bps?: number | null;
                 roll_days?: number | null;
+                trading_cost_bps?: number | null;
+                underlying?: string | null;
                 whole_contracts?: boolean;
             } | null;
             /**
@@ -6267,6 +6714,103 @@ export interface components {
             };
         };
         /**
+         * ReportEntrySpec
+         * @description One statistic in a report level.
+         */
+        ReportEntrySpec: {
+            /**
+             * Id
+             * @description The statistic's id.
+             */
+            id: string;
+            /**
+             * State
+             * @description 'included' (shown by default) or 'optional' (offered).
+             */
+            state: string;
+            /**
+             * View
+             * @description Its default time view: 'point', 'rolling' or 'both'.
+             */
+            view: string;
+        };
+        /**
+         * ReportLevelSpec
+         * @description A report at one level.
+         */
+        ReportLevelSpec: {
+            /**
+             * Sections
+             * @description Its sections, in reading order.
+             */
+            sections: components["schemas"]["ReportSectionSpec"][];
+        };
+        /**
+         * ReportSectionSpec
+         * @description A level's statistics of one category, in order.
+         */
+        ReportSectionSpec: {
+            /**
+             * Label
+             * @description The section's heading.
+             */
+            label: string;
+            /**
+             * Order
+             * @description Its place in the level, ascending.
+             */
+            order: number;
+            /**
+             * Statistics
+             * @description Its statistics, in order.
+             */
+            statistics: components["schemas"]["ReportEntrySpec"][];
+        };
+        /**
+         * ReportSelection
+         * @description What a report shows, in order.
+         */
+        ReportSelection: {
+            /**
+             * Level
+             * @description The level asked for: 'core' or 'extended'.
+             */
+            level: string;
+            /**
+             * Statistics
+             * @description Its statistics, in reading order.
+             */
+            statistics: components["schemas"]["StatisticRef"][];
+        };
+        /**
+         * ReportSpec
+         * @description One report, at both levels.
+         */
+        ReportSpec: {
+            /**
+             * Id
+             * @description What requests name it by.
+             */
+            id: string;
+            /**
+             * Label
+             * @description Its name, as shown.
+             */
+            label: string;
+            /**
+             * Levels
+             * @description 'core' and 'extended'; each lists its sections in full.
+             */
+            levels: {
+                [key: string]: components["schemas"]["ReportLevelSpec"];
+            };
+            /**
+             * Order
+             * @description Its place among the reports, ascending.
+             */
+            order: number;
+        };
+        /**
          * ReportTemplateCollection
          * @description Response of `GET /reports/templates`.
          */
@@ -6621,6 +7165,29 @@ export interface components {
             spot: number;
         };
         /**
+         * RollingValue
+         * @description A statistic over each trailing window.
+         */
+        RollingValue: {
+            /**
+             * Step
+             * @description How often a window ends: 'daily' or 'month_end'.
+             */
+            step: string;
+            /**
+             * Table
+             * @description Dates down, the point figure's names across: `{index, columns, data}`, a list of values a row.
+             */
+            table: {
+                [key: string]: unknown;
+            };
+            /**
+             * Window
+             * @description The days each window covers.
+             */
+            window: number;
+        };
+        /**
          * RuleSpec
          * @description One rule in the pipeline, addressable by its id.
          */
@@ -6663,6 +7230,79 @@ export interface components {
              * @description Weighting schemes available for the weighting stage.
              */
             weighting: components["schemas"]["TypeSpec"][];
+        };
+        /**
+         * SavedAnalyses
+         * @description Response of `GET /strategies/{strategy_id}/analyses`.
+         */
+        SavedAnalyses: {
+            /**
+             * Analyses
+             * @description Every analysis kept with the latest run, newest first.
+             */
+            analyses: components["schemas"]["SavedAnalysis"][];
+        };
+        /**
+         * SavedAnalysis
+         * @description One analysis kept by name with a strategy's latest run.
+         */
+        SavedAnalysis: {
+            /**
+             * Name
+             * @description What it was saved as.
+             */
+            name: string;
+            /**
+             * Options
+             * @description The choices it was made with, by section.
+             */
+            options: {
+                [key: string]: unknown;
+            };
+            /**
+             * Reports
+             * @description Its reports, by id, with their levels.
+             */
+            reports: {
+                [key: string]: string;
+            };
+            /**
+             * Saved At
+             * @description When, ISO 8601, UTC.
+             */
+            saved_at: string;
+        };
+        /**
+         * SavedAnalysisView
+         * @description Response of `GET /strategies/{strategy_id}/analyses/{name}`.
+         */
+        SavedAnalysisView: {
+            /** @description The analysis. */
+            analytics: components["schemas"]["AnalyticsBlock"];
+            /**
+             * Name
+             * @description What it was saved as.
+             */
+            name: string;
+            /**
+             * Options
+             * @description The choices it was made with, by section.
+             */
+            options: {
+                [key: string]: unknown;
+            };
+            /**
+             * Reports
+             * @description Its reports, by id, with their levels.
+             */
+            reports: {
+                [key: string]: string;
+            };
+            /**
+             * Saved At
+             * @description When, ISO 8601, UTC.
+             */
+            saved_at: string;
         };
         /**
          * SavedConstraintSet
@@ -6892,6 +7532,12 @@ export interface components {
              */
             hedge_band: number | null;
             /**
+             * Hedge Cost Bps
+             * @description What trading its forwards costs, in basis points of the notional each trade deals: all of it at a roll, the change at a resize.
+             * @default 0
+             */
+            hedge_cost_bps: number;
+            /**
              * Hedge Ratio
              * @description The share of its net assets it hedges, as a fraction: 1 for all.
              * @default 1
@@ -6914,6 +7560,12 @@ export interface components {
              */
             name: string;
         };
+        /**
+         * SignalWeights
+         * @description A weight for each of the factor's `signals`, in their order: zero or
+         *     more, not all zero. Leave out for equal weights.
+         */
+        SignalWeights: number[];
         /**
          * SkippedCauses
          * @description Why a listing left documents out, one count per cause.
@@ -6956,6 +7608,147 @@ export interface components {
              * @description Its value, formatted with its unit.
              */
             value: string;
+        };
+        /**
+         * StatisticRef
+         * @description One statistic a report shows, and how.
+         */
+        StatisticRef: {
+            /**
+             * Id
+             * @description The statistic's id, a key of the block's `statistics` or `unavailable`.
+             */
+            id: string;
+            /**
+             * View
+             * @description The time view it is shown in: 'point', 'rolling' or 'both'.
+             */
+            view: string;
+        };
+        /**
+         * StatisticSpec
+         * @description One statistic, as the catalogue lists it.
+         */
+        StatisticSpec: {
+            /**
+             * Category
+             * @description What it is a figure of; reports are sectioned by it.
+             */
+            category: string;
+            /**
+             * Columns
+             * @description For a table, its columns in order: name, label, unit, and for coded text the label of each value (`labels`, null otherwise).
+             */
+            columns: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Decimals
+             * @description How many decimals it is shown to.
+             */
+            decimals: number | null;
+            /**
+             * Description
+             * @description One line saying what it measures.
+             */
+            description: string;
+            /**
+             * Figure Names
+             * @description What its figure names are made of, part by part, each a key of the catalogue's `names`.
+             */
+            figure_names: string[];
+            /**
+             * Id
+             * @description What requests and stored choices name it by.
+             */
+            id: string;
+            /**
+             * Kind
+             * @description 'figures', 'series' or 'table'.
+             */
+            kind: string;
+            /**
+             * Label
+             * @description Its name, as shown.
+             */
+            label: string;
+            /**
+             * Part
+             * @description The analysis that works it out: 'performance', 'portfolio', 'risk' or 'attribution'.
+             */
+            part: string;
+            /**
+             * Rolling
+             * @description What rolling it costs ('light', 'moderate' or 'heavy'); null when it does not roll.
+             */
+            rolling: string | null;
+            /**
+             * Settings
+             * @description The settings it reads, as 'section.setting'.
+             */
+            settings: string[];
+            /**
+             * Signed
+             * @description Which of its figures are returns or differences, whose sign says better or worse, by the last part of a figure's, a column's or a summary figure's name; '*' for every number; empty for none.
+             */
+            signed: string[];
+            /**
+             * Step
+             * @description How often its windows end unless asked otherwise.
+             */
+            step: string | null;
+            /**
+             * Unit
+             * @description What its figures are measured in; null for none.
+             */
+            unit: string | null;
+        };
+        /**
+         * StatisticValue
+         * @description One statistic's value.
+         */
+        StatisticValue: {
+            /**
+             * Kind
+             * @description 'figures' (`point` maps names to numbers, names of several parts joined with '/'), 'series' (`point` is `{index, name, data}`) or 'table' (`point` is `{index, columns, data}`, a list of values a row).
+             */
+            kind: string;
+            /**
+             * Point
+             * @description Its value over the analysis window, in its kind's shape.
+             */
+            point: unknown;
+            /** @description Its value over each trailing window, when its time view asks for it. */
+            rolling?: components["schemas"]["RollingValue"] | null;
+            /**
+             * Summary
+             * @description For a table, the figures that sum it up (its totals, its residual), by name.
+             */
+            summary?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * StoreForgotten
+         * @description Response of `DELETE /data/stores/{store_id}`: what became of the
+         *     stored runs that read the store's data.
+         */
+        StoreForgotten: {
+            /**
+             * Deleted
+             * @description The strategies whose stored runs were deleted with the store (`cascade=true`).
+             */
+            deleted: string[];
+            /**
+             * Kept
+             * @description The strategies whose stored runs read the store's data. Their market inputs are kept, and each run says, when opened, that its store was deleted.
+             */
+            kept: string[];
+            /**
+             * Warning
+             * @description Said when runs still read the store's data.
+             */
+            warning?: string | null;
         };
         /**
          * StoreProblem
@@ -7016,6 +7809,8 @@ export interface components {
          *     carrying either is refused.
          */
         StrategyBacktestRequest: {
+            /** @description What the run's analysis should give: reports, statistics and every choice they make. Null for none; the run's analytics can be worked out later. */
+            analysis?: components["schemas"]["AnalysisRequestSpec"] | null;
             /** @description Optional external benchmark. The tracked index is always reported separately; this adds a second comparison. */
             benchmark?: components["schemas"]["BenchmarkRef"] | null;
             /**
@@ -7323,6 +8118,45 @@ export interface components {
             total: number;
         };
         /**
+         * TableRef
+         * @description A large table of the run, read on its own.
+         */
+        TableRef: {
+            /**
+             * Path
+             * @description Where to read it: `GET` this path, with `Accept: application/vnd.apache.arrow.stream` for Arrow.
+             */
+            path: string;
+            /**
+             * Rows
+             * @description How many rows it has.
+             */
+            rows: number;
+        };
+        /**
+         * TableSpec
+         * @description A large table of a run.
+         */
+        TableSpec: {
+            /**
+             * Columns
+             * @description Its columns in order: name, label, unit, and for coded text the label of each value.
+             */
+            columns: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Label
+             * @description Its name, as shown.
+             */
+            label: string;
+            /**
+             * Name
+             * @description What the tables path names it by.
+             */
+            name: string;
+        };
+        /**
          * TermStructureEntry
          * @description One expiry in a term structure.
          */
@@ -7616,6 +8450,43 @@ export interface components {
          *     `options` names the family their types come from.
          */
         TypedSpecs: components["schemas"]["TypedSpec"][];
+        /**
+         * UnavailableReason
+         * @description Why a statistic was not worked out for the run.
+         */
+        UnavailableReason: {
+            /**
+             * Code
+             * @description A short code, such as 'no_index' or 'no_futures'; `GET /analysis/options` labels each.
+             */
+            code: string;
+            /**
+             * Reason
+             * @description A sentence saying why, fit to show as it is.
+             */
+            reason: string;
+        };
+        /**
+         * UnavailableSpec
+         * @description One reason a statistic can be unavailable.
+         */
+        UnavailableSpec: {
+            /**
+             * Code
+             * @description The code a block's `unavailable` gives.
+             */
+            code: string;
+            /**
+             * Help
+             * @description One line saying what is missing.
+             */
+            help: string;
+            /**
+             * Label
+             * @description A short name for it.
+             */
+            label: string;
+        };
         /**
          * UnfilledOrderPayload
          * @description An order the simulation could not execute in full.
@@ -8051,6 +8922,98 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    options_analysis_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisCatalogue"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     options_backtest_options_get: {
         parameters: {
             query?: never;
@@ -9999,7 +10962,10 @@ export interface operations {
     };
     forget_store_data_stores__store_id__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Delete the stored runs that read the store's data too. */
+                cascade?: boolean;
+            };
             header?: never;
             path: {
                 store_id: string;
@@ -10009,11 +10975,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StoreForgotten"];
+                };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
             400: {
@@ -12839,7 +13807,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["LoadJobStatus"] | components["schemas"]["GenerateJobStatus"] | components["schemas"]["RefreshJobStatus"] | components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["AnalyticsJobStatus"] | components["schemas"]["LoadJobStatus"] | components["schemas"]["GenerateJobStatus"] | components["schemas"]["RefreshJobStatus"] | components["schemas"]["JobStatus"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
@@ -12933,7 +13901,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["LoadJobStatus"] | components["schemas"]["GenerateJobStatus"] | components["schemas"]["RefreshJobStatus"] | components["schemas"]["JobStatus"];
+                    "application/json": components["schemas"]["BacktestJobStatus"] | components["schemas"]["OptimisationJobStatus"] | components["schemas"]["RenderJobStatus"] | components["schemas"]["RiskModelJobStatus"] | components["schemas"]["AnalyticsJobStatus"] | components["schemas"]["LoadJobStatus"] | components["schemas"]["GenerateJobStatus"] | components["schemas"]["RefreshJobStatus"] | components["schemas"]["JobStatus"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
@@ -15583,6 +16551,480 @@ export interface operations {
             };
         };
     };
+    analyses_strategies__strategy_id__analyses_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAnalyses"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saved_strategies__strategy_id__analyses__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAnalysisView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_strategies__strategy_id__analyses__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    analytics_strategies__strategy_id__analytics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rerun_analytics_strategies__strategy_id__analytics_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AnalyticsRerun"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsJobStatus"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     asset_strategies__strategy_id__assets__identifier__get: {
         parameters: {
             query?: never;
@@ -16383,6 +17825,102 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BacktestRunResult"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    table_strategies__strategy_id__tables__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The whole table: by column in JSON, or as an Arrow IPC stream when asked for with `Accept: application/vnd.apache.arrow.stream`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColumnarTable"];
+                    "application/vnd.apache.arrow.stream": unknown;
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
