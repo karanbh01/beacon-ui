@@ -19,14 +19,14 @@ import './IndexOverviewView.css'
 
 type Face = 'summary' | 'implementation' | 'performance' | 'risk' | 'flows'
 
-// Karan's order: what it did, how it was carried out, then the detail.
+// Karan's order (2026-11-24): what it did, the detail, then how it was carried out.
 const FACES: readonly { value: Face; label: string }[] = [
   { value: 'summary', label: 'Summary' },
-  { value: 'implementation', label: 'Implementation' },
   // Statistics Detail until Karan, 2026-11-23.
   { value: 'performance', label: 'Performance' },
   { value: 'risk', label: 'Risk & Correlation' },
-  { value: 'flows', label: 'Flows & AUM' }
+  { value: 'flows', label: 'Flows & AUM' },
+  { value: 'implementation', label: 'Implementation' }
 ]
 
 /**

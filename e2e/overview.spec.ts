@@ -3,8 +3,8 @@ import { expect, openPage, openView, test } from './fixtures'
 
 /**
  * The Overview's faces (BU-176): a stored strategy's latest run since
- * py-beacon 0.9.0, in Karan's order — Summary, Implementation, Statistics
- * Detail, Risk & Correlation, Flows & AUM.
+ * py-beacon 0.9.0, in Karan's order — Summary, Performance, Risk &
+ * Correlation, Flows & AUM, Implementation.
  *
  * The stub's strategies are plain ones named for the fixture indices they
  * hold, so the ids typed here read as they did when the subject was the
@@ -26,10 +26,10 @@ test('the faces are in Karan’s order', async ({ window }) => {
 
   await expect(window.locator('.overview-faces [role="radio"]')).toHaveText([
     'Summary',
-    'Implementation',
     'Performance',
     'Risk & Correlation',
-    'Flows & AUM'
+    'Flows & AUM',
+    'Implementation'
   ])
 })
 
