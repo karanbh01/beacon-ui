@@ -34,10 +34,9 @@ export interface StubStatistic {
  */
 const STATISTICS = `
 total_return|Total return|Returns|figures|fraction|performance|L
-cagr|CAGR|Returns|figures|fraction|performance|L
+annualised_return|Annualised return (CAGR)|Returns|figures|fraction|performance|L
 money_weighted_return|Money-weighted return|Returns|figures|fraction|performance|H
 trailing_returns|Trailing returns|Returns|table|-|performance|-
-trailing_statistics|Statistics by period|Returns|table|-|performance|-
 period_returns|Period returns|Returns|table|-|performance|-
 best_worst_periods|Best and worst periods|Returns|table|-|performance|-
 share_positive|Share of positive periods|Returns|figures|fraction|performance|L
@@ -83,8 +82,10 @@ r_squared|R²|Relative|figures|ratio|performance|L
 residual_risk|Residual risk|Relative|figures|fraction|performance|L
 treynor_ratio|Treynor ratio|Relative|figures|ratio|performance|L
 capture|Up and down capture|Relative|table|-|performance|L
+up_capture|Up capture|Relative|figures|ratio|performance|L
+down_capture|Down capture|Relative|figures|ratio|performance|L
 batting_average|Batting average|Relative|figures|fraction|performance|L
-downside_te|Downside tracking error|Relative|figures|fraction|performance|L
+downside_tracking_error|Downside tracking error|Relative|figures|fraction|performance|L
 relative_drawdowns|Relative drawdowns|Relative|table|-|performance|M
 td_by_year|Tracking difference by year|Relative|table|-|performance|-
 rolling_outcomes|Rolling outcomes|Rolling|table|-|performance|-
@@ -133,7 +134,6 @@ efficient_frontier|Efficient frontier in hindsight|risk|table|fraction|risk|-
 market_correlations|Correlation with markets|Correlation|table|ratio|risk|-
 rolling_correlations|Rolling correlation with markets|Correlation|table|ratio|risk|-
 market_volatility|Volatility range with markets|Correlation|table|fraction|risk|-
-trailing_risk|Risk statistics by period|Risk|table|-|risk|-
 expected_risk|Expected volatility and tracking error|Risk contributions|table|-|risk|-
 risk_contributions|Risk contributions|Risk contributions|table|-|risk|-
 measured_contributions|Measured contributions|Risk contributions|table|-|risk|H
@@ -294,41 +294,6 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
     col('index', 'Index', 'fraction'),
     col('benchmark', 'Benchmark', 'fraction')
   ],
-  // py-beacon 25efb21 (BN-422): a unit per row, as the books mix returns and a ratio.
-  trailing_statistics: [
-    {
-      ...col('period', 'Period'),
-      labels: {
-        '1M': '1 month',
-        '3M': '3 months',
-        '6M': '6 months',
-        '1Y': '1 year',
-        '3Y': '3 years',
-        '5Y': '5 years',
-        '10Y': '10 years',
-        MTD: 'Month to date',
-        QTD: 'Quarter to date',
-        YTD: 'Year to date',
-        inception: 'Since inception'
-      }
-    },
-    {
-      ...col('statistic', 'Statistic'),
-      labels: {
-        total_return: 'Total return',
-        annualised_return: 'Annualised return (CAGR)',
-        volatility: 'Volatility',
-        max_drawdown: 'Maximum drawdown',
-        sharpe_ratio: 'Sharpe ratio',
-        tracking_difference: 'Tracking difference',
-        tracking_error: 'Tracking error'
-      }
-    },
-    { ...col('unit', 'Unit'), labels: { fraction: 'Fraction', ratio: 'Ratio' } },
-    col('fund', 'Fund'),
-    col('index', 'Index'),
-    col('benchmark', 'Benchmark')
-  ],
   period_returns: [col('period', 'Year'), ...BOOK_COLUMNS],
   best_worst_periods: [
     col('measure', 'Period'),
@@ -475,33 +440,6 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   ],
   // Provisional: each series' lowest, highest and latest volatility over a
   // trailing year, through the run (Karan, 2026-11-22).
-  // Provisional, shaped as trailing_statistics is: the risk face's figures
-  // over the last 1, 3 and 5 years and since inception (Karan, 2026-11-22).
-  trailing_risk: [
-    {
-      ...col('period', 'Period'),
-      labels: { '1Y': '1 year', '3Y': '3 years', '5Y': '5 years', inception: 'Since inception' }
-    },
-    {
-      ...col('statistic', 'Statistic'),
-      labels: {
-        volatility: 'Volatility',
-        max_drawdown: 'Max drawdown',
-        beta: 'Beta',
-        downside_deviation: 'Downside deviation',
-        downside_tracking_error: 'Downside tracking error',
-        tail_ratio: 'Tail ratio',
-        skew: 'Skew',
-        excess_kurtosis: 'Excess kurtosis',
-        up_capture: 'Up capture',
-        down_capture: 'Down capture'
-      }
-    },
-    { ...col('unit', 'Unit'), labels: { fraction: 'Fraction', ratio: 'Ratio' } },
-    col('fund', 'Fund'),
-    col('index', 'Index'),
-    col('benchmark', 'Benchmark')
-  ],
   market_volatility: [
     { ...col('series', 'Series'), labels: SERIES_LABELS },
     col('low', 'Lowest', 'fraction'),
@@ -672,6 +610,7 @@ export const CATALOGUE_STATISTICS: StubStatistic[] = STATISTICS.trim()
 
 const byLabel = new Map(CATALOGUE_STATISTICS.map((statistic) => [statistic.label, statistic.id]))
 const ALIASES: Record<string, string> = {
+  CAGR: 'Annualised return (CAGR)',
   Trailing: 'Trailing returns',
   Period: 'Period returns',
   Vol: 'Volatility',
@@ -901,6 +840,22 @@ export const CATALOGUE_REPORTS = REPORTS.map((report, at) => {
 
 export const CATALOGUE_NAMES = {
   book: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark', active: 'Active' },
+  // A relative figure's comparator, by the code /instrument and /assets give (BN-454).
+  comparator: { index: 'Index', optimised: 'Optimised index', benchmark: 'Benchmark' },
+  // A statistic table's windows (BN-467).
+  window: {
+    '1M': '1 month',
+    '3M': '3 months',
+    '6M': '6 months',
+    '1Y': '1 year',
+    '3Y': '3 years',
+    '5Y': '5 years',
+    '10Y': '10 years',
+    MTD: 'Month to date',
+    QTD: 'Quarter to date',
+    YTD: 'Year to date',
+    inception: 'Since inception'
+  },
   method: { historical: 'Historical', normal: 'Normal', cornish_fisher: 'Cornish-Fisher' },
   confidence: { '0.95': '95%', '0.99': '99%' },
   horizon: { '1': '1 day', '10': '10 days' },

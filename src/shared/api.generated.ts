@@ -1437,6 +1437,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/strategies/{strategy_id}/instrument": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Instrument
+         * @description Every per-name figure of the strategy's latest run in one table,
+         *     a row for each name any portfolio held over the window: when it was
+         *     held, its return and risk, against the comparator, its weights, its
+         *     contributions to return and risk and its days to sell, each column
+         *     with its label and unit. A column the run cannot give is left out,
+         *     and named under `unavailable` with why.
+         *
+         *     Raises:
+         *         DataNotFoundError: Until the strategy has been backtested.
+         *         InvalidArgumentError: For a column, name, comparator or
+         *             frequency refused.
+         */
+        get: operations["instrument_strategies__strategy_id__instrument_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/strategies/{strategy_id}/overview": {
         parameters: {
             query?: never;
@@ -1865,6 +1895,13 @@ export interface components {
                 [key: string]: string;
             };
             /**
+             * Statistic Tables
+             * @description Named tables of single-figure statistics side by side. Null gives two. The 'summary' is the total and annualised return, volatility, maximum drawdown, Sharpe ratio, tracking difference and tracking error of every portfolio over each trailing window. 'risk' is the volatility, maximum drawdown, downside deviation, skew, excess kurtosis, tail ratio, beta and downside tracking error over the last 1, 3 and 5 years and since inception. An empty object gives none.
+             */
+            statistic_tables?: {
+                [key: string]: components["schemas"]["StatisticTableSpec"];
+            } | null;
+            /**
              * Statistics
              * @description Statistics wanted outside any report, by id.
              */
@@ -1910,6 +1947,15 @@ export interface components {
                 [key: string]: unknown;
             };
             /**
+             * Statistic Tables
+             * @description Each named table asked for, as `{index, columns, data}`: columns 'statistic', 'window' or 'period' when it has them, 'unit', then a column a portfolio or comparator, or 'value'. One that could not be worked out is under `unavailable` as 'statistic_tables/<name>'. Window labels are `names.window` in `GET /analysis/options`.
+             */
+            statistic_tables?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            };
+            /**
              * Statistics
              * @description Each statistic worked out, by id. Labels, units and decimals are in `GET /analysis/options`.
              */
@@ -1925,7 +1971,7 @@ export interface components {
             };
             /**
              * Timings
-             * @description Seconds each part took: 'tables', then 'performance', 'portfolio', 'risk' and 'attribution' as asked for.
+             * @description Seconds each part took: 'tables', then each of 'performance', 'risk', 'relative', 'holdings', 'trading', 'flows', 'income', 'vehicle', 'attribution' and 'instrument' asked for, then 'statistic_tables'.
              */
             timings: {
                 [key: string]: number;
@@ -2033,20 +2079,46 @@ export interface components {
          * @description Response of `GET /strategies/{strategy_id}/assets/{identifier}`.
          */
         AssetView: {
-            /** Beta */
-            beta: number;
-            /** Correlation */
-            correlation: number;
+            /**
+             * Against
+             * @description The comparator the figures are measured against: the one the run tracks.
+             */
+            against?: string | null;
+            /**
+             * Basis
+             * @description The returns the figures are measured on: 'daily'.
+             */
+            basis?: string | null;
+            /**
+             * Beta
+             * @description Against the comparator.
+             */
+            beta?: number | null;
+            /**
+             * Correlation
+             * @description With the comparator.
+             */
+            correlation?: number | null;
             /**
              * Currency
-             * @description The currency `total_return`, `excess_return`, `tracking_error`, `correlation` and `beta` are measured in: the index's.
+             * @description The currency `total_return`, `index_return` and `excess_return` are measured in: the portfolio's.
              */
             currency?: string | null;
             /**
-             * Excess Return
-             * @description `total_return` less `index_return`, both in the index's currency.
+             * End
+             * @description The window's last day.
              */
-            excess_return: number;
+            end?: string | null;
+            /**
+             * Excess Return
+             * @description `total_return` less the comparator's return over the days the name has a return: `index_return` for a name held throughout.
+             */
+            excess_return?: number | null;
+            /**
+             * Figures Unavailable
+             * @description Why a figure is null, when one is: the run predates the names' returns being kept, say, or never held the name.
+             */
+            figures_unavailable?: string | null;
             /** Identifier */
             identifier: string;
             /**
@@ -2054,9 +2126,16 @@ export interface components {
              * @description The index the strategy holds.
              */
             index_id: string;
-            /** Index Return */
-            index_return: number;
-            /** Observations */
+            /**
+             * Index Return
+             * @description The comparator's total return over the same window.
+             */
+            index_return?: number | null;
+            /**
+             * Observations
+             * @description How many of the name's returns the figures are measured on.
+             * @default 0
+             */
             observations: number;
             /** @description The name's close, in its own currency. */
             price: components["schemas"]["SeriesPayload"];
@@ -2075,17 +2154,25 @@ export interface components {
             /** Rebalances Held */
             rebalances_held: number;
             /**
+             * Start
+             * @description The window's first day.
+             */
+            start?: string | null;
+            /**
              * Strategy Id
              * @description The strategy whose latest run this reads.
              */
             strategy_id: string;
             /**
              * Total Return
-             * @description The name's return over the run, in the index's currency.
+             * @description The name's total return over the run's analysis window, dividends and corporate actions included, in the portfolio's currency, as `GET /strategies/{strategy_id}/instrument` gives it. Null with `figures_unavailable` when the run cannot give it.
              */
-            total_return: number;
-            /** Tracking Error */
-            tracking_error: number;
+            total_return?: number | null;
+            /**
+             * Tracking Error
+             * @description Against the comparator, on the returns `basis` names.
+             */
+            tracking_error?: number | null;
             /**
              * Weight History
              * @description Rebalance date -> this name's applied weight. Only the rebalances it was actually in.
@@ -5150,6 +5237,82 @@ export interface components {
             start: string;
         };
         /**
+         * InstrumentColumn
+         * @description One column of the per-name table.
+         */
+        InstrumentColumn: {
+            /**
+             * Label
+             * @description As it is shown.
+             */
+            label: string;
+            /**
+             * Name
+             * @description As it is keyed; a weight column's names its portfolio, such as 'weight/fund'.
+             */
+            name: string;
+            /**
+             * Unit
+             * @description What it is measured in: 'fraction', 'ratio', 'count', 'days' or 'date'; null for a yes or no.
+             */
+            unit: string | null;
+        };
+        /**
+         * InstrumentTable
+         * @description Response of `GET /strategies/{strategy_id}/instrument`: every per-name
+         *     figure of the latest run, a row for each name any portfolio held over
+         *     the window, as `result.analytics.instrument.table()` gives it.
+         */
+        InstrumentTable: {
+            /**
+             * Against
+             * @description The comparator the relative figures are measured against; null when none was given.
+             */
+            against: string | null;
+            /**
+             * Basis
+             * @description The returns the figures are measured on: 'daily', 'weekly' or 'monthly'.
+             */
+            basis: string;
+            /**
+             * Columns
+             * @description Each column, in order.
+             */
+            columns: components["schemas"]["InstrumentColumn"][];
+            /**
+             * Currency
+             * @description The currency the names' returns are in: the portfolio's.
+             */
+            currency: string;
+            /**
+             * Data
+             * @description A row a name, a value a column, in `columns`' order; null where it has none.
+             */
+            data: unknown[][];
+            /**
+             * End
+             * @description The window's last day, YYYY-MM-DD.
+             */
+            end: string | null;
+            /**
+             * Names
+             * @description Each row's name, in order.
+             */
+            names: string[];
+            /**
+             * Start
+             * @description The window's first day, YYYY-MM-DD.
+             */
+            start: string | null;
+            /**
+             * Unavailable
+             * @description Each column asked for that the run cannot give, and why.
+             */
+            unavailable: {
+                [key: string]: string;
+            };
+        };
+        /**
          * JobCollection
          * @description Response of `GET /jobs`.
          *
@@ -5318,6 +5481,16 @@ export interface components {
              * @description Calendar days a name may go without trading before it is dropped as stale; 0 is no limit.
              */
             max_price_staleness_days?: number | null;
+            /**
+             * Min Annualised Rate Window
+             * @description The shortest window a rate compounded or scaled to a year, such as the annualised return, is given over, as months or years (6M, 1Y); 0M gives it over any.
+             */
+            min_annualised_rate_window?: string | null;
+            /**
+             * Min Annualised Ratio Window
+             * @description The same for a ratio scaled by the square root of a year, such as the Sharpe ratio.
+             */
+            min_annualised_ratio_window?: string | null;
             /**
              * Periods Per Year
              * @description How many periods make a year.
@@ -7674,7 +7847,7 @@ export interface components {
             label: string;
             /**
              * Part
-             * @description The analysis that works it out: 'performance', 'portfolio', 'risk' or 'attribution'.
+             * @description Where it sits in a run's analytics: 'performance', 'risk', 'relative', 'holdings', 'trading', 'flows', 'income', 'vehicle', 'attribution' or 'instrument'.
              */
             part: string;
             /**
@@ -7702,6 +7875,43 @@ export interface components {
              * @description What its figures are measured in; null for none.
              */
             unit: string | null;
+        };
+        /**
+         * StatisticTableSpec
+         * @description Single-figure statistics side by side: a row a statistic, or a
+         *     statistic and window or period, and a column a portfolio.
+         */
+        StatisticTableSpec: {
+            /**
+             * Against
+             * @description The comparator relative figures are measured against.
+             */
+            against?: string | null;
+            /**
+             * Annualise
+             * @description true gives annualised figures over any window, false per day; null leaves those over too short a window blank.
+             */
+            annualise?: boolean | null;
+            /**
+             * By
+             * @description Calendar periods, a row each: 'month', 'quarter' or 'year'.
+             */
+            by?: string | null;
+            /**
+             * Of
+             * @description The portfolio, or 'all' for a column each, with the figures against a comparator under the comparator's. The fund's in a 'value' column when null.
+             */
+            of?: string | null;
+            /**
+             * Statistics
+             * @description Statistic ids, each one that gives a single figure.
+             */
+            statistics: string[];
+            /**
+             * Trailing
+             * @description Trailing windows, a row each: 1M, 3M, 6M, 1Y, 3Y, 5Y, 10Y, MTD, QTD, YTD or inception.
+             */
+            trailing?: string[] | null;
         };
         /**
          * StatisticValue
@@ -17440,6 +17650,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HoldingsView"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    instrument_strategies__strategy_id__instrument_get: {
+        parameters: {
+            query?: {
+                /** @description The columns wanted, every one when left out; a weight column by its kind alone ('weight') for every portfolio's. */
+                columns?: string[] | null;
+                /** @description The names wanted, every one held over the window when left out. */
+                names?: string[] | null;
+                /** @description Inclusive start date, YYYY-MM-DD. */
+                start?: string | null;
+                /** @description Inclusive end date, YYYY-MM-DD. */
+                end?: string | null;
+                /** @description The comparator the relative figures are measured against: 'index', 'optimised' or 'benchmark'; the one the run tracks when left out. */
+                against?: string | null;
+                /** @description The returns measured on: 'daily', or 'weekly' or 'monthly' compounded from them; weekly is the efficient frontier's. */
+                frequency?: string;
+            };
+            header?: never;
+            path: {
+                strategy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstrumentTable"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */

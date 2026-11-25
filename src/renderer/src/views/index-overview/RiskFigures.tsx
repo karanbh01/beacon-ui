@@ -2,10 +2,10 @@ import { useMemo, type ReactElement } from 'react'
 import type { Analytics, StatisticSpec, Unit } from '../../api/analytics'
 import { Table, type Column } from '../../components/Table/Table'
 import { formatValue } from '../shared/report/analyticsFormat'
-import { frameOf, numberOf, reasonOf, recordsOf, textOf } from './analyticsFrames'
+import { numberOf, reasonOf, recordsOf, textOf, type Cell } from './analyticsFrames'
 
-/** Provisional: the risk figures by period, shaped as `trailing_statistics` is. */
-const SOURCE = 'trailing_risk'
+/** The run's default `risk` statistic table (py-beacon 0.11.0, BN-467). */
+const RISK = 'risk'
 
 /** Each a group of columns, as Summary's table has them (Karan, 2026-11-22). */
 const PERIODS: readonly { id: string; label: string }[] = [
@@ -38,25 +38,28 @@ interface FigureRow {
  */
 export function RiskFigures({
   answer,
-  spec,
+  statistics,
   names,
   figures
 }: {
   answer: Analytics | undefined
-  /** The statistic's catalogue entry, for each figure's name. */
-  spec: StatisticSpec | undefined
+  /** The catalogue's statistics, for each figure's name. */
+  statistics: readonly StatisticSpec[]
   names: { index: string; benchmark: string }
   /** Which figures, in order. */
   figures: readonly string[]
 }): ReactElement {
-  const frame = frameOf(answer, SOURCE)
-  const rows = useMemo(() => figureRows(recordsOf(frame), spec, figures), [frame, spec, figures])
+  const frame = answer?.statistic_tables?.[RISK]
+  const rows = useMemo(
+    () => figureRows(recordsOf(frame), statistics, figures),
+    [frame, statistics, figures]
+  )
   const columns = useMemo(() => figureColumns(booksOf(rows), names), [rows, names])
 
   if (rows.length === 0) {
     return (
       <p className="overview-note type-11">
-        {reasonOf(answer, SOURCE) ?? 'Not worked out for this run.'}
+        {reasonOf(answer, `statistic_tables/${RISK}`) ?? 'Not worked out for this run.'}
       </p>
     )
   }
@@ -64,18 +67,20 @@ export function RiskFigures({
 }
 
 function figureRows(
-  records: readonly Record<string, string | number | boolean | null>[],
-  spec: StatisticSpec | undefined,
+  records: readonly Record<string, Cell>[],
+  statistics: readonly StatisticSpec[],
   figures: readonly string[]
 ): FigureRow[] {
-  const labels = spec?.columns?.find((column) => column.name === 'statistic')?.labels
+  // Each row is a statistic in its own right, named as the catalogue names it.
+  const labelOf = (id: string): string =>
+    statistics.find((statistic) => statistic.id === id)?.label ?? id
   return figures.flatMap((id): FigureRow[] => {
     const own = records.filter((record) => record.statistic === id)
     if (own.length === 0) return []
     const unit = textOf(own[0]?.unit)
     const values: FigureRow['values'] = {}
     for (const record of own) {
-      values[textOf(record.period) ?? ''] = Object.fromEntries(
+      values[textOf(record.window) ?? ''] = Object.fromEntries(
         BOOKS.flatMap((book) => {
           const value = numberOf(record[book])
           return value === undefined ? [] : [[book, value]]
@@ -85,7 +90,7 @@ function figureRows(
     return [
       {
         id,
-        label: labels?.[id] ?? id,
+        label: labelOf(id),
         unit: unit === 'fraction' || unit === 'ratio' ? unit : null,
         values
       }

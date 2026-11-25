@@ -216,10 +216,17 @@ test('the period choice survives a move between faces', async ({ window }) => {
 
 test('risk shows the frontier, the crises and the return distribution', async ({ window }) => {
   await openOverview(window, 'TECH10')
+  // The cloud is the per-name table on weekly returns, the frontier's basis (BN-454).
+  const cloud = window.waitForRequest((request) =>
+    /\/strategies\/TECH10\/instrument\?.*frequency=weekly/.test(request.url())
+  )
   await window.getByRole('radio', { name: 'Risk & Correlation' }).click()
 
   const view = window.locator('.index-overview-view')
   await expect(window.locator('.frontier-chart')).toBeVisible()
+  await cloud
+  // The ten names the fund held at the end; a weight of nothing is not held.
+  await expect(window.locator('.frontier-held')).toHaveCount(10)
 
   // The VaR line follows the level picked beside the distribution.
   const distribution = window.locator('.distribution')
@@ -243,7 +250,7 @@ test('the risk figures and the shape of returns are tabled by period', async ({ 
   await expect(tables).toHaveCount(2)
   const [risk, shape] = [tables.nth(0), tables.nth(1)]
   for (const period of ['1Y', '3Y', '5Y', 'SI']) await expect(risk).toContainText(period)
-  for (const label of ['Volatility', 'Max drawdown', 'Beta', 'Down capture']) {
+  for (const label of ['Volatility', 'Maximum drawdown', 'Beta', 'Down capture']) {
     await expect(risk).toContainText(label)
   }
   // Tail ratio is the distribution's, so it sits under that and not under the frontier.

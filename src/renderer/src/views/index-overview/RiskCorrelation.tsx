@@ -3,6 +3,7 @@ import { Calculating } from '../../components/Calculating/Calculating'
 import { Section } from '../../components/Section/Section'
 import { useThemeMode } from '../../state/theme'
 import { useAnalysisOptions, useAnalytics } from '../shared/analyticsQueries'
+import { useInstrument } from '../shared/beaconQueries'
 import { ViewEmpty } from '../shared/ViewState'
 import { ROLE_NAMES, useComparators } from './comparators'
 import { CrisisPeriods } from './CrisisPeriods'
@@ -22,6 +23,15 @@ const RISK_FIGURES = [
   'down_capture'
 ]
 
+/**
+ * The frontier cloud's names on weekly returns, as the frontier is measured
+ * (py-beacon BN-454); `weight` gives every portfolio's latest.
+ */
+const CLOUD_QUERY = {
+  columns: ['annualised_return', 'volatility', 'last_held', 'in_index_at_end', 'weight'],
+  frequency: 'weekly'
+} as const
+
 /** Under the return distribution: the shape its bars draw (Karan, 2026-11-22). */
 const SHAPE_FIGURES = ['tail_ratio', 'skew', 'excess_kurtosis']
 
@@ -40,6 +50,7 @@ export function RiskCorrelation({ strategyId }: { strategyId: string }): ReactEl
   const analytics = useAnalytics(strategyId)
   const options = useAnalysisOptions()
   const comparators = useComparators(strategyId)
+  const instrument = useInstrument(strategyId, CLOUD_QUERY)
 
   if (analytics.isPending || options.isPending) {
     return <Calculating label="Loading" subject={strategyId} />
@@ -76,12 +87,12 @@ export function RiskCorrelation({ strategyId }: { strategyId: string }): ReactEl
         {/* Each chart with its figures close under it, as one answer (Karan, 2026-11-22). */}
         <div className="risk-with-figures">
           <Section title="Efficient frontier">
-            <RiskFrontier answer={answer} mode={mode} names={names} />
+            <RiskFrontier answer={answer} instrument={instrument.data} mode={mode} names={names} />
           </Section>
           <Section title="Risk figures">
             <RiskFigures
               answer={answer}
-              spec={specOf('trailing_risk')}
+              statistics={options.data?.statistics ?? []}
               names={names}
               figures={RISK_FIGURES}
             />
@@ -91,7 +102,7 @@ export function RiskCorrelation({ strategyId }: { strategyId: string }): ReactEl
         <ReturnDistribution answer={answer} mode={mode} names={names}>
           <RiskFigures
             answer={answer}
-            spec={specOf('trailing_risk')}
+            statistics={options.data?.statistics ?? []}
             names={names}
             figures={SHAPE_FIGURES}
           />

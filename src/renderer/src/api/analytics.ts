@@ -95,6 +95,12 @@ export interface Analytics {
   active_against: string
   reports: Record<string, { level: Level; statistics: { id: string; view: TimeView }[] }>
   statistics: Record<string, StatisticValue>
+  /**
+   * Named tables of single figures side by side (BN-467, py-beacon 0.11.0):
+   * a row a statistic and window or period, a column a portfolio. Every run
+   * holds `summary`; an engine before 0.11.0 sends none.
+   */
+  statistic_tables?: Record<string, TableFrame>
   unavailable: Record<string, { code: string; reason: string }>
   tables: Record<string, { rows: number; path: string }>
   timings: Record<string, number>

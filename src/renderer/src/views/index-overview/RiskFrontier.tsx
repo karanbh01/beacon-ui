@@ -8,6 +8,7 @@ import {
 } from '../../charts/FrontierChart'
 import { useWidth } from '../../charts/useWidth'
 import type { ThemeMode } from '../../tokens/tokens'
+import type { InstrumentTable } from '../shared/beaconQueries'
 import { percent } from '../shared/indexMetrics'
 import { frameOf, numberOf, reasonOf, recordsOf, textOf, type Cell } from './analyticsFrames'
 import { BenchmarkMark } from './StyleBox'
@@ -24,10 +25,17 @@ const BOOKS = ['fund', 'index', 'benchmark'] as const
  */
 export function RiskFrontier({
   answer,
+  instrument,
   mode,
   names
 }: {
   answer: Analytics | undefined
+  /**
+   * The run's per-name table on weekly returns, the frontier's basis
+   * (BN-454). An engine before 0.11.0 has none, and the cloud is the
+   * `member_risk_return` statistic's, which py-beacon drops once we move.
+   */
+  instrument: InstrumentTable | undefined
   mode: ThemeMode
   /** What the index and the benchmark are called here. */
   names: { index: string; benchmark: string }
@@ -38,7 +46,11 @@ export function RiskFrontier({
   const portfolios = frameOf(answer, 'portfolio_risk_return')
   const frontier = frameOf(answer, 'efficient_frontier')
 
-  const cloud = useMemo(() => recordsOf(members).flatMap(cloudDot), [members])
+  const cloud = useMemo(
+    () =>
+      (instrument === undefined ? recordsOf(members) : memberRecords(instrument)).flatMap(cloudDot),
+    [instrument, members]
+  )
   const marks = useMemo(
     () =>
       recordsOf(portfolios).flatMap((row): PortfolioMark[] => {
@@ -54,7 +66,7 @@ export function RiskFrontier({
   )
   const curve = useMemo(() => recordsOf(frontier).flatMap(frontierDot), [frontier])
 
-  if (members === undefined && frontier === undefined) {
+  if (instrument === undefined && members === undefined && frontier === undefined) {
     return (
       <p className="overview-note type-11">
         {reasonOf(answer, 'member_risk_return') ?? 'Not worked out for this run.'}
@@ -98,6 +110,39 @@ function cloudDot(row: Record<string, Cell>): CloudDot[] {
   if (index !== undefined) detail.push(['Index weight', percent(index * 100, 2)])
   if (row.in_index_at_end === false) detail.push(['Left the index', textOf(row.last) ?? ''])
   return [{ name, volatility, expectedReturn, held: fund !== undefined, detail }]
+}
+
+/**
+ * The per-name table's rows in `member_risk_return`'s shape. A latest weight
+ * of nothing is a name the portfolio no longer held, which that table left
+ * blank; a name with under a year of returns has no annualised return, and
+ * no dot.
+ */
+function memberRecords(table: InstrumentTable): Record<string, Cell>[] {
+  return table.data.map((cells, at) => {
+    const row: Record<string, Cell> = Object.fromEntries(
+      table.columns.map((column, place) => [column.name, cellOf(cells[place])])
+    )
+    const held = (book: string): Cell => {
+      const weight = numberOf(row[`weight/${book}`])
+      return weight === undefined || weight <= 0 ? null : weight
+    }
+    return {
+      name: table.names[at] ?? null,
+      return: row.annualised_return ?? null,
+      volatility: row.volatility ?? null,
+      in_index_at_end: row.in_index_at_end ?? null,
+      last: row.last_held ?? null,
+      fund_weight: held('fund'),
+      index_weight: held('index')
+    }
+  })
+}
+
+function cellOf(value: unknown): Cell {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+    ? value
+    : null
 }
 
 function frontierDot(row: Record<string, Cell>): FrontierDot[] {

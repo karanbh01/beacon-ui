@@ -14,14 +14,14 @@ const PERIODS = ['1M', '3M', 'YTD', '1Y', '3Y', '5Y', 'inception']
 const PERIOD_LABELS: Record<string, string> = { inception: 'SI' }
 const BOOKS = ['fund', 'index', 'benchmark']
 
-/** py-beacon's statistics by trailing period (BN-422, 0.10.1). */
-const SOURCE = 'trailing_statistics'
-
-/*
- * A row signed although the stub's catalogue has no statistic of its id:
- * it names the whole-run figure `cagr`, py-beacon `annualised_return`.
+/**
+ * py-beacon's main figures by trailing window: the run's default `summary`
+ * statistic table since 0.11.0 (BN-467), and before it the
+ * `trailing_statistics` statistic (BN-422, 0.10.1), the same rows with the
+ * window in a `period` column. 0.11.0 drops the statistic.
  */
-const SIGNED_ROWS = new Set(['annualised_return'])
+const SUMMARY = 'summary'
+const SOURCE = 'trailing_statistics'
 
 interface Row {
   id: string
@@ -48,7 +48,8 @@ export function SummaryTable({ strategyId }: { strategyId: string }): ReactEleme
 
   const answer = analytics.data?.status === 'computed' ? analytics.data.analytics : undefined
   const value = answer?.statistics[SOURCE]
-  const frame = value?.kind === 'table' ? value.point : undefined
+  const frame =
+    answer?.statistic_tables?.[SUMMARY] ?? (value?.kind === 'table' ? value.point : undefined)
   const rows = useMemo(
     () => (frame === undefined || options.data === undefined ? [] : rowsOf(frame, options.data)),
     [frame, options.data]
@@ -93,15 +94,16 @@ export function SummaryTable({ strategyId }: { strategyId: string }): ReactEleme
   )
 }
 
-/** The frame's rows, one per period and statistic, folded into a row per statistic. */
+/** The frame's rows, one per window and statistic, folded into a row per statistic. */
 function rowsOf(frame: TableFrame, options: AnalysisOptions): Row[] {
   const at = (name: string): number => frame.columns.indexOf(name)
+  const window = frame.columns.includes('window') ? 'window' : 'period'
   const labels = options.statistics
     .find((statistic) => statistic.id === SOURCE)
     ?.columns?.find((column) => column.name === 'statistic')?.labels
   const byId = new Map<string, Row>()
   for (const cells of frame.data) {
-    const period = String(cells[at('period')] ?? '')
+    const period = String(cells[at(window)] ?? '')
     const id = String(cells[at('statistic')] ?? '')
     const row = byId.get(id) ?? newRow(id, cells[at('unit')], labels, options)
     row.values[period] = Object.fromEntries(
@@ -129,7 +131,7 @@ function newRow(
     label: labels?.[id] ?? spec?.label ?? id,
     // A row's unit is one of these two (BN-422); the statistic's own if a row has none.
     unit: unit === 'fraction' || unit === 'ratio' ? unit : spec?.unit,
-    signed: SIGNED_ROWS.has(id) || (spec !== undefined && isSigned(spec)),
+    signed: spec !== undefined && isSigned(spec),
     values: {}
   }
 }

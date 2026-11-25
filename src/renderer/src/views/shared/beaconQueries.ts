@@ -10,6 +10,7 @@ export type WeightsView = components['schemas']['WeightsView']
 export type AttributionView = components['schemas']['AttributionView']
 export type AssetView = components['schemas']['AssetView']
 export type CompareView = components['schemas']['CompareView']
+export type InstrumentTable = components['schemas']['InstrumentTable']
 
 /**
  * Reads of a stored strategy's latest run (py-beacon 0.9.0, BU-233).
@@ -212,6 +213,33 @@ export function useAsset(strategyId: string, identifier: string) {
       })
     },
     enabled: client !== null && strategyId !== '' && identifier !== ''
+  })
+}
+
+/**
+ * A run's per-name figures (BN-454, py-beacon 0.11.0): a row for each name
+ * any portfolio held, under the options the run's own analysis was made
+ * with. An engine before 0.11.0 has no such route and answers 404, so this
+ * does not retry.
+ */
+export function useInstrument(
+  strategyId: string,
+  query: { columns: readonly string[]; frequency: 'daily' | 'weekly' | 'monthly' }
+) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: ['beacon', 'instrument', strategyId, query.columns.join(','), query.frequency],
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/strategies/{strategy_id}/instrument', {
+        params: { strategy_id: strategyId },
+        query: { columns: [...query.columns], frequency: query.frequency },
+        signal
+      })
+    },
+    enabled: client !== null && strategyId !== '',
+    retry: false
   })
 }
 

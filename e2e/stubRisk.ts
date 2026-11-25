@@ -174,6 +174,57 @@ function memberRows(lines: Lines, run: string): Cell[][] {
   return rows.sort((one, other) => String(one[0]).localeCompare(String(other[0])))
 }
 
+/** The per-name table's columns the stub gives, each with its label and unit. */
+const INSTRUMENT_COLUMNS: [string, string, string | null][] = [
+  ['first_held', 'First held', 'date'],
+  ['last_held', 'Last held', 'date'],
+  ['in_index_at_end', 'In the index at the end', null],
+  ['observations', 'Observations', 'count'],
+  ['annualised_return', 'Annualised return', 'fraction'],
+  ['volatility', 'Volatility', 'fraction'],
+  ['weight/fund', 'Weight (fund)', 'fraction'],
+  ['weight/index', 'Weight (index)', 'fraction']
+]
+
+/**
+ * GET /strategies/{id}/instrument (BN-454, py-beacon aed19c0) on weekly
+ * returns: the member names again, a row a name, the columns asked for in
+ * the table's order. A latest weight is 0 for a name no longer held, as
+ * py-beacon fills it.
+ */
+export function instrumentTable(lines: Lines, run: string, wanted: readonly string[]): unknown {
+  const asked = (name: string): boolean =>
+    wanted.length === 0 || wanted.includes(name) || wanted.includes(name.split('/')[0] ?? '')
+  const rows = memberRows(lines, run)
+  const { first, last } = weekly(lines.strategy)
+  const columns = INSTRUMENT_COLUMNS.filter(([name]) => asked(name))
+  const valueOf = (row: Cell[], name: string): Cell => {
+    const [, annualised, volatility, observations, firstHeld, lastHeld, atEnd, fund, index] = row
+    const values: Record<string, Cell> = {
+      first_held: firstHeld ?? null,
+      last_held: lastHeld ?? null,
+      in_index_at_end: atEnd ?? null,
+      observations: observations ?? null,
+      annualised_return: annualised ?? null,
+      volatility: volatility ?? null,
+      'weight/fund': fund ?? 0,
+      'weight/index': index ?? 0
+    }
+    return values[name] ?? null
+  }
+  return {
+    basis: 'weekly',
+    against: 'index',
+    currency: 'USD',
+    start: first,
+    end: last,
+    columns: columns.map(([name, label, unit]) => ({ name, label, unit })),
+    names: rows.map((row) => String(row[0])),
+    data: rows.map((row) => columns.map(([name]) => valueOf(row, name))),
+    unavailable: {}
+  }
+}
+
 function frontierRows(lines: Lines): Cell[][] {
   const curve = curveOf(lines)
   const top = curve.at(BEST_VOLATILITY)
@@ -488,11 +539,11 @@ const RISK_WINDOWS: [string, number][] = [
 ]
 
 /**
- * Provisional, shaped as `trailing_statistics` is: a row a window and
- * figure, each book's own under its column and the fund's against a
- * comparator under the comparator's. A window longer than the run is blank.
+ * A row a window and figure, each book's own under its column and the
+ * fund's against a comparator under the comparator's. A window longer than
+ * the run is blank.
  */
-function trailingRiskRows(lines: Lines): Cell[][] {
+function riskRows(lines: Lines): Cell[][] {
   const returns = factorReturns(lines)
   const length = returns.get('fund')?.length ?? 0
   const rows: Cell[][] = []
@@ -522,6 +573,27 @@ function trailingRiskRows(lines: Lines): Cell[][] {
     }
   }
   return rows
+}
+
+/**
+ * The default `risk` statistic table (py-beacon 6876775, with up and down
+ * capture from 18aed21), in the long shape `summary` has: a row a statistic
+ * and window, each book under its column.
+ */
+export function riskStatisticTable(lines: Lines): unknown {
+  const data = riskRows(lines).map(([window, statistic, unit, fund, index, benchmark]) => [
+    statistic,
+    window,
+    unit,
+    fund,
+    index,
+    benchmark ?? null
+  ])
+  return {
+    index: data.map((_, at) => at),
+    columns: ['statistic', 'window', 'unit', 'fund', 'index', 'benchmark'],
+    data
+  }
 }
 
 /** The fund against each series over a trailing year, a point a week. */
@@ -566,6 +638,5 @@ export function riskTable(id: string, lines: Lines, run: string): RiskAnswer | u
   if (id === 'market_correlations') return { rows: matrixRows(lines) }
   if (id === 'rolling_correlations') return { rows: rollingRows(lines) }
   if (id === 'market_volatility') return { rows: volatilityRows(lines) }
-  if (id === 'trailing_risk') return { rows: trailingRiskRows(lines) }
   return undefined
 }

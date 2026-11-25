@@ -11,6 +11,7 @@ import { pageSubject } from '../../state/tabs.logic'
 import { useWorkspace } from '../../state/tabs.store'
 import type { ViewProps } from '../../shell/viewRegistry'
 import { ViewEmpty, ViewError, ViewLoading } from '../shared/ViewState'
+import { useAnalysisOptions } from '../shared/analyticsQueries'
 import { useAsset, useOverview, useWeights } from '../shared/beaconQueries'
 import { percent, signedPercent, toPoints, tone, weightRows } from '../shared/indexMetrics'
 import './DrilldownView.css'
@@ -93,6 +94,7 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
   const mode = useThemeMode()
   const asset = useAsset(strategyId, identifier)
   const overview = useOverview(strategyId)
+  const options = useAnalysisOptions()
   const weights = useWeights(strategyId)
 
   const setSubject = useWorkspace((state) => state.setSubject)
@@ -106,6 +108,15 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
 
   const assetPoints = useMemo(() => rebase100(toPoints(asset.data?.price)), [asset.data])
   const money = currenciesOf(asset.data)
+  // What the figures are measured against: the run's tracked comparator
+  // since py-beacon 0.11.0, a code the catalogue names, and the run itself
+  // before it. Lower case, as it sits mid-sentence: "against the optimised index".
+  const comparator = asset.data?.against ?? undefined
+  const comparatorName =
+    comparator === undefined
+      ? undefined
+      : (options.data?.names.comparator?.[comparator] ?? comparator).toLowerCase()
+  const against = comparatorName ?? strategyId
   const indexPoints = useMemo(() => rebase100(toPoints(overview.data?.level)), [overview.data])
 
   const ranked = useMemo(
@@ -184,16 +195,16 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
               { label: 'capped', value: mine?.capped === true ? 'yes' : 'no' },
               {
                 label: `total return${inCurrency(money.returns)}`,
-                value: signedPercent(asset.data.total_return * 100),
-                tone: tone(asset.data.total_return)
+                value: signedPercent(hundredfold(asset.data.total_return)),
+                tone: tone(asset.data.total_return ?? undefined)
               },
               {
-                label: `excess vs ${strategyId}${inCurrency(money.returns)}`,
-                value: signedPercent(asset.data.excess_return * 100),
-                tone: tone(asset.data.excess_return)
+                label: `excess vs ${against}${inCurrency(money.returns)}`,
+                value: signedPercent(hundredfold(asset.data.excess_return)),
+                tone: tone(asset.data.excess_return ?? undefined)
               },
-              { label: `beta vs ${strategyId}`, value: asset.data.beta.toFixed(2) },
-              { label: 'tracking error', value: percent(asset.data.tracking_error * 100) }
+              { label: `beta vs ${against}`, value: twoPlaces(asset.data.beta) },
+              { label: 'tracking error', value: percent(hundredfold(asset.data.tracking_error)) }
             ]}
           />
 
@@ -229,13 +240,16 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
           </div>
 
           <p className="drilldown-footnote type-11">
+            {basisOf(asset.data, comparatorName)}
             {String(asset.data.observations)} observations · correlation{' '}
             {/*
-              "index_return" is the run's return, not the index's: since
-              0.9.0 the engine measures a name against the run that held it.
+              "index_return" is the comparator's return: the run's from 0.9.0,
+              when the engine measured a name against the run that held it,
+              and the tracked comparator's from 0.11.0.
             */}
-            {asset.data.correlation.toFixed(2)} · {strategyId} return{' '}
-            {signedPercent(asset.data.index_return * 100)}
+            {twoPlaces(asset.data.correlation)} · {against} return{' '}
+            {signedPercent(hundredfold(asset.data.index_return))}
+            {asset.data.figures_unavailable != null && ` · ${asset.data.figures_unavailable}`}
             {tab.archetype === 'linked' && ` · linked to ${sourceTitle ?? 'another tab'}`}
           </p>
         </>
@@ -244,11 +258,42 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
   )
 }
 
+/** A fraction as a percentage; a figure the engine left blank (0.11.0) as none. */
+function hundredfold(value: number | null | undefined): number | undefined {
+  return value == null ? undefined : value * 100
+}
+
+function twoPlaces(value: number | null | undefined): string {
+  return value == null ? '—' : value.toFixed(2)
+}
+
+/**
+ * What the figures are measured on, as py-beacon 0.11.0 says (BN-454): the
+ * run's daily total returns over the analysis window. An engine before it
+ * says nothing, and nor does this.
+ */
+function basisOf(
+  asset: {
+    basis?: string | null
+    currency?: string | null
+    start?: string | null
+    end?: string | null
+  },
+  comparator: string | undefined
+): string {
+  if (asset.basis == null) return ''
+  const basis = `${asset.basis.charAt(0).toUpperCase()}${asset.basis.slice(1)}`
+  const currency = asset.currency == null ? '' : ` in ${asset.currency}`
+  const window = asset.start == null || asset.end == null ? '' : `, ${asset.start} to ${asset.end}`
+  const against = comparator === undefined ? '' : `, against the ${comparator}`
+  return `${basis} total returns${currency}${window}${against} · `
+}
+
 /**
  * What the asset view's numbers are in (BU-220, py-beacon 0.3.0).
  *
  * The returns, beta and tracking error are measured in the index's currency
- * and the price in the name's own, so for a GBP name in a USD index the
+ * (the portfolio's since 0.11.0) and the price in the name's own, so for a GBP name in a USD index the
  * headline return no longer matches where the price line ends — they are
  * labelled, or the two read as one number disagreeing with itself. A name
  * with no currency on record is priced as if in the index's, which is what

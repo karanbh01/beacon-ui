@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { analysisOptions, analyticsFor, tradesTable } from './stubAnalytics'
+import { instrumentTable } from './stubRisk'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Duplex } from 'node:stream'
 import backtestOptions from './data/backtest-options.json'
@@ -2154,6 +2155,12 @@ function body(url: URL): unknown {
     if (isRefusal(run)) return run
     return analyticsFor(run, runLines(run))
   }
+  // py-beacon 0.11.0's per-name table (BN-454), in stubRisk.ts.
+  if (/^\/strategies\/[^/]+\/instrument$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    return instrumentTable(runLines(run), run.strategyId, url.searchParams.getAll('columns'))
+  }
   if (/^\/strategies\/[^/]+\/tables\/[^/]+$/.test(path)) {
     const run = runOf(path)
     if (isRefusal(run)) return run
@@ -2495,7 +2502,13 @@ function body(url: URL): unknown {
       observations: level.index.length,
       price: { name: identifier, ...level },
       currency: 'USD',
-      price_currency: 'USD'
+      price_currency: 'USD',
+      // py-beacon 0.11.0 (BN-454): the run's per-name row, and what it is measured on.
+      against: 'index',
+      basis: 'daily',
+      start: level.index[0]?.slice(0, 10) ?? null,
+      end: level.index.at(-1)?.slice(0, 10) ?? null,
+      figures_unavailable: null
     }
   }
 

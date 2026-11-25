@@ -274,6 +274,21 @@
             "title": "Reports",
             "type": "object"
           },
+          "statistic_tables": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/StatisticTableSpec"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Named tables of single-figure statistics side by side. Null gives two. The 'summary' is the total and annualised return, volatility, maximum drawdown, Sharpe ratio, tracking difference and tracking error of every portfolio over each trailing window. 'risk' is the volatility, maximum drawdown, downside deviation, skew, excess kurtosis, tail ratio, beta and downside tracking error over the last 1, 3 and 5 years and since inception. An empty object gives none.",
+            "title": "Statistic Tables"
+          },
           "statistics": {
             "description": "Statistics wanted outside any report, by id.",
             "items": {
@@ -334,6 +349,15 @@
             "title": "Request",
             "type": "object"
           },
+          "statistic_tables": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "description": "Each named table asked for, as `{index, columns, data}`: columns 'statistic', 'window' or 'period' when it has them, 'unit', then a column a portfolio or comparator, or 'value'. One that could not be worked out is under `unavailable` as 'statistic_tables/<name>'. Window labels are `names.window` in `GET /analysis/options`.",
+            "title": "Statistic Tables",
+            "type": "object"
+          },
           "statistics": {
             "additionalProperties": {
               "$ref": "#/components/schemas/StatisticValue"
@@ -354,7 +378,7 @@
             "additionalProperties": {
               "type": "number"
             },
-            "description": "Seconds each part took: 'tables', then 'performance', 'portfolio', 'risk' and 'attribution' as asked for.",
+            "description": "Seconds each part took: 'tables', then each of 'performance', 'risk', 'relative', 'holdings', 'trading', 'flows', 'income', 'vehicle', 'attribution' and 'instrument' asked for, then 'statistic_tables'.",
             "title": "Timings",
             "type": "object"
           },
@@ -540,13 +564,53 @@
       "AssetView": {
         "description": "Response of `GET /strategies/{strategy_id}/assets/{identifier}`.",
         "properties": {
+          "against": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The comparator the figures are measured against: the one the run tracks.",
+            "title": "Against"
+          },
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The returns the figures are measured on: 'daily'.",
+            "title": "Basis"
+          },
           "beta": {
-            "title": "Beta",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Against the comparator.",
+            "title": "Beta"
           },
           "correlation": {
-            "title": "Correlation",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With the comparator.",
+            "title": "Correlation"
           },
           "currency": {
             "anyOf": [
@@ -557,13 +621,44 @@
                 "type": "null"
               }
             ],
-            "description": "The currency `total_return`, `excess_return`, `tracking_error`, `correlation` and `beta` are measured in: the index's.",
+            "description": "The currency `total_return`, `index_return` and `excess_return` are measured in: the portfolio's.",
             "title": "Currency"
           },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The window's last day.",
+            "title": "End"
+          },
           "excess_return": {
-            "description": "`total_return` less `index_return`, both in the index's currency.",
-            "title": "Excess Return",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`total_return` less the comparator's return over the days the name has a return: `index_return` for a name held throughout.",
+            "title": "Excess Return"
+          },
+          "figures_unavailable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why a figure is null, when one is: the run predates the names' returns being kept, say, or never held the name.",
+            "title": "Figures Unavailable"
           },
           "identifier": {
             "title": "Identifier",
@@ -575,10 +670,20 @@
             "type": "string"
           },
           "index_return": {
-            "title": "Index Return",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The comparator's total return over the same window.",
+            "title": "Index Return"
           },
           "observations": {
+            "default": 0,
+            "description": "How many of the name's returns the figures are measured on.",
             "title": "Observations",
             "type": "integer"
           },
@@ -610,19 +715,46 @@
             "title": "Rebalances Held",
             "type": "integer"
           },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The window's first day.",
+            "title": "Start"
+          },
           "strategy_id": {
             "description": "The strategy whose latest run this reads.",
             "title": "Strategy Id",
             "type": "string"
           },
           "total_return": {
-            "description": "The name's return over the run, in the index's currency.",
-            "title": "Total Return",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name's total return over the run's analysis window, dividends and corporate actions included, in the portfolio's currency, as `GET /strategies/{strategy_id}/instrument` gives it. Null with `figures_unavailable` when the run cannot give it.",
+            "title": "Total Return"
           },
           "tracking_error": {
-            "title": "Tracking Error",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Against the comparator, on the returns `basis` names.",
+            "title": "Tracking Error"
           },
           "weight_history": {
             "additionalProperties": {
@@ -639,13 +771,6 @@
           "identifier",
           "weight_history",
           "rebalances_held",
-          "total_return",
-          "index_return",
-          "excess_return",
-          "tracking_error",
-          "correlation",
-          "beta",
-          "observations",
           "price"
         ],
         "title": "AssetView",
@@ -5933,6 +6058,137 @@
         "title": "IndexLevelView",
         "type": "object"
       },
+      "InstrumentColumn": {
+        "description": "One column of the per-name table.",
+        "properties": {
+          "label": {
+            "description": "As it is shown.",
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "description": "As it is keyed; a weight column's names its portfolio, such as 'weight/fund'.",
+            "title": "Name",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What it is measured in: 'fraction', 'ratio', 'count', 'days' or 'date'; null for a yes or no.",
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "unit"
+        ],
+        "title": "InstrumentColumn",
+        "type": "object"
+      },
+      "InstrumentTable": {
+        "description": "Response of `GET /strategies/{strategy_id}/instrument`: every per-name\nfigure of the latest run, a row for each name any portfolio held over\nthe window, as `result.analytics.instrument.table()` gives it.",
+        "properties": {
+          "against": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The comparator the relative figures are measured against; null when none was given.",
+            "title": "Against"
+          },
+          "basis": {
+            "description": "The returns the figures are measured on: 'daily', 'weekly' or 'monthly'.",
+            "title": "Basis",
+            "type": "string"
+          },
+          "columns": {
+            "description": "Each column, in order.",
+            "items": {
+              "$ref": "#/components/schemas/InstrumentColumn"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "currency": {
+            "description": "The currency the names' returns are in: the portfolio's.",
+            "title": "Currency",
+            "type": "string"
+          },
+          "data": {
+            "description": "A row a name, a value a column, in `columns`' order; null where it has none.",
+            "items": {
+              "items": {},
+              "type": "array"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The window's last day, YYYY-MM-DD.",
+            "title": "End"
+          },
+          "names": {
+            "description": "Each row's name, in order.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Names",
+            "type": "array"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The window's first day, YYYY-MM-DD.",
+            "title": "Start"
+          },
+          "unavailable": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Each column asked for that the run cannot give, and why.",
+            "title": "Unavailable",
+            "type": "object"
+          }
+        },
+        "required": [
+          "basis",
+          "against",
+          "currency",
+          "start",
+          "end",
+          "columns",
+          "names",
+          "data",
+          "unavailable"
+        ],
+        "title": "InstrumentTable",
+        "type": "object"
+      },
       "JobCollection": {
         "description": "Response of `GET /jobs`.\n\nUntyped results on purpose: a listing spans every kind at once, so the\nper-kind arms buy a client nothing it can use without reading `kind`\nanyway. `GET /jobs/{job_id}` is where the typed result lives.",
         "properties": {
@@ -6212,6 +6468,32 @@
             ],
             "description": "Calendar days a name may go without trading before it is dropped as stale; 0 is no limit.",
             "title": "Max Price Staleness Days"
+          },
+          "min_annualised_rate_window": {
+            "anyOf": [
+              {
+                "pattern": "^\\d+[MYmy]$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The shortest window a rate compounded or scaled to a year, such as the annualised return, is given over, as months or years (6M, 1Y); 0M gives it over any.",
+            "title": "Min Annualised Rate Window"
+          },
+          "min_annualised_ratio_window": {
+            "anyOf": [
+              {
+                "pattern": "^\\d+[MYmy]$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The same for a ratio scaled by the square root of a year, such as the Sharpe ratio.",
+            "title": "Min Annualised Ratio Window"
           },
           "periods_per_year": {
             "anyOf": [
@@ -10001,7 +10283,7 @@
             "type": "string"
           },
           "part": {
-            "description": "The analysis that works it out: 'performance', 'portfolio', 'risk' or 'attribution'.",
+            "description": "Where it sits in a run's analytics: 'performance', 'risk', 'relative', 'holdings', 'trading', 'flows', 'income', 'vehicle', 'attribution' or 'instrument'.",
             "title": "Part",
             "type": "string"
           },
@@ -10075,6 +10357,89 @@
           "signed"
         ],
         "title": "StatisticSpec",
+        "type": "object"
+      },
+      "StatisticTableSpec": {
+        "additionalProperties": false,
+        "description": "Single-figure statistics side by side: a row a statistic, or a\nstatistic and window or period, and a column a portfolio.",
+        "properties": {
+          "against": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The comparator relative figures are measured against.",
+            "title": "Against"
+          },
+          "annualise": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "true gives annualised figures over any window, false per day; null leaves those over too short a window blank.",
+            "title": "Annualise"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Calendar periods, a row each: 'month', 'quarter' or 'year'.",
+            "title": "By"
+          },
+          "of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The portfolio, or 'all' for a column each, with the figures against a comparator under the comparator's. The fund's in a 'value' column when null.",
+            "title": "Of"
+          },
+          "statistics": {
+            "description": "Statistic ids, each one that gives a single figure.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Statistics",
+            "type": "array"
+          },
+          "trailing": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Trailing windows, a row each: 1M, 3M, 6M, 1Y, 3Y, 5Y, 10Y, MTD, QTD, YTD or inception.",
+            "title": "Trailing"
+          }
+        },
+        "required": [
+          "statistics"
+        ],
+        "title": "StatisticTableSpec",
         "type": "object"
       },
       "StatisticValue": {
@@ -23098,6 +23463,229 @@
         "summary": "Holdings",
         "tags": [
           "backtests"
+        ]
+      }
+    },
+    "/strategies/{strategy_id}/instrument": {
+      "get": {
+        "description": "Every per-name figure of the strategy's latest run in one table,\na row for each name any portfolio held over the window: when it was\nheld, its return and risk, against the comparator, its weights, its\ncontributions to return and risk and its days to sell, each column\nwith its label and unit. A column the run cannot give is left out,\nand named under `unavailable` with why.\n\nRaises:\n    DataNotFoundError: Until the strategy has been backtested.\n    InvalidArgumentError: For a column, name, comparator or\n        frequency refused.",
+        "operationId": "instrument_strategies__strategy_id__instrument_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The columns wanted, every one when left out; a weight column by its kind alone ('weight') for every portfolio's.",
+            "in": "query",
+            "name": "columns",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The columns wanted, every one when left out; a weight column by its kind alone ('weight') for every portfolio's.",
+              "title": "Columns"
+            }
+          },
+          {
+            "description": "The names wanted, every one held over the window when left out.",
+            "in": "query",
+            "name": "names",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The names wanted, every one held over the window when left out.",
+              "title": "Names"
+            }
+          },
+          {
+            "description": "Inclusive start date, YYYY-MM-DD.",
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive start date, YYYY-MM-DD.",
+              "title": "Start"
+            }
+          },
+          {
+            "description": "Inclusive end date, YYYY-MM-DD.",
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive end date, YYYY-MM-DD.",
+              "title": "End"
+            }
+          },
+          {
+            "description": "The comparator the relative figures are measured against: 'index', 'optimised' or 'benchmark'; the one the run tracks when left out.",
+            "in": "query",
+            "name": "against",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The comparator the relative figures are measured against: 'index', 'optimised' or 'benchmark'; the one the run tracks when left out.",
+              "title": "Against"
+            }
+          },
+          {
+            "description": "The returns measured on: 'daily', or 'weekly' or 'monthly' compounded from them; weekly is the efficient frontier's.",
+            "in": "query",
+            "name": "frequency",
+            "required": false,
+            "schema": {
+              "default": "daily",
+              "description": "The returns measured on: 'daily', or 'weekly' or 'monthly' compounded from them; weekly is the efficient frontier's.",
+              "title": "Frequency",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentTable"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Instrument",
+        "tags": [
+          "analysis"
         ]
       }
     },

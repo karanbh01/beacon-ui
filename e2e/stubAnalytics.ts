@@ -5,7 +5,7 @@ import {
   CATALOGUE_UNAVAILABLE,
   type StubStatistic
 } from './stubAnalyticsCatalogue'
-import { riskFigures, riskTable } from './stubRisk'
+import { riskFigures, riskStatisticTable, riskTable } from './stubRisk'
 
 /**
  * py-beacon 0.10.0's analytics as the stub answers them (BN-398, BN-400):
@@ -133,7 +133,8 @@ export function analysisOptions(): unknown {
     tables: [{ name: 'trades', label: 'Trades', columns: TRADE_COLUMNS }],
     unavailable: CATALOGUE_UNAVAILABLE,
     renamed: {},
-    dropped: []
+    // py-beacon 482061e (0.11.0): the summary statistic table took its place.
+    dropped: ['trailing_statistics']
   }
 }
 
@@ -176,7 +177,7 @@ function own(line: Line): Record<string, number> {
   const downside = Math.sqrt(mean(returns.map((value) => Math.min(value, 0) ** 2))) * Math.sqrt(252)
   return {
     total_return: total,
-    cagr,
+    annualised_return: cagr,
     volatility,
     max_drawdown: worst,
     // py-beacon's Sharpe (BN-405): the mean daily return over its deviation, scaled by √252,
@@ -201,7 +202,7 @@ function against(line: Line, comparator: Line): Record<string, number> {
   const beta = covariance / (deviation(theirs) ** 2 || 1)
   const ownFigures = own(line)
   const theirFigures = own(comparator)
-  const relative = (ownFigures.cagr ?? 0) - (theirFigures.cagr ?? 0)
+  const relative = (ownFigures.annualised_return ?? 0) - (theirFigures.annualised_return ?? 0)
   return {
     tracking_difference: (ownFigures.total_return ?? 0) - (theirFigures.total_return ?? 0),
     tracking_error: te,
@@ -419,7 +420,6 @@ function measuredTable(
     const labels = ['1M', '3M', '6M', 'YTD', '1Y', '3Y']
     return books(trailing).map((row, at) => [labels[at] ?? '', ...nan(row)])
   }
-  if (id === 'trailing_statistics') return trailingStatistics(lines)
   if (id === 'risk_rating') return riskRating(lines, run)
   if (id === 'risk_distribution') return riskDistribution(lines, run)
   if (id === 'trade_counts') {
@@ -809,11 +809,16 @@ const PERIODS: [string, number | 'mtd' | 'qtd' | 'ytd' | 'all'][] = [
   ['inception', 'all']
 ]
 /** Periods too short for a Sharpe ratio (Karan, BN-422): those cells are null. */
-const NO_SHARPE = ['1M', '3M', 'MTD', 'QTD', 'YTD']
+/**
+ * The fewest days a figure is annualised over (BN-465): a rate a year, a
+ * ratio six months. Shorter, it is null, judged by the window's length.
+ */
+const RATE_DAYS = 252
+const RATIO_DAYS = 126
 /** Each row's statistic, and the whole-run figure it is worked out as over the period. */
 const OWN_ROWS: [string, string][] = [
   ['total_return', 'total_return'],
-  ['annualised_return', 'cagr'],
+  ['annualised_return', 'annualised_return'],
   ['volatility', 'volatility'],
   ['max_drawdown', 'max_drawdown'],
   ['sharpe_ratio', 'sharpe_ratio']
@@ -822,6 +827,29 @@ const RELATIVE_ROWS: [string, string][] = [
   ['tracking_difference', 'tracking_difference'],
   ['tracking_error', 'tracking_error']
 ]
+
+/**
+ * The default `summary` statistic table (BN-467, py-beacon e4675d0): the
+ * rows trailing_statistics gave, a statistic and window each, with the
+ * fund less the index as `active` for the returns.
+ */
+function summaryTable(lines: Lines): unknown {
+  const returns = ['total_return', 'annualised_return']
+  const data = trailingStatistics(lines).map(
+    ([window, statistic, unit, fund, index, benchmark]) => {
+      const active =
+        returns.includes(String(statistic)) && typeof fund === 'number' && typeof index === 'number'
+          ? fund - index
+          : null
+      return [statistic, window, unit, fund, index, benchmark ?? null, active]
+    }
+  )
+  return {
+    index: data.map((_, at) => at),
+    columns: ['statistic', 'window', 'unit', 'fund', 'index', 'benchmark', 'active'],
+    data
+  }
+}
 
 /**
  * Statistics by trailing period, a row per period and statistic. A period
@@ -851,12 +879,11 @@ function trailingStatistics(lines: Lines): (string | number | null)[][] {
     const fund = cut(lines.strategy)
     const index = cut(lines.index)
     const benchmark = cut(lines.benchmark)
-    // Annualised only beyond a year, as trailing_returns has it.
-    const overAYear = (fund?.data.length ?? 0) > 260
+    const length = (fund?.data.length ?? 1) - 1
     for (const [statistic, figure] of OWN_ROWS) {
       const shown =
-        (statistic !== 'annualised_return' || overAYear) &&
-        !(statistic === 'sharpe_ratio' && NO_SHARPE.includes(period))
+        (statistic !== 'annualised_return' || length >= RATE_DAYS) &&
+        (statistic !== 'sharpe_ratio' || length >= RATIO_DAYS)
       const of = (line: Line | undefined): number | null =>
         line === undefined || !shown ? null : (own(line)[figure] ?? null)
       const unit = statistic === 'sharpe_ratio' ? 'ratio' : 'fraction'
@@ -974,13 +1001,21 @@ export function analyticsFor(run: { strategyId: string }, lines: Lines): unknown
       reports,
       statistics,
       unavailable,
+      statistic_tables: { summary: summaryTable(lines), risk: riskStatisticTable(lines) },
       tables: {
         trades: {
           rows: tradesOf(lines).length,
           path: `/strategies/${run.strategyId}/tables/trades`
         }
       },
-      timings: { tables: 0.4, performance: 0.3, portfolio: 0.6, risk: 2.1, attribution: 0.9 }
+      timings: {
+        tables: 0.4,
+        performance: 0.3,
+        portfolio: 0.6,
+        risk: 2.1,
+        attribution: 0.9,
+        statistic_tables: 0.2
+      }
     }
   }
 }
