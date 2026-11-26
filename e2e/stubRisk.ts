@@ -141,7 +141,6 @@ function curveOf(lines: Lines): Curve {
 }
 
 const MEMBERS = 480
-const TOO_SHORT = 9
 const LATEST = 100
 const HELD = 10
 /** The best name, which the frontier ends at. */
@@ -618,11 +617,7 @@ export function correlationCodes(benchmarked: boolean): string[] {
   return ['fund', 'index', ...(benchmarked ? ['benchmark'] : []), ...MARKETS.map(([code]) => code)]
 }
 
-export function riskTable(id: string, lines: Lines, run: string): RiskAnswer | undefined {
-  if (id === 'member_risk_return') {
-    const rows = memberRows(lines, run)
-    return { rows, summary: { measured: rows.length, too_short: TOO_SHORT } }
-  }
+export function riskTable(id: string, lines: Lines): RiskAnswer | undefined {
   if (id === 'portfolio_risk_return')
     return { rows: books(lines).map(([book, line]) => [book, ...measured(line)]) }
   if (id === 'efficient_frontier') {

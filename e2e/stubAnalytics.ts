@@ -133,8 +133,9 @@ export function analysisOptions(): unknown {
     tables: [{ name: 'trades', label: 'Trades', columns: TRADE_COLUMNS }],
     unavailable: CATALOGUE_UNAVAILABLE,
     renamed: {},
-    // py-beacon 482061e (0.11.0): the summary statistic table took its place.
-    dropped: ['trailing_statistics']
+    // py-beacon 0.11.0: the summary statistic table took trailing_statistics'
+    // place (482061e), and GET /instrument member_risk_return's (42702d4).
+    dropped: ['trailing_statistics', 'member_risk_return']
   }
 }
 
@@ -950,7 +951,7 @@ export function analyticsFor(run: { strategyId: string }, lines: Lines): unknown
       unavailable[statistic.id] = missing
       continue
     }
-    const risk = riskTable(statistic.id, lines, run.strategyId)
+    const risk = riskTable(statistic.id, lines)
     if (risk !== undefined) {
       // A book the run lacks has no column (py-beacon d817ec8).
       const columns = (statistic.columns ?? [])

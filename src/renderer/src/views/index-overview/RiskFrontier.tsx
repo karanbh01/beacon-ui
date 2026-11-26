@@ -33,7 +33,7 @@ export function RiskFrontier({
   /**
    * The run's per-name table on weekly returns, the frontier's basis
    * (BN-454). An engine before 0.11.0 has none, and the cloud is the
-   * `member_risk_return` statistic's, which py-beacon drops once we move.
+   * `member_risk_return` statistic's, which 0.11.0 drops (42702d4).
    */
   instrument: InstrumentTable | undefined
   mode: ThemeMode

@@ -128,7 +128,6 @@ factor_betas|Factor betas|Factors|figures|ratio|risk|M
 value_at_risk|Value at risk|Value at risk|figures|fraction|risk|M
 expected_shortfall|Expected shortfall|Value at risk|figures|fraction|risk|H
 stress_windows|Stress windows|Value at risk|table|-|risk|-
-member_risk_return|Risk and return of every member|risk|table|fraction|risk|-
 portfolio_risk_return|Risk and return of each portfolio|risk|table|fraction|risk|-
 efficient_frontier|Efficient frontier in hindsight|risk|table|fraction|risk|-
 market_correlations|Correlation with markets|Correlation|table|ratio|risk|-
@@ -392,17 +391,6 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
     { ...col('phase', 'Phase'), labels: { crisis: 'Crisis', after: 'After' } }
   ],
   // py-beacon d817ec8 (BN-429, BN-430).
-  member_risk_return: [
-    col('name', 'Name'),
-    col('return', 'Return', 'fraction'),
-    col('volatility', 'Volatility', 'fraction'),
-    col('observations', 'Periods', 'count'),
-    col('first', 'First', 'date'),
-    col('last', 'Last', 'date'),
-    col('in_index_at_end', 'In the index at the end'),
-    col('fund_weight', 'Fund weight', 'fraction'),
-    col('index_weight', 'Index weight', 'fraction')
-  ],
   portfolio_risk_return: [
     {
       ...col('book', 'Portfolio'),
