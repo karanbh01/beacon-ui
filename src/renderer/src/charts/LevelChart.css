@@ -110,6 +110,13 @@
   border-top: 2px dashed;
 }
 
+/* An overlay of bars: a block, as the bars are. */
+.level-chart-bar {
+  width: 8px;
+  height: 8px;
+  opacity: 0.5;
+}
+
 /* The upper pane's own bottom axis line, and the gap under it (PaneGaps). */
 .level-chart-spine {
   position: absolute;
@@ -172,6 +179,15 @@
   margin-left: auto;
   padding-left: 10px;
   font-variant-numeric: tabular-nums;
+}
+
+/* What happened that day, under the figures and set apart from them. */
+.chart-readout-note {
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 0.5px solid var(--divider);
+  font-weight: 300;
+  color: var(--text-secondary);
 }
 
 /* A panel's title above it, left-aligned, as py-beacon titles grid panels. */

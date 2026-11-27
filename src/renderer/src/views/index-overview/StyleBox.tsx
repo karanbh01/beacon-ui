@@ -1,7 +1,8 @@
-import type { ReactElement } from 'react'
+import { useMemo, type ReactElement } from 'react'
 import type { StatisticSpec, TableFrame } from '../../api/analytics'
 import { percent } from '../shared/indexMetrics'
 import { HoverTip } from './HoverTip'
+import { trailOutline } from './styleTrail'
 
 const SIZES = ['large', 'mid', 'small']
 const STYLES = ['value', 'blend', 'growth']
@@ -9,6 +10,8 @@ const CELL = 48
 /** How far each name's weight spreads around its place, in px. */
 const SPREAD = CELL * 0.6
 const SIDE = CELL * 3
+/** How far round each of a name's past places its outline runs, in px. */
+const REACH = CELL * 0.22
 
 /*
  * Where a position is drawn. py-beacon does not clip positions (Karan,
@@ -26,14 +29,19 @@ type Weights = number[][]
  * name, so it reads as where the money is rather than as nine numbers. A circle
  * marks the fund's centre and a diamond the index's; the weights are in the
  * hover popup (Karan, 2026-11-19). A benchmark other than the index is an X;
- * one that is the index shares its diamond (Karan, 2026-11-20).
+ * one that is the index shares its diamond (Karan, 2026-11-20). Drilldown
+ * adds the name it is about, in the accent so it stands apart from the
+ * books, and an outline in the same accent round everywhere it sat over
+ * the run (Karan, 2026-11-26).
  */
 export function StyleBox({
   frame,
   positions,
   classification,
   spec,
-  benchmarkIsIndex
+  benchmarkIsIndex,
+  name,
+  trail
 }: {
   frame: TableFrame | undefined
   /** Each held name's place and weight; the shading follows these when there are any. */
@@ -42,7 +50,23 @@ export function StyleBox({
   classification: TableFrame | undefined
   spec: StatisticSpec | undefined
   benchmarkIsIndex: boolean
+  /** One name's place, on the same 0 to 3 scale as the books' centres. */
+  name?: { label: string; size: number; style: number } | undefined
+  /** The name's place at each rebalance, outlined together as where it has sat. */
+  trail?: readonly { size: number; style: number }[] | undefined
 }): ReactElement {
+  const outline = useMemo(
+    () =>
+      trailOutline(
+        (trail ?? []).map((place) => ({
+          x: pinned(place.style) * CELL,
+          y: pinned(place.size) * CELL
+        })),
+        REACH,
+        SIDE
+      ),
+    [trail]
+  )
   if (frame === undefined) return <p className="summary-profile-none type-11">Not worked out</p>
   const labelOf = (column: string, code: string): string =>
     spec?.columns?.find((candidate) => candidate.name === column)?.labels?.[code] ?? code
@@ -113,6 +137,9 @@ export function StyleBox({
           <line className="style-box-guide" x1={0} x2={SIDE} y1={CELL} y2={CELL} />
           <line className="style-box-guide" x1={0} x2={SIDE} y1={CELL * 2} y2={CELL * 2} />
           <rect className="style-box-outline" width={SIDE} height={SIDE} />
+          {outline !== '' && (
+            <path className="style-box-trail" d={outline} clipPath="url(#style-box-clip)" />
+          )}
           {theirs !== undefined && (
             <rect
               className="style-box-index"
@@ -127,10 +154,41 @@ export function StyleBox({
           {mine !== undefined && (
             <circle className="style-box-fund" cx={mine.x} cy={mine.y} r={5.5} />
           )}
+          {name !== undefined && (
+            <circle
+              className="style-box-name"
+              cx={pinned(name.style) * CELL}
+              cy={pinned(name.size) * CELL}
+              r={5.5}
+            />
+          )}
         </svg>
       </HoverTip>
       <span />
       <div className="style-box-legend type-11">
+        {name !== undefined && (
+          <span>
+            <svg width={10} height={10} aria-hidden="true">
+              <circle className="style-box-name" cx={5} cy={5} r={4} />
+            </svg>
+            {name.label}
+          </span>
+        )}
+        {trail !== undefined && trail.length > 0 && (
+          <span>
+            <svg width={12} height={10} aria-hidden="true">
+              <rect
+                className="style-box-trail-key"
+                x={0.5}
+                y={0.5}
+                width={11}
+                height={9}
+                rx={4.5}
+              />
+            </svg>
+            Over the run
+          </span>
+        )}
         <span>
           <svg width={10} height={10} aria-hidden="true">
             <circle className="style-box-fund" cx={5} cy={5} r={4} />

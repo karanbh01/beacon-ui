@@ -91,15 +91,37 @@ export function addOverlay(
   mode: ThemeMode,
   index: number
 ): ISeriesApi<SeriesType> {
+  const bars = overlay.kind === 'bars'
   chart.applyOptions({
     rightPriceScale: {
       visible: true,
-      borderVisible: false,
-      scaleMargins: { top: 0.12, bottom: 0.08 }
+      // An axis line as the left scale has, so the second axis reads as one (Karan, 2026-11-27).
+      borderVisible: true,
+      borderColor: COLORS[mode]['text-primary'],
+      ticksVisible: true,
+      // Bars keep to the lower third, under the line they explain.
+      scaleMargins: bars ? { top: 0.68, bottom: 0 } : { top: 0.12, bottom: 0.08 }
     }
   })
+  const priceFormat =
+    overlay.format === undefined
+      ? {}
+      : { priceFormat: { type: 'custom' as const, formatter: overlay.format, minMove: 0.01 } }
+
+  if (bars) {
+    const api = chart.addSeries(HistogramSeries, {
+      ...histogramOptions(mode),
+      ...priceFormat,
+      color: withAlpha(seriesColor(mode, index), 0.22),
+      priceScaleId: 'right',
+      lastValueVisible: false
+    })
+    api.setData(toHistogramData(overlay.points))
+    return api
+  }
 
   const api = chart.addSeries(LineSeries, {
+    ...priceFormat,
     ...lineOptions(mode, index),
     lineStyle: LineStyle.Dashed,
     priceScaleId: 'right',

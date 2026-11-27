@@ -17,7 +17,7 @@ export interface RiskAnswer {
 }
 
 /** A steady sequence in [0, 1) from a seed, so a table is the same on every read. */
-function random(seed: number): () => number {
+export function random(seed: number): () => number {
   let state = seed | 0
   return () => {
     state = (state + 0x6d2b79f5) | 0
@@ -27,7 +27,7 @@ function random(seed: number): () => number {
   }
 }
 
-function seedOf(text: string): number {
+export function seedOf(text: string): number {
   let hash = 2166136261
   for (let at = 0; at < text.length; at += 1) {
     hash ^= text.charCodeAt(at)

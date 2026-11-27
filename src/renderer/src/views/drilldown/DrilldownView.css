@@ -1,4 +1,4 @@
-/* Figma pane-content – asset-drilldown, 357:2319. */
+/* Figma pane-content – asset-drilldown, 357:2319; laid out as the Overview is (2026-11-26). */
 
 .drilldown-view {
   display: flex;
@@ -8,37 +8,348 @@
   width: 100%;
 }
 
-.drilldown-main-row {
+.drilldown-face {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1189px;
 }
 
-.drilldown-main-row .level-chart-block {
-  flex: 1;
-  min-width: 460px;
-}
-
-.drilldown-history {
-  width: 300px;
+/*
+ * The top every face shares (Karan, 2026-11-26): what the name is on the
+ * left, wide enough for its key data three to a row, and its price on the
+ * right, kept smaller than the Overview's chart and pushed to the pane's
+ * right edge.
+ */
+.drilldown-head {
+  display: grid;
+  grid-template-columns: 520px minmax(0, 620px);
+  justify-content: space-between;
+  width: 1189px;
   max-width: 100%;
+  gap: 24px;
+  align-items: start;
 }
 
-.drilldown-empty {
-  margin: 0;
-  padding: 12px 16px;
-  color: var(--text-muted);
+.drilldown-profile {
+  gap: 14px;
 }
 
-.drilldown-footnote {
-  margin: 0;
-  color: var(--text-muted);
+.drilldown-chart {
+  min-width: 0;
+  contain: inline-size;
 }
 
-/* Same mark the Weights table uses, so "at cap" reads identically in both. */
-.drilldown-capped {
+.drilldown-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.drilldown-name {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1px 16px;
+  align-items: baseline;
+}
+
+.drilldown-name-value {
   font-family: var(--font-ui);
-  font-size: 11px;
-  color: var(--accent);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.drilldown-name-style {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Over- or underweight, as a token: a thick rounded outline, green over and red under (Karan, 2026-11-27). */
+.active-token {
+  padding: 0 7px;
+  border: 2px solid currentcolor;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  outline: none;
+  cursor: default;
+}
+
+.active-token.is-over {
+  color: var(--success);
+}
+
+.active-token.is-under {
+  color: var(--danger);
+}
+
+.drilldown-name-meta {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+}
+
+.drilldown-key-data {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.drilldown-key-data dd {
+  margin: 0;
+}
+
+.drilldown-key-value {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Weight and style side by side under their titles (Karan, 2026-11-27): the
+ * histogram takes what the style box leaves.
+ */
+.drilldown-placing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: start;
+}
+
+/* The weight curve with the active weight's bars under it, beside the style box. */
+.drilldown-weights {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* The active weight each day: overweight up in green, underweight down in red, as the token. */
+.active-weights-strip {
+  height: 40px;
+}
+
+.active-weights-strip svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+}
+
+.active-weights-over {
+  fill: var(--success);
+}
+
+.active-weights-under {
+  fill: var(--danger);
+}
+
+.active-weights-zero,
+.active-weights-hover {
+  stroke: var(--text-primary);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.active-weights-hover {
+  stroke: var(--text-muted);
+}
+
+/* The weights at the latest rebalances, under the chart. */
+.drilldown-rebalances {
+  margin-top: 16px;
+}
+
+/*
+ * The token a size down, to sit inside a table row; its cell lets it show
+ * whole, as a cell's line box is shorter than the token's outline.
+ */
+.drilldown-rebalances .tbl-cell:has(.active-token) {
+  overflow: visible;
+}
+
+.drilldown-rebalances .active-token {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 0 5px;
+  border-width: 1.5px;
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.report-figure.is-overweight {
+  color: var(--success);
+}
+
+.report-figure.is-underweight {
+  color: var(--danger);
+}
+
+/* Five keys are wider than the box; here they wrap under it rather than run into the chart. */
+.drilldown-placing .style-box-legend {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+/*
+ * How many days at each weight, as smooth curves (Karan, 2026-11-26), the
+ * steps over them only there to hover.
+ */
+.weight-histogram {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  outline: none;
+  cursor: default;
+}
+
+.weight-histogram-bars {
+  position: relative;
+  display: flex;
+  height: 56px;
+}
+
+.weight-histogram-curve {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.weight-histogram-area {
+  fill: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.weight-histogram-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The index's days in the pane's text colour, white on dark; a benchmark other than it in grey. */
+.weight-histogram-line.is-index,
+.weight-histogram-key.is-index {
+  stroke: var(--text-primary);
+}
+
+.weight-histogram-line.is-benchmark,
+.weight-histogram-key.is-benchmark {
+  stroke: var(--text-muted);
+}
+
+.weight-histogram-key {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.weight-histogram-legend {
+  display: flex;
+  gap: 12px;
+  padding-top: 3px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.weight-histogram-legend span {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.weight-histogram-bin {
+  position: relative;
+  flex: 1;
+}
+
+/* The step under the pointer, faintly, so the popup's count has a place. */
+.weight-histogram-bin.is-hovered {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.weight-histogram-latest {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text-primary);
+  pointer-events: none;
+}
+
+.weight-histogram-axis {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Summary's tables side by side, four short ones across. */
+.drilldown-tables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* Two parts of a face beside each other, each as wide as it needs. */
+.drilldown-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+  gap: 32px;
+  align-items: start;
+}
+
+.drilldown-pair > .level-chart-block {
+  min-width: 0;
+}
+
+.drilldown-none {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.drilldown-note {
+  margin: 8px 0 0;
+  max-width: 560px;
+  color: var(--text-muted);
+}
+
+/* A figure the data cannot tell from nothing, or a rule the name never reached. */
+.drilldown-faint {
+  color: var(--text-muted);
+}
+
+.drilldown-up {
+  color: var(--success);
+}
+
+.drilldown-down {
+  color: var(--danger);
+}
+
+/* A margin under a tenth: the name only just cleared the rule. */
+.drilldown-near {
+  color: var(--working);
+  font-weight: 500;
+}
+
+.drilldown-periods {
+  align-self: flex-start;
 }

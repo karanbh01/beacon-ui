@@ -107,10 +107,12 @@ export interface Study {
  */
 export interface ChartEvent {
   date: string
-  /** Rendered beside the flag, so it stays to a few words. */
+  /** Rendered beside the flag, so it stays to a few words; empty for a bare mark. */
   text: string
   /** The caller's way of telling kinds apart at a glance. */
   shape?: SeriesMarkerShape
+  /** What the hover popup says of it, on its day: the event in full. */
+  detail?: string
 }
 
 /**
@@ -124,6 +126,14 @@ export interface ChartEvent {
 export interface Overlay {
   label: string
   points: readonly Point[]
+  /**
+   * Bars rather than a dashed line: a quantity each day, such as a name's
+   * weight under its price (Karan, 2026-11-26). They keep to the lower part
+   * of the frame, so the line stays readable above them.
+   */
+  kind?: 'line' | 'bars'
+  /** How its axis and the hover popup print a value. */
+  format?: (value: number) => string
 }
 
 export interface LevelChartProps {
@@ -310,7 +320,7 @@ export function LevelChart({
               api: overlaid,
               label: overlay.label,
               colour: seriesColor(mode, series.length),
-              format: plainFigure
+              format: overlay.format ?? plainFigure
             }
           ]),
       ...drawnPanels.flatMap((apis, index) => panelEntries(apis, panels?.[index], mode))
@@ -386,9 +396,9 @@ export function LevelChart({
       if (chart.current === null) return
 
       setAxes({
-        left: created.priceScale('left').width(),
+        left: scaleWidth(created, 'left'),
         // Zero unless an overlay has made the right scale visible (BU-152).
-        right: created.priceScale('right').width(),
+        right: scaleWidth(created, 'right'),
         width: host.current?.clientWidth ?? 0
       })
       if (host.current !== null) {
@@ -467,11 +477,19 @@ export function LevelChart({
             ))}
             {overlay !== undefined && (
               <span className="level-chart-key">
-                <span
-                  className="level-chart-dash"
-                  style={{ borderColor: seriesColor(mode, series.length) }}
-                  aria-hidden="true"
-                />
+                {overlay.kind === 'bars' ? (
+                  <span
+                    className="level-chart-bar"
+                    style={{ background: seriesColor(mode, series.length) }}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <span
+                    className="level-chart-dash"
+                    style={{ borderColor: seriesColor(mode, series.length) }}
+                    aria-hidden="true"
+                  />
+                )}
                 {overlay.label} (right)
               </span>
             )}
@@ -490,12 +508,19 @@ export function LevelChart({
                 className="level-chart-end-dot"
                 style={{ left: end.x, top: end.y, background: end.colour }}
               />
-              <span
-                className="level-chart-end"
-                style={{ left: end.x, top: end.textY, color: end.colour }}
-              >
-                {end.text}
-              </span>
+              {/*
+                No figure where an overlay's axis holds the gutter: it would sit
+                on that axis's labels, or float off the chart past them, and
+                the hover readout gives it anyway.
+              */}
+              {axes.right === 0 && (
+                <span
+                  className="level-chart-end"
+                  style={{ left: end.x, top: end.textY, color: end.colour }}
+                >
+                  {end.text}
+                </span>
+              )}
             </Fragment>
           ))}
           {(panels ?? []).map((panel, index) => (
@@ -514,7 +539,12 @@ export function LevelChart({
               {panel.label}
             </span>
           ))}
-          <ChartReadout readout={readout} />
+          <ChartReadout
+            readout={readout}
+            notes={(events ?? [])
+              .filter((event) => event.date.slice(0, 10) === readout?.day)
+              .map((event) => event.detail ?? event.text)}
+          />
         </div>
       </div>
       {note !== undefined && <p className="level-chart-notes">Notes: {sentence(note)}</p>}
@@ -644,4 +674,18 @@ function panelEntries(
       }
     ]
   })
+}
+
+/**
+ * A price scale's width, or none yet. A scale made visible by an overlay
+ * added with the chart has no axis until the chart's first paint, and
+ * lightweight-charts throws "Value is null" when asked for its width before
+ * then. The measure after that paint finds it.
+ */
+function scaleWidth(chart: IChartApi, side: 'left' | 'right'): number {
+  try {
+    return chart.priceScale(side).width()
+  } catch {
+    return 0
+  }
 }

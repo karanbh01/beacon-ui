@@ -11,6 +11,8 @@ export type AttributionView = components['schemas']['AttributionView']
 export type AssetView = components['schemas']['AssetView']
 export type CompareView = components['schemas']['CompareView']
 export type InstrumentTable = components['schemas']['InstrumentTable']
+export type InstrumentProfile = components['schemas']['InstrumentProfile']
+export type ProfileTable = components['schemas']['ProfileTable']
 
 /**
  * Reads of a stored strategy's latest run (py-beacon 0.9.0, BU-233).
@@ -240,6 +242,36 @@ export function useInstrument(
     },
     enabled: client !== null && strategyId !== '',
     retry: false
+  })
+}
+
+/**
+ * One name over a run (py-beacon BN-468..474, 0.11.0): Drilldown's parts,
+ * each a dated table, with `by` the periods its attribution is in. A name no
+ * portfolio held is a 422, and an engine before 0.11.0 has no such route, so
+ * this does not retry.
+ */
+export function useProfile(
+  strategyId: string,
+  identifier: string,
+  by: 'month' | 'quarter' | 'year'
+) {
+  const client = useBeacon()
+
+  return useQuery({
+    queryKey: ['beacon', 'profile', strategyId, identifier, by],
+    queryFn: ({ signal }) => {
+      if (client === null) throw new Error('No engine')
+      return client.get('/strategies/{strategy_id}/instrument/{identifier}', {
+        params: { strategy_id: strategyId, identifier },
+        query: { by },
+        signal
+      })
+    },
+    enabled: client !== null && strategyId !== '' && identifier !== '',
+    retry: false,
+    // A new choice of periods keeps the profile on screen while it loads; a new name does not.
+    placeholderData: (previous) => (previous?.identifier === identifier ? previous : undefined)
   })
 }
 

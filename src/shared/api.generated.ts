@@ -1467,6 +1467,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/strategies/{strategy_id}/instrument/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Profile
+         * @description One name over the strategy's latest run, a dated table a part: at
+         *     each rebalance, its weight at each implementation stage, any cap or
+         *     screen applied to it and each comparator's weight in it; each day,
+         *     the fund's and each comparator's weight in it and the fund's active
+         *     weight; each period, its contribution and active contribution and
+         *     each's total to date, linked as the run's analysis options say; and
+         *     at each rebalance, its share of the fund's expected volatility and
+         *     tracking error, the fund's holding of it and the days to sell it, the
+         *     risk model's exposures of it and its returns' betas to the factors,
+         *     its place in the style box and its key data; each corporate action
+         *     on it and each trade in it; one list of what happened to it; and at
+         *     each rebalance, how far it was from failing each eligibility rule.
+         *     A part the run cannot give is left out, and named under
+         *     `unavailable` with why.
+         *
+         *     Raises:
+         *         DataNotFoundError: Until the strategy has been backtested.
+         *         InvalidArgumentError: For a name no portfolio held, or a
+         *             comparator or period refused.
+         */
+        get: operations["profile_strategies__strategy_id__instrument__identifier__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/strategies/{strategy_id}/overview": {
         parameters: {
             query?: never;
@@ -5247,15 +5285,79 @@ export interface components {
              */
             label: string;
             /**
+             * Labels
+             * @description For a column of codes, the label of each code.
+             */
+            labels?: {
+                [key: string]: string;
+            } | null;
+            /**
              * Name
              * @description As it is keyed; a weight column's names its portfolio, such as 'weight/fund'.
              */
             name: string;
             /**
              * Unit
-             * @description What it is measured in: 'fraction', 'ratio', 'count', 'days' or 'date'; null for a yes or no.
+             * @description What it is measured in: 'fraction', 'ratio', 'count', 'days', 'money' (the portfolio's currency) or 'date'; null for text or a yes or no.
              */
             unit: string | null;
+        };
+        /**
+         * InstrumentProfile
+         * @description Response of `GET /strategies/{strategy_id}/instrument/{identifier}`:
+         *     one name over the latest run, as `result.analytics.instrument.profile()`
+         *     gives it.
+         */
+        InstrumentProfile: {
+            /**
+             * Against
+             * @description The comparator the active weight is measured against; null when there is none.
+             */
+            against: string | null;
+            /**
+             * By
+             * @description The periods 'attribution' has a row for: 'month', 'quarter' or 'year'.
+             */
+            by: string;
+            /**
+             * Currency
+             * @description The portfolio's currency.
+             */
+            currency: string;
+            /**
+             * End
+             * @description The window's last day, YYYY-MM-DD.
+             */
+            end: string | null;
+            /**
+             * Identifier
+             * @description The name.
+             */
+            identifier: string;
+            /**
+             * Linking
+             * @description How 'attribution' links each period's contribution, as the run's analysis options say: 'window', as its share of the whole window's, so the periods add up to it, or 'period', each period on its own.
+             */
+            linking: string;
+            /**
+             * Parts
+             * @description Each part the run can give, by name: 'rebalance_weights', a row a rebalance; 'daily_weights', a row a day; 'attribution', a row a period, dated by its last day; 'risk', 'liquidity', 'factor_exposures', 'factor_betas', 'style' and 'key_data', a row a rebalance; 'corporate_actions', a row an action, dated by its ex-date; 'trades', a row a trade; 'events', a row an event; and 'selection', a row a rebalance a rule a threshold. A days to sell is null where the name has no traded value.
+             */
+            parts: {
+                [key: string]: components["schemas"]["ProfileTable"];
+            };
+            /**
+             * Start
+             * @description The window's first day, YYYY-MM-DD.
+             */
+            start: string | null;
+            /**
+             * Unavailable
+             * @description Each part the run cannot give, and why.
+             */
+            unavailable: {
+                [key: string]: string;
+            };
         };
         /**
          * InstrumentTable
@@ -6395,6 +6497,27 @@ export interface components {
             interval: string;
             /** @description Date-indexed market data. */
             prices: components["schemas"]["TableFrame"];
+        };
+        /**
+         * ProfileTable
+         * @description One part of a name's profile: a dated table.
+         */
+        ProfileTable: {
+            /**
+             * Columns
+             * @description Each column, in order; a text column's unit is null.
+             */
+            columns: components["schemas"]["InstrumentColumn"][];
+            /**
+             * Data
+             * @description A row a date, a value a column, in `columns`' order; null where it has none.
+             */
+            data: unknown[][];
+            /**
+             * Dates
+             * @description Each row's date, YYYY-MM-DD, in order.
+             */
+            dates: string[];
         };
         /**
          * RebalancePricingPayload
@@ -17757,6 +17880,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstrumentTable"];
+                };
+            };
+            /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Requested data does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The path exists but does not accept this method. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request or rule failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Library error during processing. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Endpoint exists but is not implemented. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required optional dependency is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    profile_strategies__strategy_id__instrument__identifier__get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive start date, YYYY-MM-DD. */
+                start?: string | null;
+                /** @description Inclusive end date, YYYY-MM-DD. */
+                end?: string | null;
+                /** @description The comparator the relative figures are measured against: 'index', 'optimised' or 'benchmark'; the one the run tracks when left out. */
+                against?: string | null;
+                /** @description The periods its contribution is given by: 'month', 'quarter' or 'year'. */
+                by?: string;
+            };
+            header?: never;
+            path: {
+                strategy_id: string;
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstrumentProfile"];
                 };
             };
             /** @description The request could not be read at all: a body that is not decodable, or headers that contradict it. */

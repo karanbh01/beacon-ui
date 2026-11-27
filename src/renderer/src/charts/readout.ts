@@ -24,6 +24,8 @@ export interface Readout {
   flipX: boolean
   flipY: boolean
   date: string
+  /** The same day as YYYY-MM-DD, to match what else happened on it. */
+  day: string
   rows: ReadoutRow[]
 }
 
@@ -79,6 +81,7 @@ export function useReadout(
         flipX: x > area.clientWidth / 2,
         flipY: y > area.clientHeight / 2,
         date: dateOf(param.time),
+        day: dayOf(param.time).toISOString().slice(0, 10),
         rows
       })
     }
@@ -112,15 +115,15 @@ function rowsAt(param: MouseEventParams, entries: readonly ReadoutEntry[]): Read
   })
 }
 
+function dayOf(time: Time): Date {
+  if (typeof time === 'number') return new Date(time * 1000)
+  if (typeof time === 'string') return new Date(`${time}T00:00:00Z`)
+  return new Date(Date.UTC(time.year, time.month - 1, time.day))
+}
+
 /** The day as the tables write it: 21 Feb 2026. */
 function dateOf(time: Time): string {
-  const day =
-    typeof time === 'number'
-      ? new Date(time * 1000)
-      : typeof time === 'string'
-        ? new Date(`${time}T00:00:00Z`)
-        : new Date(Date.UTC(time.year, time.month - 1, time.day))
-  return day.toLocaleDateString('en-GB', {
+  return dayOf(time).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

@@ -6066,6 +6066,21 @@
             "title": "Label",
             "type": "string"
           },
+          "labels": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a column of codes, the label of each code.",
+            "title": "Labels"
+          },
           "name": {
             "description": "As it is keyed; a weight column's names its portfolio, such as 'weight/fund'.",
             "title": "Name",
@@ -6080,7 +6095,7 @@
                 "type": "null"
               }
             ],
-            "description": "What it is measured in: 'fraction', 'ratio', 'count', 'days' or 'date'; null for a yes or no.",
+            "description": "What it is measured in: 'fraction', 'ratio', 'count', 'days', 'money' (the portfolio's currency) or 'date'; null for text or a yes or no.",
             "title": "Unit"
           }
         },
@@ -6090,6 +6105,96 @@
           "unit"
         ],
         "title": "InstrumentColumn",
+        "type": "object"
+      },
+      "InstrumentProfile": {
+        "description": "Response of `GET /strategies/{strategy_id}/instrument/{identifier}`:\none name over the latest run, as `result.analytics.instrument.profile()`\ngives it.",
+        "properties": {
+          "against": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The comparator the active weight is measured against; null when there is none.",
+            "title": "Against"
+          },
+          "by": {
+            "description": "The periods 'attribution' has a row for: 'month', 'quarter' or 'year'.",
+            "title": "By",
+            "type": "string"
+          },
+          "currency": {
+            "description": "The portfolio's currency.",
+            "title": "Currency",
+            "type": "string"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The window's last day, YYYY-MM-DD.",
+            "title": "End"
+          },
+          "identifier": {
+            "description": "The name.",
+            "title": "Identifier",
+            "type": "string"
+          },
+          "linking": {
+            "description": "How 'attribution' links each period's contribution, as the run's analysis options say: 'window', as its share of the whole window's, so the periods add up to it, or 'period', each period on its own.",
+            "title": "Linking",
+            "type": "string"
+          },
+          "parts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProfileTable"
+            },
+            "description": "Each part the run can give, by name: 'rebalance_weights', a row a rebalance; 'daily_weights', a row a day; 'attribution', a row a period, dated by its last day; 'risk', 'liquidity', 'factor_exposures', 'factor_betas', 'style' and 'key_data', a row a rebalance; 'corporate_actions', a row an action, dated by its ex-date; 'trades', a row a trade; 'events', a row an event; and 'selection', a row a rebalance a rule a threshold. A days to sell is null where the name has no traded value.",
+            "title": "Parts",
+            "type": "object"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The window's first day, YYYY-MM-DD.",
+            "title": "Start"
+          },
+          "unavailable": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Each part the run cannot give, and why.",
+            "title": "Unavailable",
+            "type": "object"
+          }
+        },
+        "required": [
+          "identifier",
+          "currency",
+          "start",
+          "end",
+          "against",
+          "by",
+          "linking",
+          "parts",
+          "unavailable"
+        ],
+        "title": "InstrumentProfile",
         "type": "object"
       },
       "InstrumentTable": {
@@ -8033,6 +8138,43 @@
           "prices"
         ],
         "title": "PricesResponse",
+        "type": "object"
+      },
+      "ProfileTable": {
+        "description": "One part of a name's profile: a dated table.",
+        "properties": {
+          "columns": {
+            "description": "Each column, in order; a text column's unit is null.",
+            "items": {
+              "$ref": "#/components/schemas/InstrumentColumn"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "data": {
+            "description": "A row a date, a value a column, in `columns`' order; null where it has none.",
+            "items": {
+              "items": {},
+              "type": "array"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "dates": {
+            "description": "Each row's date, YYYY-MM-DD, in order.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Dates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "columns",
+          "dates",
+          "data"
+        ],
+        "title": "ProfileTable",
         "type": "object"
       },
       "RebalancePricingPayload": {
@@ -23684,6 +23826,196 @@
           }
         },
         "summary": "Instrument",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/strategies/{strategy_id}/instrument/{identifier}": {
+      "get": {
+        "description": "One name over the strategy's latest run, a dated table a part: at\neach rebalance, its weight at each implementation stage, any cap or\nscreen applied to it and each comparator's weight in it; each day,\nthe fund's and each comparator's weight in it and the fund's active\nweight; each period, its contribution and active contribution and\neach's total to date, linked as the run's analysis options say; and\nat each rebalance, its share of the fund's expected volatility and\ntracking error, the fund's holding of it and the days to sell it, the\nrisk model's exposures of it and its returns' betas to the factors,\nits place in the style box and its key data; each corporate action\non it and each trade in it; one list of what happened to it; and at\neach rebalance, how far it was from failing each eligibility rule.\nA part the run cannot give is left out, and named under\n`unavailable` with why.\n\nRaises:\n    DataNotFoundError: Until the strategy has been backtested.\n    InvalidArgumentError: For a name no portfolio held, or a\n        comparator or period refused.",
+        "operationId": "profile_strategies__strategy_id__instrument__identifier__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "description": "Letters, digits, dash and underscore; up to 64.",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "title": "Identifier",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive start date, YYYY-MM-DD.",
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive start date, YYYY-MM-DD.",
+              "title": "Start"
+            }
+          },
+          {
+            "description": "Inclusive end date, YYYY-MM-DD.",
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive end date, YYYY-MM-DD.",
+              "title": "End"
+            }
+          },
+          {
+            "description": "The comparator the relative figures are measured against: 'index', 'optimised' or 'benchmark'; the one the run tracks when left out.",
+            "in": "query",
+            "name": "against",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The comparator the relative figures are measured against: 'index', 'optimised' or 'benchmark'; the one the run tracks when left out.",
+              "title": "Against"
+            }
+          },
+          {
+            "description": "The periods its contribution is given by: 'month', 'quarter' or 'year'.",
+            "in": "query",
+            "name": "by",
+            "required": false,
+            "schema": {
+              "default": "quarter",
+              "description": "The periods its contribution is given by: 'month', 'quarter' or 'year'.",
+              "title": "By",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentProfile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The request could not be read at all: a body that is not decodable, or headers that contradict it."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Requested data does not exist."
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The path exists but does not accept this method."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request or rule failed validation."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Library error during processing."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Endpoint exists but is not implemented."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required optional dependency is absent."
+          }
+        },
+        "summary": "Profile",
         "tags": [
           "analysis"
         ]

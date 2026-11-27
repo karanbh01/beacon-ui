@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { analysisOptions, analyticsFor, tradesTable } from './stubAnalytics'
+import { profileOf } from './stubProfile'
 import { instrumentTable } from './stubRisk'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Duplex } from 'node:stream'
@@ -2156,6 +2157,13 @@ function body(url: URL): unknown {
     return analyticsFor(run, runLines(run))
   }
   // py-beacon 0.11.0's per-name table (BN-454), in stubRisk.ts.
+  // A name's profile for Drilldown (py-beacon BN-468..474), in stubProfile.ts.
+  if (/^\/strategies\/[^/]+\/instrument\/[^/]+$/.test(path)) {
+    const run = runOf(path)
+    if (isRefusal(run)) return run
+    const identifier = decodeURIComponent(path.split('/')[4] ?? '')
+    return profileOf(identifier, levelOf(identifier), url.searchParams)
+  }
   if (/^\/strategies\/[^/]+\/instrument$/.test(path)) {
     const run = runOf(path)
     if (isRefusal(run)) return run

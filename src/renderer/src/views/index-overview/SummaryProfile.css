@@ -197,6 +197,27 @@
   stroke-width: 1.5;
 }
 
+/* Where Drilldown's name has sat over the run: its marker's colour, as an outline only. */
+.style-box-trail {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.style-box-trail-key {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+
+/* Drilldown's name, in the accent so it stands apart from the books. */
+.style-box-name {
+  fill: var(--accent);
+  stroke: var(--canvas);
+  stroke-width: 1.5;
+}
+
 .style-box-index {
   fill: none;
   stroke: var(--text-primary);

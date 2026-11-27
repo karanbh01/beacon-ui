@@ -176,6 +176,10 @@ function client(): BeaconClient {
         })
       }
       if (path.includes('assets')) return Promise.resolve(asset)
+      // An engine before 0.11.0: no name profile, and no analytics to read.
+      if (path.includes('/instrument/') || path.includes('analy')) {
+        return Promise.reject(new Error('Not Found'))
+      }
       return Promise.resolve({
         index_id: 'TECH10',
         name: 'TECH10',
@@ -423,8 +427,9 @@ describe('Weights into Drilldown (BU-29, BU-166)', () => {
       </QueryClientProvider>
     )
 
-    // The index comes from Overview, not from a hard-coded 'TECH10' (BU-166).
-    expect(await screen.findByText(/held by TECH10/)).toBeInTheDocument()
+    // The index comes from Overview, not from a hard-coded 'TECH10' (BU-166),
+    // and the backtest field beside the name says which (Karan, 2026-11-27).
+    expect(await screen.findByRole('combobox', { name: 'Backtest' })).toHaveValue('TECH10')
   })
 
   it('says which currency the returns are in, and which the price is', async () => {
@@ -436,8 +441,9 @@ describe('Weights into Drilldown (BU-29, BU-166)', () => {
     asset = { ...ASSET, currency: 'USD', price_currency: 'GBP' }
     const drilldown = within(await mountDrilldown())
 
-    expect(await drilldown.findByText('total return (USD)')).toBeInTheDocument()
-    expect(drilldown.getByText('excess vs TECH10 (USD)')).toBeInTheDocument()
+    expect(await drilldown.findByText('Total return (USD)')).toBeInTheDocument()
+    expect(drilldown.getByText('Excess return (USD)')).toBeInTheDocument()
+    expect(drilldown.getByText('AVGO (GBP)')).toBeInTheDocument()
   })
 
   it('says nothing about currency for an engine that does not', async () => {
@@ -445,8 +451,8 @@ describe('Weights into Drilldown (BU-29, BU-166)', () => {
     // a claim about money the engine never made.
     const drilldown = within(await mountDrilldown())
 
-    expect(await drilldown.findByText('total return')).toBeInTheDocument()
-    expect(drilldown.queryByText(/total return \(/)).toBeNull()
+    expect(await drilldown.findByText('Total return')).toBeInTheDocument()
+    expect(drilldown.queryByText(/Total return \(/)).toBeNull()
   })
 })
 

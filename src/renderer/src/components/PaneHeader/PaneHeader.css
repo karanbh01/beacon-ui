@@ -30,6 +30,13 @@
   flex: none;
 }
 
+/* Under labelled query boxes, the buttons centre on the boxes rather than on the labels too. */
+.pane-header.is-labelled .pane-header-controls {
+  align-self: flex-end;
+  /* The ticker field box's height (TickerField.css). */
+  height: 32px;
+}
+
 .pane-header-title {
   margin: 0;
   font-family: var(--font-ui);
