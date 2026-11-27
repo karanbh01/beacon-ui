@@ -433,7 +433,7 @@ function selection(name: Name): Part {
       const measured = Number(cells[3])
       const threshold = Number(cells[5])
       const margin = Number(((measured - threshold) / threshold).toFixed(4))
-      // Asked of py-beacon 2026-11-27: the value less the threshold, in the measure's units.
+      // py-beacon BN-485: the value less the threshold, in the measure's units.
       return [...cells, measured - threshold, margin, margin >= 0]
     })
   }
@@ -615,6 +615,8 @@ export function profileOf(
     against: 'index',
     by,
     linking: 'window',
+    // The run's selection.near_miss (BN-485).
+    near_miss: 0.1,
     parts: {
       rebalance_weights: rebalanceWeights(name),
       daily_weights: dailyWeights(name),

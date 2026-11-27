@@ -20,9 +20,6 @@ import {
   type ProfileRow
 } from './profile'
 
-/** A margin under this reads as a near miss, as py-beacon's default `selection.near_miss`. */
-const NEAR = 0.1
-
 /** A rebalance's row: the engine's weights that day, and the daily row of the same day. */
 interface RebalanceRow extends ProfileRow {
   daily: ProfileRow | undefined
@@ -63,6 +60,8 @@ export function DrilldownSelection({
   const weights = partOf(profile, 'rebalance_weights')
   const selection = partOf(profile, 'selection')
   const rules = useMemo(() => rulesOf(selection, profile?.currency ?? ''), [selection, profile])
+  // A margin under the run's near-miss share reads as a near miss (py-beacon BN-485).
+  const near = profile?.near_miss ?? 0.1
   const toggle = (date: string): void => {
     setOpened((current) => (current === date ? undefined : date))
   }
@@ -103,6 +102,7 @@ export function DrilldownSelection({
                   rules={rules}
                   date={row.date}
                   currency={profile?.currency ?? ''}
+                  near={near}
                 />
               )
             }
@@ -114,6 +114,7 @@ export function DrilldownSelection({
               part={selection}
               rules={rules}
               currency={profile?.currency ?? ''}
+              near={near}
               opened={opened}
               onSelect={toggle}
             />
@@ -220,12 +221,14 @@ function RuleTests({
   part,
   rules,
   date,
-  currency
+  currency,
+  near
 }: {
   part: Part
   rules: readonly Rule[]
   date: string
   currency: string
+  near: number
 }): ReactElement {
   const rows: TestRow[] = rules.flatMap((rule) => {
     const row = rule.tests.get(date)
@@ -261,7 +264,7 @@ function RuleTests({
       header: 'Relative',
       width: 72,
       align: 'right',
-      render: (row) => <Relative row={row.row} />
+      render: (row) => <Relative row={row.row} near={near} />
     }
   ]
   return (
@@ -272,7 +275,7 @@ function RuleTests({
 }
 
 /** How far the name cleared the rule, as a share of the threshold. */
-function Relative({ row }: { row: ProfileRow }): ReactElement {
+function Relative({ row, near }: { row: ProfileRow; near: number }): ReactElement {
   const margin = numberIn(row, 'margin')
   if (row.values.passed !== true) {
     return (
@@ -283,7 +286,7 @@ function Relative({ row }: { row: ProfileRow }): ReactElement {
   }
   if (margin === undefined) return <span>Passed</span>
   return (
-    <span className={margin < NEAR ? 'drilldown-near' : undefined}>
+    <span className={margin < near ? 'drilldown-near' : undefined}>
       {`${margin >= 0 ? '+' : ''}${(margin * 100).toFixed(1)}%`}
     </span>
   )
@@ -298,12 +301,15 @@ function RuleChart({
   part,
   rules,
   currency,
+  near,
   opened,
   onSelect
 }: {
   part: Part
   rules: readonly Rule[]
   currency: string
+  /** The run's near-miss share of a threshold, as the engine gives it. */
+  near: number
   opened: string | undefined
   onSelect: (date: string) => void
 }): ReactElement {
@@ -316,9 +322,9 @@ function RuleChart({
       label: 'Threshold',
       value: (date: string) => numberIn(rule?.tests.get(date), 'threshold'),
       // Within a near miss of it either side, as the Relative column marks one (Karan, 2026-11-27).
-      band: { share: NEAR, label: `Within ${String(NEAR * 100)}%` }
+      band: { share: near, label: `Within ${String(Math.round(near * 100))}%` }
     }),
-    [rule]
+    [rule, near]
   )
   if (rule === undefined) return <p className="drilldown-none type-11">No rules tested it.</p>
   const dates = [...rule.tests.keys()]

@@ -212,7 +212,10 @@ export function FactsheetView({ tab, subject, pane }: ViewProps): ReactElement {
                     label="Volatility"
                     value={percent(fromFraction(overview.data.metrics.volatility))}
                   />
-                  <KV label="Sharpe" value={overview.data.metrics.sharpe_ratio.toFixed(2)} />
+                  <KV
+                    label="Sharpe"
+                    value={overview.data.metrics.sharpe_ratio?.toFixed(2) ?? '—'}
+                  />
                   <KV
                     label="Max drawdown"
                     value={signedPercent(fromFraction(overview.data.metrics.max_drawdown))}

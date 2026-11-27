@@ -950,9 +950,17 @@
         "description": "Headline metrics from a backtest run.\n\nTracking figures are null when the run had no target index to compare to.",
         "properties": {
           "annualised_return": {
-            "description": "Fraction, not percent: 0.0523 means 5.23%.",
-            "title": "Annualised Return",
-            "type": "number"
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The total return a year; null over a window shorter than the run's min_annualised_rate_window, a year unless set.",
+            "title": "Annualised Return"
           },
           "average_active_share": {
             "anyOf": [
@@ -1076,8 +1084,16 @@
             "title": "Money Weighted Return"
           },
           "sharpe_ratio": {
-            "title": "Sharpe Ratio",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The annualised return in excess of the risk-free rate, over the volatility; null over a window shorter than the run's min_annualised_ratio_window, six months unless set.",
+            "title": "Sharpe Ratio"
           },
           "total_return": {
             "description": "Fraction, not percent: 0.0523 means 5.23%.",
@@ -2240,9 +2256,17 @@
         "description": "A comparator's own figures over a run's window, defined as a run's are.",
         "properties": {
           "annualised_return": {
-            "description": "The total return a year.",
-            "title": "Annualised Return",
-            "type": "number"
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The total return a year; null over a window shorter than the run's min_annualised_rate_window, a year unless set.",
+            "title": "Annualised Return"
           },
           "hit_rate_monthly": {
             "anyOf": [
@@ -2263,9 +2287,16 @@
             "type": "number"
           },
           "sharpe_ratio": {
-            "description": "The annualised return in excess of the risk-free rate, over the volatility.",
-            "title": "Sharpe Ratio",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The annualised return in excess of the risk-free rate, over the volatility; null over a window shorter than the run's min_annualised_ratio_window, six months unless set.",
+            "title": "Sharpe Ratio"
           },
           "total_return": {
             "description": "Over the window, from its first day's level.",
@@ -6087,6 +6118,11 @@
             "title": "Linking",
             "type": "string"
           },
+          "near_miss": {
+            "description": "The share of a threshold within which a pass is a near miss, as the run's analysis options say: 'selection' and 'events' are measured with it.",
+            "title": "Near Miss",
+            "type": "number"
+          },
           "parts": {
             "additionalProperties": {
               "$ref": "#/components/schemas/ProfileTable"
@@ -6124,6 +6160,7 @@
           "against",
           "by",
           "linking",
+          "near_miss",
           "parts",
           "unavailable"
         ],
@@ -7224,9 +7261,16 @@
             "type": "number"
           },
           "sharpe_ratio": {
-            "description": "Its annualised return in excess of the risk-free rate, over the volatility.",
-            "title": "Sharpe Ratio",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its annualised return in excess of the risk-free rate, over the volatility; null over a window shorter than the run's min_annualised_ratio_window, six months unless set, as each quarter and month is.",
+            "title": "Sharpe Ratio"
           },
           "total_return": {
             "description": "From the previous period's close.",
@@ -8624,9 +8668,17 @@
         "description": "A run against a comparator over the same window.",
         "properties": {
           "annualised_relative_return": {
-            "description": "The run's annualised return less the comparator's.",
-            "title": "Annualised Relative Return",
-            "type": "number"
+            "anyOf": [
+              {
+                "description": "Fraction, not percent: 0.0523 means 5.23%.",
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The run's annualised return less the comparator's; null over a window shorter than the run's min_annualised_rate_window, a year unless set.",
+            "title": "Annualised Relative Return"
           },
           "beta": {
             "anyOf": [

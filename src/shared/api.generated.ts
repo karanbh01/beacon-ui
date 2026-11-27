@@ -2325,9 +2325,9 @@ export interface components {
         BacktestMetrics: {
             /**
              * Annualised Return
-             * @description Fraction, not percent: 0.0523 means 5.23%.
+             * @description The total return a year; null over a window shorter than the run's min_annualised_rate_window, a year unless set.
              */
-            annualised_return: number;
+            annualised_return: number | null;
             /**
              * Average Active Share
              * @description For an active strategy, the mean active share at its rebalances.
@@ -2378,8 +2378,11 @@ export interface components {
              * @description The investors' annual internal rate of return, when money flowed. Null otherwise.
              */
             money_weighted_return?: number | null;
-            /** Sharpe Ratio */
-            sharpe_ratio: number;
+            /**
+             * Sharpe Ratio
+             * @description The annualised return in excess of the risk-free rate, over the volatility; null over a window shorter than the run's min_annualised_ratio_window, six months unless set.
+             */
+            sharpe_ratio: number | null;
             /**
              * Total Return
              * @description Fraction, not percent: 0.0523 means 5.23%.
@@ -3074,9 +3077,9 @@ export interface components {
         ComparatorFigures: {
             /**
              * Annualised Return
-             * @description The total return a year.
+             * @description The total return a year; null over a window shorter than the run's min_annualised_rate_window, a year unless set.
              */
-            annualised_return: number;
+            annualised_return: number | null;
             /**
              * Hit Rate Monthly
              * @description The share of calendar months with a positive return.
@@ -3089,9 +3092,9 @@ export interface components {
             max_drawdown: number;
             /**
              * Sharpe Ratio
-             * @description The annualised return in excess of the risk-free rate, over the volatility.
+             * @description The annualised return in excess of the risk-free rate, over the volatility; null over a window shorter than the run's min_annualised_ratio_window, six months unless set.
              */
-            sharpe_ratio: number;
+            sharpe_ratio: number | null;
             /**
              * Total Return
              * @description Over the window, from its first day's level.
@@ -5298,6 +5301,11 @@ export interface components {
              */
             linking: string;
             /**
+             * Near Miss
+             * @description The share of a threshold within which a pass is a near miss, as the run's analysis options say: 'selection' and 'events' are measured with it.
+             */
+            near_miss: number;
+            /**
              * Parts
              * @description Each part the run can give, by name: 'rebalance_weights', a row a rebalance; 'daily_weights', a row a day; 'attribution', a row a period, dated by its last day; 'risk', 'liquidity', 'factor_exposures', 'factor_betas', 'style' and 'key_data', a row a rebalance; 'corporate_actions', a row an action, dated by its ex-date; 'trades', a row a trade; 'events', a row an event; and 'selection', a row a rebalance a rule a threshold; and 'period_statistics', a row for the whole window, then each rebalance period, year, quarter and month, told apart by its 'period' column and dated by its last day. A days to sell is null where the name has no traded value.
              */
@@ -5938,9 +5946,9 @@ export interface components {
             positive_days: number;
             /**
              * Sharpe Ratio
-             * @description Its annualised return in excess of the risk-free rate, over the volatility.
+             * @description Its annualised return in excess of the risk-free rate, over the volatility; null over a window shorter than the run's min_annualised_ratio_window, six months unless set, as each quarter and month is.
              */
-            sharpe_ratio: number;
+            sharpe_ratio: number | null;
             /**
              * Total Return
              * @description From the previous period's close.
@@ -6822,9 +6830,9 @@ export interface components {
         RelativeFigures: {
             /**
              * Annualised Relative Return
-             * @description The run's annualised return less the comparator's.
+             * @description The run's annualised return less the comparator's; null over a window shorter than the run's min_annualised_rate_window, a year unless set.
              */
-            annualised_relative_return: number;
+            annualised_relative_return: number | null;
             /**
              * Beta
              * @description Of the run's daily returns on the comparator's.
