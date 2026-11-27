@@ -110,14 +110,17 @@ function drifted(name: Name, weights: readonly number[]): number[] {
   })
 }
 
+/** The benchmark leans a little off the index, by rebalance, without drawing on the seed. */
+function benchmarkWeights(name: Name): number[] {
+  return name.indexWeights.map((weight, at) =>
+    Number((weight * (1.1 + 0.2 * Math.sin(at))).toFixed(4))
+  )
+}
+
 function dailyWeights(name: Name): Part {
   const fund = drifted(name, name.targets)
   const index = drifted(name, name.indexWeights)
-  // The benchmark leans a little off the index, by rebalance, without drawing on the seed.
-  const benchmark = drifted(
-    name,
-    name.indexWeights.map((weight, at) => Number((weight * (1.1 + 0.2 * Math.sin(at))).toFixed(4)))
-  )
+  const benchmark = drifted(name, benchmarkWeights(name))
   return {
     columns: [
       col('fund', 'Fund', 'fraction'),
@@ -143,13 +146,22 @@ function rebalanceWeights(name: Name): Part {
       col('weight', 'Traded to', 'fraction'),
       col('capped', 'Capped', 'fraction'),
       col('removed', 'Removed by'),
-      col('index', 'Index', 'fraction')
+      col('index', 'Index', 'fraction'),
+      col('benchmark', 'Benchmark', 'fraction')
     ],
     dates: name.rebalances.map((at) => name.dates[at] ?? ''),
     data: name.targets.map((weight, at) => {
       const cut = at === name.capped
       const target = cut ? Number((weight * 1.3).toFixed(4)) : weight
-      return [target, target, weight, cut ? weight : null, null, name.indexWeights[at] ?? 0]
+      return [
+        target,
+        target,
+        weight,
+        cut ? weight : null,
+        null,
+        name.indexWeights[at] ?? 0,
+        benchmarkWeights(name)[at] ?? 0
+      ]
     })
   }
 }
@@ -412,6 +424,7 @@ function selection(name: Name): Part {
       col('measured', 'Value'),
       col('comparison', 'Comparison', null, COMPARISONS),
       col('threshold', 'Threshold'),
+      col('difference', 'Difference'),
       col('margin', 'Margin', 'fraction'),
       col('passed', 'Passed')
     ],
@@ -420,7 +433,8 @@ function selection(name: Name): Part {
       const measured = Number(cells[3])
       const threshold = Number(cells[5])
       const margin = Number(((measured - threshold) / threshold).toFixed(4))
-      return [...cells, margin, margin >= 0]
+      // Asked of py-beacon 2026-11-27: the value less the threshold, in the measure's units.
+      return [...cells, measured - threshold, margin, margin >= 0]
     })
   }
 }

@@ -96,3 +96,51 @@ test('the backtest beside the name can be changed', async ({ window }) => {
   // US-QUALITY's benchmark is its index: one Index/BM column.
   await expect(window.locator('.drilldown-rebalances')).toContainText('Index/BM weight')
 })
+
+test('Selection opens a rebalance onto the rules it was tested against', async ({ window }) => {
+  await drill(window, 'TECH10', 'AAPL')
+  const view = window.locator('.drilldown-view')
+  await view.getByRole('radio', { name: 'Selection' }).click()
+  const face = view.locator('.drilldown-face')
+
+  for (const name of [
+    'Fund weight',
+    'Index weight',
+    'Benchmark weight',
+    'Active weight',
+    'OW/UW'
+  ]) {
+    await expect(face.getByRole('columnheader', { name, exact: true })).toBeVisible()
+  }
+  // Corporate actions have a face of their own (Karan, 2026-11-27).
+  await expect(face.getByRole('heading', { name: 'Corporate actions' })).toHaveCount(0)
+
+  await face.locator('.tbl-body [role="row"]').first().click()
+  const tests = face.locator('.drilldown-rule-tests')
+  for (const name of ['Rule', 'Threshold', 'Actual', 'Difference', 'Relative']) {
+    await expect(tests.getByRole('columnheader', { name, exact: true })).toBeVisible()
+  }
+  await expect(tests).toContainText('Market cap rule')
+
+  // The chart beside it: one rule's value at each rebalance, named by its field.
+  const chart = face.locator('.drilldown-rule-chart')
+  await expect(chart.locator('.stacked-bars-legend')).toHaveText(
+    /Market cap.*Within 10%.*Threshold/
+  )
+  await chart.getByRole('combobox', { name: 'Rule' }).click()
+  await window.getByRole('option', { name: 'Avg daily volume rule' }).click()
+  await expect(chart.locator('.stacked-bars-legend')).toContainText('Avg daily volume')
+})
+
+test('corporate actions are a face of their own', async ({ window }) => {
+  await drill(window, 'TECH10', 'AAPL')
+  const view = window.locator('.drilldown-view')
+  await view.getByRole('radio', { name: 'Corporate actions' }).click()
+
+  await expect(view.getByRole('heading', { name: 'Corporate actions' })).toBeVisible()
+  await expect(view.getByRole('columnheader', { name: 'Ex-date' })).toBeVisible()
+
+  await view.getByRole('radio', { name: 'Trading' }).click()
+  await expect(view.getByRole('heading', { name: 'Trades' })).toBeVisible()
+  await expect(view.getByRole('heading', { name: 'Corporate actions' })).toHaveCount(0)
+})

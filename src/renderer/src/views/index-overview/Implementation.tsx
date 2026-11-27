@@ -219,7 +219,7 @@ function hasNames(row: StepRow): boolean {
 }
 
 /** Points down to open a rebalance's names, up to close them. */
-function OpenChevron({ open }: { open: boolean }): ReactElement {
+export function OpenChevron({ open }: { open: boolean }): ReactElement {
   return (
     <ChevronIcon
       size={10}

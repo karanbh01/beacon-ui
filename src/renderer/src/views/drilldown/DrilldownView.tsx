@@ -11,6 +11,7 @@ import { ViewEmpty, ViewError } from '../shared/ViewState'
 import { useAnalysisOptions } from '../shared/analyticsQueries'
 import { useAsset, useProfile } from '../shared/beaconQueries'
 import { useStrategyCatalogue } from '../shared/strategyDocuments'
+import { DrilldownCorporateActions } from './DrilldownCorporateActions'
 import { DrilldownContribution } from './DrilldownContribution'
 import { DrilldownHead } from './DrilldownHead'
 import { DrilldownRisk } from './DrilldownRisk'
@@ -21,19 +22,21 @@ import type { Period } from './profile'
 import '../index-overview/IndexOverviewView.css'
 import './DrilldownView.css'
 
-type Face = 'summary' | 'selection' | 'contribution' | 'risk' | 'trading'
+type Face = 'summary' | 'selection' | 'contribution' | 'risk' | 'trading' | 'actions'
 
 /*
  * Karan's order (2026-11-26): the name at a glance, then why it is held,
  * what it added, what it risked, and what it cost, as the Overview runs from
- * what a strategy did to how it was carried out.
+ * what a strategy did to how it was carried out; its corporate actions last,
+ * on a face of their own (2026-11-27).
  */
 const FACES: readonly { value: Face; label: string }[] = [
   { value: 'summary', label: 'Summary' },
   { value: 'selection', label: 'Selection' },
   { value: 'contribution', label: 'Contribution' },
   { value: 'risk', label: 'Risk' },
-  { value: 'trading', label: 'Trading' }
+  { value: 'trading', label: 'Trading' },
+  { value: 'actions', label: 'Corporate actions' }
 ]
 
 /**
@@ -41,7 +44,7 @@ const FACES: readonly { value: Face; label: string }[] = [
  * Overview is (Karan, 2026-11-26).
  *
  * One name in the latest run of the page's strategy: its profile from
- * py-beacon (BN-468..474), every part a dated table, on five faces. The
+ * py-beacon (BN-468..474), every part a dated table, on six faces. The
  * figures are the run's own, measured on its daily total returns; nothing
  * here is worked out in the app.
  *
@@ -184,7 +187,9 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
           asset={asset.data}
         />
       )}
-      {asset.isSuccess && face === 'selection' && <DrilldownSelection profile={data} />}
+      {asset.isSuccess && face === 'selection' && (
+        <DrilldownSelection strategyId={strategyId} profile={data} />
+      )}
       {asset.isSuccess && face === 'contribution' && (
         <DrilldownContribution profile={data} by={by} onBy={setBy} comparator={comparator} />
       )}
@@ -192,6 +197,7 @@ export function DrilldownView({ tab, subject, pane }: ViewProps): ReactElement {
         <DrilldownRisk profile={data} comparator={comparator} />
       )}
       {asset.isSuccess && face === 'trading' && <DrilldownTrading profile={data} />}
+      {asset.isSuccess && face === 'actions' && <DrilldownCorporateActions profile={data} />}
       {asset.isSuccess && face !== 'summary' && profile.isError && (
         <p className="drilldown-none type-11">
           This engine has no profile of {identifier}: {profile.error.message}

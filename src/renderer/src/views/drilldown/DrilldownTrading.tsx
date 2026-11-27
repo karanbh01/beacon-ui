@@ -6,8 +6,8 @@ import { ProfileTable } from './ProfileTable'
 /**
  * Drilldown → Trading: what it cost to hold and trade the name. Every trade
  * with why it was made and what it cost; how big the holding was against
- * what the market trades of it, at each rebalance; and its dividends and
- * splits, which the trades and the price both answer to.
+ * what the market trades of it, at each rebalance. Its dividends and
+ * splits have a face of their own (Karan, 2026-11-27).
  */
 export function DrilldownTrading({
   profile
@@ -32,31 +32,18 @@ export function DrilldownTrading({
           ]}
         />
       </Section>
-      <div className="drilldown-pair">
-        <Section title="Liquidity at each rebalance">
-          <ProfileTable
-            profile={profile}
-            part="liquidity"
-            dateHeader="Rebalance"
-            shown={[
-              { name: 'value', width: 96 },
-              { name: 'traded_value', width: 110 },
-              { name: 'days_to_sell', width: 86 }
-            ]}
-          />
-        </Section>
-        <Section title="Corporate actions">
-          <ProfileTable
-            profile={profile}
-            part="corporate_actions"
-            dateHeader="Ex-date"
-            shown={[
-              { name: 'type', width: 90 },
-              { name: 'amount', width: 100 }
-            ]}
-          />
-        </Section>
-      </div>
+      <Section title="Liquidity at each rebalance">
+        <ProfileTable
+          profile={profile}
+          part="liquidity"
+          dateHeader="Rebalance"
+          shown={[
+            { name: 'value', width: 96 },
+            { name: 'traded_value', width: 110 },
+            { name: 'days_to_sell', width: 86 }
+          ]}
+        />
+      </Section>
     </div>
   )
 }

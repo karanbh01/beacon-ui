@@ -32,6 +32,17 @@ export interface StackedBarChartProps {
   focus?: string | undefined
   /** Clicking a bar, when the bars open something. */
   onSelect?: (category: string) => void
+  /**
+   * A level each bar is read against, as a dashed line across the bars:
+   * a rule's threshold under a name's value (Karan, 2026-11-27). A step
+   * where it changes from one category to the next.
+   */
+  reference?: {
+    label: string
+    value: (category: string) => number | undefined
+    /** A shaded band this share of the level either side of it, such as a near miss's. */
+    band?: { share: number; label: string }
+  }
   label: string
 }
 
@@ -57,6 +68,7 @@ export function StackedBarChart({
   tipExtra,
   focus,
   onSelect,
+  reference,
   label
 }: StackedBarChartProps): ReactElement {
   const token = COLORS[mode]
@@ -74,18 +86,24 @@ export function StackedBarChart({
         down: parts.filter((part) => part < 0).reduce((sum, part) => sum + part, 0)
       }
     })
+    const share = reference?.band?.share ?? 0
+    const levels = categories.flatMap((category) => {
+      const level = reference?.value(category)
+      if (level === undefined) return []
+      return [level - Math.abs(level) * share, level + Math.abs(level) * share]
+    })
     return {
       x: scaleBand<string>({ domain: [...categories], range: [0, innerWidth], padding: 0.35 }),
       y: scaleLinear<number>({
         domain: [
-          Math.min(...totals.map((total) => total.down), 0),
-          Math.max(...totals.map((total) => total.up), 0) || 1
+          Math.min(...totals.map((total) => total.down), ...levels, 0),
+          Math.max(...totals.map((total) => total.up), ...levels, 0) || 1
         ],
         range: [innerHeight, 0],
         nice: true
       })
     }
-  }, [categories, series, value, innerWidth, innerHeight])
+  }, [categories, series, value, reference, innerWidth, innerHeight])
 
   // About one label for every 70px, so long runs do not crowd the axis.
   const every = Math.max(1, Math.ceil((categories.length * 70) / Math.max(innerWidth, 1)))
@@ -102,10 +120,30 @@ export function StackedBarChart({
             {part.label}
           </span>
         ))}
+        {reference?.band !== undefined && (
+          <span>
+            <span className="stacked-bars-swatch stacked-bars-band" />
+            {reference.band.label}
+          </span>
+        )}
+        {reference !== undefined && (
+          <span>
+            <svg width={12} height={8} aria-hidden="true">
+              <line className="stacked-bars-reference" x1={0} x2={12} y1={4} y2={4} />
+            </svg>
+            {reference.label}
+          </span>
+        )}
       </div>
       {width > 0 && (
         <svg width={width} height={height} role="img" aria-label={label}>
           <Group left={MARGIN.left} top={MARGIN.top}>
+            {reference?.band !== undefined && (
+              <path
+                className="stacked-bars-band"
+                d={bandPath(categories, reference.value, reference.band.share, x, y)}
+              />
+            )}
             <AxisLeft
               scale={y}
               numTicks={4}
@@ -146,6 +184,12 @@ export function StackedBarChart({
                     })}
               />
             ))}
+            {reference !== undefined && (
+              <path
+                className="stacked-bars-reference"
+                d={referencePath(categories, reference.value, x, y)}
+              />
+            )}
           </Group>
         </svg>
       )}
@@ -163,6 +207,15 @@ export function StackedBarChart({
             {series.map((part) => (
               <TipRow key={part.key} name={part.label} value={format(value(hovered, part.key))} />
             ))}
+            {reference !== undefined && (
+              <TipRow
+                name={reference.label}
+                value={(() => {
+                  const level = reference.value(hovered)
+                  return level === undefined ? '—' : format(level)
+                })()}
+              />
+            )}
             {(tipExtra?.(hovered) ?? []).map(([name, figure]) => (
               <TipRow key={name} name={name} value={figure} />
             ))}
@@ -233,6 +286,56 @@ function Bar({
       })}
     </g>
   )
+}
+
+/**
+ * The reference as a step: level across each category's whole step, the
+ * padding either side included, so a level that holds reads as one line.
+ */
+function referencePath(
+  categories: readonly string[],
+  value: (category: string) => number | undefined,
+  x: ReturnType<typeof scaleBand<string>>,
+  y: (value: number) => number
+): string {
+  const half = (x.step() - x.bandwidth()) / 2
+  let path = ''
+  let drawing = false
+  for (const category of categories) {
+    const level = value(category)
+    if (level === undefined) {
+      drawing = false
+      continue
+    }
+    const from = (x(category) ?? 0) - half
+    const to = from + x.step()
+    const at = y(level).toFixed(1)
+    path += `${drawing ? 'L' : 'M'}${from.toFixed(1)} ${at}H${to.toFixed(1)}`
+    drawing = true
+  }
+  return path
+}
+
+/** The band as a step of boxes, each across a category's whole step, behind the bars. */
+function bandPath(
+  categories: readonly string[],
+  value: (category: string) => number | undefined,
+  share: number,
+  x: ReturnType<typeof scaleBand<string>>,
+  y: (value: number) => number
+): string {
+  const half = (x.step() - x.bandwidth()) / 2
+  return categories
+    .map((category) => {
+      const level = value(category)
+      if (level === undefined) return ''
+      const reach = Math.abs(level) * share
+      const top = y(level + reach)
+      const bottom = y(level - reach)
+      const from = (x(category) ?? 0) - half
+      return `M${from.toFixed(1)} ${top.toFixed(1)}h${x.step().toFixed(1)}V${bottom.toFixed(1)}h${(-x.step()).toFixed(1)}Z`
+    })
+    .join('')
 }
 
 function TipRow({ name, value }: { name: string; value: string }): ReactElement {

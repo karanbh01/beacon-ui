@@ -176,11 +176,13 @@
  * The token a size down, to sit inside a table row; its cell lets it show
  * whole, as a cell's line box is shorter than the token's outline.
  */
-.drilldown-rebalances .tbl-cell:has(.active-token) {
+.drilldown-rebalances .tbl-cell:has(.active-token),
+.drilldown-tokens .tbl-cell:has(.active-token) {
   overflow: visible;
 }
 
-.drilldown-rebalances .active-token {
+.drilldown-rebalances .active-token,
+.drilldown-tokens .active-token {
   display: inline-block;
   vertical-align: middle;
   padding: 0 5px;
@@ -352,4 +354,28 @@
 
 .drilldown-periods {
   align-self: flex-start;
+}
+
+/* Selection: the rebalances' weights, and one rule charted beside them, as Implementation's rebalances are. */
+.drilldown-selection {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+/* The rules a rebalance was tested against, opened under it. */
+.drilldown-rule-tests {
+  padding-top: 6px;
+}
+
+.drilldown-rule-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.drilldown-rule-chart > .select {
+  align-self: flex-end;
 }

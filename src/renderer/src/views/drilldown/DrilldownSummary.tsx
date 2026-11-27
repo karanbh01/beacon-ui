@@ -1,12 +1,12 @@
 import { useRef, useState, type ReactElement } from 'react'
 import { useWidth } from '../../charts/useWidth'
-import { Button } from '../../components/Button/Button'
 import { Section } from '../../components/Section/Section'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { useComparators } from '../index-overview/comparators'
 import { useAnalysisOptions } from '../shared/analyticsQueries'
 import { portfolioName } from '../shared/report/analyticsFormat'
 import type { AssetView, InstrumentProfile } from '../shared/beaconQueries'
+import { spanOf, usePages } from './Pager'
 import { currenciesOf, inCurrency, partOf } from './profile'
 import { CUTS, portfoliosOf, spanOfAsset, spansOf, type Cut, type Span } from './returnRisk'
 import { FIGURE_WIDTH, LABEL_WIDTH, ReturnRiskTable } from './ReturnRiskTable'
@@ -38,8 +38,6 @@ export function DrilldownSummary({
   const host = useRef<HTMLDivElement>(null)
   const width = useWidth(host)
   const [cut, setCut] = useState<Cut>('rebalance')
-  // How many periods back from the newest the table starts.
-  const [back, setBack] = useState(0)
   const inReturns = inCurrency(currenciesOf(asset).returns)
   const returnRisk = partOf(profile, 'period_statistics')
   // An engine without the part still has the asset view's figures over the run.
@@ -62,14 +60,11 @@ export function DrilldownSummary({
         : portfolioName(portfolio, names)
 
   const group = (1 + portfolios.length) * (FIGURE_WIDTH + GAP)
-  const room = Math.max(1, Math.floor((width - LABEL_WIDTH - GAP - group) / group))
-  // Oldest first, so the window ends `back` periods short of the newest.
-  const behind = Math.min(back, Math.max(0, periods.length - room))
-  const end = periods.length - behind
-  const shown = periods.slice(Math.max(0, end - room), end)
+  const room = Math.floor((width - LABEL_WIDTH - GAP - group) / group)
+  const { shown, pager, reset } = usePages(periods, room, (page) =>
+    spanOf(page[0]?.ends[0], page.at(-1)?.ends[1])
+  )
   const spans: Span[] = [...(run === undefined ? [] : [run]), ...shown]
-  const first = shown[0]?.ends[0]
-  const last = shown.at(-1)?.ends[1]
 
   return (
     <div className="drilldown-face" ref={host}>
@@ -82,34 +77,12 @@ export function DrilldownSummary({
                 segments={CUTS}
                 value={cut}
                 onChange={(next) => {
-                  setBack(0)
+                  reset()
                   setCut(next)
                 }}
                 label="Periods"
               />
-              {periods.length > room && (
-                <>
-                  <Button
-                    disabled={end <= room}
-                    onClick={() => {
-                      setBack(behind + room)
-                    }}
-                  >
-                    Earlier
-                  </Button>
-                  <span className="performance-range type-11">
-                    {first === last ? first : `${first ?? ''} to ${last ?? ''}`}
-                  </span>
-                  <Button
-                    disabled={behind === 0}
-                    onClick={() => {
-                      setBack(Math.max(0, behind - room))
-                    }}
-                  >
-                    Later
-                  </Button>
-                </>
-              )}
+              {pager}
             </span>
           )
         }

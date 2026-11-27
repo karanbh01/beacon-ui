@@ -40,3 +40,18 @@
   transform: translateX(-50%);
   pointer-events: none;
 }
+
+/* A level the bars are read against, such as a rule's threshold. */
+.stacked-bars-reference {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 1.25;
+  stroke-dasharray: 4 3;
+}
+
+/* Behind the bars: a band either side of the reference, such as a rule's near misses. */
+.stacked-bars-band {
+  fill: var(--working);
+  background: var(--working);
+  opacity: 0.3;
+}
