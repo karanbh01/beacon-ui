@@ -12928,10 +12928,14 @@
         "operationId": "corporate_actions_data_corporate_actions__identifier__get",
         "parameters": [
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "identifier",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Identifier",
               "type": "string"
             }
@@ -13200,10 +13204,14 @@
         "operationId": "sync_data_coverage__dataset__sync_post",
         "parameters": [
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "dataset",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Dataset",
               "type": "string"
             }
@@ -13715,10 +13723,14 @@
         "operationId": "features_for_data_features__identifier__get",
         "parameters": [
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "identifier",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Identifier",
               "type": "string"
             }
@@ -14382,10 +14394,14 @@
         "operationId": "prices_data_prices__identifier__get",
         "parameters": [
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "identifier",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Identifier",
               "type": "string"
             }
@@ -14868,10 +14884,14 @@
         "operationId": "reference_data_reference__identifier__get",
         "parameters": [
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "identifier",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Identifier",
               "type": "string"
             }
@@ -15259,6 +15279,7 @@
         "operationId": "forget_store_data_stores__store_id__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "store_id",
             "required": true,
@@ -15393,6 +15414,7 @@
         "operationId": "get_store_data_stores__store_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "store_id",
             "required": true,
@@ -15506,6 +15528,7 @@
         "operationId": "update_store_data_stores__store_id__patch",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "store_id",
             "required": true,
@@ -15630,6 +15653,7 @@
         "operationId": "activate_store_data_stores__store_id__activate_post",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "store_id",
             "required": true,
@@ -15755,6 +15779,7 @@
         "operationId": "refresh_store_data_stores__store_id__refresh_post",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "store_id",
             "required": true,
@@ -16016,10 +16041,14 @@
         "operationId": "table_page_data_tables__dataset__get",
         "parameters": [
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "dataset",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Dataset",
               "type": "string"
             }
@@ -16277,6 +16306,7 @@
         "operationId": "delete_watchlist_data_watchlists__watchlist_id__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "watchlist_id",
             "required": true,
@@ -16382,6 +16412,7 @@
         "operationId": "get_watchlist_data_watchlists__watchlist_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "watchlist_id",
             "required": true,
@@ -16494,6 +16525,7 @@
         "operationId": "put_watchlist_data_watchlists__watchlist_id__put",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "watchlist_id",
             "required": true,
@@ -16840,6 +16872,7 @@
         "operationId": "roll_derivatives__index_id__roll_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -17018,6 +17051,7 @@
         "operationId": "term_structure_derivatives__index_id__term_structure_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -17941,6 +17975,7 @@
         "operationId": "delete_index_indices__index_id__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -18053,6 +18088,7 @@
         "operationId": "get_index_indices__index_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -18165,6 +18201,7 @@
         "operationId": "put_index_indices__index_id__put",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -18290,6 +18327,7 @@
         "operationId": "level_indices__index_id__level_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -18441,6 +18479,7 @@
         "operationId": "optimise_index_indices__index_id__optimise_post",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -18575,6 +18614,7 @@
         "operationId": "preview_indices__index_id__preview_post",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -18724,6 +18764,7 @@
         "operationId": "schedule_indices__index_id__schedule_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "index_id",
             "required": true,
@@ -18971,6 +19012,7 @@
         "operationId": "cancel_job_jobs__job_id__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "job_id",
             "required": true,
@@ -19112,6 +19154,7 @@
         "operationId": "get_job_jobs__job_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "job_id",
             "required": true,
@@ -19467,6 +19510,7 @@
         "operationId": "delete_set_optimise_constraint_sets__set_id__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "set_id",
             "required": true,
@@ -19572,6 +19616,7 @@
         "operationId": "get_set_optimise_constraint_sets__set_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "set_id",
             "required": true,
@@ -19684,6 +19729,7 @@
         "operationId": "put_set_optimise_constraint_sets__set_id__put",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "set_id",
             "required": true,
@@ -20021,6 +20067,7 @@
         "operationId": "run_optimise_runs__run_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "run_id",
             "required": true,
@@ -20153,6 +20200,7 @@
         "operationId": "exposures_optimise_runs__run_id__exposures_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "run_id",
             "required": true,
@@ -20267,6 +20315,7 @@
         "operationId": "frontier_optimise_runs__run_id__frontier_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "run_id",
             "required": true,
@@ -20532,6 +20581,7 @@
         "operationId": "download_reports_renders__render_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "render_id",
             "required": true,
@@ -20745,6 +20795,7 @@
         "operationId": "delete_template_reports_templates__template_id__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "template_id",
             "required": true,
@@ -20850,6 +20901,7 @@
         "operationId": "get_template_reports_templates__template_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "template_id",
             "required": true,
@@ -20962,6 +21014,7 @@
         "operationId": "put_template_reports_templates__template_id__put",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "template_id",
             "required": true,
@@ -21187,6 +21240,7 @@
         "operationId": "get_model_risk_models__model_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "model_id",
             "required": true,
@@ -21301,6 +21355,7 @@
         "operationId": "estimate_risk_models__model_id__estimate_post",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "model_id",
             "required": true,
@@ -21983,6 +22038,7 @@
         "operationId": "delete_strategy_strategies__strategy_id__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22095,6 +22151,7 @@
         "operationId": "get_strategy_strategies__strategy_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22208,6 +22265,7 @@
         "operationId": "put_strategy_strategies__strategy_id__put",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22333,6 +22391,7 @@
         "operationId": "analyses_strategies__strategy_id__analyses_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22448,6 +22507,7 @@
         "operationId": "delete_strategies__strategy_id__analyses__name__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22459,6 +22519,7 @@
             }
           },
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "name",
             "required": true,
@@ -22565,6 +22626,7 @@
         "operationId": "saved_strategies__strategy_id__analyses__name__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22576,6 +22638,7 @@
             }
           },
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "name",
             "required": true,
@@ -22691,6 +22754,7 @@
         "operationId": "analytics_strategies__strategy_id__analytics_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22804,6 +22868,7 @@
         "operationId": "rerun_analytics_strategies__strategy_id__analytics_post",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22935,6 +23000,7 @@
         "operationId": "asset_strategies__strategy_id__assets__identifier__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -22946,10 +23012,14 @@
             }
           },
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "identifier",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Identifier",
               "type": "string"
             }
@@ -23058,6 +23128,7 @@
         "operationId": "attribution_strategies__strategy_id__attribution_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -23227,6 +23298,7 @@
         "operationId": "submit_backtest_strategies__strategy_id__backtest_post",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -23359,6 +23431,7 @@
         "operationId": "validate_backtest_strategies__strategy_id__backtest_validate_post",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -23491,6 +23564,7 @@
         "operationId": "holdings_strategies__strategy_id__holdings_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -23642,6 +23716,7 @@
         "operationId": "instrument_strategies__strategy_id__instrument_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -23865,6 +23940,7 @@
         "operationId": "profile_strategies__strategy_id__instrument__identifier__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -23876,10 +23952,14 @@
             }
           },
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "identifier",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Identifier",
               "type": "string"
             }
@@ -24054,6 +24134,7 @@
         "operationId": "overview_strategies__strategy_id__overview_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -24169,6 +24250,7 @@
         "operationId": "periods_strategies__strategy_id__periods_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -24301,6 +24383,7 @@
         "operationId": "backtest_record_strategies__strategy_id__record_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -24434,6 +24517,7 @@
         "operationId": "result_strategies__strategy_id__result_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -24567,6 +24651,7 @@
         "operationId": "table_strategies__strategy_id__tables__name__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -24578,10 +24663,14 @@
             }
           },
           {
+            "description": "Up to 128 characters.",
             "in": "path",
             "name": "name",
             "required": true,
             "schema": {
+              "description": "Up to 128 characters.",
+              "maxLength": 128,
+              "minLength": 1,
               "title": "Name",
               "type": "string"
             }
@@ -24691,6 +24780,7 @@
         "operationId": "weights_strategies__strategy_id__weights_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "strategy_id",
             "required": true,
@@ -25082,6 +25172,7 @@
         "operationId": "delete_universe_universes__universe_id__delete",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "universe_id",
             "required": true,
@@ -25197,6 +25288,7 @@
         "operationId": "get_universe_universes__universe_id__get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "universe_id",
             "required": true,
@@ -25310,6 +25402,7 @@
         "operationId": "put_universe_universes__universe_id__put",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "universe_id",
             "required": true,
@@ -25445,6 +25538,7 @@
         "operationId": "get_members_universes__universe_id__members_get",
         "parameters": [
           {
+            "description": "Letters, digits, dash and underscore; up to 64.",
             "in": "path",
             "name": "universe_id",
             "required": true,

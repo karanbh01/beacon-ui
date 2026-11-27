@@ -9558,6 +9558,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Up to 128 characters. */
                 identifier: string;
             };
             cookie?: never;
@@ -9744,6 +9745,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Up to 128 characters. */
                 dataset: string;
             };
             cookie?: never;
@@ -10138,6 +10140,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Up to 128 characters. */
                 identifier: string;
             };
             cookie?: never;
@@ -10628,6 +10631,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Up to 128 characters. */
                 identifier: string;
             };
             cookie?: never;
@@ -10925,6 +10929,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Up to 128 characters. */
                 identifier: string;
             };
             cookie?: never;
@@ -11216,6 +11221,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 store_id: string;
             };
             cookie?: never;
@@ -11313,6 +11319,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 store_id: string;
             };
             cookie?: never;
@@ -11416,6 +11423,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 store_id: string;
             };
             cookie?: never;
@@ -11514,6 +11522,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 store_id: string;
             };
             cookie?: never;
@@ -11617,6 +11626,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 store_id: string;
             };
             cookie?: never;
@@ -11827,6 +11837,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Up to 128 characters. */
                 dataset: string;
             };
             cookie?: never;
@@ -12013,6 +12024,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 watchlist_id: string;
             };
             cookie?: never;
@@ -12107,6 +12119,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 watchlist_id: string;
             };
             cookie?: never;
@@ -12205,6 +12218,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 watchlist_id: string;
             };
             cookie?: never;
@@ -12500,6 +12514,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -12603,6 +12618,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -13356,6 +13372,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -13450,6 +13467,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -13548,6 +13566,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -13647,6 +13666,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -13741,6 +13761,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -13851,6 +13872,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -13954,6 +13976,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 index_id: string;
             };
             cookie?: never;
@@ -14140,6 +14163,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 job_id: string;
             };
             cookie?: never;
@@ -14234,6 +14258,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 job_id: string;
             };
             cookie?: never;
@@ -14516,6 +14541,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 set_id: string;
             };
             cookie?: never;
@@ -14610,6 +14636,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 set_id: string;
             };
             cookie?: never;
@@ -14708,6 +14735,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 set_id: string;
             };
             cookie?: never;
@@ -14991,6 +15019,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 run_id: string;
             };
             cookie?: never;
@@ -15085,6 +15114,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 run_id: string;
             };
             cookie?: never;
@@ -15184,6 +15214,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 run_id: string;
             };
             cookie?: never;
@@ -15383,6 +15414,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 render_id: string;
             };
             cookie?: never;
@@ -15569,6 +15601,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 template_id: string;
             };
             cookie?: never;
@@ -15663,6 +15696,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 template_id: string;
             };
             cookie?: never;
@@ -15761,6 +15795,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 template_id: string;
             };
             cookie?: never;
@@ -15945,6 +15980,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 model_id: string;
             };
             cookie?: never;
@@ -16039,6 +16075,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 model_id: string;
             };
             cookie?: never;
@@ -16615,6 +16652,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -16709,6 +16747,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -16807,6 +16846,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -16901,6 +16941,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -16995,7 +17036,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 name: string;
             };
             cookie?: never;
@@ -17090,7 +17133,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 name: string;
             };
             cookie?: never;
@@ -17183,6 +17228,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -17277,6 +17323,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -17375,7 +17422,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
+                /** @description Up to 128 characters. */
                 identifier: string;
             };
             cookie?: never;
@@ -17477,6 +17526,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -17571,6 +17621,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -17669,6 +17720,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -17772,6 +17824,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -17879,6 +17932,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -17982,7 +18036,9 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
+                /** @description Up to 128 characters. */
                 identifier: string;
             };
             cookie?: never;
@@ -18077,6 +18133,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -18174,6 +18231,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -18271,6 +18329,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -18368,6 +18427,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -18462,7 +18522,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
+                /** @description Up to 128 characters. */
                 name: string;
             };
             cookie?: never;
@@ -18567,6 +18629,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 strategy_id: string;
             };
             cookie?: never;
@@ -18849,6 +18912,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 universe_id: string;
             };
             cookie?: never;
@@ -18943,6 +19007,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 universe_id: string;
             };
             cookie?: never;
@@ -19050,6 +19115,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 universe_id: string;
             };
             cookie?: never;
@@ -19154,6 +19220,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Letters, digits, dash and underscore; up to 64. */
                 universe_id: string;
             };
             cookie?: never;
