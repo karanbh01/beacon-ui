@@ -222,7 +222,7 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   // Provisional: the cell each book's weighted centre falls in, Morningstar's "Large blend".
   style_classification: [
     {
-      ...col('book', 'Portfolio'),
+      ...col('portfolio', 'Portfolio'),
       labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
     },
     { ...col('size', 'Size'), labels: { large: 'Large', mid: 'Mid', small: 'Small' } },
@@ -245,7 +245,7 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   // comparator; the index and benchmark rows have no band.
   risk_rating: [
     {
-      ...col('book', 'Portfolio'),
+      ...col('portfolio', 'Portfolio'),
       labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
     },
     col('rating', 'Risk rating'),
@@ -384,7 +384,7 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
     col('crisis', 'Crisis'),
     col('date', 'Date', 'date'),
     {
-      ...col('book', 'Portfolio'),
+      ...col('portfolio', 'Portfolio'),
       labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
     },
     col('level', 'Level'),
@@ -393,7 +393,7 @@ const COLUMNS: Record<string, StubStatistic['columns']> = {
   // py-beacon d817ec8 (BN-429, BN-430).
   portfolio_risk_return: [
     {
-      ...col('book', 'Portfolio'),
+      ...col('portfolio', 'Portfolio'),
       labels: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark' }
     },
     col('return', 'Return', 'fraction'),
@@ -827,7 +827,7 @@ export const CATALOGUE_REPORTS = REPORTS.map((report, at) => {
 })
 
 export const CATALOGUE_NAMES = {
-  book: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark', active: 'Active' },
+  portfolio: { fund: 'Fund', index: 'Index', benchmark: 'Benchmark', active: 'Active' },
   // A relative figure's comparator, by the code /instrument and /assets give (BN-454).
   comparator: { index: 'Index', optimised: 'Optimised index', benchmark: 'Benchmark' },
   // A statistic table's windows (BN-467).

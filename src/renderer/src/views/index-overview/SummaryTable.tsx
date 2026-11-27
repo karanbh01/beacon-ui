@@ -5,7 +5,7 @@ import { Dialog } from '../../components/Dialog/Dialog'
 import { Section } from '../../components/Section/Section'
 import { Table, type Column } from '../../components/Table/Table'
 import { useAnalysisOptions, useAnalytics } from '../shared/analyticsQueries'
-import { formatValue, isSigned, toneOf } from '../shared/report/analyticsFormat'
+import { formatValue, isSigned, portfolioName, toneOf } from '../shared/report/analyticsFormat'
 import { ReportFace } from '../shared/report/ReportFace'
 import { useComparators } from './comparators'
 
@@ -143,7 +143,7 @@ function columnsOf(
 ): Column<Row>[] {
   // The index that is also the benchmark, short enough for the column (Karan, 2026-11-20).
   const headerOf = (book: string): string =>
-    book === 'index' && benchmarkIsIndex ? 'Index/BM' : (options.names.book?.[book] ?? book)
+    book === 'index' && benchmarkIsIndex ? 'Index/BM' : portfolioName(book, options.names)
   return [
     {
       key: 'statistic',

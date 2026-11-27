@@ -198,7 +198,7 @@ function CrisisChart({
       const points = mine.flatMap((path) => {
         const date = textOf(path.date)
         const level = numberOf(path.level)
-        return path.book !== book || date === undefined || level === undefined
+        return (path.portfolio ?? path.book) !== book || date === undefined || level === undefined
           ? []
           : [{ date, value: level }]
       })

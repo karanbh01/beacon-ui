@@ -115,7 +115,9 @@ interface Fund {
 
 function fundOf(frame: TableFrame): Fund | undefined {
   const at = (name: string): number => frame.columns.indexOf(name)
-  const row = frame.data.find((cells) => cells[at('book')] === 'fund')
+  // `book` before py-beacon 0.11.0 (BN-463).
+  const portfolio = frame.columns.includes('portfolio') ? at('portfolio') : at('book')
+  const row = frame.data.find((cells) => cells[portfolio] === 'fund')
   const rating = row?.[at('rating')]
   const band = row?.[at('band')]
   if (typeof rating !== 'number' || typeof band !== 'string') return undefined

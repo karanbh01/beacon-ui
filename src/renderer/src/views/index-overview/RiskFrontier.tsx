@@ -54,7 +54,8 @@ export function RiskFrontier({
   const marks = useMemo(
     () =>
       recordsOf(portfolios).flatMap((row): PortfolioMark[] => {
-        const book = BOOKS.find((each) => each === row.book)
+        // `book` before py-beacon 0.11.0 (BN-463).
+        const book = BOOKS.find((each) => each === (row.portfolio ?? row.book))
         const volatility = numberOf(row.volatility)
         const expectedReturn = numberOf(row.return)
         if (book === undefined || volatility === undefined || expectedReturn === undefined)

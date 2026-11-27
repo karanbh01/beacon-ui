@@ -1184,7 +1184,7 @@ export interface paths {
          * @description Every strategy's latest saved run, newest first.
          *
          *     One row per strategy: the record store keeps the latest run only,
-         *     and `/strategies/{strategy_id}/record` serves its books. A record
+         *     and `/strategies/{strategy_id}/record` serves its records. A record
          *     that cannot be read is skipped and counted rather than failing the
          *     listing.
          */
@@ -1554,12 +1554,12 @@ export interface paths {
         };
         /**
          * Backtest Record
-         * @description The latest run's books, nested: the record, not the derived view.
+         * @description The latest run's records, nested: the record, not the derived view.
          *
          *     `BacktestJobStatus.result` carries the run payload (rebased level,
          *     returns, drawdown), which is what a chart wants. This is the other
-         *     half: the portfolio book with its day-zero NAV, bounded positions and
-         *     weights with true totals, and the comparator books, null when the run
+         *     half: the portfolio with its day-zero NAV, bounded positions and
+         *     weights with true totals, and the comparator records, null when the run
          *     had none.
          *
          *     Raises:
@@ -1852,7 +1852,7 @@ export interface components {
             dropped: string[];
             /**
              * Names
-             * @description Labels for figure names that are not statistic ids, by dimension: books, methods, confidence levels, horizons, comparators, fields.
+             * @description Labels for figure names that are not statistic ids, by dimension: portfolios, methods, confidence levels, horizons, comparators, fields.
              */
             names: {
                 [key: string]: {
@@ -2528,7 +2528,7 @@ export interface components {
         BacktestRecordRow: {
             /**
              * Currency
-             * @description The book's currency.
+             * @description The portfolio's currency.
              */
             currency?: string | null;
             /**
@@ -2569,24 +2569,24 @@ export interface components {
         };
         /**
          * BacktestResultSummary
-         * @description Serialised view of a `BacktestResult`, in the shape of its books.
+         * @description Serialised view of a `BacktestResult`, in the shape of its records.
          *
-         *     The nested shape mirrors the library object, one home per fact. Books the
+         *     The nested shape mirrors the library object, one home per fact. Records the
          *     run did not have (no benchmark given, no index calculated) are null rather
          *     than empty, so a client can tell "not measured" from "measured and empty".
-         *     `index` is a container of two books, `{target, optimised}`, matching the
-         *     library's `IndexBooks`.
+         *     `index` is a container of two records, `{target, optimised}`, matching the
+         *     library's `IndexRecords`.
          */
         BacktestResultSummary: {
-            benchmark?: components["schemas"]["BookPayload"] | null;
+            benchmark?: components["schemas"]["RecordPayload"] | null;
             /**
              * Currency
-             * @description The book's currency.
+             * @description The portfolio's currency.
              */
             currency?: string | null;
             index?: components["schemas"]["IndexBooksPayload"];
             metrics: components["schemas"]["BacktestMetrics"];
-            portfolio: components["schemas"]["PortfolioBookPayload"];
+            portfolio: components["schemas"]["PortfolioRecordPayload"];
             /**
              * Price Gaps
              * @description Days a holding or a target name had no bar on a session its index's calendar says was open, and was therefore marked at a carried-forward price. Empty on a run with complete data: a market holiday is not a gap, since nothing is missing on a day nothing traded. A non-empty list is the signal that some marks are stale quotes rather than that day's market, which is otherwise invisible in the NAV.
@@ -2644,16 +2644,16 @@ export interface components {
             counterparty_exposure?: components["schemas"]["SeriesPayload"] | null;
             /**
              * Currency
-             * @description The book's currency, which `total_costs` and `initial_capital` are in: the index's. Null on a run saved before this was recorded, whose book was in USD.
+             * @description The portfolio's currency, which `total_costs` and `initial_capital` are in: the index's. Null on a run saved before this was recorded, whose portfolio was in USD.
              */
             currency?: string | null;
-            /** @description The dividends the fund is owed at the end of each day, in the book's currency: gone ex, not yet paid, net of withholding tax. The NAV includes them. Null for a run that is never owed one. */
+            /** @description The dividends the fund is owed at the end of each day, in the portfolio's currency: gone ex, not yet paid, net of withholding tax. The NAV includes them. Null for a run that is never owed one. */
             dividends_receivable?: components["schemas"]["SeriesPayload"] | null;
             /** @description Level against its running peak; 0 at a new high. */
             drawdown: components["schemas"]["SeriesPayload"];
             /**
              * Fees Paid
-             * @description The vehicle's management fee paid, in the book's currency.
+             * @description The vehicle's management fee paid, in the portfolio's currency.
              * @default 0
              */
             fees_paid: number;
@@ -2664,14 +2664,14 @@ export interface components {
             flows?: components["schemas"]["FlowPayload"][];
             /** @description The same as a fraction of NAV. Null for any other fund. */
             futures_exposure?: components["schemas"]["SeriesPayload"] | null;
-            /** @description The exposure a fund's index futures carried each day, in the book's currency, 0 before they open: a futures-based fund's, or one equitising its cash buffer. Null for any other fund. */
+            /** @description The exposure a fund's index futures carried each day, in the portfolio's currency, 0 before they open: a futures-based fund's, or one equitising its cash buffer. Null for any other fund. */
             futures_notional?: components["schemas"]["SeriesPayload"] | null;
             /**
              * Futures Rolls
              * @description Each roll of the futures to the next contract.
              */
             futures_rolls?: components["schemas"]["FuturesRollPayload"][];
-            /** @description The hedged classes' forwards together, in the book's currency; null without a hedged class. */
+            /** @description The hedged classes' forwards together, in the portfolio's currency; null without a hedged class. */
             hedge_value?: components["schemas"]["SeriesPayload"] | null;
             /** @description The tracked index, rebased to 100 on the same axis. Not the external benchmark, which is `benchmark`. */
             index_level: components["schemas"]["SeriesPayload"];
@@ -2732,7 +2732,7 @@ export interface components {
              * @description Each reset of a synthetic fund's swap.
              */
             swap_resets?: components["schemas"]["SwapResetPayload"][];
-            /** @description A synthetic fund's swap's value each day, in the book's currency: owed to the fund when positive. The NAV includes it. Null for any other fund. */
+            /** @description A synthetic fund's swap's value each day, in the portfolio's currency: owed to the fund when positive. The NAV includes it. Null for any other fund. */
             swap_value?: components["schemas"]["SeriesPayload"] | null;
             /**
              * Total Costs
@@ -2814,48 +2814,6 @@ export interface components {
              * @default CLOSE
              */
             price_column: string;
-        };
-        /**
-         * BookPayload
-         * @description One comparator's record on the wire.
-         *
-         *     Two different facts about weights, not two copies of one: `weights` is
-         *     the daily panel (what the book actually HELD each day, drift included)
-         *     and `rebalances` is what each rebalance DECIDED. They agree only
-         *     on a rebalance date; everywhere else prices have moved the held weights
-         *     away from the decided ones. A client wanting decided weights reads
-         *     `rebalances` rather than resampling the panel, which cannot answer what
-         *     capping cost whatever it is resampled onto.
-         */
-        BookPayload: {
-            /** @description Set only when the index's calendar could not cover the whole requested range, in which case `levels` spans covered_start to covered_end rather than the dates asked for. Null on an ordinary run, and on a comparator supplied as a bare level series, which has no calendar of its own. A range the calendar could cover *none* of refuses instead, so it never arrives here. */
-            calendar_coverage?: components["schemas"]["CalendarCoveragePayload"] | null;
-            levels: components["schemas"]["SeriesPayload"];
-            /**
-             * Rebalances
-             * @description What each rebalance decided (applied weights, their uncapped counterparts and the announcement date), in date order; most recent MAX_REBALANCES at most. The same rows the run payload publishes, kept here because the record is what survives the job result. Empty for a comparator supplied as a bare level series, which decided nothing.
-             */
-            rebalances?: components["schemas"]["RebalanceSnapshot"][];
-            /**
-             * Rebalances Total
-             * @description Rebalances the index actually had; larger than the rows served when the list was truncated.
-             * @default 0
-             */
-            rebalances_total: number;
-            /**
-             * Reference Windows
-             * @description By identifier, the reference columns asked for with `reference_fields` over the weights panel's span, as windows with the dates they held, so any day of the panel reads the classification of its time. Null when none were asked for.
-             */
-            reference_windows?: {
-                [key: string]: components["schemas"]["ReferenceWindow"][];
-            } | null;
-            /** @description Daily weights, dates by identifier; most recent MAX_WEIGHT_DATES dates at most. Empty for a comparator supplied as a bare level series. */
-            weights: components["schemas"]["TableFrame"];
-            /**
-             * Weights Dates Total
-             * @description Dates the book's daily weights panel actually covers: a count, not a date. Larger than the rows in `weights` whenever the panel was truncated to its most recent MAX_WEIGHT_DATES, and 0 for a comparator supplied as a bare level series. `rebalances_total` says the same thing for `rebalances`.
-             */
-            weights_dates_total: number;
         };
         /**
          * CalendarCoveragePayload
@@ -2987,18 +2945,18 @@ export interface components {
         };
         /**
          * CashBandSpec
-         * @description The shares of the book the cash may move between before it is brought
+         * @description The shares of the portfolio the cash may move between before it is brought
          *     back to the cash buffer.
          */
         CashBandSpec: {
             /**
              * Lower
-             * @description The lowest share of the book in cash, a fraction.
+             * @description The lowest share of the portfolio in cash, a fraction.
              */
             lower: number;
             /**
              * Upper
-             * @description The highest share of the book in cash, a fraction.
+             * @description The highest share of the portfolio in cash, a fraction.
              */
             upper: number;
         };
@@ -3819,7 +3777,7 @@ export interface components {
         };
         /**
          * DatedAmounts
-         * @description An amount for each date (YYYY-MM-DD), in the book's currency, positive
+         * @description An amount for each date (YYYY-MM-DD), in the portfolio's currency, positive
          *     in and negative out.
          */
         DatedAmounts: {
@@ -4272,12 +4230,12 @@ export interface components {
         FlowPayload: {
             /**
              * Adjustment
-             * @description What the dealing investors paid into the fund through the price or a levy, in the book's currency.
+             * @description What the dealing investors paid into the fund through the price or a levy, in the portfolio's currency.
              */
             adjustment: number;
             /**
              * Amount
-             * @description Paid in (positive) or out (negative), in the book's currency.
+             * @description Paid in (positive) or out (negative), in the portfolio's currency.
              */
             amount: number;
             /**
@@ -4523,13 +4481,13 @@ export interface components {
             expiry: string;
             /**
              * Multiplier
-             * @description The value of one index point per contract, in the book's currency.
+             * @description The value of one index point per contract, in the portfolio's currency.
              * @default 1
              */
             multiplier: number;
             /**
              * Notional
-             * @description The exposure carried into it, in the book's currency.
+             * @description The exposure carried into it, in the portfolio's currency.
              */
             notional: number;
             /**
@@ -4735,12 +4693,12 @@ export interface components {
             kind: string;
             /**
              * Notional
-             * @description The new forward's notional, in the book's currency.
+             * @description The new forward's notional, in the portfolio's currency.
              */
             notional: number;
             /**
              * Rate
-             * @description Its contracted rate, class currency per unit of the book's.
+             * @description Its contracted rate, class currency per unit of the portfolio's.
              */
             rate: number;
             /**
@@ -4766,12 +4724,12 @@ export interface components {
             benchmark_weight?: number | null;
             /**
              * Current Weight
-             * @description Its weight in the book as of `as_of`.
+             * @description Its weight in the portfolio as of `as_of`.
              */
             current_weight?: number | null;
             /**
              * Excluded At
-             * @description The key of the stage it left at; null for a name still in the book.
+             * @description The key of the stage it left at; null for a name still in the portfolio.
              */
             excluded_at?: string | null;
             /**
@@ -4810,7 +4768,7 @@ export interface components {
             } | null;
             /**
              * Shares Held
-             * @description The units of it the book held as of `as_of`.
+             * @description The units of it the portfolio held as of `as_of`.
              */
             shares_held?: number | null;
             /**
@@ -4884,7 +4842,7 @@ export interface components {
             as_of: string;
             /**
              * Cash Weight
-             * @description The share of the book the rebalance left in cash.
+             * @description The share of the portfolio the rebalance left in cash.
              */
             cash_weight?: number | null;
             /**
@@ -5009,13 +4967,13 @@ export interface components {
             cash_band?: components["schemas"]["CashBandSpec"] | null;
             /**
              * Cash Buffer
-             * @description The share of the book kept in cash, a fraction.
+             * @description The share of the portfolio kept in cash, a fraction.
              * @default 0
              */
             cash_buffer: number;
             /**
              * Equitise
-             * @description Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps`, `dividend_yield` (null to estimate it), `multiplier` (the value of an index point per contract, 50 by default), `whole_contracts` (true by default), `band` (how far the exposure may drift from the cash before the futures are resized, as a share of the net assets; 0.0025 by default), `cost_per_contract` (each contract traded, in the book's currency), `trading_cost_bps` (on the notional of each trade between rolls), `underlying` (a market series the futures are on, when not the fund's index), `prices` (a series of the held contract's prices) and the assumed mispricing when there are none: `mispricing_bps` (its standard deviation, 0 by default), `mispricing_half_life` (sessions, 10 by default) and `mispricing_seed`. Null leaves the cash as cash.
+             * @description Index futures held on the uninvested cash, so the buffer earns the index's return: `roll_days`, `roll_cost_bps`, `dividend_yield` (null to estimate it), `multiplier` (the value of an index point per contract, 50 by default), `whole_contracts` (true by default), `band` (how far the exposure may drift from the cash before the futures are resized, as a share of the net assets; 0.0025 by default), `cost_per_contract` (each contract traded, in the portfolio's currency), `trading_cost_bps` (on the notional of each trade between rolls), `underlying` (a market series the futures are on, when not the fund's index), `prices` (a series of the held contract's prices) and the assumed mispricing when there are none: `mispricing_bps` (its standard deviation, 0 by default), `mispricing_half_life` (sessions, 10 by default) and `mispricing_seed`. Null leaves the cash as cash.
              */
             equitise?: {
                 band?: number | null;
@@ -5054,7 +5012,7 @@ export interface components {
             invest_flows: string;
             /**
              * Minimum Position
-             * @description Positions too small to keep: `value` (money, in the book's currency) and `weight` (a fraction).
+             * @description Positions too small to keep: `value` (money, in the portfolio's currency) and `weight` (a fraction).
              */
             minimum_position?: {
                 [key: string]: number | null;
@@ -5108,13 +5066,13 @@ export interface components {
          * IndexBooksPayload
          * @description The run's calculated indices on the wire.
          *
-         *     Mirrors the library's `IndexBooks`: `target` is the index being aimed
+         *     Mirrors the library's `IndexRecords`: `target` is the index being aimed
          *     at, pre-optimisation; `optimised` is the solved index's own
          *     calculation, null until an optimised run fills it.
          */
         IndexBooksPayload: {
-            optimised?: components["schemas"]["BookPayload"] | null;
-            target?: components["schemas"]["BookPayload"] | null;
+            optimised?: components["schemas"]["RecordPayload"] | null;
+            target?: components["schemas"]["RecordPayload"] | null;
         };
         /**
          * IndexCollection
@@ -5341,7 +5299,7 @@ export interface components {
             linking: string;
             /**
              * Parts
-             * @description Each part the run can give, by name: 'rebalance_weights', a row a rebalance; 'daily_weights', a row a day; 'attribution', a row a period, dated by its last day; 'risk', 'liquidity', 'factor_exposures', 'factor_betas', 'style' and 'key_data', a row a rebalance; 'corporate_actions', a row an action, dated by its ex-date; 'trades', a row a trade; 'events', a row an event; and 'selection', a row a rebalance a rule a threshold. A days to sell is null where the name has no traded value.
+             * @description Each part the run can give, by name: 'rebalance_weights', a row a rebalance; 'daily_weights', a row a day; 'attribution', a row a period, dated by its last day; 'risk', 'liquidity', 'factor_exposures', 'factor_betas', 'style' and 'key_data', a row a rebalance; 'corporate_actions', a row an action, dated by its ex-date; 'trades', a row a trade; 'events', a row an event; and 'selection', a row a rebalance a rule a threshold; and 'period_statistics', a row for the whole window, then each rebalance period, year, quarter and month, told apart by its 'period' column and dated by its last day. A days to sell is null where the name has no traded value.
              */
             parts: {
                 [key: string]: components["schemas"]["ProfileTable"];
@@ -5593,6 +5551,11 @@ export interface components {
              * @description The same for a ratio scaled by the square root of a year, such as the Sharpe ratio.
              */
             min_annualised_ratio_window?: string | null;
+            /**
+             * Min Risk Days
+             * @description The fewest daily returns a period's risk figures, such as a name's volatility, beta, correlation and share of volatility in its profile, are given over.
+             */
+            min_risk_days?: number | null;
             /**
              * Periods Per Year
              * @description How many periods make a year.
@@ -5944,7 +5907,7 @@ export interface components {
             type: string;
             /**
              * Unit
-             * @description What the value is measured in: 'fraction' (show 0.02 as 2%), 'bps', 'days', 'money' (in the book's currency), 'count' or 'ratio'. Null for a value with no unit.
+             * @description What the value is measured in: 'fraction' (show 0.02 as 2%), 'bps', 'days', 'money' (in the portfolio's currency), 'count' or 'ratio'. Null for a value with no unit.
              */
             unit?: string | null;
         };
@@ -6053,18 +6016,18 @@ export interface components {
             weighting: components["schemas"]["WeightingSpec"];
         };
         /**
-         * PortfolioBookPayload
-         * @description The portfolio's books on the wire.
+         * PortfolioRecordPayload
+         * @description The portfolio's record on the wire.
          *
-         *     No `rebalances` here, unlike the index books: a portfolio makes no
+         *     No `rebalances` here, unlike the index records: a portfolio makes no
          *     rebalance decision of its own (it trades toward one), so decided weights
          *     would be a field with nothing honest to put in it.
          */
-        PortfolioBookPayload: {
+        PortfolioRecordPayload: {
             cash: components["schemas"]["SeriesPayload"];
             /** Initial Capital */
             initial_capital: number;
-            /** @description The full NAV book, day-zero row included: it opens with initial capital on the eve of the first trading day. Metrics derive from the series without that row, and a client deriving its own period figures should do the same. A period holding only the day-zero row measures that row against itself and reads as a flat period rather than one that never traded. */
+            /** @description The full NAV record, day-zero row included: it opens with initial capital on the eve of the first trading day. Metrics derive from the series without that row, and a client deriving its own period figures should do the same. A period holding only the day-zero row measures that row against itself and reads as a flat period rather than one that never traded. */
             nav: components["schemas"]["SeriesPayload"];
             /** Portfolio Id */
             portfolio_id: string;
@@ -6518,6 +6481,13 @@ export interface components {
              * @description Each row's date, YYYY-MM-DD, in order.
              */
             dates: string[];
+            /**
+             * Unavailable
+             * @description Each column with a null, and why; null when none.
+             */
+            unavailable?: {
+                [key: string]: string;
+            } | null;
         };
         /**
          * RebalancePricingPayload
@@ -6546,7 +6516,7 @@ export interface components {
          *     applied weights alone.
          *
          *     The run payload publishes these snapshots as `rebalances`, and the stored
-         *     backtest record publishes the same rows on each index book.
+         *     backtest record publishes the same rows on each index portfolio.
          */
         RebalanceSnapshot: {
             /**
@@ -6613,7 +6583,7 @@ export interface components {
             };
             /**
              * Cash Weight
-             * @description The share of the book the weights leave in cash.
+             * @description The share of the portfolio the weights leave in cash.
              * @default 0
              */
             cash_weight: number;
@@ -6629,6 +6599,48 @@ export interface components {
             removed?: {
                 [key: string]: string;
             };
+        };
+        /**
+         * RecordPayload
+         * @description One comparator's record on the wire.
+         *
+         *     Two different facts about weights, not two copies of one: `weights` is
+         *     the daily panel (what the portfolio actually HELD each day, drift included)
+         *     and `rebalances` is what each rebalance DECIDED. They agree only
+         *     on a rebalance date; everywhere else prices have moved the held weights
+         *     away from the decided ones. A client wanting decided weights reads
+         *     `rebalances` rather than resampling the panel, which cannot answer what
+         *     capping cost whatever it is resampled onto.
+         */
+        RecordPayload: {
+            /** @description Set only when the index's calendar could not cover the whole requested range, in which case `levels` spans covered_start to covered_end rather than the dates asked for. Null on an ordinary run, and on a comparator supplied as a bare level series, which has no calendar of its own. A range the calendar could cover *none* of refuses instead, so it never arrives here. */
+            calendar_coverage?: components["schemas"]["CalendarCoveragePayload"] | null;
+            levels: components["schemas"]["SeriesPayload"];
+            /**
+             * Rebalances
+             * @description What each rebalance decided (applied weights, their uncapped counterparts and the announcement date), in date order; most recent MAX_REBALANCES at most. The same rows the run payload publishes, kept here because the record is what survives the job result. Empty for a comparator supplied as a bare level series, which decided nothing.
+             */
+            rebalances?: components["schemas"]["RebalanceSnapshot"][];
+            /**
+             * Rebalances Total
+             * @description Rebalances the index actually had; larger than the rows served when the list was truncated.
+             * @default 0
+             */
+            rebalances_total: number;
+            /**
+             * Reference Windows
+             * @description By identifier, the reference columns asked for with `reference_fields` over the weights panel's span, as windows with the dates they held, so any day of the panel reads the classification of its time. Null when none were asked for.
+             */
+            reference_windows?: {
+                [key: string]: components["schemas"]["ReferenceWindow"][];
+            } | null;
+            /** @description Daily weights, dates by identifier; most recent MAX_WEIGHT_DATES dates at most. Empty for a comparator supplied as a bare level series. */
+            weights: components["schemas"]["TableFrame"];
+            /**
+             * Weights Dates Total
+             * @description Dates the portfolio's daily weights panel actually covers: a count, not a date. Larger than the rows in `weights` whenever the panel was truncated to its most recent MAX_WEIGHT_DATES, and 0 for a comparator supplied as a bare level series. `rebalances_total` says the same thing for `rebalances`.
+             */
+            weights_dates_total: number;
         };
         /**
          * ReferenceEntry
@@ -7743,8 +7755,8 @@ export interface components {
          *     its series share `level`'s dates.
          */
         ShareClassPayload: {
-            /** @description The same in the book's currency, which add up to the fund's across the classes. */
-            book_net_assets: components["schemas"]["SeriesPayload"];
+            /** @description The same in the fund's base currency, which add up to the fund's across the classes. */
+            base_net_assets: components["schemas"]["SeriesPayload"];
             /**
              * Currency
              * @description The currency its figures are in.
@@ -7807,12 +7819,12 @@ export interface components {
         /**
          * ShareClassSpec
          * @description One share class of a backtest's fund: its own currency, fee and
-         *     distribution policy, sharing the book with the other classes.
+         *     distribution policy, sharing the portfolio with the other classes.
          */
         ShareClassSpec: {
             /**
              * Currency
-             * @description The class's currency. Null is the book's.
+             * @description The class's currency. Null is the portfolio's.
              */
             currency?: string | null;
             /**
@@ -7841,7 +7853,7 @@ export interface components {
             hedge_ratio: number;
             /**
              * Hedged
-             * @description Whether it hedges its share of the assets into its currency with a monthly forward. Needs a currency other than the book's.
+             * @description Whether it hedges its share of the assets into its currency with a monthly forward. Needs a currency other than the portfolio's.
              * @default false
              */
             hedged: boolean;
@@ -8148,7 +8160,7 @@ export interface components {
             benchmark?: components["schemas"]["BenchmarkRef"] | null;
             /**
              * Currency
-             * @description The book's currency. Null keeps it in the index's.
+             * @description The portfolio's currency. Null keeps it in the index's.
              */
             currency?: string | null;
             /**
@@ -8164,14 +8176,14 @@ export interface components {
             end?: string | null;
             /**
              * Flows
-             * @description Money arriving and leaving, added together. Amounts are in the book's currency. With share classes, by class name, each in its class's currency.
+             * @description Money arriving and leaving, added together. Amounts are in the portfolio's currency. With share classes, by class name, each in its class's currency.
              */
             flows?: components["schemas"]["TypedSpec"][] | {
                 [key: string]: components["schemas"]["TypedSpec"][];
             };
             /**
              * Initial Capital
-             * @description The capital the fund starts with, in the book's currency. With share classes, by class name, each in its class's currency.
+             * @description The capital the fund starts with, in the portfolio's currency. With share classes, by class name, each in its class's currency.
              * @default 1000000
              */
             initial_capital: number | {
@@ -8187,7 +8199,7 @@ export interface components {
             reinvest_into: string;
             /**
              * Share Classes
-             * @description The fund's share classes, sharing one book. Empty runs one class with the request's capital and flows, as without classes.
+             * @description The fund's share classes, sharing one portfolio. Empty runs one class with the request's capital and flows, as without classes.
              */
             share_classes?: components["schemas"]["ShareClassSpec"][];
             /**
@@ -8360,7 +8372,7 @@ export interface components {
             date: string;
             /**
              * Notional
-             * @description The notional it was reset to, the fund's net assets, in the book's currency.
+             * @description The notional it was reset to, the fund's net assets, in the portfolio's currency.
              */
             notional: number;
             /**
@@ -8370,7 +8382,7 @@ export interface components {
             reason: string;
             /**
              * Settled
-             * @description The swap's value paid in cash, in the book's currency: received by the fund when positive, paid by it when negative; 0 when it opened.
+             * @description The swap's value paid in cash, in the portfolio's currency: received by the fund when positive, paid by it when negative; 0 when it opened.
              */
             settled: number;
         };
@@ -9062,7 +9074,7 @@ export interface components {
          *     (`limits`) replaces the preset's whole, a plain object (`market`) merges
          *     key by key, an omitted key keeps the preset's value, and null means none
          *     (refused on a setting that cannot be none). Money settings are in the
-         *     book's currency.
+         *     portfolio's currency.
          */
         VehicleSpec: {
             /**

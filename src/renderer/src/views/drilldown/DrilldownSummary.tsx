@@ -5,6 +5,7 @@ import { Section } from '../../components/Section/Section'
 import { SegmentedControl } from '../../components/SegmentedControl/SegmentedControl'
 import { useComparators } from '../index-overview/comparators'
 import { useAnalysisOptions } from '../shared/analyticsQueries'
+import { portfolioName } from '../shared/report/analyticsFormat'
 import type { AssetView, InstrumentProfile } from '../shared/beaconQueries'
 import { currenciesOf, inCurrency, partOf } from './profile'
 import { CUTS, portfoliosOf, spanOfAsset, spansOf, type Cut, type Span } from './returnRisk'
@@ -40,7 +41,7 @@ export function DrilldownSummary({
   // How many periods back from the newest the table starts.
   const [back, setBack] = useState(0)
   const inReturns = inCurrency(currenciesOf(asset).returns)
-  const returnRisk = partOf(profile, 'return_risk')
+  const returnRisk = partOf(profile, 'period_statistics')
   // An engine without the part still has the asset view's figures over the run.
   const against = asset?.against ?? 'index'
   const { run, periods } =
@@ -58,7 +59,7 @@ export function DrilldownSummary({
       ? 'Index/BM'
       : portfolio === 'benchmark'
         ? 'BM'
-        : (names?.portfolio?.[portfolio] ?? names?.book?.[portfolio] ?? portfolio)
+        : portfolioName(portfolio, names)
 
   const group = (1 + portfolios.length) * (FIGURE_WIDTH + GAP)
   const room = Math.max(1, Math.floor((width - LABEL_WIDTH - GAP - group) / group))

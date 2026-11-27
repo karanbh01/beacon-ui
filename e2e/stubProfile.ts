@@ -479,7 +479,7 @@ const CALENDAR: Record<string, (date: string) => string> = {
 /**
  * The name's return and risk over the run, each rebalance period and each
  * year, quarter and month, against each portfolio (py-beacon BN-477,
- * `return_risk`; the calendar cuts and no tracking error as asked of it
+ * `period_statistics` since BN-481; the calendar cuts and no tracking error as asked of it
  * 2026-11-27 and accepted).
  * Its own return and volatility are from its price; the rest are made up
  * about them, seeded, the same shape as the engine's.
@@ -615,7 +615,7 @@ export function profileOf(
       trades: trades(name),
       events: events(name, picked),
       selection: picked,
-      return_risk: returnRisk(name)
+      period_statistics: returnRisk(name)
     },
     unavailable: {}
   }

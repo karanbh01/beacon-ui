@@ -62,17 +62,25 @@ export function isSigned(statistic: StatisticSpec): boolean {
 }
 
 /**
- * A figure's name in words: a book ("Fund"), or a compound name labelled
+ * A figure's name in words: a portfolio ("Fund"), or a compound name labelled
  * part by part through the dimensions the statistic declares, so
  * "historical/0.95/1" reads "Historical, 95%, 1 day" (BN-400).
  */
+/**
+ * A portfolio's name in words ("Fund"). py-beacon 0.11.0 calls the
+ * dimension `portfolio`; an engine before it, `book` (BN-463).
+ */
+export function portfolioName(name: string, names: AnalysisOptions['names'] | undefined): string {
+  return names?.portfolio?.[name] ?? names?.book?.[name] ?? name
+}
+
 export function figureLabel(
   name: string,
   statistic: StatisticSpec,
   names: AnalysisOptions['names']
 ): string {
   const dimensions = statistic.figure_names
-  if (dimensions === undefined) return names.book?.[name] ?? name
+  if (dimensions === undefined) return portfolioName(name, names)
   const parts = name.split('/')
   return parts.map((part, at) => names[dimensions[at] ?? '']?.[part] ?? part).join(', ')
 }

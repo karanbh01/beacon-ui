@@ -2,7 +2,7 @@ import type { AssetView } from '../shared/beaconQueries'
 import { dayOf, MONTHS, type Cell, type Part } from './profile'
 
 /*
- * Reading the profile's `return_risk` part (py-beacon BN-477) into the
+ * Reading the profile's `period_statistics` part (py-beacon BN-477, named so in BN-481) into the
  * spans Summary's table shows: the run, then the periods of one cut.
  */
 
@@ -29,7 +29,7 @@ export interface Span {
 }
 
 /**
- * The run's span from the profile's `return_risk` part, and one cut's
+ * The run's span from the profile's `period_statistics` part, and one cut's
  * periods, oldest first as the Overview's Performance table has them.
  */
 export function spansOf(
@@ -80,7 +80,7 @@ const rank = (portfolio: string): number => {
 }
 
 /**
- * Before the engine has `return_risk`: the run alone, from the asset view,
+ * Before the engine has `period_statistics`: the run alone, from the asset view,
  * whose figures are the name against the one comparator it tracks.
  */
 export function spanOfAsset(asset: AssetView, comparator: string): Span {

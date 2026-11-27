@@ -34,8 +34,8 @@ import {
   type WeightMatrix
 } from './weightsHistory'
 
-type BookPayload = components['schemas']['BookPayload']
-type RecordPayload = components['schemas']['BacktestResultSummary']
+type RecordPayload = components['schemas']['RecordPayload']
+type RunSummary = components['schemas']['BacktestResultSummary']
 
 export interface WeightsOverTimeProps {
   strategyId: string
@@ -311,7 +311,7 @@ export function WeightsOverTime({
  * weights, on the index's rebalance days or at each month's or quarter's
  * end.
  */
-function matrixOf(record: RecordPayload | undefined, frequency: Frequency): WeightMatrix {
+function matrixOf(record: RunSummary | undefined, frequency: Frequency): WeightMatrix {
   if (record === undefined) return EMPTY
   const book = record.portfolio
 
@@ -336,7 +336,7 @@ function latestOwn(
 }
 
 /** An index's book (the tracked index, or the benchmark) at the asked-for frequency. */
-function bookOf(book: BookPayload | null | undefined, frequency: Frequency): WeightMatrix {
+function bookOf(book: RecordPayload | null | undefined, frequency: Frequency): WeightMatrix {
   if (book == null) return EMPTY
   if (frequency === 'rebalance') return fromSnapshots(book.rebalances ?? [], book.rebalances_total)
   return fromPanel(book.weights, book.weights_dates_total, frequency)

@@ -4,7 +4,7 @@ import { LevelChart, type Series } from '../../../charts/LevelChart'
 import { Select } from '../../../components/Select/Select'
 import { Table, type Column } from '../../../components/Table/Table'
 import { useThemeMode } from '../../../state/theme'
-import { figureLabel, formatValue, isSigned, toneOf } from './analyticsFormat'
+import { figureLabel, formatValue, isSigned, portfolioName, toneOf } from './analyticsFormat'
 import type { LaidOutStatistic } from './reportLayout'
 
 const BOOKS = ['fund', 'index', 'benchmark', 'active']
@@ -58,7 +58,7 @@ export function FiguresTable({
     },
     ...books.map((book): Column<FigureRow> => ({
       key: book,
-      header: options.names.book?.[book] ?? book,
+      header: portfolioName(book, options.names),
       width: 110,
       align: 'right',
       render: (row) => {
@@ -179,7 +179,7 @@ export function RollingChart({
     const { table } = value.rolling
     const scale = shown.spec.unit === 'fraction' ? 100 : 1
     return table.columns.map((column, at) => ({
-      label: options.names.book?.[column] ?? column,
+      label: portfolioName(column, options.names),
       points: table.index.map((date, row) => ({
         date: String(date),
         value: Number(table.data[row]?.[at] ?? 0) * scale

@@ -23,13 +23,24 @@ import { formatMoney } from '../shared/largeNumbers'
 import { AumByCurrency } from './AumByCurrency'
 
 type Flow = components['schemas']['FlowPayload']
+type ShareClass = components['schemas']['ShareClassPayload']
+type Series = ShareClass['base_net_assets']
+
+/**
+ * A class's assets in the fund's base currency each day. py-beacon 0.11.0
+ * calls them `base_net_assets`; an engine before it, `book_net_assets` (BN-479).
+ */
+function netAssetsOf(shareClass: ShareClass): Series | undefined {
+  const either: { base_net_assets?: Series; book_net_assets?: Series } = shareClass
+  return either.base_net_assets ?? either.book_net_assets
+}
 
 /** A dealing day's flow into one share class, or into the fund when it has none. */
 interface ClassFlow extends Flow {
   shareClass: string
 }
 
-/** One share class's assets now, in the book's currency, and its share of the fund's. */
+/** One share class's assets now, in the fund's base currency, and its share of the fund's. */
 interface ClassAssets {
   name: string
   currency: string
@@ -117,7 +128,7 @@ export function FlowsAum({ strategyId }: { strategyId: string }): ReactElement {
               classes={classes.map((shareClass) => ({
                 name: shareClass.name,
                 currency: shareClass.currency,
-                assets: lastValue(toPoints(shareClass.book_net_assets)),
+                assets: lastValue(toPoints(netAssetsOf(shareClass))),
                 hedged: shareClass.hedged
               }))}
               colourOf={colourOf}
@@ -227,7 +238,7 @@ function classAssets(run: RunResult): ClassAssets[] {
     name: shareClass.name,
     currency: `${shareClass.currency}${shareClass.hedged ? ' · hedged' : ''}`,
     distribution: shareClass.distribution,
-    assets: lastValue(toPoints(shareClass.book_net_assets)),
+    assets: lastValue(toPoints(netAssetsOf(shareClass))),
     totalReturn: shareClass.metrics.total_return
   }))
   const total = rows.reduce((sum, row) => sum + (row.assets ?? 0), 0)
